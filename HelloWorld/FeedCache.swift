@@ -97,6 +97,15 @@ struct ChannelMaintenanceItem: Codable, Identifiable, Hashable {
     let freshness: ChannelFreshness
 }
 
+struct ChannelBrowseItem: Identifiable, Hashable {
+    let id: String
+    let channelID: String
+    let channelTitle: String
+    let latestPublishedAt: Date?
+    let latestVideo: CachedVideo?
+    let cachedVideoCount: Int
+}
+
 struct FeedBootstrapSnapshot: Codable {
     var progress: CacheProgress
     var maintenanceItems: [ChannelMaintenanceItem]
@@ -212,6 +221,39 @@ actor FeedCacheStore {
             .sorted(by: sortComparator(query.sortOrder))
             .prefix(query.limit)
             .map { $0 }
+    }
+
+    func loadChannelBrowseItems(channelIDs: [String]) -> [ChannelBrowseItem] {
+        let snapshot = loadSnapshot()
+        let groupedVideos = Dictionary(grouping: snapshot.videos.filter { !looksLikeShort($0) }, by: \.channelID)
+        let states = Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) })
+
+        return channelIDs.map { channelID in
+            let latestVideo = groupedVideos[channelID]?
+                .sorted(by: sortComparator(.publishedDescending))
+                .first
+            let state = states[channelID]
+            return ChannelBrowseItem(
+                id: channelID,
+                channelID: channelID,
+                channelTitle: state?.channelTitle ?? latestVideo?.channelTitle ?? channelID,
+                latestPublishedAt: state?.latestPublishedAt ?? latestVideo?.publishedAt,
+                latestVideo: latestVideo,
+                cachedVideoCount: state?.cachedVideoCount ?? groupedVideos[channelID]?.count ?? 0
+            )
+        }
+        .sorted { lhs, rhs in
+            switch (lhs.latestPublishedAt, rhs.latestPublishedAt) {
+            case let (left?, right?):
+                return left > right
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            default:
+                return lhs.channelTitle < rhs.channelTitle
+            }
+        }
     }
 
     func recordFailure(channelID: String, checkedAt: Date, error: String) {
@@ -452,6 +494,7 @@ final class FeedCacheCoordinator: ObservableObject {
     @Published private(set) var progress: CacheProgress
     @Published private(set) var maintenanceItems: [ChannelMaintenanceItem] = []
     @Published private(set) var videos: [CachedVideo] = []
+    @Published private(set) var priorityMaintenanceItems: [ChannelMaintenanceItem] = []
 
     private let channels: [String]
     private let store = FeedCacheStore()
@@ -468,6 +511,7 @@ final class FeedCacheCoordinator: ObservableObject {
         let bootstrap = FeedBootstrapStore.load(channels: channels)
         self.progress = bootstrap.progress
         self.maintenanceItems = bootstrap.maintenanceItems
+        self.priorityMaintenanceItems = Array(bootstrap.maintenanceItems.prefix(3))
     }
 
     func start() {
@@ -554,6 +598,24 @@ final class FeedCacheCoordinator: ObservableObject {
         }
     }
 
+    func loadPriorityMaintenanceFromCache() {
+        Task {
+            let snapshot = await store.loadSnapshot()
+            let items = await buildMaintenanceItems(from: snapshot)
+            priorityMaintenanceItems = Array(items.prefix(3))
+            await store.persistBootstrap(progress: progress, maintenanceItems: items)
+        }
+    }
+
+    func loadChannelBrowseItems() async -> [ChannelBrowseItem] {
+        let channelIDs = maintenanceItems.map(\.channelID).isEmpty ? channels : maintenanceItems.map(\.channelID)
+        return await store.loadChannelBrowseItems(channelIDs: channelIDs)
+    }
+
+    func loadVideosForChannel(_ channelID: String) async -> [CachedVideo] {
+        await store.loadVideos(query: VideoQuery(limit: 50, channelID: channelID, keyword: nil, sortOrder: .publishedDescending, excludeShorts: true))
+    }
+
     private func channelValidationToken(for channelID: String) async -> FeedValidationToken? {
         let snapshot = await store.loadSnapshot()
         guard let state = snapshot.channels.first(where: { $0.channelID == channelID }) else {
@@ -635,7 +697,19 @@ final class FeedCacheCoordinator: ObservableObject {
             lastError: lastError
         )
 
-        maintenanceItems = prioritizedChannels.map { channelID in
+        maintenanceItems = await buildMaintenanceItems(from: snapshot)
+        priorityMaintenanceItems = Array(maintenanceItems.prefix(3))
+
+        await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
+
+        if includesVideos {
+            videos = await store.loadVideos(query: videoQuery)
+        }
+    }
+
+    private func buildMaintenanceItems(from snapshot: FeedCacheSnapshot) async -> [ChannelMaintenanceItem] {
+        let prioritizedChannels = prioritizedChannelIDs(states: Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) }))
+        return prioritizedChannels.map { channelID in
             let state = snapshot.channels.first(where: { $0.channelID == channelID })
             return ChannelMaintenanceItem(
                 id: channelID,
@@ -648,12 +722,6 @@ final class FeedCacheCoordinator: ObservableObject {
                 lastError: state?.lastError,
                 freshness: freshness(for: state?.lastSuccessAt)
             )
-        }
-
-        await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
-
-        if includesVideos {
-            videos = await store.loadVideos(query: videoQuery)
         }
     }
 

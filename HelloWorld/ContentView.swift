@@ -7,9 +7,15 @@
 
 import SwiftUI
 
+private enum MaintenanceRoute: Hashable {
+    case channelList
+    case channelVideos(String)
+}
+
 struct ContentView: View {
     @Environment(\.openURL) private var openURL
     @StateObject private var coordinator: FeedCacheCoordinator
+    @State private var selectedPage = 0
 
     init() {
         _coordinator = StateObject(wrappedValue: FeedCacheCoordinator(channels: ChannelResource.loadChannelIDs()))
@@ -24,7 +30,7 @@ struct ContentView: View {
     }()
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedPage) {
             maintenancePage
                 .tag(0)
 
@@ -34,11 +40,17 @@ struct ContentView: View {
         .tabViewStyle(.page(indexDisplayMode: .always))
         .background(Color(.systemGroupedBackground))
         .task(priority: .userInitiated) {
-            coordinator.refreshFromCache()
+            coordinator.loadPriorityMaintenanceFromCache()
+            coordinator.refreshMaintenanceFromCache()
         }
         .task(priority: .background) {
             try? await Task.sleep(for: .milliseconds(300))
             coordinator.start()
+        }
+        .onChange(of: selectedPage) { _, newValue in
+            if newValue == 1 {
+                coordinator.loadVideosFromCache()
+            }
         }
     }
 
@@ -67,11 +79,14 @@ struct ContentView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    MetricTile(
-                        title: "チャンネル",
-                        value: "\(progress.cachedChannels) / \(progress.totalChannels)",
-                        detail: progress.isRunning ? "日次初回は10秒間隔、その後は1時間ごとに確認" : "停止中"
-                    )
+                    NavigationLink(value: MaintenanceRoute.channelList) {
+                        MetricTile(
+                            title: "チャンネル",
+                            value: "\(progress.cachedChannels) / \(progress.totalChannels)",
+                            detail: progress.isRunning ? "日次初回は10秒間隔、その後は1時間ごとに確認" : "停止中"
+                        )
+                    }
+                    .buttonStyle(.plain)
 
                     MetricTile(
                         title: "動画",
@@ -112,14 +127,25 @@ struct ContentView: View {
                         .padding(.top, 8)
 
                     LazyVStack(spacing: 12) {
-                        ForEach(coordinator.maintenanceItems) { item in
-                            ChannelStatusCard(item: item)
+                        ForEach(coordinator.priorityMaintenanceItems) { item in
+                            NavigationLink(value: MaintenanceRoute.channelVideos(item.channelID)) {
+                                ChannelStatusCard(item: item)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
                 .padding(16)
             }
             .background(Color(.systemGroupedBackground))
+            .navigationDestination(for: MaintenanceRoute.self) { route in
+                switch route {
+                case .channelList:
+                    ChannelBrowseListView(coordinator: coordinator)
+                case let .channelVideos(channelID):
+                    ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo)
+                }
+            }
         }
     }
 
@@ -271,6 +297,135 @@ private struct ChannelStatusCard: View {
         case .neverFetched:
             return .gray
         }
+    }
+}
+
+private struct ChannelBrowseListView: View {
+    let coordinator: FeedCacheCoordinator
+
+    @State private var items: [ChannelBrowseItem] = []
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("チャンネル一覧")
+                    .font(.largeTitle.bold())
+
+                Text("最新投稿日が新しい順")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if items.isEmpty {
+                    MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
+                } else {
+                    LazyVStack(spacing: 14) {
+                        ForEach(items) { item in
+                            NavigationLink(value: MaintenanceRoute.channelVideos(item.channelID)) {
+                                ChannelHeroTile(item: item)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(Color(.systemGroupedBackground))
+        .task {
+            items = await coordinator.loadChannelBrowseItems()
+        }
+    }
+}
+
+private struct ChannelVideosView: View {
+    let channelID: String
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+
+    @State private var videos: [CachedVideo] = []
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(channelTitle)
+                    .font(.largeTitle.bold())
+
+                Text("このチャンネルの動画を新しい順に最大50件表示")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if videos.isEmpty {
+                    MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
+                } else {
+                    LazyVStack(spacing: 14) {
+                        ForEach(videos) { video in
+                            Button {
+                                openVideo(video)
+                            } label: {
+                                VideoHeroTile(video: video)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(Color(.systemGroupedBackground))
+        .task {
+            videos = await coordinator.loadVideosForChannel(channelID)
+        }
+    }
+
+    private var channelTitle: String {
+        coordinator.maintenanceItems.first(where: { $0.channelID == channelID })?.channelTitle ?? channelID
+    }
+}
+
+private struct ChannelHeroTile: View {
+    let item: ChannelBrowseItem
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(LinearGradient(colors: [.teal, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .frame(height: 220)
+
+            if let latestVideo = item.latestVideo {
+                ThumbnailView(video: latestVideo, contentMode: .fill)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 220)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.75)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(item.channelTitle)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+
+                Text("\(item.cachedVideoCount)件")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.85))
+
+                Text(formattedDate(item.latestPublishedAt))
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.8))
+            }
+            .padding(16)
+        }
+    }
+
+    private func formattedDate(_ date: Date?) -> String {
+        guard let date else { return "投稿日なし" }
+        return ContentView.dateFormatter.string(from: date)
     }
 }
 
