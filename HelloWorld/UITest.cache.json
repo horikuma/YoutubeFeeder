@@ -1,0 +1,223 @@
+{
+  "channels" : [
+    {
+      "cachedVideoCount" : 12,
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "etag" : null,
+      "lastAttemptAt" : "2026-03-12T09:00:05Z",
+      "lastCheckedAt" : "2026-03-12T09:00:05Z",
+      "lastError" : null,
+      "lastModified" : null,
+      "lastSuccessAt" : "2026-03-12T09:00:05Z",
+      "latestPublishedAt" : "2026-03-12T08:55:00Z"
+    },
+    {
+      "cachedVideoCount" : 2,
+      "channelID" : "UC_TEST_BETA",
+      "channelTitle" : "Beta Channel",
+      "etag" : null,
+      "lastAttemptAt" : "2026-03-12T08:50:00Z",
+      "lastCheckedAt" : "2026-03-12T08:50:00Z",
+      "lastError" : null,
+      "lastModified" : null,
+      "lastSuccessAt" : "2026-03-12T08:50:00Z",
+      "latestPublishedAt" : "2026-03-12T08:40:00Z"
+    },
+    {
+      "cachedVideoCount" : 1,
+      "channelID" : "UC_TEST_GAMMA",
+      "channelTitle" : "Gamma Channel",
+      "etag" : null,
+      "lastAttemptAt" : "2026-03-11T18:00:00Z",
+      "lastCheckedAt" : "2026-03-11T18:00:00Z",
+      "lastError" : null,
+      "lastModified" : null,
+      "lastSuccessAt" : "2026-03-11T18:00:00Z",
+      "latestPublishedAt" : "2026-03-11T17:00:00Z"
+    }
+  ],
+  "savedAt" : "2026-03-12T09:00:05Z",
+  "videos" : [
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-12",
+      "publishedAt" : "2026-03-12T08:55:00Z",
+      "searchableText" : "alpha video 12\nalpha channel\nalpha-12",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 12",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-12"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-11",
+      "publishedAt" : "2026-03-12T08:50:00Z",
+      "searchableText" : "alpha video 11\nalpha channel\nalpha-11",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 11",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-11"
+    },
+    {
+      "channelID" : "UC_TEST_BETA",
+      "channelTitle" : "Beta Channel",
+      "fetchedAt" : "2026-03-12T08:50:00Z",
+      "id" : "beta-2",
+      "publishedAt" : "2026-03-12T08:40:00Z",
+      "searchableText" : "beta update 2\nbeta channel\nbeta-2",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Beta Update 2",
+      "videoURL" : "https://www.youtube.com/watch?v=beta-2"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-10",
+      "publishedAt" : "2026-03-12T08:35:00Z",
+      "searchableText" : "alpha video 10\nalpha channel\nalpha-10",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 10",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-10"
+    },
+    {
+      "channelID" : "UC_TEST_BETA",
+      "channelTitle" : "Beta Channel",
+      "fetchedAt" : "2026-03-12T08:50:00Z",
+      "id" : "beta-1",
+      "publishedAt" : "2026-03-12T08:20:00Z",
+      "searchableText" : "beta update 1\nbeta channel\nbeta-1",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Beta Update 1",
+      "videoURL" : "https://www.youtube.com/watch?v=beta-1"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-09",
+      "publishedAt" : "2026-03-12T08:15:00Z",
+      "searchableText" : "alpha video 09\nalpha channel\nalpha-09",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 09",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-09"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-08",
+      "publishedAt" : "2026-03-12T08:00:00Z",
+      "searchableText" : "alpha video 08\nalpha channel\nalpha-08",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 08",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-08"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-07",
+      "publishedAt" : "2026-03-12T07:45:00Z",
+      "searchableText" : "alpha video 07\nalpha channel\nalpha-07",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 07",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-07"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-06",
+      "publishedAt" : "2026-03-12T07:30:00Z",
+      "searchableText" : "alpha video 06\nalpha channel\nalpha-06",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 06",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-06"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-05",
+      "publishedAt" : "2026-03-12T07:15:00Z",
+      "searchableText" : "alpha video 05\nalpha channel\nalpha-05",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 05",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-05"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-04",
+      "publishedAt" : "2026-03-12T07:00:00Z",
+      "searchableText" : "alpha video 04\nalpha channel\nalpha-04",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 04",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-04"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-03",
+      "publishedAt" : "2026-03-12T06:45:00Z",
+      "searchableText" : "alpha video 03\nalpha channel\nalpha-03",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 03",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-03"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-02",
+      "publishedAt" : "2026-03-12T06:30:00Z",
+      "searchableText" : "alpha video 02\nalpha channel\nalpha-02",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 02",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-02"
+    },
+    {
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "fetchedAt" : "2026-03-12T09:00:05Z",
+      "id" : "alpha-01",
+      "publishedAt" : "2026-03-12T06:15:00Z",
+      "searchableText" : "alpha video 01\nalpha channel\nalpha-01",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Alpha Video 01",
+      "videoURL" : "https://www.youtube.com/watch?v=alpha-01"
+    },
+    {
+      "channelID" : "UC_TEST_GAMMA",
+      "channelTitle" : "Gamma Channel",
+      "fetchedAt" : "2026-03-11T18:00:00Z",
+      "id" : "gamma-1",
+      "publishedAt" : "2026-03-11T17:00:00Z",
+      "searchableText" : "gamma briefing\ngamma channel\ngamma-1",
+      "thumbnailLocalFilename" : null,
+      "thumbnailRemoteURL" : null,
+      "title" : "Gamma Briefing",
+      "videoURL" : "https://www.youtube.com/watch?v=gamma-1"
+    }
+  ]
+}

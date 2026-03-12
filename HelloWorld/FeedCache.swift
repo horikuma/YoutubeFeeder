@@ -20,6 +20,10 @@ enum FeedCachePaths {
     static func bootstrapURL(fileManager: FileManager = .default) -> URL {
         baseDirectory(fileManager: fileManager).appendingPathComponent("maintenance-bootstrap.json")
     }
+
+    static func cacheURL(fileManager: FileManager = .default) -> URL {
+        baseDirectory(fileManager: fileManager).appendingPathComponent("cache.json")
+    }
 }
 
 struct CachedVideo: Codable, Identifiable, Hashable {

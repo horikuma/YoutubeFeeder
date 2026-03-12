@@ -1,0 +1,48 @@
+{
+  "maintenanceItems" : [
+    {
+      "cachedVideoCount" : 12,
+      "channelID" : "UC_TEST_ALPHA",
+      "channelTitle" : "Alpha Channel",
+      "freshness" : "fresh",
+      "id" : "UC_TEST_ALPHA",
+      "lastCheckedAt" : "2026-03-12T09:00:05Z",
+      "lastError" : null,
+      "lastSuccessAt" : "2026-03-12T09:00:05Z",
+      "latestPublishedAt" : "2026-03-12T08:55:00Z"
+    },
+    {
+      "cachedVideoCount" : 2,
+      "channelID" : "UC_TEST_BETA",
+      "channelTitle" : "Beta Channel",
+      "freshness" : "fresh",
+      "id" : "UC_TEST_BETA",
+      "lastCheckedAt" : "2026-03-12T08:50:00Z",
+      "lastError" : null,
+      "lastSuccessAt" : "2026-03-12T08:50:00Z",
+      "latestPublishedAt" : "2026-03-12T08:40:00Z"
+    },
+    {
+      "cachedVideoCount" : 1,
+      "channelID" : "UC_TEST_GAMMA",
+      "channelTitle" : "Gamma Channel",
+      "freshness" : "stale",
+      "id" : "UC_TEST_GAMMA",
+      "lastCheckedAt" : "2026-03-11T18:00:00Z",
+      "lastError" : null,
+      "lastSuccessAt" : "2026-03-11T18:00:00Z",
+      "latestPublishedAt" : "2026-03-11T17:00:00Z"
+    }
+  ],
+  "progress" : {
+    "cachedChannels" : 3,
+    "cachedThumbnails" : 0,
+    "cachedVideos" : 15,
+    "currentChannelID" : null,
+    "currentChannelNumber" : null,
+    "isRunning" : false,
+    "lastError" : null,
+    "lastUpdatedAt" : "2026-03-12T09:00:05Z",
+    "totalChannels" : 3
+  }
+}

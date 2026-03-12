@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var hasEnteredMaintenance = false
     @State private var hasPreparedMaintenance = false
     @State private var navigationPath = NavigationPath()
+    @ObservedObject private var diagnostics = StartupDiagnostics.shared
 
     init() {
         _coordinator = StateObject(wrappedValue: FeedCacheCoordinator(channels: ChannelResource.loadChannelIDs()))
@@ -53,16 +54,20 @@ struct ContentView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
+        .attachDiagnosticsProbe()
         .task(priority: .userInitiated) {
             guard !hasPreparedMaintenance else { return }
             hasPreparedMaintenance = true
             await coordinator.bootstrapMaintenance()
+            diagnostics.mark("bootstrapLoaded")
             withAnimation(.easeInOut(duration: 0.2)) {
                 hasEnteredMaintenance = true
             }
         }
         .task(id: hasEnteredMaintenance) {
             guard hasEnteredMaintenance else { return }
+            diagnostics.mark("maintenanceEntered")
+            guard AppLaunchMode.current.allowsBackgroundRefresh else { return }
             coordinator.start()
         }
     }
@@ -74,6 +79,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("メンテナンス")
                     .font(.largeTitle.bold())
+                    .accessibilityIdentifier("screen.maintenance")
 
                 ProgressView(
                     value: Double(progress.cachedChannels),
@@ -95,6 +101,7 @@ struct ContentView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("nav.channels")
 
                 NavigationLink(value: MaintenanceRoute.allVideos) {
                     MetricTile(
@@ -104,6 +111,7 @@ struct ContentView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("nav.videos")
 
                 ChannelStateLiveCard(
                     title: "現在処理中",
@@ -130,6 +138,9 @@ struct ContentView: View {
         .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            diagnostics.mark("maintenanceShown")
+        }
     }
 
     private func currentChannelLabel(_ progress: CacheProgress) -> String {
@@ -319,6 +330,9 @@ private struct ChannelBrowseListView: View {
         .task {
             items = await coordinator.loadChannelBrowseItems()
         }
+        .onAppear {
+            StartupDiagnostics.shared.mark("channelListShown")
+        }
     }
 }
 
@@ -346,6 +360,9 @@ private struct AllVideosView: View {
         }
         .task {
             coordinator.loadVideosFromCache()
+        }
+        .onAppear {
+            StartupDiagnostics.shared.mark("allVideosShown")
         }
     }
 }
@@ -378,6 +395,9 @@ private struct ChannelVideosView: View {
         .task {
             videos = await coordinator.loadVideosForChannel(channelID)
         }
+        .onAppear {
+            StartupDiagnostics.shared.mark("channelVideosShown")
+        }
     }
 
     private var channelTitle: String {
@@ -397,6 +417,7 @@ private struct InteractiveListScreen<Content: View>: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(title)
                     .font(.largeTitle.bold())
+                    .accessibilityIdentifier("screen.title")
 
                 Text(subtitle)
                     .font(.footnote)
@@ -481,6 +502,7 @@ private struct ChannelHeroTile: View {
             }
             .padding(16)
         }
+        .accessibilityIdentifier("channel.tile.\(item.channelID)")
     }
 
     private func formattedDate(_ date: Date?) -> String {
@@ -527,6 +549,7 @@ private struct VideoHeroTile: View {
             }
             .padding(16)
         }
+        .accessibilityIdentifier("video.tile.\(video.id)")
     }
 
     private func formattedDate(_ date: Date?) -> String {
