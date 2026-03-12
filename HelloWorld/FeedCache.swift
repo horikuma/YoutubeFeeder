@@ -681,18 +681,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     private func prioritizedChannelIDs(states: [String: CachedChannelState]) -> [String] {
-        channels.sorted { lhs, rhs in
-            let lhsLatest = states[lhs]?.latestPublishedAt ?? .distantPast
-            let rhsLatest = states[rhs]?.latestPublishedAt ?? .distantPast
-
-            if lhsLatest != rhsLatest {
-                return lhsLatest > rhsLatest
-            }
-
-            let lhsChecked = states[lhs]?.lastCheckedAt ?? .distantPast
-            let rhsChecked = states[rhs]?.lastCheckedAt ?? .distantPast
-            return lhsChecked < rhsChecked
-        }
+        FeedOrdering.prioritizedChannelIDs(channels: channels, states: states)
     }
 
     private func refreshUI(currentChannelID: String?, isRunning: Bool, lastError: String?, includesVideos: Bool = true) async {
@@ -748,12 +737,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     private func freshness(for lastSuccessAt: Date?) -> ChannelFreshness {
-        guard let lastSuccessAt else {
-            return .neverFetched
-        }
-
-        let age = Date().timeIntervalSince(lastSuccessAt)
-        return age <= freshnessInterval ? .fresh : .stale
+        FeedOrdering.freshness(lastSuccessAt: lastSuccessAt, freshnessInterval: freshnessInterval)
     }
 }
 

@@ -430,8 +430,8 @@ private struct LongPressVideoTile: View {
             .animation(.easeOut(duration: 0.12), value: isPressing)
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .onLongPressGesture(
-                minimumDuration: 1.0,
-                maximumDistance: 18
+                minimumDuration: VideoOpenPolicy.minimumPressDuration,
+                maximumDistance: VideoOpenPolicy.maximumMovement
             ) {
                 openVideo(video)
             } onPressingChanged: { pressing in
@@ -583,10 +583,10 @@ private struct BackSwipePopModifier: ViewModifier {
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 18)
                         .onEnded { value in
-                            let movedRightEnough = value.translation.width > 90
-                            let mostlyHorizontal = abs(value.translation.width) > abs(value.translation.height)
-
-                            if movedRightEnough, mostlyHorizontal, !path.isEmpty {
+                            if BackSwipePolicy.shouldNavigateBack(
+                                startX: value.startLocation.x,
+                                translation: value.translation
+                            ), !path.isEmpty {
                                 path.removeLast()
                             }
                         }

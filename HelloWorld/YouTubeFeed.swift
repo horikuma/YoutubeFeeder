@@ -33,7 +33,11 @@ enum ChannelResource {
             return []
         }
 
-        return contents
+        return parseChannelIDs(contents)
+    }
+
+    static func parseChannelIDs(_ contents: String) -> [String] {
+        contents
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -42,7 +46,7 @@ enum ChannelResource {
 
 struct YouTubeFeedService {
     func fetchIfNeeded(for channelID: String, validationToken: FeedValidationToken?) async throws -> FeedFetchResult {
-        let feedURL = URL(string: "https://www.youtube.com/feeds/videos.xml?playlist_id=\(uploadsPlaylistID(for: channelID))")!
+        let feedURL = URL(string: "https://www.youtube.com/feeds/videos.xml?playlist_id=\(Self.uploadsPlaylistID(for: channelID))")!
         var request = URLRequest(url: feedURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue(validationToken?.etag, forHTTPHeaderField: "If-None-Match")
         request.setValue(validationToken?.lastModified, forHTTPHeaderField: "If-Modified-Since")
@@ -77,7 +81,7 @@ struct YouTubeFeedService {
     }
 
     // YouTube uploads playlists are the long-form uploads feed equivalent.
-    private func uploadsPlaylistID(for channelID: String) -> String {
+    static func uploadsPlaylistID(for channelID: String) -> String {
         guard channelID.hasPrefix("UC") else {
             return channelID
         }
