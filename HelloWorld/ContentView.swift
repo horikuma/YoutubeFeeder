@@ -9,13 +9,15 @@ import SwiftUI
 
 private enum MaintenanceRoute: Hashable {
     case channelList
+    case allVideos
     case channelVideos(String)
 }
 
 struct ContentView: View {
     @Environment(\.openURL) private var openURL
     @StateObject private var coordinator: FeedCacheCoordinator
-    @State private var selectedPage = 0
+    @State private var hasEnteredMaintenance = false
+    @State private var hasPreparedMaintenance = false
 
     init() {
         _coordinator = StateObject(wrappedValue: FeedCacheCoordinator(channels: ChannelResource.loadChannelIDs()))
@@ -30,26 +32,35 @@ struct ContentView: View {
     }()
 
     var body: some View {
-        TabView(selection: $selectedPage) {
-            maintenancePage
-                .tag(0)
-
-            videosPage
-                .tag(1)
+        Group {
+            if hasEnteredMaintenance {
+                NavigationStack {
+                    maintenancePage
+                        .navigationDestination(for: MaintenanceRoute.self) { route in
+                            switch route {
+                            case .channelList:
+                                ChannelBrowseListView(coordinator: coordinator)
+                                    .modifier(BackSwipeDismissModifier())
+                            case .allVideos:
+                                AllVideosView(coordinator: coordinator, openVideo: openVideo)
+                                    .modifier(BackSwipeDismissModifier())
+                            case let .channelVideos(channelID):
+                                ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo)
+                                    .modifier(BackSwipeDismissModifier())
+                            }
+                        }
+                }
+            } else {
+                LaunchScreenView()
+            }
         }
-        .tabViewStyle(.page(indexDisplayMode: .always))
         .background(Color(.systemGroupedBackground))
         .task(priority: .userInitiated) {
-            coordinator.loadPriorityMaintenanceFromCache()
-            coordinator.refreshMaintenanceFromCache()
-        }
-        .task(priority: .background) {
-            try? await Task.sleep(for: .milliseconds(300))
-            coordinator.start()
-        }
-        .onChange(of: selectedPage) { _, newValue in
-            if newValue == 1 {
-                coordinator.loadVideosFromCache()
+            guard !hasPreparedMaintenance else { return }
+            hasPreparedMaintenance = true
+            await coordinator.bootstrapMaintenance()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                hasEnteredMaintenance = true
             }
         }
     }
@@ -57,132 +68,66 @@ struct ContentView: View {
     private var maintenancePage: some View {
         let progress = coordinator.progress
 
-        return NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("メンテナンス")
-                        .font(.largeTitle.bold())
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("メンテナンス")
+                    .font(.largeTitle.bold())
 
-                    Text("左右スワイプで動画一覧に切り替え")
-                        .font(.footnote)
+                ProgressView(
+                    value: Double(progress.cachedChannels),
+                    total: Double(max(progress.totalChannels, 1))
+                ) {
+                    Text("キャッシュ進捗")
+                        .font(.headline)
+                } currentValueLabel: {
+                    Text("\(progress.cachedChannels) / \(progress.totalChannels)")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
+                }
 
-                    ProgressView(
-                        value: Double(progress.cachedChannels),
-                        total: Double(max(progress.totalChannels, 1))
-                    ) {
-                        Text("キャッシュ進捗")
-                            .font(.headline)
-                    } currentValueLabel: {
-                        Text("\(progress.cachedChannels) / \(progress.totalChannels)")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
+                NavigationLink(value: MaintenanceRoute.channelList) {
+                    MetricTile(
+                        title: "チャンネル",
+                        value: "\(progress.cachedChannels) / \(progress.totalChannels)",
+                        detail: progress.isRunning ? "タップでチャンネル一覧" : "停止中"
+                    )
+                }
+                .buttonStyle(.plain)
 
-                    NavigationLink(value: MaintenanceRoute.channelList) {
-                        MetricTile(
-                            title: "チャンネル",
-                            value: "\(progress.cachedChannels) / \(progress.totalChannels)",
-                            detail: progress.isRunning ? "日次初回は10秒間隔、その後は1時間ごとに確認" : "停止中"
-                        )
-                    }
-                    .buttonStyle(.plain)
-
+                NavigationLink(value: MaintenanceRoute.allVideos) {
                     MetricTile(
                         title: "動画",
                         value: "\(progress.cachedVideos)",
-                        detail: "一覧表示・検索・並び替え向けキャッシュ"
+                        detail: "タップで動画一覧"
                     )
-
-                    MetricTile(
-                        title: "サムネイル",
-                        value: "\(progress.cachedThumbnails)",
-                        detail: "ローカル保存済み件数"
-                    )
-
-                    MetricTile(
-                        title: "現在処理中",
-                        value: currentChannelLabel(progress),
-                        detail: progress.currentChannelID ?? "待機中"
-                    )
-
-                    if let lastUpdatedAt = progress.lastUpdatedAt {
-                        MetricTile(
-                            title: "最終更新",
-                            value: Self.dateFormatter.string(from: lastUpdatedAt),
-                            detail: "最後にキャッシュ全体を書き込んだ時刻"
-                        )
-                    }
-
-                    if let lastError = progress.lastError {
-                        MetricTile(
-                            title: "最新エラー",
-                            value: lastError,
-                            detail: "次のチャンネル取得は継続します"
-                        )
-                    }
-
-                    Text("チャンネル状態")
-                        .font(.title3.bold())
-                        .padding(.top, 8)
-
-                    LazyVStack(spacing: 12) {
-                        ForEach(coordinator.priorityMaintenanceItems) { item in
-                            NavigationLink(value: MaintenanceRoute.channelVideos(item.channelID)) {
-                                ChannelStatusCard(item: item)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
                 }
-                .padding(16)
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationDestination(for: MaintenanceRoute.self) { route in
-                switch route {
-                case .channelList:
-                    ChannelBrowseListView(coordinator: coordinator)
-                case let .channelVideos(channelID):
-                    ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo)
+                .buttonStyle(.plain)
+
+                ChannelStateLiveCard(
+                    title: "現在処理中",
+                    value: currentChannelLabel(progress),
+                    detail: progress.currentChannelID ?? "待機中"
+                )
+
+                ChannelStateLiveCard(
+                    title: "最終更新",
+                    value: progress.lastUpdatedAt.map(Self.dateFormatter.string(from:)) ?? "未更新",
+                    detail: "最新キャッシュ状態"
+                )
+
+                if let lastError = progress.lastError {
+                    ChannelStateLiveCard(
+                        title: "最新エラー",
+                        value: lastError,
+                        detail: "次のチャンネル取得は継続します"
+                    )
                 }
             }
+            .padding(16)
         }
-    }
-
-    private var videosPage: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("動画一覧")
-                        .font(.largeTitle.bold())
-
-                    Text("キャッシュ済み動画を新しい順に最大50件表示")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    if coordinator.videos.isEmpty {
-                        MetricTile(
-                            title: "動画一覧",
-                            value: "まだありません",
-                            detail: "収集が進むとここに長尺動画を最大50件まで表示します"
-                        )
-                    } else {
-                        LazyVStack(spacing: 14) {
-                            ForEach(coordinator.videos) { video in
-                                Button {
-                                    openVideo(video)
-                                } label: {
-                                    VideoHeroTile(video: video)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                }
-                .padding(16)
-            }
-            .background(Color(.systemGroupedBackground))
-        }
+        .background(Color(.systemGroupedBackground))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     private func currentChannelLabel(_ progress: CacheProgress) -> String {
@@ -201,6 +146,26 @@ struct ContentView: View {
             if !accepted {
                 openURL(webURL)
             }
+        }
+    }
+}
+
+private struct LaunchScreenView: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [.orange, .red], startPoint: .topLeading, endPoint: .bottomTrailing)
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                Text("HelloWorld")
+                    .font(.system(size: 42, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+
+                Text("Launching...")
+                    .font(.headline)
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+            .padding(32)
         }
     }
 }
@@ -234,6 +199,29 @@ private struct MetricTile: View {
             }
             .padding(16)
         }
+    }
+}
+
+private struct ChannelStateLiveCard: View {
+    let title: String
+    let value: String
+    let detail: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.title3.bold())
+                .foregroundStyle(.primary)
+            Text(detail)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -331,8 +319,48 @@ private struct ChannelBrowseListView: View {
             .padding(16)
         }
         .background(Color(.systemGroupedBackground))
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             items = await coordinator.loadChannelBrowseItems()
+        }
+    }
+}
+
+private struct AllVideosView: View {
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("動画一覧")
+                    .font(.largeTitle.bold())
+
+                Text("キャッシュ済み動画を新しい順に最大50件表示")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if coordinator.videos.isEmpty {
+                    MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を最大50件まで表示します")
+                } else {
+                    LazyVStack(spacing: 14) {
+                        ForEach(coordinator.videos) { video in
+                            Button {
+                                openVideo(video)
+                            } label: {
+                                VideoHeroTile(video: video)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(Color(.systemGroupedBackground))
+        .toolbar(.hidden, for: .navigationBar)
+        .task {
+            coordinator.loadVideosFromCache()
         }
     }
 }
@@ -372,6 +400,7 @@ private struct ChannelVideosView: View {
             .padding(16)
         }
         .background(Color(.systemGroupedBackground))
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             videos = await coordinator.loadVideosForChannel(channelID)
         }
@@ -507,13 +536,24 @@ private struct ThumbnailView: View {
     }
 
     private var placeholder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.gray.opacity(0.18))
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(Color.gray.opacity(0.18))
+    }
+}
 
-            Image(systemName: "play.rectangle.fill")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-        }
+private struct BackSwipeDismissModifier: ViewModifier {
+    @Environment(\.dismiss) private var dismiss
+
+    func body(content: Content) -> some View {
+        content.highPriorityGesture(
+            DragGesture(minimumDistance: 20)
+                .onEnded { value in
+                    let startsAtLeftEdge = value.startLocation.x < 32
+                    let isBackSwipe = value.translation.width > 80 && abs(value.translation.height) < 60
+                    if startsAtLeftEdge && isBackSwipe {
+                        dismiss()
+                    }
+                }
+        )
     }
 }

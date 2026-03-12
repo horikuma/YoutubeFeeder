@@ -494,7 +494,6 @@ final class FeedCacheCoordinator: ObservableObject {
     @Published private(set) var progress: CacheProgress
     @Published private(set) var maintenanceItems: [ChannelMaintenanceItem] = []
     @Published private(set) var videos: [CachedVideo] = []
-    @Published private(set) var priorityMaintenanceItems: [ChannelMaintenanceItem] = []
 
     private let channels: [String]
     private let store = FeedCacheStore()
@@ -511,7 +510,12 @@ final class FeedCacheCoordinator: ObservableObject {
         let bootstrap = FeedBootstrapStore.load(channels: channels)
         self.progress = bootstrap.progress
         self.maintenanceItems = bootstrap.maintenanceItems
-        self.priorityMaintenanceItems = Array(bootstrap.maintenanceItems.prefix(3))
+    }
+
+    func bootstrapMaintenance() async {
+        let bootstrap = FeedBootstrapStore.load(channels: channels)
+        progress = bootstrap.progress
+        maintenanceItems = bootstrap.maintenanceItems
     }
 
     func start() {
@@ -602,7 +606,6 @@ final class FeedCacheCoordinator: ObservableObject {
         Task {
             let snapshot = await store.loadSnapshot()
             let items = await buildMaintenanceItems(from: snapshot)
-            priorityMaintenanceItems = Array(items.prefix(3))
             await store.persistBootstrap(progress: progress, maintenanceItems: items)
         }
     }
@@ -698,7 +701,6 @@ final class FeedCacheCoordinator: ObservableObject {
         )
 
         maintenanceItems = await buildMaintenanceItems(from: snapshot)
-        priorityMaintenanceItems = Array(maintenanceItems.prefix(3))
 
         await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
 
