@@ -16,6 +16,10 @@ enum FeedCachePaths {
     static func thumbnailURL(filename: String, fileManager: FileManager = .default) -> URL {
         thumbnailsDirectory(fileManager: fileManager).appendingPathComponent(filename)
     }
+
+    static func bootstrapURL(fileManager: FileManager = .default) -> URL {
+        baseDirectory(fileManager: fileManager).appendingPathComponent("maintenance-bootstrap.json")
+    }
 }
 
 struct CachedVideo: Codable, Identifiable, Hashable {
@@ -52,7 +56,7 @@ struct FeedCacheSnapshot: Codable {
     static let empty = FeedCacheSnapshot(savedAt: .distantPast, channels: [], videos: [])
 }
 
-struct CacheProgress {
+struct CacheProgress: Codable {
     let totalChannels: Int
     let cachedChannels: Int
     let cachedVideos: Int
@@ -81,7 +85,7 @@ enum ChannelFreshness: String, Codable {
     }
 }
 
-struct ChannelMaintenanceItem: Identifiable, Hashable {
+struct ChannelMaintenanceItem: Codable, Identifiable, Hashable {
     let id: String
     let channelID: String
     let channelTitle: String?
@@ -91,6 +95,53 @@ struct ChannelMaintenanceItem: Identifiable, Hashable {
     let cachedVideoCount: Int
     let lastError: String?
     let freshness: ChannelFreshness
+}
+
+struct FeedBootstrapSnapshot: Codable {
+    var progress: CacheProgress
+    var maintenanceItems: [ChannelMaintenanceItem]
+}
+
+enum FeedBootstrapStore {
+    static func load(channels: [String], fileManager: FileManager = .default) -> FeedBootstrapSnapshot {
+        let url = FeedCachePaths.bootstrapURL(fileManager: fileManager)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        if
+            let data = try? Data(contentsOf: url),
+            let snapshot = try? decoder.decode(FeedBootstrapSnapshot.self, from: data)
+        {
+            return snapshot
+        }
+
+        return FeedBootstrapSnapshot(
+            progress: CacheProgress(
+                totalChannels: channels.count,
+                cachedChannels: 0,
+                cachedVideos: 0,
+                cachedThumbnails: 0,
+                currentChannelID: nil,
+                currentChannelNumber: nil,
+                lastUpdatedAt: nil,
+                isRunning: false,
+                lastError: nil
+            ),
+            maintenanceItems: channels.map {
+                ChannelMaintenanceItem(
+                    id: $0,
+                    channelID: $0,
+                    channelTitle: nil,
+                    lastSuccessAt: nil,
+                    lastCheckedAt: nil,
+                    latestPublishedAt: nil,
+                    cachedVideoCount: 0,
+                    lastError: nil,
+                    freshness: .neverFetched
+                )
+            }
+        )
+    }
 }
 
 enum VideoSortOrder: String, Codable, CaseIterable {
@@ -121,6 +172,7 @@ actor FeedCacheStore {
 
     private let baseDirectory: URL
     private let cacheFileURL: URL
+    private let bootstrapFileURL: URL
     private let thumbnailsDirectory: URL
 
     init() {
@@ -128,6 +180,7 @@ actor FeedCacheStore {
         let appSupport = appSupportURLs.first ?? FileManager.default.temporaryDirectory
         baseDirectory = appSupport.appendingPathComponent("FeedCache", isDirectory: true)
         cacheFileURL = baseDirectory.appendingPathComponent("cache.json")
+        bootstrapFileURL = baseDirectory.appendingPathComponent("maintenance-bootstrap.json")
         thumbnailsDirectory = baseDirectory.appendingPathComponent("thumbnails", isDirectory: true)
     }
 
@@ -345,6 +398,14 @@ actor FeedCacheStore {
         try? data.write(to: cacheFileURL, options: .atomic)
     }
 
+    func persistBootstrap(progress: CacheProgress, maintenanceItems: [ChannelMaintenanceItem]) {
+        try? createDirectories()
+
+        let bootstrap = FeedBootstrapSnapshot(progress: progress, maintenanceItems: maintenanceItems)
+        guard let data = try? encoder.encode(bootstrap) else { return }
+        try? data.write(to: bootstrapFileURL, options: .atomic)
+    }
+
     private func sortComparator(_ order: VideoSortOrder) -> (CachedVideo, CachedVideo) -> Bool {
         switch order {
         case .publishedDescending:
@@ -404,17 +465,9 @@ final class FeedCacheCoordinator: ObservableObject {
     init(channels: [String], freshnessInterval: TimeInterval? = nil) {
         self.channels = channels
         self.freshnessInterval = freshnessInterval ?? TimeInterval(max(channels.count, 1) * 60)
-        self.progress = CacheProgress(
-            totalChannels: channels.count,
-            cachedChannels: 0,
-            cachedVideos: 0,
-            cachedThumbnails: 0,
-            currentChannelID: nil,
-            currentChannelNumber: nil,
-            lastUpdatedAt: nil,
-            isRunning: false,
-            lastError: nil
-        )
+        let bootstrap = FeedBootstrapStore.load(channels: channels)
+        self.progress = bootstrap.progress
+        self.maintenanceItems = bootstrap.maintenanceItems
     }
 
     func start() {
@@ -424,6 +477,7 @@ final class FeedCacheCoordinator: ObservableObject {
             await refreshUI(currentChannelID: nil, isRunning: true, lastError: nil)
 
             while !Task.isCancelled {
+                let cycleStartedAt = Date()
                 let plan = await nextRefreshPlan()
 
                 guard !channels.isEmpty else {
@@ -454,7 +508,8 @@ final class FeedCacheCoordinator: ObservableObject {
                         await refreshUI(currentChannelID: nextChannelID, isRunning: true, lastError: nil)
                         Task { [store] in
                             await store.cacheThumbnails(for: videos)
-                            await refreshFromCache()
+                            refreshMaintenanceFromCache()
+                            loadVideosFromCache()
                         }
                     }
                 } catch {
@@ -463,7 +518,9 @@ final class FeedCacheCoordinator: ObservableObject {
                 }
 
                 do {
-                    try await Task.sleep(for: .seconds(plan.delayUntilNextCheck))
+                    let elapsed = Date().timeIntervalSince(cycleStartedAt)
+                    let remaining = max(plan.delayUntilNextCheck - elapsed, 0.2)
+                    try await Task.sleep(for: .seconds(remaining))
                 } catch {
                     return
                 }
@@ -480,9 +537,20 @@ final class FeedCacheCoordinator: ObservableObject {
         }
     }
 
-    func refreshFromCache() {
+    func refreshMaintenanceFromCache() {
         Task {
-            await refreshUI(currentChannelID: progress.currentChannelID, isRunning: refreshTask != nil, lastError: progress.lastError)
+            await refreshUI(
+                currentChannelID: progress.currentChannelID,
+                isRunning: refreshTask != nil,
+                lastError: progress.lastError,
+                includesVideos: false
+            )
+        }
+    }
+
+    func loadVideosFromCache() {
+        Task {
+            videos = await store.loadVideos(query: videoQuery)
         }
     }
 
@@ -548,7 +616,7 @@ final class FeedCacheCoordinator: ObservableObject {
         }
     }
 
-    private func refreshUI(currentChannelID: String?, isRunning: Bool, lastError: String?) async {
+    private func refreshUI(currentChannelID: String?, isRunning: Bool, lastError: String?, includesVideos: Bool = true) async {
         let snapshot = await store.loadSnapshot()
         let cachedChannels = snapshot.channels.filter { $0.lastSuccessAt != nil }.count
         let cachedThumbnails = snapshot.videos.filter { $0.thumbnailLocalFilename != nil }.count
@@ -582,7 +650,11 @@ final class FeedCacheCoordinator: ObservableObject {
             )
         }
 
-        videos = await store.loadVideos(query: videoQuery)
+        await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
+
+        if includesVideos {
+            videos = await store.loadVideos(query: videoQuery)
+        }
     }
 
     private func freshness(for lastSuccessAt: Date?) -> ChannelFreshness {
