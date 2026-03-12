@@ -1,5 +1,20 @@
 import Foundation
 
+struct FeedValidationToken: Hashable {
+    let etag: String?
+    let lastModified: String?
+}
+
+struct FeedFetchMetadata: Hashable {
+    let checkedAt: Date
+    let validationToken: FeedValidationToken
+}
+
+enum FeedFetchResult {
+    case notModified(FeedFetchMetadata)
+    case updated(videos: [YouTubeVideo], metadata: FeedFetchMetadata)
+}
+
 struct YouTubeVideo: Identifiable, Hashable {
     let id: String
     let title: String
@@ -26,11 +41,27 @@ enum ChannelResource {
 }
 
 struct YouTubeFeedService {
-    func fetchVideos(for channelID: String) async throws -> [YouTubeVideo] {
+    func fetchIfNeeded(for channelID: String, validationToken: FeedValidationToken?) async throws -> FeedFetchResult {
         let feedURL = URL(string: "https://www.youtube.com/feeds/videos.xml?playlist_id=\(uploadsPlaylistID(for: channelID))")!
-        let request = URLRequest(url: feedURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return YouTubeFeedParser().parse(data: data)
+        var request = URLRequest(url: feedURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+        request.setValue(validationToken?.etag, forHTTPHeaderField: "If-None-Match")
+        request.setValue(validationToken?.lastModified, forHTTPHeaderField: "If-Modified-Since")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let httpResponse = response as? HTTPURLResponse
+        let metadata = FeedFetchMetadata(
+            checkedAt: .now,
+            validationToken: FeedValidationToken(
+                etag: httpResponse?.value(forHTTPHeaderField: "ETag") ?? validationToken?.etag,
+                lastModified: httpResponse?.value(forHTTPHeaderField: "Last-Modified") ?? validationToken?.lastModified
+            )
+        )
+
+        if httpResponse?.statusCode == 304 {
+            return .notModified(metadata)
+        }
+
+        let videos = YouTubeFeedParser().parse(data: data)
             .sorted { lhs, rhs in
                 switch (lhs.publishedAt, rhs.publishedAt) {
                 case let (left?, right?):
@@ -41,6 +72,8 @@ struct YouTubeFeedService {
                     return false
                 }
             }
+
+        return .updated(videos: videos, metadata: metadata)
     }
 
     // YouTube uploads playlists are the long-form uploads feed equivalent.

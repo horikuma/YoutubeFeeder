@@ -70,7 +70,7 @@ struct ContentView: View {
                     MetricTile(
                         title: "チャンネル",
                         value: "\(progress.cachedChannels) / \(progress.totalChannels)",
-                        detail: progress.isRunning ? "1分ごとに1チャンネル更新中" : "停止中"
+                        detail: progress.isRunning ? "日次初回は10秒間隔、その後は1時間ごとに確認" : "停止中"
                     )
 
                     MetricTile(
@@ -240,7 +240,8 @@ private struct ChannelStatusCard: View {
             }
 
             LabeledContent("前回更新", value: formattedDate(item.lastSuccessAt))
-            LabeledContent("最終確認", value: formattedDate(item.lastAttemptAt))
+            LabeledContent("最終確認", value: formattedDate(item.lastCheckedAt))
+            LabeledContent("最新投稿日", value: formattedDate(item.latestPublishedAt))
             LabeledContent("キャッシュ動画数", value: "\(item.cachedVideoCount)")
 
             if let lastError = item.lastError {
