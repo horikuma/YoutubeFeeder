@@ -97,6 +97,7 @@ struct VideoQuery: Hashable {
     var channelID: String?
     var keyword: String?
     var sortOrder: VideoSortOrder = .publishedDescending
+    var excludeShorts: Bool = true
 }
 
 actor FeedCacheStore {
@@ -147,7 +148,8 @@ actor FeedCacheStore {
                 let matchesKeyword = query.keyword.map { keyword in
                     video.searchableText.contains(keyword.lowercased())
                 } ?? true
-                return matchesChannel && matchesKeyword
+                let matchesShorts = query.excludeShorts ? !looksLikeShort(video) : true
+                return matchesChannel && matchesKeyword && matchesShorts
             }
             .sorted(by: sortComparator(query.sortOrder))
             .prefix(query.limit)
@@ -169,10 +171,10 @@ actor FeedCacheStore {
         var snapshot = loadSnapshot()
         let fetchedAt = Date()
 
+        snapshot.videos.removeAll { $0.channelID == channelID }
         var cachedVideosByID = Dictionary(uniqueKeysWithValues: snapshot.videos.map { ($0.id, $0) })
 
         for video in videos {
-            let localThumbnailFilename = await cacheThumbnailIfNeeded(from: video.thumbnailURL, videoID: video.id)
             let channelTitle = video.channelTitle.isEmpty ? (cachedVideosByID[video.id]?.channelTitle ?? "") : video.channelTitle
             cachedVideosByID[video.id] = CachedVideo(
                 id: video.id,
@@ -182,7 +184,7 @@ actor FeedCacheStore {
                 publishedAt: video.publishedAt,
                 videoURL: video.videoURL,
                 thumbnailRemoteURL: video.thumbnailURL,
-                thumbnailLocalFilename: localThumbnailFilename ?? cachedVideosByID[video.id]?.thumbnailLocalFilename,
+                thumbnailLocalFilename: cachedVideosByID[video.id]?.thumbnailLocalFilename,
                 fetchedAt: fetchedAt,
                 searchableText: [video.title, channelTitle, video.id]
                     .joined(separator: "\n")
@@ -215,6 +217,45 @@ actor FeedCacheStore {
 
         snapshot.savedAt = fetchedAt
         persist(snapshot)
+    }
+
+    func cacheThumbnails(for videos: [YouTubeVideo]) async {
+        guard !videos.isEmpty else { return }
+
+        var snapshot = loadSnapshot()
+        var didUpdate = false
+
+        for video in videos {
+            guard let localThumbnailFilename = await cacheThumbnailIfNeeded(from: video.thumbnailURL, videoID: video.id) else {
+                continue
+            }
+
+            guard let index = snapshot.videos.firstIndex(where: { $0.id == video.id }) else {
+                continue
+            }
+
+            if snapshot.videos[index].thumbnailLocalFilename != localThumbnailFilename {
+                let existing = snapshot.videos[index]
+                snapshot.videos[index] = CachedVideo(
+                    id: existing.id,
+                    channelID: existing.channelID,
+                    channelTitle: existing.channelTitle,
+                    title: existing.title,
+                    publishedAt: existing.publishedAt,
+                    videoURL: existing.videoURL,
+                    thumbnailRemoteURL: existing.thumbnailRemoteURL,
+                    thumbnailLocalFilename: localThumbnailFilename,
+                    fetchedAt: existing.fetchedAt,
+                    searchableText: existing.searchableText
+                )
+                didUpdate = true
+            }
+        }
+
+        if didUpdate {
+            snapshot.savedAt = .now
+            persist(snapshot)
+        }
     }
 
     private func cacheThumbnailIfNeeded(from remoteURL: URL?, videoID: String) async -> String? {
@@ -262,6 +303,15 @@ actor FeedCacheStore {
                 }
             }
         }
+    }
+
+    private func looksLikeShort(_ video: CachedVideo) -> Bool {
+        if let videoURL = video.videoURL?.absoluteString.lowercased(), videoURL.contains("/shorts/") {
+            return true
+        }
+
+        let title = video.title.lowercased()
+        return title.contains("#shorts") || title.hasPrefix("shorts")
     }
 
     private func upsert(channel: CachedChannelState, into channels: inout [CachedChannelState]) {
@@ -326,6 +376,10 @@ final class FeedCacheCoordinator: ObservableObject {
                     let videos = try await feedService.fetchVideos(for: nextChannelID)
                     await store.recordSuccess(channelID: nextChannelID, videos: videos)
                     await refreshUI(currentChannelID: nextChannelID, isRunning: true, lastError: nil)
+                    Task { [store] in
+                        await store.cacheThumbnails(for: videos)
+                        await refreshFromCache()
+                    }
                 } catch {
                     await store.recordFailure(channelID: nextChannelID, error: error.localizedDescription)
                     await refreshUI(currentChannelID: nextChannelID, isRunning: true, lastError: "取得失敗: \(nextChannelID)")

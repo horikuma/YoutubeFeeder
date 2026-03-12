@@ -33,8 +33,11 @@ struct ContentView: View {
         }
         .tabViewStyle(.page(indexDisplayMode: .always))
         .background(Color(.systemGroupedBackground))
-        .task {
+        .task(priority: .userInitiated) {
             coordinator.refreshFromCache()
+        }
+        .task(priority: .background) {
+            try? await Task.sleep(for: .milliseconds(300))
             coordinator.start()
         }
     }
@@ -135,7 +138,7 @@ struct ContentView: View {
                         MetricTile(
                             title: "動画一覧",
                             value: "まだありません",
-                            detail: "収集が進むとここに最大50件まで表示されます"
+                            detail: "収集が進むとここに長尺動画を最大50件まで表示します"
                         )
                     } else {
                         LazyVStack(spacing: 14) {
@@ -143,7 +146,7 @@ struct ContentView: View {
                                 Button {
                                     openVideo(video)
                                 } label: {
-                                    VideoCacheCard(video: video)
+                                    VideoHeroTile(video: video)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -270,34 +273,44 @@ private struct ChannelStatusCard: View {
     }
 }
 
-private struct VideoCacheCard: View {
+private struct VideoHeroTile: View {
     let video: CachedVideo
 
     var body: some View {
-        HStack(spacing: 14) {
-            ThumbnailView(video: video)
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .frame(height: 220)
+
+            ThumbnailView(video: video, contentMode: .fill)
+                .frame(maxWidth: .infinity)
+                .frame(height: 220)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.75)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(video.title)
                     .font(.headline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.white)
                     .lineLimit(2)
 
                 Text(video.channelTitle.isEmpty ? video.channelID : video.channelTitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.85))
                     .lineLimit(1)
 
                 Text(formattedDate(video.publishedAt))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.8))
             }
-
-            Spacer(minLength: 0)
+            .padding(16)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private func formattedDate(_ date: Date?) -> String {
@@ -310,6 +323,7 @@ private struct VideoCacheCard: View {
 
 private struct ThumbnailView: View {
     let video: CachedVideo
+    var contentMode: ContentMode = .fill
 
     var body: some View {
         Group {
@@ -317,7 +331,7 @@ private struct ThumbnailView: View {
                 AsyncImage(url: FeedCachePaths.thumbnailURL(filename: filename)) { image in
                     image
                         .resizable()
-                        .scaledToFill()
+                        .aspectRatio(contentMode: contentMode)
                 } placeholder: {
                     placeholder
                 }
@@ -325,7 +339,7 @@ private struct ThumbnailView: View {
                 AsyncImage(url: remoteURL) { image in
                     image
                         .resizable()
-                        .scaledToFill()
+                        .aspectRatio(contentMode: contentMode)
                 } placeholder: {
                     placeholder
                 }
@@ -333,7 +347,6 @@ private struct ThumbnailView: View {
                 placeholder
             }
         }
-        .frame(width: 144, height: 81)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 

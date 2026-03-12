@@ -27,7 +27,7 @@ enum ChannelResource {
 
 struct YouTubeFeedService {
     func fetchVideos(for channelID: String) async throws -> [YouTubeVideo] {
-        let feedURL = URL(string: "https://www.youtube.com/feeds/videos.xml?channel_id=\(channelID)")!
+        let feedURL = URL(string: "https://www.youtube.com/feeds/videos.xml?playlist_id=\(uploadsPlaylistID(for: channelID))")!
         let request = URLRequest(url: feedURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         let (data, _) = try await URLSession.shared.data(for: request)
         return YouTubeFeedParser().parse(data: data)
@@ -41,6 +41,15 @@ struct YouTubeFeedService {
                     return false
                 }
             }
+    }
+
+    // YouTube uploads playlists are the long-form uploads feed equivalent.
+    private func uploadsPlaylistID(for channelID: String) -> String {
+        guard channelID.hasPrefix("UC") else {
+            return channelID
+        }
+
+        return "UULF" + channelID.dropFirst(2)
     }
 }
 
