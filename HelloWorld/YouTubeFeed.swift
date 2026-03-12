@@ -28,7 +28,8 @@ enum ChannelResource {
 struct YouTubeFeedService {
     func fetchVideos(for channelID: String) async throws -> [YouTubeVideo] {
         let feedURL = URL(string: "https://www.youtube.com/feeds/videos.xml?channel_id=\(channelID)")!
-        let (data, _) = try await URLSession.shared.data(from: feedURL)
+        let request = URLRequest(url: feedURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+        let (data, _) = try await URLSession.shared.data(for: request)
         return YouTubeFeedParser().parse(data: data)
             .sorted { lhs, rhs in
                 switch (lhs.publishedAt, rhs.publishedAt) {
@@ -41,10 +42,6 @@ struct YouTubeFeedService {
                 }
             }
     }
-}
-
-enum YouTubeFeedParserError: Error {
-    case invalidFeed
 }
 
 final class YouTubeFeedParser: NSObject, XMLParserDelegate {
