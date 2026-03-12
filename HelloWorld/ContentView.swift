@@ -40,14 +40,11 @@ struct ContentView: View {
                         .navigationDestination(for: MaintenanceRoute.self) { route in
                             switch route {
                             case .channelList:
-                                ChannelBrowseListView(coordinator: coordinator)
-                                    .modifier(BackSwipePopModifier(path: $navigationPath))
+                                ChannelBrowseListView(coordinator: coordinator, path: $navigationPath)
                             case .allVideos:
-                                AllVideosView(coordinator: coordinator, openVideo: openVideo)
-                                    .modifier(BackSwipePopModifier(path: $navigationPath))
+                                AllVideosView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath)
                             case let .channelVideos(channelID):
-                                ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo)
-                                    .modifier(BackSwipePopModifier(path: $navigationPath))
+                                ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo, path: $navigationPath)
                             }
                         }
                 }
@@ -295,44 +292,32 @@ private struct ChannelStatusCard: View {
 
 private struct ChannelBrowseListView: View {
     let coordinator: FeedCacheCoordinator
+    @Binding var path: NavigationPath
 
     @State private var items: [ChannelBrowseItem] = []
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("チャンネル一覧")
-                    .font(.largeTitle.bold())
-
-                Text("最新投稿日が新しい順")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-
-                if items.isEmpty {
-                    MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
-                } else {
-                    LazyVStack(spacing: 14) {
-                        ForEach(items) { item in
-                            NavigationLink(value: MaintenanceRoute.channelVideos(item.channelID)) {
-                                ChannelHeroTile(item: item)
-                            }
-                            .buttonStyle(.plain)
+        InteractiveListScreen(
+            title: "チャンネル一覧",
+            subtitle: "最新投稿日が新しい順",
+            coordinator: coordinator,
+            path: $path
+        ) {
+            if items.isEmpty {
+                MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
+            } else {
+                LazyVStack(spacing: 14) {
+                    ForEach(items) { item in
+                        NavigationLink(value: MaintenanceRoute.channelVideos(item.channelID)) {
+                            ChannelHeroTile(item: item)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
-            .padding(16)
         }
-        .background(Color(.systemGroupedBackground))
-        .toolbar(.hidden, for: .navigationBar)
         .task {
             items = await coordinator.loadChannelBrowseItems()
-        }
-        .onAppear {
-            coordinator.suspendLiveUpdates()
-        }
-        .onDisappear {
-            coordinator.resumeLiveUpdates()
         }
     }
 }
@@ -340,44 +325,27 @@ private struct ChannelBrowseListView: View {
 private struct AllVideosView: View {
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
+    @Binding var path: NavigationPath
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("動画一覧")
-                    .font(.largeTitle.bold())
-
-                Text("キャッシュ済み動画を新しい順に最大50件表示")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-
-                if coordinator.videos.isEmpty {
-                    MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を最大50件まで表示します")
-                } else {
-                    LazyVStack(spacing: 14) {
-                        ForEach(coordinator.videos) { video in
-                            Button {
-                                openVideo(video)
-                            } label: {
-                                VideoHeroTile(video: video)
-                            }
-                            .buttonStyle(.plain)
-                        }
+        InteractiveListScreen(
+            title: "動画一覧",
+            subtitle: "キャッシュ済み動画を新しい順に最大50件表示",
+            coordinator: coordinator,
+            path: $path
+        ) {
+            if coordinator.videos.isEmpty {
+                MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を最大50件まで表示します")
+            } else {
+                LazyVStack(spacing: 14) {
+                    ForEach(coordinator.videos) { video in
+                        LongPressVideoTile(video: video, openVideo: openVideo)
                     }
                 }
             }
-            .padding(16)
         }
-        .background(Color(.systemGroupedBackground))
-        .toolbar(.hidden, for: .navigationBar)
         .task {
             coordinator.loadVideosFromCache()
-        }
-        .onAppear {
-            coordinator.suspendLiveUpdates()
-        }
-        .onDisappear {
-            coordinator.resumeLiveUpdates()
         }
     }
 }
@@ -386,41 +354,61 @@ private struct ChannelVideosView: View {
     let channelID: String
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
+    @Binding var path: NavigationPath
 
     @State private var videos: [CachedVideo] = []
 
     var body: some View {
+        InteractiveListScreen(
+            title: channelTitle,
+            subtitle: "このチャンネルの動画を新しい順に最大50件表示",
+            coordinator: coordinator,
+            path: $path
+        ) {
+            if videos.isEmpty {
+                MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
+            } else {
+                LazyVStack(spacing: 14) {
+                    ForEach(videos) { video in
+                        LongPressVideoTile(video: video, openVideo: openVideo)
+                    }
+                }
+            }
+        }
+        .task {
+            videos = await coordinator.loadVideosForChannel(channelID)
+        }
+    }
+
+    private var channelTitle: String {
+        coordinator.maintenanceItems.first(where: { $0.channelID == channelID })?.channelTitle ?? channelID
+    }
+}
+
+private struct InteractiveListScreen<Content: View>: View {
+    let title: String
+    let subtitle: String
+    let coordinator: FeedCacheCoordinator
+    @Binding var path: NavigationPath
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text(channelTitle)
+                Text(title)
                     .font(.largeTitle.bold())
 
-                Text("このチャンネルの動画を新しい順に最大50件表示")
+                Text(subtitle)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                if videos.isEmpty {
-                    MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
-                } else {
-                    LazyVStack(spacing: 14) {
-                        ForEach(videos) { video in
-                            Button {
-                                openVideo(video)
-                            } label: {
-                                VideoHeroTile(video: video)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
+                content()
             }
             .padding(16)
         }
         .background(Color(.systemGroupedBackground))
         .toolbar(.hidden, for: .navigationBar)
-        .task {
-            videos = await coordinator.loadVideosForChannel(channelID)
-        }
+        .modifier(BackSwipePopModifier(path: $path))
         .onAppear {
             coordinator.suspendLiveUpdates()
         }
@@ -428,9 +416,29 @@ private struct ChannelVideosView: View {
             coordinator.resumeLiveUpdates()
         }
     }
+}
 
-    private var channelTitle: String {
-        coordinator.maintenanceItems.first(where: { $0.channelID == channelID })?.channelTitle ?? channelID
+private struct LongPressVideoTile: View {
+    let video: CachedVideo
+    let openVideo: (CachedVideo) -> Void
+
+    @State private var isPressing = false
+
+    var body: some View {
+        VideoHeroTile(video: video)
+            .scaleEffect(isPressing ? 0.985 : 1)
+            .animation(.easeOut(duration: 0.12), value: isPressing)
+            .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .onLongPressGesture(
+                minimumDuration: 1.0,
+                maximumDistance: 18
+            ) {
+                openVideo(video)
+            } onPressingChanged: { pressing in
+                isPressing = pressing
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("1秒長押しでYouTubeを開きます")
     }
 }
 
@@ -570,13 +578,15 @@ private struct BackSwipePopModifier: ViewModifier {
     func body(content: Content) -> some View {
         content.overlay(alignment: .leading) {
             Color.clear
-                .frame(width: 24)
+                .frame(width: 140)
                 .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 20)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 18)
                         .onEnded { value in
-                            let isBackSwipe = value.translation.width > 80 && abs(value.translation.height) < 60
-                            if isBackSwipe, !path.isEmpty {
+                            let movedRightEnough = value.translation.width > 90
+                            let mostlyHorizontal = abs(value.translation.width) > abs(value.translation.height)
+
+                            if movedRightEnough, mostlyHorizontal, !path.isEmpty {
                                 path.removeLast()
                             }
                         }
