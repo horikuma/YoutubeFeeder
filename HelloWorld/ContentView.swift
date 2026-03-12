@@ -18,6 +18,7 @@ struct ContentView: View {
     @StateObject private var coordinator: FeedCacheCoordinator
     @State private var hasEnteredMaintenance = false
     @State private var hasPreparedMaintenance = false
+    @State private var navigationPath = NavigationPath()
 
     init() {
         _coordinator = StateObject(wrappedValue: FeedCacheCoordinator(channels: ChannelResource.loadChannelIDs()))
@@ -34,19 +35,19 @@ struct ContentView: View {
     var body: some View {
         Group {
             if hasEnteredMaintenance {
-                NavigationStack {
+                NavigationStack(path: $navigationPath) {
                     maintenancePage
                         .navigationDestination(for: MaintenanceRoute.self) { route in
                             switch route {
                             case .channelList:
                                 ChannelBrowseListView(coordinator: coordinator)
-                                    .modifier(BackSwipeDismissModifier())
+                                    .modifier(BackSwipePopModifier(path: $navigationPath))
                             case .allVideos:
                                 AllVideosView(coordinator: coordinator, openVideo: openVideo)
-                                    .modifier(BackSwipeDismissModifier())
+                                    .modifier(BackSwipePopModifier(path: $navigationPath))
                             case let .channelVideos(channelID):
                                 ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo)
-                                    .modifier(BackSwipeDismissModifier())
+                                    .modifier(BackSwipePopModifier(path: $navigationPath))
                             }
                         }
                 }
@@ -62,6 +63,10 @@ struct ContentView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 hasEnteredMaintenance = true
             }
+        }
+        .task(id: hasEnteredMaintenance) {
+            guard hasEnteredMaintenance else { return }
+            coordinator.start()
         }
     }
 
@@ -323,6 +328,12 @@ private struct ChannelBrowseListView: View {
         .task {
             items = await coordinator.loadChannelBrowseItems()
         }
+        .onAppear {
+            coordinator.suspendLiveUpdates()
+        }
+        .onDisappear {
+            coordinator.resumeLiveUpdates()
+        }
     }
 }
 
@@ -361,6 +372,12 @@ private struct AllVideosView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task {
             coordinator.loadVideosFromCache()
+        }
+        .onAppear {
+            coordinator.suspendLiveUpdates()
+        }
+        .onDisappear {
+            coordinator.resumeLiveUpdates()
         }
     }
 }
@@ -403,6 +420,12 @@ private struct ChannelVideosView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task {
             videos = await coordinator.loadVideosForChannel(channelID)
+        }
+        .onAppear {
+            coordinator.suspendLiveUpdates()
+        }
+        .onDisappear {
+            coordinator.resumeLiveUpdates()
         }
     }
 
@@ -541,19 +564,23 @@ private struct ThumbnailView: View {
     }
 }
 
-private struct BackSwipeDismissModifier: ViewModifier {
-    @Environment(\.dismiss) private var dismiss
+private struct BackSwipePopModifier: ViewModifier {
+    @Binding var path: NavigationPath
 
     func body(content: Content) -> some View {
-        content.highPriorityGesture(
-            DragGesture(minimumDistance: 20)
-                .onEnded { value in
-                    let startsAtLeftEdge = value.startLocation.x < 32
-                    let isBackSwipe = value.translation.width > 80 && abs(value.translation.height) < 60
-                    if startsAtLeftEdge && isBackSwipe {
-                        dismiss()
-                    }
-                }
-        )
+        content.overlay(alignment: .leading) {
+            Color.clear
+                .frame(width: 24)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 20)
+                        .onEnded { value in
+                            let isBackSwipe = value.translation.width > 80 && abs(value.translation.height) < 60
+                            if isBackSwipe, !path.isEmpty {
+                                path.removeLast()
+                            }
+                        }
+                )
+        }
     }
 }

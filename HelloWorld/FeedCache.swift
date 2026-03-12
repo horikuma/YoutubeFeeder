@@ -503,6 +503,8 @@ final class FeedCacheCoordinator: ObservableObject {
     private let hourlyCheckInterval: TimeInterval = 60 * 60
     private let firstDailySweepInterval: TimeInterval = 10
     private var videoQuery = VideoQuery()
+    private var liveUpdateSuspendCount = 0
+    private var needsRefreshWhenResumed = false
 
     init(channels: [String], freshnessInterval: TimeInterval? = nil) {
         self.channels = channels
@@ -516,6 +518,18 @@ final class FeedCacheCoordinator: ObservableObject {
         let bootstrap = FeedBootstrapStore.load(channels: channels)
         progress = bootstrap.progress
         maintenanceItems = bootstrap.maintenanceItems
+    }
+
+    func suspendLiveUpdates() {
+        liveUpdateSuspendCount += 1
+    }
+
+    func resumeLiveUpdates() {
+        liveUpdateSuspendCount = max(liveUpdateSuspendCount - 1, 0)
+
+        guard liveUpdateSuspendCount == 0, needsRefreshWhenResumed else { return }
+        needsRefreshWhenResumed = false
+        refreshMaintenanceFromCache()
     }
 
     func start() {
@@ -687,8 +701,7 @@ final class FeedCacheCoordinator: ObservableObject {
         let cachedThumbnails = snapshot.videos.filter { $0.thumbnailLocalFilename != nil }.count
         let prioritizedChannels = prioritizedChannelIDs(states: Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) }))
         let currentChannelNumber = currentChannelID.flatMap { prioritizedChannels.firstIndex(of: $0) }.map { $0 + 1 }
-
-        progress = CacheProgress(
+        let nextProgress = CacheProgress(
             totalChannels: channels.count,
             cachedChannels: cachedChannels,
             cachedVideos: snapshot.videos.count,
@@ -699,8 +712,15 @@ final class FeedCacheCoordinator: ObservableObject {
             isRunning: isRunning,
             lastError: lastError
         )
+        let nextMaintenanceItems = await buildMaintenanceItems(from: snapshot)
 
-        maintenanceItems = await buildMaintenanceItems(from: snapshot)
+        if liveUpdateSuspendCount > 0 {
+            needsRefreshWhenResumed = true
+            return
+        }
+
+        progress = nextProgress
+        maintenanceItems = nextMaintenanceItems
 
         await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
 
