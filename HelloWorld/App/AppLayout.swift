@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AppLayout {
     let isPad: Bool
+    let isLandscape: Bool
+    let usesSplitChannelBrowser: Bool
     let contentWidth: CGFloat?
     let horizontalPadding: CGFloat
     let sectionSpacing: CGFloat
@@ -9,13 +11,17 @@ struct AppLayout {
     let dashboardColumns: [GridItem]
     let tileHeight: CGFloat
 
-    static func current(horizontalSizeClass: UserInterfaceSizeClass?, idiom: UIUserInterfaceIdiom) -> AppLayout {
+    static func current(size: CGSize, horizontalSizeClass: UserInterfaceSizeClass?, idiom: UIUserInterfaceIdiom) -> AppLayout {
         let isPad = idiom == .pad || horizontalSizeClass == .regular
+        let isLandscape = size.width > size.height
+        let usesSplitChannelBrowser = isPad && isLandscape
 
         if isPad {
             return AppLayout(
                 isPad: true,
-                contentWidth: 1080,
+                isLandscape: isLandscape,
+                usesSplitChannelBrowser: usesSplitChannelBrowser,
+                contentWidth: usesSplitChannelBrowser ? 1280 : 1080,
                 horizontalPadding: 28,
                 sectionSpacing: 22,
                 listColumns: [
@@ -32,6 +38,8 @@ struct AppLayout {
 
         return AppLayout(
             isPad: false,
+            isLandscape: isLandscape,
+            usesSplitChannelBrowser: false,
             contentWidth: nil,
             horizontalPadding: 16,
             sectionSpacing: 16,

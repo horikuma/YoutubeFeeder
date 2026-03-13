@@ -21,30 +21,36 @@ struct ContentView: View {
     }
 
     var body: some View {
-        let layout = AppLayout.current(horizontalSizeClass: horizontalSizeClass, idiom: UIDevice.current.userInterfaceIdiom)
+        GeometryReader { geometry in
+            let layout = AppLayout.current(
+                size: geometry.size,
+                horizontalSizeClass: horizontalSizeClass,
+                idiom: UIDevice.current.userInterfaceIdiom
+            )
 
-        Group {
-            if hasEnteredMaintenance {
-                NavigationStack(path: $navigationPath) {
-                    HomeScreenView(
-                        coordinator: coordinator,
-                        layout: layout,
-                        diagnostics: diagnostics,
-                        navigationPath: $navigationPath
-                    )
-                    .navigationDestination(for: MaintenanceRoute.self) { route in
-                        switch route {
-                        case .channelList:
-                            ChannelBrowseListView(coordinator: coordinator, path: $navigationPath, layout: layout)
-                        case .allVideos:
-                            AllVideosView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
-                        case let .channelVideos(channelID):
-                            ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
+            Group {
+                if hasEnteredMaintenance {
+                    NavigationStack(path: $navigationPath) {
+                        HomeScreenView(
+                            coordinator: coordinator,
+                            layout: layout,
+                            diagnostics: diagnostics,
+                            navigationPath: $navigationPath
+                        )
+                        .navigationDestination(for: MaintenanceRoute.self) { route in
+                            switch route {
+                            case .channelList:
+                                ChannelBrowseListView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
+                            case .allVideos:
+                                AllVideosView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
+                            case let .channelVideos(channelID):
+                                ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
+                            }
                         }
                     }
+                } else {
+                    LaunchScreenView()
                 }
-            } else {
-                LaunchScreenView()
             }
         }
         .background(Color(.systemGroupedBackground))

@@ -2,29 +2,42 @@ import SwiftUI
 
 struct ChannelBrowseListView: View {
     let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let layout: AppLayout
 
     @State private var items: [ChannelBrowseItem] = []
 
     var body: some View {
-        InteractiveListScreen(
-            title: "チャンネル一覧",
-            subtitle: "最新投稿日が新しい順",
-            coordinator: coordinator,
-            path: $path,
-            layout: layout
-        ) {
-            if items.isEmpty {
-                MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
+        Group {
+            if layout.usesSplitChannelBrowser {
+                SplitChannelBrowseView(
+                    coordinator: coordinator,
+                    openVideo: openVideo,
+                    path: $path,
+                    layout: layout,
+                    items: items
+                )
             } else {
-                LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                    ForEach(items) { item in
-                        NavigationLink(value: MaintenanceRoute.channelVideos(item.channelID)) {
-                            ChannelHeroTile(item: item, height: layout.tileHeight)
+                InteractiveListScreen(
+                    title: "チャンネル一覧",
+                    subtitle: "最新投稿日が新しい順",
+                    coordinator: coordinator,
+                    path: $path,
+                    layout: layout
+                ) {
+                    if items.isEmpty {
+                        MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
+                    } else {
+                        LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
+                            ForEach(items) { item in
+                                NavigationLink(value: MaintenanceRoute.channelVideos(item.channelID)) {
+                                    ChannelHeroTile(item: item, height: layout.tileHeight)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("channel.tile.\(item.channelID)")
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("channel.tile.\(item.channelID)")
                     }
                 }
             }
@@ -35,6 +48,135 @@ struct ChannelBrowseListView: View {
         .onAppear {
             StartupDiagnostics.shared.mark("channelListShown")
         }
+    }
+}
+
+struct SplitChannelBrowseView: View {
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+    @Binding var path: NavigationPath
+    let layout: AppLayout
+    let items: [ChannelBrowseItem]
+
+    @State private var selectedChannelID: String?
+    @State private var videosByChannelID: [String: [CachedVideo]] = [:]
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 24) {
+            leftPane
+                .frame(maxWidth: 420, alignment: .topLeading)
+
+            rightPane
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: layout.contentWidth ?? .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, layout.horizontalPadding)
+        .padding(.vertical, 20)
+        .background(Color(.systemGroupedBackground))
+        .toolbar(.hidden, for: .navigationBar)
+        .modifier(BackSwipePopModifier(path: $path))
+        .onAppear {
+            coordinator.suspendLiveUpdates()
+            applyDefaultSelectionIfNeeded()
+        }
+        .onDisappear {
+            coordinator.resumeLiveUpdates()
+        }
+        .onChange(of: items) { _, _ in
+            applyDefaultSelectionIfNeeded()
+        }
+    }
+
+    private var leftPane: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("チャンネル一覧")
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .accessibilityIdentifier("screen.title")
+
+                Text("最新投稿日が新しい順")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if items.isEmpty {
+                    MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
+                } else {
+                    LazyVStack(spacing: 16) {
+                        ForEach(items) { item in
+                            ChannelSelectionTile(
+                                item: item,
+                                isSelected: item.channelID == selectedChannelID,
+                                height: 156
+                            )
+                            .onTapGesture {
+                                selectChannel(item.channelID)
+                            }
+                            .accessibilityIdentifier("channel.tile.\(item.channelID)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var rightPane: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(selectedTitle)
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+
+                Text("このチャンネルの動画を新しい順に最大50件表示")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if selectedChannelID != nil {
+                    if AppLaunchMode.current.usesMockData {
+                        UITestMarker(
+                            identifier: "screen.channelVideos.loaded",
+                            value: videosForSelectedChannel.first?.id ?? "none"
+                        )
+                    }
+
+                    if videosForSelectedChannel.isEmpty {
+                        MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
+                    } else {
+                        LazyVGrid(columns: layout.listColumns, spacing: 20) {
+                            ForEach(videosForSelectedChannel) { video in
+                                LongPressVideoTile(video: video, openVideo: openVideo, height: layout.tileHeight)
+                            }
+                        }
+                    }
+                } else {
+                    MetricTile(title: "動画一覧", value: "チャンネル未選択", detail: "左側のチャンネルを選ぶと動画を表示します")
+                }
+            }
+        }
+        .task(id: selectedChannelID) {
+            guard let selectedChannelID else { return }
+            if videosByChannelID[selectedChannelID] == nil {
+                videosByChannelID[selectedChannelID] = await coordinator.loadVideosForChannel(selectedChannelID)
+            }
+        }
+    }
+
+    private var videosForSelectedChannel: [CachedVideo] {
+        guard let selectedChannelID else { return [] }
+        return videosByChannelID[selectedChannelID] ?? []
+    }
+
+    private var selectedTitle: String {
+        guard let selectedChannelID else { return "チャンネル未選択" }
+        return items.first(where: { $0.channelID == selectedChannelID })?.channelTitle ?? selectedChannelID
+    }
+
+    private func selectChannel(_ channelID: String) {
+        selectedChannelID = channelID
+    }
+
+    private func applyDefaultSelectionIfNeeded() {
+        guard selectedChannelID == nil else { return }
+        selectedChannelID = items.first?.channelID
     }
 }
 
@@ -218,6 +360,63 @@ struct ChannelHeroTile: View {
             }
             .padding(16)
         }
+    }
+
+    private func formattedDate(_ date: Date?) -> String {
+        guard let date else { return "投稿日なし" }
+        return AppFormatting.dateTimeFormatter.string(from: date)
+    }
+}
+
+struct ChannelSelectionTile: View {
+    let item: ChannelBrowseItem
+    let isSelected: Bool
+    let height: CGFloat
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: isSelected ? [.cyan, .blue] : [.teal.opacity(0.8), .blue.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(isSelected ? .white.opacity(0.95) : .clear, lineWidth: 3)
+                }
+                .frame(height: height)
+
+            if let latestVideo = item.latestVideo {
+                ThumbnailView(video: latestVideo, contentMode: .fill)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: height)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .opacity(isSelected ? 0.92 : 0.78)
+            }
+
+            LinearGradient(colors: [.clear, .black.opacity(0.78)], startPoint: .top, endPoint: .bottom)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(item.channelTitle)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+
+                Text("\(item.cachedVideoCount)件")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.85))
+
+                Text(formattedDate(item.latestPublishedAt))
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.8))
+            }
+            .padding(16)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private func formattedDate(_ date: Date?) -> String {
