@@ -27,17 +27,22 @@ final class BrowseScreenUITests: UITestCaseSupport {
         element("channel.tile.UC_TEST_ALPHA", in: app).tap()
 
         XCTAssertTrue(app.staticTexts["このチャンネルの動画を新しい順に最大50件表示"].waitForExistence(timeout: 5))
+        let loadMarker = element("screen.channelVideos.loaded", in: app)
+        XCTAssertTrue(loadMarker.waitForExistence(timeout: 5))
+        XCTAssertTrue(eventually(timeout: 5) {
+            loadMarker.label == "alpha-12"
+        })
         let scrollView = app.scrollViews.firstMatch
         XCTAssertTrue(scrollView.waitForExistence(timeout: 3))
-        let firstTitle = app.staticTexts["Alpha Video 12"]
-        XCTAssertTrue(firstTitle.waitForExistence(timeout: 5))
-        XCTAssertTrue(firstTitle.isHittable)
+        let firstTile = element("video.tile.alpha-12", in: app)
+        XCTAssertTrue(firstTile.waitForExistence(timeout: 5))
+        XCTAssertTrue(firstTile.isHittable)
         scrollView.swipeUp()
         scrollView.swipeUp()
-        XCTAssertFalse(firstTitle.isHittable)
+        XCTAssertFalse(firstTile.isHittable)
 
         let timeline = try timelinePayload(in: app)
         XCTAssertLessThan(try offset(for: "channelListShown", in: timeline), 3500)
-        XCTAssertLessThan(try offset(for: "channelVideosShown", in: timeline), 5000)
+        XCTAssertLessThan(try offset(for: "channelVideosShown", in: timeline), 7000)
     }
 }

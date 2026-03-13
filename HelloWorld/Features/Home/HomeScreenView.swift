@@ -5,12 +5,20 @@ struct HomeScreenView: View {
     let layout: AppLayout
     let diagnostics: StartupDiagnostics
     let navigationPath: Binding<NavigationPath>
+    @State private var didRunAutoRefresh = false
 
     var body: some View {
         let progress = coordinator.progress
 
         ScrollView {
             VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                if AppLaunchMode.current.usesMockData {
+                    UITestMarker(
+                        identifier: "test.manualRefreshCount",
+                        value: "\(coordinator.manualRefreshCount)"
+                    )
+                }
+
                 Text("ホーム")
                     .font(layout.isPad ? .system(size: 38, weight: .black, design: .rounded) : .largeTitle.bold())
                     .accessibilityIdentifier("screen.home")
@@ -51,15 +59,17 @@ struct HomeScreenView: View {
                     .opacity(0.01)
                     .accessibilityIdentifier("test.refresh")
 
-                    UITestMarker(
-                        identifier: "test.manualRefreshCount",
-                        value: "\(coordinator.manualRefreshCount)"
-                    )
                 }
             }
         }
         .onAppear {
             diagnostics.mark("maintenanceShown")
+        }
+        .task {
+            guard AppLaunchMode.current.autoRefreshOnLaunch else { return }
+            guard !didRunAutoRefresh else { return }
+            didRunAutoRefresh = true
+            await coordinator.refreshCacheManually()
         }
     }
 

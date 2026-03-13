@@ -88,6 +88,13 @@ struct ChannelVideosView: View {
             path: $path,
             layout: layout
         ) {
+            if AppLaunchMode.current.usesMockData {
+                UITestMarker(
+                    identifier: "screen.channelVideos.loaded",
+                    value: videos.first?.id ?? "none"
+                )
+            }
+
             if videos.isEmpty {
                 MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
             } else {
@@ -103,14 +110,6 @@ struct ChannelVideosView: View {
         }
         .onAppear {
             StartupDiagnostics.shared.mark("channelVideosShown")
-        }
-        .overlay(alignment: .topLeading) {
-            if AppLaunchMode.current.usesMockData {
-                UITestMarker(
-                    identifier: "test.channelVideoCount",
-                    value: "\(videos.count)"
-                )
-            }
         }
     }
 
@@ -179,6 +178,7 @@ struct LongPressVideoTile: View {
             }
             .accessibilityAddTraits(.isButton)
             .accessibilityHint("1秒長押しでYouTubeを開きます")
+            .accessibilityIdentifier("video.tile.\(video.id)")
     }
 }
 
@@ -261,7 +261,6 @@ struct VideoHeroTile: View {
             }
             .padding(16)
         }
-        .accessibilityIdentifier("video.tile.\(video.id)")
     }
 
     private func formattedDate(_ date: Date?) -> String {

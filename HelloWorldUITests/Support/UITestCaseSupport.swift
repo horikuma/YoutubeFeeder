@@ -5,9 +5,12 @@ class UITestCaseSupport: XCTestCase {
         continueAfterFailure = false
     }
 
-    func launchApp() -> XCUIApplication {
+    func launchApp(extraEnvironment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["HELLOWORLD_UI_TEST_MODE"] = "1"
+        for (key, value) in extraEnvironment {
+            app.launchEnvironment[key] = value
+        }
         app.launch()
         return app
     }

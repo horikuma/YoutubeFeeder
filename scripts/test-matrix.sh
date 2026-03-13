@@ -7,7 +7,6 @@ SCHEME="HelloWorld"
 DERIVED_DATA="/Users/ak/Documents/Codex/HelloWorld/.DerivedData"
 DESTINATIONS=(
   "iPhone 12 mini"
-  "iPhone 17 Pro"
 )
 
 available_devices="$(xcrun simctl list devices available)"

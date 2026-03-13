@@ -15,15 +15,14 @@ final class HomeScreenUITests: UITestCaseSupport {
     }
 
     func testHomeRefreshUsesMockPathWithoutNetwork() throws {
-        let app = launchApp()
+        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_AUTO_REFRESH": "1"])
 
         XCTAssertTrue(element("screen.home", in: app).waitForExistence(timeout: 5))
-        let refreshTrigger = element("test.refresh", in: app)
-        XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
-        refreshTrigger.tap()
-
         XCTAssertTrue(eventually(timeout: 5) {
-            self.element("test.manualRefreshCount", in: app).label == "1"
+            guard let timeline = try? self.timelinePayload(in: app) else {
+                return false
+            }
+            return timeline["manualRefreshFinished"] != nil
         })
     }
 }

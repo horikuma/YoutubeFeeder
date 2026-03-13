@@ -17,6 +17,10 @@ enum AppLaunchMode {
     var allowsBackgroundRefresh: Bool {
         self == .normal
     }
+
+    var autoRefreshOnLaunch: Bool {
+        ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_AUTO_REFRESH"] == "1"
+    }
 }
 
 @MainActor
