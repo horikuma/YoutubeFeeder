@@ -95,3 +95,17 @@ extension View {
         }
     }
 }
+
+struct UITestMarker: View {
+    let identifier: String
+    let value: String
+
+    var body: some View {
+        Text(value)
+            .font(.caption2)
+            .frame(width: 1, height: 1)
+            .opacity(0.01)
+            .accessibilityIdentifier(identifier)
+            .accessibilityLabel(value)
+    }
+}
