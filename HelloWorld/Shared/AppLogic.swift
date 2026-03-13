@@ -2,8 +2,8 @@ import CoreGraphics
 import Foundation
 
 enum BackSwipePolicy {
-    static let activeRegionWidth: CGFloat = 140
-    static let minimumHorizontalTravel: CGFloat = 90
+    static let activeRegionWidth: CGFloat = 24
+    static let minimumHorizontalTravel: CGFloat = 110
 
     static func shouldNavigateBack(startX: CGFloat, translation: CGSize) -> Bool {
         guard startX <= activeRegionWidth else { return false }

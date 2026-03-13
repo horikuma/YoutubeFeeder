@@ -305,17 +305,19 @@ struct BackSwipePopModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .leading) {
-            Color.clear
-                .frame(width: 140)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 18)
-                        .onEnded { value in
-                            if BackSwipePolicy.shouldNavigateBack(startX: value.startLocation.x, translation: value.translation), !path.isEmpty {
-                                path.removeLast()
+            if !path.isEmpty {
+                Color.clear
+                    .frame(width: BackSwipePolicy.activeRegionWidth)
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 24)
+                            .onEnded { value in
+                                if BackSwipePolicy.shouldNavigateBack(startX: value.startLocation.x, translation: value.translation) {
+                                    path.removeLast()
+                                }
                             }
-                        }
-                )
+                    )
+            }
         }
     }
 }
