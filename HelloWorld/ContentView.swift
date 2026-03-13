@@ -105,6 +105,27 @@ struct ContentView: View {
         .refreshable {
             await coordinator.refreshCacheManually()
         }
+        .overlay(alignment: .topTrailing) {
+            if AppLaunchMode.current.usesMockData {
+                ZStack(alignment: .topTrailing) {
+                    Button("refresh") {
+                        Task {
+                            await coordinator.refreshCacheManually()
+                        }
+                    }
+                    .frame(width: 44, height: 44)
+                    .padding(8)
+                    .opacity(0.01)
+                    .accessibilityIdentifier("test.refresh")
+
+                    Text("refresh-count")
+                        .font(.caption2)
+                        .foregroundStyle(.clear)
+                        .accessibilityIdentifier("test.manualRefreshCount")
+                        .accessibilityValue("\(coordinator.manualRefreshCount)")
+                }
+            }
+        }
         .onAppear {
             diagnostics.mark("maintenanceShown")
         }
@@ -203,6 +224,7 @@ struct ContentView: View {
         }
         .padding(16)
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityIdentifier("progress.stage.\(stage.title)")
     }
 
     private func openVideo(_ video: CachedVideo) {
@@ -458,6 +480,15 @@ private struct ChannelVideosView: View {
         }
         .onAppear {
             StartupDiagnostics.shared.mark("channelVideosShown")
+        }
+        .overlay(alignment: .topLeading) {
+            if AppLaunchMode.current.usesMockData {
+                Text("channel-videos")
+                    .font(.caption2)
+                    .foregroundStyle(.clear)
+                    .accessibilityIdentifier("test.channelVideoCount")
+                    .accessibilityValue("\(videos.count)")
+            }
         }
     }
 

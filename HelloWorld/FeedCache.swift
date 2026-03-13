@@ -554,6 +554,7 @@ final class FeedCacheCoordinator: ObservableObject {
     @Published private(set) var maintenanceItems: [ChannelMaintenanceItem] = []
     @Published private(set) var videos: [CachedVideo] = []
     @Published private(set) var refreshProgress: CacheRefreshProgress = .idle
+    @Published private(set) var manualRefreshCount: Int = 0
 
     private let channels: [String]
     private let store = FeedCacheStore()
@@ -594,7 +595,14 @@ final class FeedCacheCoordinator: ObservableObject {
         guard manualRefreshTask == nil else { return }
 
         manualRefreshTask = Task {
-            await performManualRefresh()
+            StartupDiagnostics.shared.mark("manualRefreshStarted")
+            manualRefreshCount += 1
+            if AppLaunchMode.current.usesMockData {
+                await performMockRefresh()
+            } else {
+                await performManualRefresh()
+            }
+            StartupDiagnostics.shared.mark("manualRefreshFinished")
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
@@ -795,6 +803,36 @@ final class FeedCacheCoordinator: ObservableObject {
             )
         )
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
+    }
+
+    private func performMockRefresh() async {
+        let totalChannels = max(progress.totalChannels, maintenanceItems.count)
+        refreshProgress = CacheRefreshProgress(
+            isRefreshing: true,
+            checkStage: RefreshStageProgress(
+                title: "フィード更新確認",
+                completed: totalChannels,
+                total: totalChannels,
+                activeCalls: 0,
+                callsPerSecond: 3
+            ),
+            fetchStage: RefreshStageProgress(
+                title: "更新チャンネル取得",
+                completed: 0,
+                total: 0,
+                activeCalls: 0,
+                callsPerSecond: 1
+            ),
+            thumbnailStage: RefreshStageProgress(
+                title: "サムネイル取得",
+                completed: 0,
+                total: 0,
+                activeCalls: 0,
+                callsPerSecond: 1
+            )
+        )
+        await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
+        refreshProgress.isRefreshing = false
     }
 
     private func prioritizedChannelIDs(states: [String: CachedChannelState]) -> [String] {

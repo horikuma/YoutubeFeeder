@@ -8,11 +8,27 @@ final class HelloWorldUITests: XCTestCase {
     func testStartupUsesMockDataAndReportsTiming() throws {
         let app = launchApp()
 
-        XCTAssertTrue(element("screen.maintenance", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(element("screen.home", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(element("progress.stage.フィード更新確認", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("progress.stage.更新チャンネル取得", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("progress.stage.サムネイル取得", in: app).waitForExistence(timeout: 3))
 
         let timeline = try timelinePayload(in: app)
         XCTAssertLessThan(try offset(for: "bootstrapLoaded", in: timeline), 2000)
         XCTAssertLessThan(try offset(for: "maintenanceShown", in: timeline), 2500)
+    }
+
+    func testHomeRefreshUsesMockPathWithoutNetwork() throws {
+        let app = launchApp()
+
+        XCTAssertTrue(element("screen.home", in: app).waitForExistence(timeout: 5))
+        let refreshTrigger = element("test.refresh", in: app)
+        XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
+        refreshTrigger.tap()
+
+        XCTAssertTrue(eventually(timeout: 5) {
+            self.element("test.manualRefreshCount", in: app).value as? String == "1"
+        })
     }
 
     func testAllVideosScreenScrollsWithMockData() throws {
@@ -24,10 +40,12 @@ final class HelloWorldUITests: XCTestCase {
 
         let scrollView = app.scrollViews.firstMatch
         XCTAssertTrue(scrollView.waitForExistence(timeout: 3))
-        XCTAssertFalse(element("video.tile.alpha-01", in: app).isHittable)
+        let firstTile = element("video.tile.alpha-12", in: app)
+        XCTAssertTrue(firstTile.waitForExistence(timeout: 5))
+        XCTAssertTrue(firstTile.isHittable)
         scrollView.swipeUp()
         scrollView.swipeUp()
-        XCTAssertTrue(element("video.tile.alpha-01", in: app).waitForExistence(timeout: 2))
+        XCTAssertFalse(firstTile.isHittable)
     }
 
     func testChannelVideosScreenScrollsWithMockData() throws {
@@ -40,10 +58,16 @@ final class HelloWorldUITests: XCTestCase {
 
         let scrollView = app.scrollViews.firstMatch
         XCTAssertTrue(scrollView.waitForExistence(timeout: 3))
-        XCTAssertFalse(element("video.tile.alpha-01", in: app).isHittable)
+        let countMarker = element("test.channelVideoCount", in: app)
+        XCTAssertTrue(countMarker.waitForExistence(timeout: 3))
+        XCTAssertTrue(eventually(timeout: 5) {
+            guard let value = countMarker.value as? String, let count = Int(value) else {
+                return false
+            }
+            return count > 0
+        })
         scrollView.swipeUp()
         scrollView.swipeUp()
-        XCTAssertTrue(element("video.tile.alpha-01", in: app).waitForExistence(timeout: 2))
 
         let timeline = try timelinePayload(in: app)
         XCTAssertLessThan(try offset(for: "channelListShown", in: timeline), 3500)
@@ -74,5 +98,16 @@ final class HelloWorldUITests: XCTestCase {
 
     private func element(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func eventually(timeout: TimeInterval, pollInterval: TimeInterval = 0.2, _ condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() {
+                return true
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(pollInterval))
+        }
+        return condition()
     }
 }
