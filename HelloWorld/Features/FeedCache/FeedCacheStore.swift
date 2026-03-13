@@ -127,9 +127,11 @@ actor FeedCacheStore {
         persist(snapshot)
     }
 
-    func recordSuccess(channelID: String, videos: [YouTubeVideo], metadata: FeedFetchMetadata) async {
+    func recordSuccess(channelID: String, videos: [YouTubeVideo], metadata: FeedFetchMetadata) async -> [YouTubeVideo] {
         var snapshot = loadSnapshot()
         let fetchedAt = metadata.checkedAt
+        let existingVideoIDs = Set(snapshot.videos.lazy.map(\.id))
+        let uncachedVideos = videos.filter { !existingVideoIDs.contains($0.id) }
 
         snapshot.videos.removeAll { $0.channelID == channelID }
         var cachedVideosByID = Dictionary(uniqueKeysWithValues: snapshot.videos.map { ($0.id, $0) })
@@ -187,6 +189,7 @@ actor FeedCacheStore {
 
         snapshot.savedAt = fetchedAt
         persist(snapshot)
+        return uncachedVideos
     }
 
     func persistBootstrap(progress: CacheProgress, maintenanceItems: [ChannelMaintenanceItem]) {

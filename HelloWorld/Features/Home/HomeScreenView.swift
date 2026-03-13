@@ -75,21 +75,9 @@ struct HomeScreenView: View {
 
     private func progressSection(progress: CacheProgress) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            stageProgressCard(coordinator.refreshProgress.checkStage)
-            stageProgressCard(coordinator.refreshProgress.fetchStage)
-            stageProgressCard(coordinator.refreshProgress.thumbnailStage)
+            feedRefreshCard(coordinator.refreshProgress.checkStage)
 
             LazyVGrid(columns: layoutColumns, spacing: 16) {
-                NavigationLink(value: MaintenanceRoute.channelList) {
-                    MetricTile(
-                        title: "チャンネル",
-                        value: "\(progress.cachedChannels) / \(progress.totalChannels)",
-                        detail: "タップでチャンネル一覧"
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("nav.channels")
-
                 NavigationLink(value: MaintenanceRoute.allVideos) {
                     MetricTile(
                         title: "動画",
@@ -139,30 +127,14 @@ struct HomeScreenView: View {
         }
     }
 
-    private func stageProgressCard(_ stage: RefreshStageProgress) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(stage.title)
-                    .font(.headline)
-                Spacer()
-                Text("\(stage.callsPerSecond)/秒")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
+    private func feedRefreshCard(_ stage: RefreshStageProgress) -> some View {
+        let remaining = max(stage.total - stage.completed, 0)
 
-            ProgressView(value: Double(stage.completed), total: Double(max(stage.total, 1)))
-
-            HStack {
-                Text("\(stage.completed) / \(stage.total)")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text("実行中 \(stage.activeCalls)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(16)
-        .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        return ChannelStateLiveCard(
+            title: stage.title,
+            value: "残り \(remaining) チャンネル",
+            detail: stage.activeCalls > 0 ? "同時取得 \(stage.activeCalls) / 3" : "ホームを下に引っ張ると更新"
+        )
         .accessibilityIdentifier("progress.stage.\(stage.title)")
     }
 }

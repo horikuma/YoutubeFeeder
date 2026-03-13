@@ -1,6 +1,6 @@
 # HelloWorld Rules
 
-この文書は、このプロジェクトを継続開発するための正本です。人が読んでも LLM が読んでも判断に迷わないよう、設計方針、責務分担、テスト方針、運用上の前提を 1 か所にまとめています。`ARCHITECTURE.md` の内容もこの文書に統合しています。今後の開発では、構成や運用を変えたらまずこの文書を更新してください。
+この文書は、このプロジェクトを継続開発するための正本です。人が読んでも LLM が読んでも判断に迷わないよう、設計方針、責務分担、テスト方針、運用上の前提を 1 か所にまとめています。`ARCHITECTURE.md` の内容もこの文書に統合しています。アプリ機能そのものの仕様は [SPEC.md](/Users/ak/Documents/Codex/HelloWorld/SPEC.md) を正本とし、機能を変える場合は `SPEC.md` と必要箇所のテストも同じ変更セットで更新してください。
 
 ## 目的
 
@@ -13,11 +13,9 @@
 
 - メンテナンス画面という呼称は使わず、`ホーム画面` と呼ぶ。
 - 起動直後は `LaunchScreenView` を最速で表示し、その裏で前回終了時の軽量キャッシュを読み込んでホーム画面へ遷移する。
-- ホーム画面はキャッシュ進捗の確認と導線の役割を持つ。
-- 一覧系画面は次の 3 つに限定する。
-  - チャンネル一覧
-  - 全動画一覧
-  - チャンネル別動画一覧
+- ホーム画面はキャッシュ進捗の確認と動画一覧への導線の役割を持つ。
+- 現在のユーザー向け導線は `ホーム画面` と `動画一覧` を中心とする。
+- コード上は `チャンネル一覧` と `チャンネル別動画一覧` の route / view を保持するが、現行ホーム画面からの導線は持たない。
 - 動画を開く操作は通常タップではなく `1秒長押し` とする。
 - 動画表示は長尺動画を前提とし、Shorts は除外する。
 
@@ -107,18 +105,12 @@
 ## 更新フロー方針
 
 - ホーム画面の pull-to-refresh を手動更新の入口とする。
-- 更新は 3 段階で進める。
-  1. フィード更新確認
-  2. 更新チャンネル取得
-  3. サムネイル取得
-- 最大並走数は次の通り。
-  - 段階1: 毎秒 3 コール
-  - 段階2: 毎秒 1 コール
-  - 段階3: 毎秒 1 コール
-- つまり理論上の上限は `3 + 1 + 1 = 5` コール並走相当とみなす。
-- 更新順は、最新動画投稿日が新しいチャンネルほど先にする。
+- 更新は `1チャンネル = 更新確認 -> 必要なら本体取得 -> 必要なら新着動画のサムネイル取得` の単一パイプラインで処理する。
+- 同時処理数は常に最大 `3` とする。
+- 更新順は `latestPublishedAt` 降順、次に `lastSuccessAt` 降順、最後に `lastCheckedAt` 昇順とする。
 - 更新確認には条件付き取得を使い、更新が無ければ本体取得を避ける。
-- ホーム画面には各段階の進捗を分けて表示する。
+- サムネイル取得は、その回に見つかった新着動画だけに行う。
+- ホーム画面の進捗表示は `フィード更新確認` 1 つに集約し、表示値は `残チャンネル数` とする。
 
 ## UI 方針
 
@@ -130,6 +122,7 @@
 - 動画を開く判定は `VideoOpenPolicy` を使う。
 - 一覧タイルの見た目は大きいヒーロータイルを維持する。
 - サムネイルが無い時も UI が崩れないことを優先する。
+- ホーム画面の `キャッシュ済みチャンネル` はボタンにしない。
 
 ## 変更時の判断ルール
 
@@ -151,6 +144,23 @@
 - UI テストは機能確認を主目的とし、性能は緩い閾値で劣化検知する。
 - タイムライン診断は `StartupDiagnostics` を使う。
 - test fixture を変えたら、依存する UI テストの識別子と期待値も必ず見直す。
+
+## 実装責務
+
+- [HelloWorld/App/ContentView.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/App/ContentView.swift)
+  - ルート画面、起動画面からホーム画面への遷移、ルートレベルの navigation を担う。
+- [HelloWorld/Features/Home/HomeScreenView.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/Home/HomeScreenView.swift)
+  - ホーム画面の表示と手動更新導線を担う。
+- [HelloWorld/Features/Browse/BrowseViews.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/Browse/BrowseViews.swift)
+  - 一覧系 UI とその共通挙動を担う。
+- [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
+  - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制を担う。
+- [HelloWorld/Features/FeedCache/FeedCacheStore.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCacheStore.swift)
+  - cache.json、bootstrap、thumbnail の永続化と query を担う。
+- [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
+  - 更新確認、本体取得、XML parser を担う。
+- [HelloWorld/Shared/AppLogic.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Shared/AppLogic.swift)
+  - スワイプ判定、長押し判定、並び順、鮮度判定などの pure logic を担う。
 
 ## テスト対象と実行方針
 
@@ -188,16 +198,32 @@ xcodebuild test \
 
 - [HelloWorldUITests/Home/HomeScreenUITests.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldUITests/Home/HomeScreenUITests.swift)
   - ホーム画面表示
-  - 段階進捗表示
+  - 単一進捗表示
   - モック refresh 経路
   - 起動タイムライン
 - [HelloWorldUITests/Browse/BrowseScreenUITests.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldUITests/Browse/BrowseScreenUITests.swift)
   - 全動画一覧遷移
-  - チャンネル一覧遷移
-  - チャンネル別動画一覧遷移
   - 一覧の縦スクロール
 - [HelloWorldUITests/Support/UITestCaseSupport.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldUITests/Support/UITestCaseSupport.swift)
   - app 起動、timeline 解析、共通 wait。
+
+## テスト運用ルール
+
+- UI テストは `HELLOWORLD_UI_TEST_MODE=1` を使い、fixture を app support 配下へ seed して実行する。
+- 自動更新経路を確認したいテストだけ `HELLOWORLD_UI_TEST_AUTO_REFRESH=1` を使う。
+- UI テストでは実ネットワークを使わない。
+- 正式な回帰確認対象は `iPhone 12 mini` のみとする。
+- 基本コマンドは次を使う。
+
+```bash
+xcodebuild test \
+  -project /Users/ak/Documents/Codex/HelloWorld/HelloWorld.xcodeproj \
+  -scheme HelloWorld \
+  -destination 'platform=iOS Simulator,name=iPhone 12 mini' \
+  -derivedDataPath /Users/ak/Documents/Codex/HelloWorld/.DerivedData \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO
+```
 
 ## UI テスト安定化ルール
 
@@ -210,6 +236,24 @@ xcodebuild test \
 ## ドキュメント運用ルール
 
 - 構成変更、画面追加、責務移動、テスト戦略変更があったら、この文書を更新する。
+- アプリ機能を変更したら、必ず [SPEC.md](/Users/ak/Documents/Codex/HelloWorld/SPEC.md) も更新する。
 - `ARCHITECTURE.md` は案内用であり、正本はこの `rules.md` とする。
 - 人向けの説明と LLM 向けの判断材料を分けず、同じ記述で両方が理解できる粒度にする。
 - 実装と文書にずれが出た場合は、コードではなく文書を後追いで直すのではなく、どちらが正しいか確認してから揃える。
+
+## 変更管理ルール
+
+アプリ機能を変更する場合は、次を同じ変更セットで更新しなければならない。
+
+1. 実装コード
+2. 影響する [SPEC.md](/Users/ak/Documents/Codex/HelloWorld/SPEC.md)
+3. 必要に応じた [rules.md](/Users/ak/Documents/Codex/HelloWorld/rules.md)
+4. 影響する test fixture とテストコード
+
+変更時は、次の問いに答えられる状態にすること。
+
+- ユーザーが見える仕様は何が変わるか
+- キャッシュ更新ルールは変わるか
+- 実装責務の境界は変わるか
+- UI テストの観測点は変わるか
+- iPhone 12 mini の回帰テストは通るか

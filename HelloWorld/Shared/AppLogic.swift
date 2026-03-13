@@ -27,6 +27,12 @@ enum FeedOrdering {
                 return lhsLatest > rhsLatest
             }
 
+            let lhsSuccess = states[lhs]?.lastSuccessAt ?? .distantPast
+            let rhsSuccess = states[rhs]?.lastSuccessAt ?? .distantPast
+            if lhsSuccess != rhsSuccess {
+                return lhsSuccess > rhsSuccess
+            }
+
             let lhsChecked = states[lhs]?.lastCheckedAt ?? .distantPast
             let rhsChecked = states[rhs]?.lastCheckedAt ?? .distantPast
             return lhsChecked < rhsChecked
