@@ -24,7 +24,7 @@ enum FeedCachePaths {
     }
 }
 
-struct CachedVideo: Codable, Identifiable, Hashable {
+struct CachedVideo: Identifiable, Hashable {
     let id: String
     let channelID: String
     let channelTitle: String
@@ -37,7 +37,7 @@ struct CachedVideo: Codable, Identifiable, Hashable {
     let searchableText: String
 }
 
-struct CachedChannelState: Codable, Hashable {
+struct CachedChannelState: Hashable {
     let channelID: String
     var channelTitle: String?
     var lastAttemptAt: Date?
@@ -50,15 +50,15 @@ struct CachedChannelState: Codable, Hashable {
     var lastModified: String?
 }
 
-struct FeedCacheSnapshot: Codable {
+struct FeedCacheSnapshot {
     var savedAt: Date
     var channels: [CachedChannelState]
     var videos: [CachedVideo]
 
-    static let empty = FeedCacheSnapshot(savedAt: .distantPast, channels: [], videos: [])
+    nonisolated static let empty = FeedCacheSnapshot(savedAt: .distantPast, channels: [], videos: [])
 }
 
-struct CacheProgress: Codable {
+struct CacheProgress {
     let totalChannels: Int
     let cachedChannels: Int
     let cachedVideos: Int
@@ -70,25 +70,25 @@ struct CacheProgress: Codable {
     let lastError: String?
 }
 
-struct RefreshStageProgress: Codable, Hashable {
+struct RefreshStageProgress: Hashable {
     let title: String
     let completed: Int
     let total: Int
     let activeCalls: Int
     let callsPerSecond: Int
 
-    static func idle(title: String, callsPerSecond: Int) -> RefreshStageProgress {
+    nonisolated static func idle(title: String, callsPerSecond: Int) -> RefreshStageProgress {
         RefreshStageProgress(title: title, completed: 0, total: 0, activeCalls: 0, callsPerSecond: callsPerSecond)
     }
 }
 
-struct CacheRefreshProgress: Codable, Hashable {
+struct CacheRefreshProgress: Hashable {
     var isRefreshing: Bool
     var checkStage: RefreshStageProgress
     var fetchStage: RefreshStageProgress
     var thumbnailStage: RefreshStageProgress
 
-    static let idle = CacheRefreshProgress(
+    nonisolated static let idle = CacheRefreshProgress(
         isRefreshing: false,
         checkStage: .idle(title: "フィード更新確認", callsPerSecond: 3),
         fetchStage: .idle(title: "更新チャンネル取得", callsPerSecond: 1),
@@ -96,7 +96,7 @@ struct CacheRefreshProgress: Codable, Hashable {
     )
 }
 
-enum ChannelFreshness: String, Codable {
+enum ChannelFreshness: String {
     case neverFetched
     case fresh
     case stale
@@ -110,7 +110,7 @@ enum ChannelFreshness: String, Codable {
     }
 }
 
-struct ChannelMaintenanceItem: Codable, Identifiable, Hashable {
+struct ChannelMaintenanceItem: Identifiable, Hashable {
     let id: String
     let channelID: String
     let channelTitle: String?
@@ -131,7 +131,7 @@ struct ChannelBrowseItem: Identifiable, Hashable {
     let cachedVideoCount: Int
 }
 
-struct FeedBootstrapSnapshot: Codable {
+struct FeedBootstrapSnapshot {
     var progress: CacheProgress
     var maintenanceItems: [ChannelMaintenanceItem]
 }
@@ -175,7 +175,7 @@ enum FeedBootstrapStore {
     }
 }
 
-enum VideoSortOrder: String, Codable, CaseIterable {
+enum VideoSortOrder: String, CaseIterable {
     case publishedDescending
 }
 
@@ -186,3 +186,14 @@ struct VideoQuery: Hashable {
     var sortOrder: VideoSortOrder = .publishedDescending
     var excludeShorts: Bool = true
 }
+
+nonisolated extension CachedVideo: Codable {}
+nonisolated extension CachedChannelState: Codable {}
+nonisolated extension FeedCacheSnapshot: Codable {}
+nonisolated extension CacheProgress: Codable {}
+nonisolated extension RefreshStageProgress: Codable {}
+nonisolated extension CacheRefreshProgress: Codable {}
+nonisolated extension ChannelFreshness: Codable {}
+nonisolated extension ChannelMaintenanceItem: Codable {}
+nonisolated extension FeedBootstrapSnapshot: Codable {}
+nonisolated extension VideoSortOrder: Codable {}
