@@ -72,6 +72,32 @@ struct CacheProgress: Codable {
     let lastError: String?
 }
 
+struct RefreshStageProgress: Codable, Hashable {
+    let title: String
+    let completed: Int
+    let total: Int
+    let activeCalls: Int
+    let callsPerSecond: Int
+
+    static func idle(title: String, callsPerSecond: Int) -> RefreshStageProgress {
+        RefreshStageProgress(title: title, completed: 0, total: 0, activeCalls: 0, callsPerSecond: callsPerSecond)
+    }
+}
+
+struct CacheRefreshProgress: Codable, Hashable {
+    var isRefreshing: Bool
+    var checkStage: RefreshStageProgress
+    var fetchStage: RefreshStageProgress
+    var thumbnailStage: RefreshStageProgress
+
+    static let idle = CacheRefreshProgress(
+        isRefreshing: false,
+        checkStage: .idle(title: "フィード更新確認", callsPerSecond: 3),
+        fetchStage: .idle(title: "更新チャンネル取得", callsPerSecond: 1),
+        thumbnailStage: .idle(title: "サムネイル取得", callsPerSecond: 1)
+    )
+}
+
 enum ChannelFreshness: String, Codable {
     case neverFetched
     case fresh
@@ -491,6 +517,35 @@ actor FeedCacheStore {
         try fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
     }
+
+    func cacheThumbnail(for video: YouTubeVideo) async {
+        guard let localThumbnailFilename = await cacheThumbnailIfNeeded(from: video.thumbnailURL, videoID: video.id) else {
+            return
+        }
+
+        var snapshot = loadSnapshot()
+        guard let index = snapshot.videos.firstIndex(where: { $0.id == video.id }) else {
+            return
+        }
+
+        if snapshot.videos[index].thumbnailLocalFilename != localThumbnailFilename {
+            let existing = snapshot.videos[index]
+            snapshot.videos[index] = CachedVideo(
+                id: existing.id,
+                channelID: existing.channelID,
+                channelTitle: existing.channelTitle,
+                title: existing.title,
+                publishedAt: existing.publishedAt,
+                videoURL: existing.videoURL,
+                thumbnailRemoteURL: existing.thumbnailRemoteURL,
+                thumbnailLocalFilename: localThumbnailFilename,
+                fetchedAt: existing.fetchedAt,
+                searchableText: existing.searchableText
+            )
+            snapshot.savedAt = .now
+            persist(snapshot)
+        }
+    }
 }
 
 @MainActor
@@ -498,14 +553,13 @@ final class FeedCacheCoordinator: ObservableObject {
     @Published private(set) var progress: CacheProgress
     @Published private(set) var maintenanceItems: [ChannelMaintenanceItem] = []
     @Published private(set) var videos: [CachedVideo] = []
+    @Published private(set) var refreshProgress: CacheRefreshProgress = .idle
 
     private let channels: [String]
     private let store = FeedCacheStore()
     private let feedService = YouTubeFeedService()
-    private var refreshTask: Task<Void, Never>?
+    private var manualRefreshTask: Task<Void, Never>?
     private let freshnessInterval: TimeInterval
-    private let hourlyCheckInterval: TimeInterval = 60 * 60
-    private let firstDailySweepInterval: TimeInterval = 10
     private var videoQuery = VideoQuery()
     private var liveUpdateSuspendCount = 0
     private var needsRefreshWhenResumed = false
@@ -536,78 +590,21 @@ final class FeedCacheCoordinator: ObservableObject {
         refreshMaintenanceFromCache()
     }
 
-    func start() {
-        guard refreshTask == nil else { return }
+    func refreshCacheManually() async {
+        guard manualRefreshTask == nil else { return }
 
-        refreshTask = Task {
-            await refreshUI(currentChannelID: nil, isRunning: true, lastError: nil)
-
-            while !Task.isCancelled {
-                let cycleStartedAt = Date()
-                let plan = await nextRefreshPlan()
-
-                guard !channels.isEmpty else {
-                    await refreshUI(currentChannelID: nil, isRunning: false, lastError: "チャンネル一覧が空です。")
-                    return
-                }
-
-                guard let nextChannelID = plan.channelID else {
-                    do {
-                        try await Task.sleep(for: .seconds(plan.delayUntilNextCheck))
-                    } catch {
-                        return
-                    }
-                    continue
-                }
-
-                do {
-                    await refreshUI(currentChannelID: nextChannelID, isRunning: true, lastError: nil)
-                    let validationToken = await channelValidationToken(for: nextChannelID)
-                    let result = try await feedService.fetchIfNeeded(for: nextChannelID, validationToken: validationToken)
-
-                    switch result {
-                    case let .notModified(metadata):
-                        await store.recordNotModified(channelID: nextChannelID, metadata: metadata)
-                        await refreshUI(currentChannelID: nextChannelID, isRunning: true, lastError: nil)
-                    case let .updated(videos, metadata):
-                        await store.recordSuccess(channelID: nextChannelID, videos: videos, metadata: metadata)
-                        await refreshUI(currentChannelID: nextChannelID, isRunning: true, lastError: nil)
-                        Task { [store] in
-                            await store.cacheThumbnails(for: videos)
-                            refreshMaintenanceFromCache()
-                            loadVideosFromCache()
-                        }
-                    }
-                } catch {
-                    await store.recordFailure(channelID: nextChannelID, checkedAt: .now, error: error.localizedDescription)
-                    await refreshUI(currentChannelID: nextChannelID, isRunning: true, lastError: "取得失敗: \(nextChannelID)")
-                }
-
-                do {
-                    let elapsed = Date().timeIntervalSince(cycleStartedAt)
-                    let remaining = max(plan.delayUntilNextCheck - elapsed, 0.2)
-                    try await Task.sleep(for: .seconds(remaining))
-                } catch {
-                    return
-                }
-            }
+        manualRefreshTask = Task {
+            await performManualRefresh()
         }
-    }
-
-    func stop() {
-        refreshTask?.cancel()
-        refreshTask = nil
-
-        Task {
-            await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
-        }
+        await manualRefreshTask?.value
+        manualRefreshTask = nil
     }
 
     func refreshMaintenanceFromCache() {
         Task {
             await refreshUI(
                 currentChannelID: progress.currentChannelID,
-                isRunning: refreshTask != nil,
+                isRunning: manualRefreshTask != nil,
                 lastError: progress.lastError,
                 includesVideos: false
             )
@@ -620,14 +617,6 @@ final class FeedCacheCoordinator: ObservableObject {
         }
     }
 
-    func loadPriorityMaintenanceFromCache() {
-        Task {
-            let snapshot = await store.loadSnapshot()
-            let items = await buildMaintenanceItems(from: snapshot)
-            await store.persistBootstrap(progress: progress, maintenanceItems: items)
-        }
-    }
-
     func loadChannelBrowseItems() async -> [ChannelBrowseItem] {
         let channelIDs = maintenanceItems.map(\.channelID).isEmpty ? channels : maintenanceItems.map(\.channelID)
         return await store.loadChannelBrowseItems(channelIDs: channelIDs)
@@ -637,51 +626,175 @@ final class FeedCacheCoordinator: ObservableObject {
         await store.loadVideos(query: VideoQuery(limit: 50, channelID: channelID, keyword: nil, sortOrder: .publishedDescending, excludeShorts: true))
     }
 
-    private func channelValidationToken(for channelID: String) async -> FeedValidationToken? {
-        let snapshot = await store.loadSnapshot()
-        guard let state = snapshot.channels.first(where: { $0.channelID == channelID }) else {
-            return nil
-        }
-
-        return FeedValidationToken(etag: state.etag, lastModified: state.lastModified)
-    }
-
-    private func nextRefreshPlan() async -> RefreshPlan {
+    private func performManualRefresh() async {
         let snapshot = await store.loadSnapshot()
         let states = Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) })
         let sortedChannels = prioritizedChannelIDs(states: states)
+        var updatedChannelIDs: [String] = []
+        var fetchedVideos: [YouTubeVideo] = []
+        var lastError: String?
 
-        let firstDailyTargets = sortedChannels.filter { channelID in
-            guard let lastCheckedAt = states[channelID]?.lastCheckedAt else {
-                return true
-            }
-            return !Calendar.current.isDateInToday(lastCheckedAt)
-        }
-        if let channelID = firstDailyTargets.first {
-            return RefreshPlan(channelID: channelID, delayUntilNextCheck: firstDailySweepInterval)
-        }
+        refreshProgress = CacheRefreshProgress(
+            isRefreshing: true,
+            checkStage: RefreshStageProgress(title: "フィード更新確認", completed: 0, total: sortedChannels.count, activeCalls: 0, callsPerSecond: 3),
+            fetchStage: RefreshStageProgress(title: "更新チャンネル取得", completed: 0, total: 0, activeCalls: 0, callsPerSecond: 1),
+            thumbnailStage: RefreshStageProgress(title: "サムネイル取得", completed: 0, total: 0, activeCalls: 0, callsPerSecond: 1)
+        )
 
-        let dueChannels = sortedChannels.filter { channelID in
-            guard let lastCheckedAt = states[channelID]?.lastCheckedAt else {
-                return true
-            }
-            return Date().timeIntervalSince(lastCheckedAt) >= hourlyCheckInterval
-        }
-        if let channelID = dueChannels.first {
-            return RefreshPlan(channelID: channelID, delayUntilNextCheck: hourlyCheckInterval)
+        let chunks = stride(from: 0, to: sortedChannels.count, by: 3).map {
+            Array(sortedChannels[$0 ..< min($0 + 3, sortedChannels.count)])
         }
 
-        let nextDelay = sortedChannels
-            .compactMap { channelID -> TimeInterval? in
-                guard let lastCheckedAt = states[channelID]?.lastCheckedAt else {
-                    return 0
+        for (chunkIndex, chunk) in chunks.enumerated() {
+            refreshProgress.checkStage = RefreshStageProgress(
+                title: refreshProgress.checkStage.title,
+                completed: refreshProgress.checkStage.completed,
+                total: refreshProgress.checkStage.total,
+                activeCalls: chunk.count,
+                callsPerSecond: refreshProgress.checkStage.callsPerSecond
+            )
+
+            await withTaskGroup(of: (String, FeedCheckResult?, String?).self) { group in
+                for channelID in chunk {
+                    let token = FeedValidationToken(
+                        etag: states[channelID]?.etag,
+                        lastModified: states[channelID]?.lastModified
+                    )
+                    group.addTask {
+                        do {
+                            let result = try await self.feedService.checkForUpdates(for: channelID, validationToken: token)
+                            return (channelID, result, nil)
+                        } catch {
+                            return (channelID, nil, error.localizedDescription)
+                        }
+                    }
                 }
-                let elapsed = Date().timeIntervalSince(lastCheckedAt)
-                return max(hourlyCheckInterval - elapsed, 5)
-            }
-            .min() ?? hourlyCheckInterval
 
-        return RefreshPlan(channelID: nil, delayUntilNextCheck: nextDelay)
+                for await (channelID, result, error) in group {
+                    if let error {
+                        lastError = error
+                        await store.recordFailure(channelID: channelID, checkedAt: .now, error: error)
+                    } else if let result {
+                        switch result {
+                        case let .notModified(metadata):
+                            await store.recordNotModified(channelID: channelID, metadata: metadata)
+                        case .updated:
+                            updatedChannelIDs.append(channelID)
+                        }
+                    }
+
+                    refreshProgress.checkStage = RefreshStageProgress(
+                        title: refreshProgress.checkStage.title,
+                        completed: refreshProgress.checkStage.completed + 1,
+                        total: refreshProgress.checkStage.total,
+                        activeCalls: max(refreshProgress.checkStage.activeCalls - 1, 0),
+                        callsPerSecond: refreshProgress.checkStage.callsPerSecond
+                    )
+                }
+            }
+
+            if chunkIndex < chunks.count - 1 {
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+
+        refreshProgress.fetchStage = RefreshStageProgress(
+            title: refreshProgress.fetchStage.title,
+            completed: 0,
+            total: updatedChannelIDs.count,
+            activeCalls: 0,
+            callsPerSecond: refreshProgress.fetchStage.callsPerSecond
+        )
+
+        for (index, channelID) in updatedChannelIDs.enumerated() {
+            refreshProgress.fetchStage = RefreshStageProgress(
+                title: refreshProgress.fetchStage.title,
+                completed: index,
+                total: refreshProgress.fetchStage.total,
+                activeCalls: 1,
+                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
+            )
+
+            do {
+                let result = try await feedService.fetchLatestFeed(for: channelID)
+                await store.recordSuccess(channelID: channelID, videos: result.videos, metadata: result.metadata)
+                fetchedVideos.append(contentsOf: result.videos)
+            } catch {
+                lastError = error.localizedDescription
+                await store.recordFailure(channelID: channelID, checkedAt: .now, error: error.localizedDescription)
+            }
+
+            refreshProgress.fetchStage = RefreshStageProgress(
+                title: refreshProgress.fetchStage.title,
+                completed: index + 1,
+                total: refreshProgress.fetchStage.total,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
+            )
+
+            if index < updatedChannelIDs.count - 1 {
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+
+        let thumbnailTargets = fetchedVideos.filter { $0.thumbnailURL != nil }
+        refreshProgress.thumbnailStage = RefreshStageProgress(
+            title: refreshProgress.thumbnailStage.title,
+            completed: 0,
+            total: thumbnailTargets.count,
+            activeCalls: 0,
+            callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+        )
+
+        for (index, video) in thumbnailTargets.enumerated() {
+            refreshProgress.thumbnailStage = RefreshStageProgress(
+                title: refreshProgress.thumbnailStage.title,
+                completed: index,
+                total: refreshProgress.thumbnailStage.total,
+                activeCalls: 1,
+                callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+            )
+
+            await store.cacheThumbnail(for: video)
+
+            refreshProgress.thumbnailStage = RefreshStageProgress(
+                title: refreshProgress.thumbnailStage.title,
+                completed: index + 1,
+                total: refreshProgress.thumbnailStage.total,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+            )
+
+            if index < thumbnailTargets.count - 1 {
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+
+        refreshProgress = CacheRefreshProgress(
+            isRefreshing: false,
+            checkStage: RefreshStageProgress(
+                title: refreshProgress.checkStage.title,
+                completed: refreshProgress.checkStage.completed,
+                total: refreshProgress.checkStage.total,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.checkStage.callsPerSecond
+            ),
+            fetchStage: RefreshStageProgress(
+                title: refreshProgress.fetchStage.title,
+                completed: refreshProgress.fetchStage.completed,
+                total: refreshProgress.fetchStage.total,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
+            ),
+            thumbnailStage: RefreshStageProgress(
+                title: refreshProgress.thumbnailStage.title,
+                completed: refreshProgress.thumbnailStage.completed,
+                total: refreshProgress.thumbnailStage.total,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+            )
+        )
+        await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
     }
 
     private func prioritizedChannelIDs(states: [String: CachedChannelState]) -> [String] {
@@ -743,9 +856,4 @@ final class FeedCacheCoordinator: ObservableObject {
     private func freshness(for lastSuccessAt: Date?) -> ChannelFreshness {
         FeedOrdering.freshness(lastSuccessAt: lastSuccessAt, freshnessInterval: freshnessInterval)
     }
-}
-
-private struct RefreshPlan {
-    let channelID: String?
-    let delayUntilNextCheck: TimeInterval
 }

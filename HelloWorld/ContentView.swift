@@ -70,8 +70,6 @@ struct ContentView: View {
         .task(id: hasEnteredMaintenance) {
             guard hasEnteredMaintenance else { return }
             diagnostics.mark("maintenanceEntered")
-            guard AppLaunchMode.current.allowsBackgroundRefresh else { return }
-            coordinator.start()
         }
     }
 
@@ -80,20 +78,20 @@ struct ContentView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                Text("メンテナンス")
+                Text("ホーム")
                     .font(layout.isPad ? .system(size: 38, weight: .black, design: .rounded) : .largeTitle.bold())
-                    .accessibilityIdentifier("screen.maintenance")
+                    .accessibilityIdentifier("screen.home")
 
                 if layout.isPad {
                     HStack(alignment: .top, spacing: 18) {
                         progressSection(progress: progress)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        statusSection(progress: progress)
+                        summarySection(progress: progress)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 } else {
                     progressSection(progress: progress)
-                    statusSection(progress: progress)
+                    summarySection(progress: progress)
                 }
             }
             .frame(maxWidth: layout.contentWidth ?? .infinity, alignment: .leading)
@@ -104,6 +102,9 @@ struct ContentView: View {
         .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
+        .refreshable {
+            await coordinator.refreshCacheManually()
+        }
         .onAppear {
             diagnostics.mark("maintenanceShown")
         }
@@ -111,17 +112,9 @@ struct ContentView: View {
 
     private func progressSection(progress: CacheProgress) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            ProgressView(
-                value: Double(progress.cachedChannels),
-                total: Double(max(progress.totalChannels, 1))
-            ) {
-                Text("キャッシュ進捗")
-                    .font(.headline)
-            } currentValueLabel: {
-                Text("\(progress.cachedChannels) / \(progress.totalChannels)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            stageProgressCard(coordinator.refreshProgress.checkStage)
+            stageProgressCard(coordinator.refreshProgress.fetchStage)
+            stageProgressCard(coordinator.refreshProgress.thumbnailStage)
 
             LazyVGrid(
                 columns: layoutColumns,
@@ -131,7 +124,7 @@ struct ContentView: View {
                     MetricTile(
                         title: "チャンネル",
                         value: "\(progress.cachedChannels) / \(progress.totalChannels)",
-                        detail: progress.isRunning ? "タップでチャンネル一覧" : "停止中"
+                        detail: "タップでチャンネル一覧"
                     )
                 }
                 .buttonStyle(.plain)
@@ -162,18 +155,18 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private func statusSection(progress: CacheProgress) -> some View {
+    private func summarySection(progress: CacheProgress) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             ChannelStateLiveCard(
-                title: "現在処理中",
-                value: currentChannelLabel(progress),
-                detail: progress.currentChannelID ?? "待機中"
+                title: "キャッシュ済みチャンネル",
+                value: "\(progress.cachedChannels) / \(progress.totalChannels)",
+                detail: "ホームを下に引っ張ると更新"
             )
 
             ChannelStateLiveCard(
-                title: "最終更新",
-                value: progress.lastUpdatedAt.map(Self.dateFormatter.string(from:)) ?? "未更新",
-                detail: "最新キャッシュ状態"
+                title: "キャッシュ済み動画",
+                value: "\(progress.cachedVideos)",
+                detail: "サムネイル \(progress.cachedThumbnails) 件"
             )
 
             if let lastError = progress.lastError {
@@ -186,12 +179,30 @@ struct ContentView: View {
         }
     }
 
-    private func currentChannelLabel(_ progress: CacheProgress) -> String {
-        guard let number = progress.currentChannelNumber else {
-            return "待機中"
-        }
+    private func stageProgressCard(_ stage: RefreshStageProgress) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(stage.title)
+                    .font(.headline)
+                Spacer()
+                Text("\(stage.callsPerSecond)/秒")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
 
-        return "\(number)番目"
+            ProgressView(value: Double(stage.completed), total: Double(max(stage.total, 1)))
+
+            HStack {
+                Text("\(stage.completed) / \(stage.total)")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text("実行中 \(stage.activeCalls)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private func openVideo(_ video: CachedVideo) {

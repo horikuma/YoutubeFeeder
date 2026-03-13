@@ -10,6 +10,11 @@ struct FeedFetchMetadata: Hashable {
     let validationToken: FeedValidationToken
 }
 
+enum FeedCheckResult {
+    case notModified(FeedFetchMetadata)
+    case updated(FeedFetchMetadata)
+}
+
 enum FeedFetchResult {
     case notModified(FeedFetchMetadata)
     case updated(videos: [YouTubeVideo], metadata: FeedFetchMetadata)
@@ -45,9 +50,66 @@ enum ChannelResource {
 }
 
 struct YouTubeFeedService {
+    func checkForUpdates(for channelID: String, validationToken: FeedValidationToken?) async throws -> FeedCheckResult {
+        var request = URLRequest(
+            url: Self.feedURL(for: channelID),
+            cachePolicy: .reloadIgnoringLocalCacheData,
+            timeoutInterval: 30
+        )
+        request.httpMethod = "HEAD"
+        request.setValue(validationToken?.etag, forHTTPHeaderField: "If-None-Match")
+        request.setValue(validationToken?.lastModified, forHTTPHeaderField: "If-Modified-Since")
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        let httpResponse = response as? HTTPURLResponse
+        let metadata = FeedFetchMetadata(
+            checkedAt: .now,
+            validationToken: FeedValidationToken(
+                etag: httpResponse?.value(forHTTPHeaderField: "ETag") ?? validationToken?.etag,
+                lastModified: httpResponse?.value(forHTTPHeaderField: "Last-Modified") ?? validationToken?.lastModified
+            )
+        )
+
+        if httpResponse?.statusCode == 304 {
+            return .notModified(metadata)
+        }
+
+        return .updated(metadata)
+    }
+
+    func fetchLatestFeed(for channelID: String) async throws -> (videos: [YouTubeVideo], metadata: FeedFetchMetadata) {
+        let request = URLRequest(
+            url: Self.feedURL(for: channelID),
+            cachePolicy: .reloadIgnoringLocalCacheData,
+            timeoutInterval: 30
+        )
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let httpResponse = response as? HTTPURLResponse
+        let metadata = FeedFetchMetadata(
+            checkedAt: .now,
+            validationToken: FeedValidationToken(
+                etag: httpResponse?.value(forHTTPHeaderField: "ETag"),
+                lastModified: httpResponse?.value(forHTTPHeaderField: "Last-Modified")
+            )
+        )
+
+        let videos = YouTubeFeedParser().parse(data: data)
+            .sorted { lhs, rhs in
+                switch (lhs.publishedAt, rhs.publishedAt) {
+                case let (left?, right?):
+                    return left > right
+                case (_?, nil):
+                    return true
+                default:
+                    return false
+                }
+            }
+
+        return (videos, metadata)
+    }
+
     func fetchIfNeeded(for channelID: String, validationToken: FeedValidationToken?) async throws -> FeedFetchResult {
-        let feedURL = URL(string: "https://www.youtube.com/feeds/videos.xml?playlist_id=\(Self.uploadsPlaylistID(for: channelID))")!
-        var request = URLRequest(url: feedURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+        var request = URLRequest(url: Self.feedURL(for: channelID), cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue(validationToken?.etag, forHTTPHeaderField: "If-None-Match")
         request.setValue(validationToken?.lastModified, forHTTPHeaderField: "If-Modified-Since")
 
@@ -87,6 +149,10 @@ struct YouTubeFeedService {
         }
 
         return "UULF" + channelID.dropFirst(2)
+    }
+
+    private static func feedURL(for channelID: String) -> URL {
+        URL(string: "https://www.youtube.com/feeds/videos.xml?playlist_id=\(uploadsPlaylistID(for: channelID))")!
     }
 }
 
