@@ -37,10 +37,12 @@ struct MetricTile: View {
                     .foregroundStyle(.white)
                     .textCase(.uppercase)
 
-                Text(value)
-                    .font(.title2.bold())
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
+                if !value.isEmpty {
+                    Text(value)
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 Text(detail)
                     .font(.footnote)

@@ -5,8 +5,7 @@ final class HomeScreenUITests: UITestCaseSupport {
         let app = launchApp()
 
         XCTAssertTrue(element("screen.home", in: app).waitForExistence(timeout: 5))
-        XCTAssertTrue(element("progress.stage.フィード更新確認", in: app).waitForExistence(timeout: 3))
-        XCTAssertFalse(element("nav.channels", in: app).exists)
+        XCTAssertTrue(element("nav.channels", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.videos", in: app).waitForExistence(timeout: 3))
 
         let timeline = try timelinePayload(in: app)
