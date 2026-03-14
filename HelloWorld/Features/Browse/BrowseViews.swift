@@ -62,18 +62,13 @@ struct SplitChannelBrowseView: View {
     @State private var videosByChannelID: [String: [CachedVideo]] = [:]
 
     var body: some View {
-        HStack(alignment: .top, spacing: 24) {
+        NavigationSplitView {
             leftPane
-                .frame(maxWidth: 420, alignment: .topLeading)
-
+                .navigationTitle("チャンネル一覧")
+        } detail: {
             rightPane
-                .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: layout.contentWidth ?? .infinity, alignment: .leading)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.horizontal, layout.horizontalPadding)
-        .padding(.vertical, 20)
-        .background(Color(.systemGroupedBackground))
+        .navigationSplitViewStyle(.balanced)
         .toolbar(.hidden, for: .navigationBar)
         .modifier(BackSwipePopModifier(path: $path))
         .onAppear {
@@ -91,14 +86,6 @@ struct SplitChannelBrowseView: View {
     private var leftPane: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("チャンネル一覧")
-                    .font(.system(size: 34, weight: .black, design: .rounded))
-                    .accessibilityIdentifier("screen.title")
-
-                Text("最新投稿日が新しい順")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-
                 if items.isEmpty {
                     MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
                 } else {
@@ -117,6 +104,14 @@ struct SplitChannelBrowseView: View {
                     }
                 }
             }
+            .frame(maxWidth: 420, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, layout.horizontalPadding)
+            .padding(.vertical, 20)
+        }
+        .background(Color(.systemGroupedBackground))
+        .safeAreaInset(edge: .top) {
+            sidebarHeader
         }
     }
 
@@ -151,13 +146,35 @@ struct SplitChannelBrowseView: View {
                     MetricTile(title: "動画一覧", value: "チャンネル未選択", detail: "左側のチャンネルを選ぶと動画を表示します")
                 }
             }
+            .frame(maxWidth: layout.contentWidth ?? .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, layout.horizontalPadding)
+            .padding(.vertical, 20)
         }
+        .background(Color(.systemGroupedBackground))
         .task(id: selectedChannelID) {
             guard let selectedChannelID else { return }
             if videosByChannelID[selectedChannelID] == nil {
                 videosByChannelID[selectedChannelID] = await coordinator.loadVideosForChannel(selectedChannelID)
             }
         }
+    }
+
+    private var sidebarHeader: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("チャンネル一覧")
+                .font(.system(size: 34, weight: .black, design: .rounded))
+                .accessibilityIdentifier("screen.title")
+
+            Text("最新投稿日が新しい順")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, layout.horizontalPadding)
+        .padding(.top, 20)
+        .padding(.bottom, 8)
+        .background(Color(.systemGroupedBackground))
     }
 
     private var videosForSelectedChannel: [CachedVideo] {

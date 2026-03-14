@@ -24,8 +24,7 @@ struct ContentView: View {
         GeometryReader { geometry in
             let layout = AppLayout.current(
                 size: geometry.size,
-                horizontalSizeClass: horizontalSizeClass,
-                idiom: UIDevice.current.userInterfaceIdiom
+                horizontalSizeClass: horizontalSizeClass
             )
 
             Group {
