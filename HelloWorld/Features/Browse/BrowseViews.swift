@@ -343,37 +343,35 @@ struct ChannelHeroTile: View {
     let item: ChannelBrowseItem
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(LinearGradient(colors: [.teal, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            if let latestVideo = item.latestVideo {
-                ThumbnailView(video: latestVideo, contentMode: .fill)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(LinearGradient(colors: [.teal, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .overlay {
+                if let latestVideo = item.latestVideo {
+                    ThumbnailView(video: latestVideo, contentMode: .fill)
+                }
             }
-
-            LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(item.channelTitle)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-
-                Text("\(item.cachedVideoCount)件")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.85))
-
-                Text(formattedDate(item.latestPublishedAt))
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.8))
+            .overlay {
+                LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
             }
-            .padding(16)
-        }
-        .aspectRatio(16 / 9, contentMode: .fit)
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.channelTitle)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+
+                    Text("\(item.cachedVideoCount)件")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.85))
+
+                    Text(formattedDate(item.latestPublishedAt))
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(16)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private func formattedDate(_ date: Date?) -> String {
@@ -387,48 +385,46 @@ struct ChannelSelectionTile: View {
     let isSelected: Bool
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: isSelected ? [.cyan, .blue] : [.teal.opacity(0.8), .blue.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: isSelected ? [.cyan, .blue] : [.teal.opacity(0.8), .blue.opacity(0.8)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(isSelected ? .white.opacity(0.95) : .clear, lineWidth: 3)
+            )
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .overlay {
+                if let latestVideo = item.latestVideo {
+                    ThumbnailView(video: latestVideo, contentMode: .fill)
+                        .opacity(isSelected ? 0.92 : 0.78)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            if let latestVideo = item.latestVideo {
-                ThumbnailView(video: latestVideo, contentMode: .fill)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .opacity(isSelected ? 0.92 : 0.78)
             }
-
-            LinearGradient(colors: [.clear, .black.opacity(0.78)], startPoint: .top, endPoint: .bottom)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(item.channelTitle)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-
-                Text("\(item.cachedVideoCount)件")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.85))
-
-                Text(formattedDate(item.latestPublishedAt))
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.8))
+            .overlay {
+                LinearGradient(colors: [.clear, .black.opacity(0.78)], startPoint: .top, endPoint: .bottom)
             }
-            .padding(16)
-        }
-        .aspectRatio(16 / 9, contentMode: .fit)
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(isSelected ? .white.opacity(0.95) : .clear, lineWidth: 3)
+            }
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.channelTitle)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+
+                    Text("\(item.cachedVideoCount)件")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.85))
+
+                    Text(formattedDate(item.latestPublishedAt))
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(16)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
@@ -442,36 +438,34 @@ struct VideoHeroTile: View {
     let video: CachedVideo
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            ThumbnailView(video: video, contentMode: .fill)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-            LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(video.title)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-
-                Text(video.channelTitle.isEmpty ? video.channelID : video.channelTitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.85))
-                    .lineLimit(1)
-
-                Text(formattedDate(video.publishedAt))
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.8))
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .overlay {
+                ThumbnailView(video: video, contentMode: .fill)
             }
-            .padding(16)
-        }
-        .aspectRatio(16 / 9, contentMode: .fit)
+            .overlay {
+                LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+            }
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(video.title)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+
+                    Text(video.channelTitle.isEmpty ? video.channelID : video.channelTitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .lineLimit(1)
+
+                    Text(formattedDate(video.publishedAt))
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(16)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private func formattedDate(_ date: Date?) -> String {
