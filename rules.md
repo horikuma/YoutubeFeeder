@@ -13,9 +13,8 @@
 
 - メンテナンス画面という呼称は使わず、`ホーム画面` と呼ぶ。
 - 起動直後は `LaunchScreenView` を最速で表示し、その裏で前回終了時の軽量キャッシュを読み込んでホーム画面へ遷移する。
-- ホーム画面はキャッシュ進捗の確認と動画一覧への導線の役割を持つ。
-- 現在のユーザー向け導線は `ホーム画面` と `動画一覧` を中心とする。
-- コード上は `チャンネル一覧` と `チャンネル別動画一覧` の route / view を保持するが、現行ホーム画面からの導線は持たない。
+- ホーム画面は情報ダッシュボードではなく、`チャンネル一覧` と `動画一覧` への導線を担う。
+- 現在のユーザー向け導線は `ホーム画面`、`チャンネル一覧`、`全動画一覧`、`チャンネル別動画一覧` で構成する。
 - 動画を開く操作は通常タップではなく `1秒長押し` とする。
 - 動画表示は長尺動画を前提とし、Shorts は除外する。
 
@@ -51,7 +50,7 @@
 
 - [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
   - ホーム画面本体。
-  - 進捗表示、手動更新、一覧画面への導線。
+  - 手動更新と一覧画面への導線。
 - [HelloWorld/Features/Home/HomeUIComponents.swift](HelloWorld/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
 - [HelloWorld/Features/Home/HomeRoutes.swift](HelloWorld/Features/Home/HomeRoutes.swift)
@@ -62,7 +61,7 @@
   - 動画タイル、チャンネルタイル、戻るスワイプ適用。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
-  - ホーム画面 bootstrap、手動更新、進捗公開、一覧用データ読込。
+  - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - ファイル永続化、snapshot 読込、thumbnail 保存。
 - [HelloWorld/Features/FeedCache/FeedCacheModels.swift](HelloWorld/Features/FeedCache/FeedCacheModels.swift)
@@ -110,7 +109,6 @@
 - 更新順は `latestPublishedAt` 降順、次に `lastSuccessAt` 降順、最後に `lastCheckedAt` 昇順とする。
 - 更新確認には条件付き取得を使い、更新が無ければ本体取得を避ける。
 - サムネイル取得は、その回に見つかった新着動画だけに行う。
-- ホーム画面の進捗表示は `フィード更新確認` 1 つに集約し、表示値は `残チャンネル数` とする。
 
 ## UI 方針
 
@@ -124,7 +122,7 @@
 - 動画を開く判定は `VideoOpenPolicy` を使う。
 - 一覧タイルの見た目は大きいヒーロータイルを維持する。
 - サムネイルが無い時も UI が崩れないことを優先する。
-- ホーム画面の `キャッシュ済みチャンネル` はボタンにしない。
+- ホーム画面は `チャンネル` と `動画` の導線に絞り、常時表示の進捗カードや状態カードを置かない。
 
 ## 変更時の判断ルール
 
@@ -139,7 +137,7 @@
 
 - テストは `unit test` と `UI test` を分ける。
 - 単純なルール、並び順、parser、resource 読込は unit test で担保する。
-- 画面遷移、縦スクロール、ホーム画面の進捗表示、モック更新経路は UI test で担保する。
+- 画面遷移、縦スクロール、ホーム画面の主要導線、モック更新経路は UI test で担保する。
 - UI テストではネットワークを使わない。
 - UI テストでは `HELLOWORLD_UI_TEST_MODE=1` を使い、fixture を seed して実行する。
 - 必要に応じて `HELLOWORLD_UI_TEST_AUTO_REFRESH=1` で自動 refresh を動かす。
@@ -200,7 +198,7 @@ xcodebuild test \
 
 - [HelloWorldUITests/Home/HomeScreenUITests.swift](HelloWorldUITests/Home/HomeScreenUITests.swift)
   - ホーム画面表示
-  - 単一進捗表示
+  - `チャンネル` / `動画` 導線
   - モック refresh 経路
   - 起動タイムライン
 - [HelloWorldUITests/Browse/BrowseScreenUITests.swift](HelloWorldUITests/Browse/BrowseScreenUITests.swift)
