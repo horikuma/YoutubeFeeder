@@ -10,7 +10,6 @@ struct AppLayout {
     let sectionSpacing: CGFloat
     let listColumns: [GridItem]
     let dashboardColumns: [GridItem]
-    let tileHeight: CGFloat
 
     static func current(size: CGSize, horizontalSizeClass: UserInterfaceSizeClass?) -> AppLayout {
         let isLandscape = size.width > size.height
@@ -26,15 +25,11 @@ struct AppLayout {
                 contentWidth: usesSplitChannelBrowser ? 1280 : 1080,
                 horizontalPadding: 28,
                 sectionSpacing: 22,
-                listColumns: [
-                    GridItem(.flexible(), spacing: 20, alignment: .top),
-                    GridItem(.flexible(), spacing: 20, alignment: .top),
-                ],
+                listColumns: [GridItem(.flexible(), spacing: 20, alignment: .top)],
                 dashboardColumns: [
                     GridItem(.flexible(), spacing: 18, alignment: .top),
                     GridItem(.flexible(), spacing: 18, alignment: .top),
-                ],
-                tileHeight: 260
+                ]
             )
         }
 
@@ -47,8 +42,7 @@ struct AppLayout {
             horizontalPadding: 16,
             sectionSpacing: 16,
             listColumns: [GridItem(.flexible(), spacing: 14, alignment: .top)],
-            dashboardColumns: [GridItem(.flexible(), spacing: 16, alignment: .top)],
-            tileHeight: 220
+            dashboardColumns: [GridItem(.flexible(), spacing: 16, alignment: .top)]
         )
     }
 }

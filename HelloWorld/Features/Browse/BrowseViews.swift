@@ -32,7 +32,7 @@ struct ChannelBrowseListView: View {
                         LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                             ForEach(items) { item in
                                 NavigationLink(value: MaintenanceRoute.channelVideos(item.channelID)) {
-                                    ChannelHeroTile(item: item, height: layout.tileHeight)
+                                    ChannelHeroTile(item: item)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("channel.tile.\(item.channelID)")
@@ -93,8 +93,7 @@ struct SplitChannelBrowseView: View {
                         ForEach(items) { item in
                             ChannelSelectionTile(
                                 item: item,
-                                isSelected: item.channelID == selectedChannelID,
-                                height: 156
+                                isSelected: item.channelID == selectedChannelID
                             )
                             .onTapGesture {
                                 selectChannel(item.channelID)
@@ -138,7 +137,7 @@ struct SplitChannelBrowseView: View {
                     } else {
                         LazyVGrid(columns: layout.listColumns, spacing: 20) {
                             ForEach(videosForSelectedChannel) { video in
-                                LongPressVideoTile(video: video, openVideo: openVideo, height: layout.tileHeight)
+                                LongPressVideoTile(video: video, openVideo: openVideo)
                             }
                         }
                     }
@@ -216,7 +215,7 @@ struct AllVideosView: View {
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(coordinator.videos) { video in
-                        LongPressVideoTile(video: video, openVideo: openVideo, height: layout.tileHeight)
+                        LongPressVideoTile(video: video, openVideo: openVideo)
                     }
                 }
             }
@@ -259,7 +258,7 @@ struct ChannelVideosView: View {
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(videos) { video in
-                        LongPressVideoTile(video: video, openVideo: openVideo, height: layout.tileHeight)
+                        LongPressVideoTile(video: video, openVideo: openVideo)
                     }
                 }
             }
@@ -318,12 +317,11 @@ struct InteractiveListScreen<Content: View>: View {
 struct LongPressVideoTile: View {
     let video: CachedVideo
     let openVideo: (CachedVideo) -> Void
-    let height: CGFloat
 
     @State private var isPressing = false
 
     var body: some View {
-        VideoHeroTile(video: video, height: height)
+        VideoHeroTile(video: video)
             .scaleEffect(isPressing ? 0.985 : 1)
             .animation(.easeOut(duration: 0.12), value: isPressing)
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -343,18 +341,16 @@ struct LongPressVideoTile: View {
 
 struct ChannelHeroTile: View {
     let item: ChannelBrowseItem
-    let height: CGFloat
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(LinearGradient(colors: [.teal, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(height: height)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             if let latestVideo = item.latestVideo {
                 ThumbnailView(video: latestVideo, contentMode: .fill)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: height)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
 
@@ -377,6 +373,7 @@ struct ChannelHeroTile: View {
             }
             .padding(16)
         }
+        .aspectRatio(16 / 9, contentMode: .fit)
     }
 
     private func formattedDate(_ date: Date?) -> String {
@@ -388,7 +385,6 @@ struct ChannelHeroTile: View {
 struct ChannelSelectionTile: View {
     let item: ChannelBrowseItem
     let isSelected: Bool
-    let height: CGFloat
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -404,12 +400,11 @@ struct ChannelSelectionTile: View {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .strokeBorder(isSelected ? .white.opacity(0.95) : .clear, lineWidth: 3)
                 }
-                .frame(height: height)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             if let latestVideo = item.latestVideo {
                 ThumbnailView(video: latestVideo, contentMode: .fill)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: height)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     .opacity(isSelected ? 0.92 : 0.78)
             }
@@ -433,6 +428,7 @@ struct ChannelSelectionTile: View {
             }
             .padding(16)
         }
+        .aspectRatio(16 / 9, contentMode: .fit)
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
@@ -444,17 +440,15 @@ struct ChannelSelectionTile: View {
 
 struct VideoHeroTile: View {
     let video: CachedVideo
-    let height: CGFloat
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(height: height)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             ThumbnailView(video: video, contentMode: .fill)
-                .frame(maxWidth: .infinity)
-                .frame(height: height)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
@@ -477,6 +471,7 @@ struct VideoHeroTile: View {
             }
             .padding(16)
         }
+        .aspectRatio(16 / 9, contentMode: .fit)
     }
 
     private func formattedDate(_ date: Date?) -> String {
