@@ -1,6 +1,6 @@
 # Architecture
 
-この文書の内容は [rules.md](/Users/ak/Documents/Codex/HelloWorld/rules.md) に統合しました。
+この文書の内容は [rules.md](rules.md) に統合しました。
 
 - 設計方針
 - ディレクトリ責務

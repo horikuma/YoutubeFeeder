@@ -2,9 +2,11 @@
 
 set -euo pipefail
 
-PROJECT="/Users/ak/Documents/Codex/HelloWorld/HelloWorld.xcodeproj"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT="$REPO_ROOT/HelloWorld.xcodeproj"
 SCHEME="HelloWorld"
-DERIVED_DATA="/Users/ak/Documents/Codex/HelloWorld/.DerivedData"
+DERIVED_DATA="$REPO_ROOT/.DerivedData"
 DESTINATIONS=(
   "iPhone 12 mini"
 )

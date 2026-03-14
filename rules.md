@@ -1,6 +1,6 @@
 # HelloWorld Rules
 
-この文書は、このプロジェクトを継続開発するための正本です。人が読んでも LLM が読んでも判断に迷わないよう、設計方針、責務分担、テスト方針、運用上の前提を 1 か所にまとめています。`ARCHITECTURE.md` の内容もこの文書に統合しています。アプリ機能そのものの仕様は [SPEC.md](/Users/ak/Documents/Codex/HelloWorld/SPEC.md) を正本とし、機能を変える場合は `SPEC.md` と必要箇所のテストも同じ変更セットで更新してください。
+この文書は、このプロジェクトを継続開発するための正本です。人が読んでも LLM が読んでも判断に迷わないよう、設計方針、責務分担、テスト方針、運用上の前提を 1 か所にまとめています。`ARCHITECTURE.md` の内容もこの文書に統合しています。アプリ機能そのものの仕様は [SPEC.md](SPEC.md) を正本とし、機能を変える場合は `SPEC.md` と必要箇所のテストも同じ変更セットで更新してください。
 
 ## 目的
 
@@ -34,49 +34,49 @@
 
 ### App
 
-- [HelloWorld/App/HelloWorldApp.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/App/HelloWorldApp.swift)
+- [HelloWorld/App/HelloWorldApp.swift](HelloWorld/App/HelloWorldApp.swift)
   - アプリ起動入口。
-- [HelloWorld/App/ContentView.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/App/ContentView.swift)
+- [HelloWorld/App/ContentView.swift](HelloWorld/App/ContentView.swift)
   - ルート画面。
   - `LaunchScreenView` からホーム画面へ遷移する。
   - `NavigationStack` と `MaintenanceRoute` を束ねる。
-- [HelloWorld/App/AppLayout.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/App/AppLayout.swift)
+- [HelloWorld/App/AppLayout.swift](HelloWorld/App/AppLayout.swift)
   - `iPhone` と `iPad` のレイアウト差分を吸収する。
-- [HelloWorld/App/AppFormatting.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/App/AppFormatting.swift)
+- [HelloWorld/App/AppFormatting.swift](HelloWorld/App/AppFormatting.swift)
   - 日付などの共通 formatter。
-- [HelloWorld/App/Support/AppTestSupport.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/App/Support/AppTestSupport.swift)
+- [HelloWorld/App/Support/AppTestSupport.swift](HelloWorld/App/Support/AppTestSupport.swift)
   - UI テスト用 launch mode、診断タイムライン、fixture seed、test marker。
 
 ### Features
 
-- [HelloWorld/Features/Home/HomeScreenView.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/Home/HomeScreenView.swift)
+- [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
   - ホーム画面本体。
   - 進捗表示、手動更新、一覧画面への導線。
-- [HelloWorld/Features/Home/HomeUIComponents.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/Home/HomeUIComponents.swift)
+- [HelloWorld/Features/Home/HomeUIComponents.swift](HelloWorld/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
-- [HelloWorld/Features/Home/HomeRoutes.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/Home/HomeRoutes.swift)
+- [HelloWorld/Features/Home/HomeRoutes.swift](HelloWorld/Features/Home/HomeRoutes.swift)
   - 一覧系画面への遷移定義。
-- [HelloWorld/Features/Browse/BrowseViews.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/Browse/BrowseViews.swift)
+- [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル一覧、全動画一覧、チャンネル別動画一覧。
   - 一覧系共通コンテナ `InteractiveListScreen`。
   - 動画タイル、チャンネルタイル、戻るスワイプ適用。
-- [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
+- [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - ホーム画面 bootstrap、手動更新、進捗公開、一覧用データ読込。
-- [HelloWorld/Features/FeedCache/FeedCacheStore.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCacheStore.swift)
+- [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - ファイル永続化、snapshot 読込、thumbnail 保存。
-- [HelloWorld/Features/FeedCache/FeedCacheModels.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCacheModels.swift)
+- [HelloWorld/Features/FeedCache/FeedCacheModels.swift](HelloWorld/Features/FeedCache/FeedCacheModels.swift)
   - キャッシュ用モデルと進捗モデル。
 
 ### Infrastructure
 
-- [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
+- [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
   - YouTube feed の取得、更新判定、XML パース。
   - 条件付き取得用の `ETag` と `Last-Modified` を扱う。
 
 ### Shared
 
-- [HelloWorld/Shared/AppLogic.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Shared/AppLogic.swift)
+- [HelloWorld/Shared/AppLogic.swift](HelloWorld/Shared/AppLogic.swift)
   - `BackSwipePolicy`
   - `VideoOpenPolicy`
   - `FeedOrdering`
@@ -84,11 +84,11 @@
 
 ### Resources
 
-- [HelloWorld/Resources/Channels.txt](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Resources/Channels.txt)
+- [HelloWorld/Resources/Channels.txt](HelloWorld/Resources/Channels.txt)
   - チャンネル ID 一覧。
-- [HelloWorld/Resources/TestFixtures/UITest.bootstrap.json](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Resources/TestFixtures/UITest.bootstrap.json)
+- [HelloWorld/Resources/TestFixtures/UITest.bootstrap.json](HelloWorld/Resources/TestFixtures/UITest.bootstrap.json)
   - UI テスト用 bootstrap。
-- [HelloWorld/Resources/TestFixtures/UITest.cache.json](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Resources/TestFixtures/UITest.cache.json)
+- [HelloWorld/Resources/TestFixtures/UITest.cache.json](HelloWorld/Resources/TestFixtures/UITest.cache.json)
   - UI テスト用 cache。
 
 ## データとキャッシュ方針
@@ -149,19 +149,19 @@
 
 ## 実装責務
 
-- [HelloWorld/App/ContentView.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/App/ContentView.swift)
+- [HelloWorld/App/ContentView.swift](HelloWorld/App/ContentView.swift)
   - ルート画面、起動画面からホーム画面への遷移、ルートレベルの navigation を担う。
-- [HelloWorld/Features/Home/HomeScreenView.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/Home/HomeScreenView.swift)
+- [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
   - ホーム画面の表示と手動更新導線を担う。
-- [HelloWorld/Features/Browse/BrowseViews.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/Browse/BrowseViews.swift)
+- [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
   - 一覧系 UI とその共通挙動を担う。
-- [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
+- [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制を担う。
-- [HelloWorld/Features/FeedCache/FeedCacheStore.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCacheStore.swift)
+- [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - cache.json、bootstrap、thumbnail の永続化と query を担う。
-- [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
+- [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
   - 更新確認、本体取得、XML parser を担う。
-- [HelloWorld/Shared/AppLogic.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Shared/AppLogic.swift)
+- [HelloWorld/Shared/AppLogic.swift](HelloWorld/Shared/AppLogic.swift)
   - スワイプ判定、長押し判定、並び順、鮮度判定などの pure logic を担う。
 
 ## テスト対象と実行方針
@@ -172,10 +172,10 @@
 
 ```bash
 xcodebuild test \
-  -project /Users/ak/Documents/Codex/HelloWorld/HelloWorld.xcodeproj \
+  -project HelloWorld.xcodeproj \
   -scheme HelloWorld \
   -destination 'platform=iOS Simulator,name=iPhone 12 mini' \
-  -derivedDataPath /Users/ak/Documents/Codex/HelloWorld/.DerivedData \
+  -derivedDataPath .DerivedData \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO
 ```
@@ -187,26 +187,26 @@ xcodebuild test \
 
 ### Unit Test
 
-- [HelloWorldTests/Unit/Parsing/ChannelResourceTests.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldTests/Unit/Parsing/ChannelResourceTests.swift)
+- [HelloWorldTests/Unit/Parsing/ChannelResourceTests.swift](HelloWorldTests/Unit/Parsing/ChannelResourceTests.swift)
   - チャンネル ID resource 読込。
-- [HelloWorldTests/Unit/Parsing/YouTubeFeedParserTests.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldTests/Unit/Parsing/YouTubeFeedParserTests.swift)
+- [HelloWorldTests/Unit/Parsing/YouTubeFeedParserTests.swift](HelloWorldTests/Unit/Parsing/YouTubeFeedParserTests.swift)
   - uploads playlist ID 変換、feed parser。
-- [HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift)
+- [HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift](HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift)
   - 戻るスワイプ判定。
-- [HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift)
+- [HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift](HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift)
   - 優先順、鮮度判定。
 
 ### UI Test
 
-- [HelloWorldUITests/Home/HomeScreenUITests.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldUITests/Home/HomeScreenUITests.swift)
+- [HelloWorldUITests/Home/HomeScreenUITests.swift](HelloWorldUITests/Home/HomeScreenUITests.swift)
   - ホーム画面表示
   - 単一進捗表示
   - モック refresh 経路
   - 起動タイムライン
-- [HelloWorldUITests/Browse/BrowseScreenUITests.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldUITests/Browse/BrowseScreenUITests.swift)
+- [HelloWorldUITests/Browse/BrowseScreenUITests.swift](HelloWorldUITests/Browse/BrowseScreenUITests.swift)
   - 全動画一覧遷移
   - 一覧の縦スクロール
-- [HelloWorldUITests/Support/UITestCaseSupport.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorldUITests/Support/UITestCaseSupport.swift)
+- [HelloWorldUITests/Support/UITestCaseSupport.swift](HelloWorldUITests/Support/UITestCaseSupport.swift)
   - app 起動、timeline 解析、共通 wait。
 
 ## テスト運用ルール
@@ -219,10 +219,10 @@ xcodebuild test \
 
 ```bash
 xcodebuild test \
-  -project /Users/ak/Documents/Codex/HelloWorld/HelloWorld.xcodeproj \
+  -project HelloWorld.xcodeproj \
   -scheme HelloWorld \
   -destination 'platform=iOS Simulator,name=iPhone 12 mini' \
-  -derivedDataPath /Users/ak/Documents/Codex/HelloWorld/.DerivedData \
+  -derivedDataPath .DerivedData \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO
 ```
@@ -238,8 +238,8 @@ xcodebuild test \
 ## ドキュメント運用ルール
 
 - 構成変更、画面追加、責務移動、テスト戦略変更があったら、この文書を更新する。
-- アプリ機能を変更したら、必ず [SPEC.md](/Users/ak/Documents/Codex/HelloWorld/SPEC.md) も更新する。
-- UI の変更に明確な理由がある場合は、その理由も [SPEC.md](/Users/ak/Documents/Codex/HelloWorld/SPEC.md) に記載する。
+- アプリ機能を変更したら、必ず [SPEC.md](SPEC.md) も更新する。
+- UI の変更に明確な理由がある場合は、その理由も [SPEC.md](SPEC.md) に記載する。
 - ただし、流れで決まった見た目や一時的な微調整まで一律に理由を書く必要はない。判断理由が将来の変更判断に効く場合だけ記載する。
 - GUI 仕様を更新する時は、`共有する振る舞い` と `端末または向きで分ける振る舞い` が明確に読み分けられる構成にする。
 - `ARCHITECTURE.md` は案内用であり、正本はこの `rules.md` とする。
@@ -251,8 +251,8 @@ xcodebuild test \
 アプリ機能を変更する場合は、次を同じ変更セットで更新しなければならない。
 
 1. 実装コード
-2. 影響する [SPEC.md](/Users/ak/Documents/Codex/HelloWorld/SPEC.md)
-3. 必要に応じた [rules.md](/Users/ak/Documents/Codex/HelloWorld/rules.md)
+2. 影響する [SPEC.md](SPEC.md)
+3. 必要に応じた [rules.md](rules.md)
 4. 影響する test fixture とテストコード
 
 変更時は、次の問いに答えられる状態にすること。
