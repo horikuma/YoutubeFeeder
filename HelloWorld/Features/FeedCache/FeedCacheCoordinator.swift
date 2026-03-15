@@ -21,6 +21,10 @@ final class FeedCacheCoordinator: ObservableObject {
     private var liveUpdateSuspendCount = 0
     private var needsRefreshWhenResumed = false
 
+    private var channelSyncService: FeedChannelSyncService {
+        FeedChannelSyncService(store: store, feedService: feedService)
+    }
+
     init(channels: [String], freshnessInterval: TimeInterval? = nil) {
         self.channels = channels
         self.freshnessInterval = freshnessInterval ?? TimeInterval(max(channels.count, 1) * 60)
@@ -340,8 +344,8 @@ final class FeedCacheCoordinator: ObservableObject {
 
         let lastError: String?
 
-        do {
-            let result = try await feedService.fetchLatestFeed(for: channelID)
+        let result = await channelSyncService.performForcedRefresh(channelID: channelID)
+        if result.errorMessage == nil {
             refreshProgress.fetchStage = RefreshStageProgress(
                 title: refreshProgress.fetchStage.title,
                 completed: 0,
@@ -349,8 +353,6 @@ final class FeedCacheCoordinator: ObservableObject {
                 activeCalls: 1,
                 callsPerSecond: refreshProgress.fetchStage.callsPerSecond
             )
-
-            let uncachedVideos = await store.recordSuccess(channelID: channelID, videos: result.videos, metadata: result.metadata)
 
             refreshProgress.checkStage = RefreshStageProgress(
                 title: refreshProgress.checkStage.title,
@@ -369,12 +371,12 @@ final class FeedCacheCoordinator: ObservableObject {
             refreshProgress.thumbnailStage = RefreshStageProgress(
                 title: refreshProgress.thumbnailStage.title,
                 completed: 0,
-                total: uncachedVideos.filter { $0.thumbnailURL != nil }.count,
+                total: result.uncachedVideos.filter { $0.thumbnailURL != nil }.count,
                 activeCalls: 0,
                 callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
             )
 
-            for (index, video) in uncachedVideos.filter({ $0.thumbnailURL != nil }).enumerated() {
+            for (index, video) in result.uncachedVideos.filter({ $0.thumbnailURL != nil }).enumerated() {
                 refreshProgress.thumbnailStage = RefreshStageProgress(
                     title: refreshProgress.thumbnailStage.title,
                     completed: index,
@@ -391,11 +393,7 @@ final class FeedCacheCoordinator: ObservableObject {
                     callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
                 )
             }
-
-            lastError = nil
-        } catch {
-            let message = error.localizedDescription
-            await store.recordFailure(channelID: channelID, checkedAt: .now, error: message)
+        } else {
             refreshProgress.checkStage = RefreshStageProgress(
                 title: refreshProgress.checkStage.title,
                 completed: 1,
@@ -410,8 +408,8 @@ final class FeedCacheCoordinator: ObservableObject {
                 activeCalls: 0,
                 callsPerSecond: refreshProgress.fetchStage.callsPerSecond
             )
-            lastError = message
         }
+        lastError = result.errorMessage
 
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         await refreshUI(currentChannelID: channelID, isRunning: false, lastError: lastError)
@@ -419,29 +417,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     private func processChannel(_ channelID: String, states: [String: CachedChannelState]) async -> String? {
-        let token = FeedValidationToken(
-            etag: states[channelID]?.etag,
-            lastModified: states[channelID]?.lastModified
-        )
-
-        do {
-            let checkResult = try await feedService.checkForUpdates(for: channelID, validationToken: token)
-            switch checkResult {
-            case let .notModified(metadata):
-                await store.recordNotModified(channelID: channelID, metadata: metadata)
-            case .updated:
-                let result = try await feedService.fetchLatestFeed(for: channelID)
-                let uncachedVideos = await store.recordSuccess(channelID: channelID, videos: result.videos, metadata: result.metadata)
-                for video in uncachedVideos where video.thumbnailURL != nil {
-                    await store.cacheThumbnail(for: video)
-                }
-            }
-            return nil
-        } catch {
-            let message = error.localizedDescription
-            await store.recordFailure(channelID: channelID, checkedAt: .now, error: message)
-            return message
-        }
+        await channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID])
     }
 
     private func prioritizedChannelIDs(states: [String: CachedChannelState]) -> [String] {

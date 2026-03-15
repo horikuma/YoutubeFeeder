@@ -43,9 +43,11 @@
   - ホーム画面本体。
   - 手動更新と一覧画面への導線。
   - `Menu` ベースのチャンネル一覧ソート選択。
-  - チャンネル登録画面への導線。
   - チャンネル登録結果のフィードバック表示。
   - この端末内バックアップの書き出し / 読み戻し導線と結果表示。
+- [HelloWorld/Features/Home/ChannelRegistrationView.swift](HelloWorld/Features/Home/ChannelRegistrationView.swift)
+  - チャンネル登録画面本体。
+  - 入力、登録実行、登録結果フィードバックを担う。
 - [HelloWorld/Features/Home/HomeUIComponents.swift](HelloWorld/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
 - [HelloWorld/Features/Home/HomeRoutes.swift](HelloWorld/Features/Home/HomeRoutes.swift)
@@ -53,16 +55,21 @@
   - チャンネル一覧には並び順 descriptor を渡す。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル一覧、全動画一覧、チャンネル別動画一覧。
-  - 一覧系共通コンテナ `InteractiveListScreen`。
   - iPad 横向きのチャンネル閲覧は `NavigationSplitView` を使う。
   - 選択された並び順 descriptor を一覧サブタイトルと並び順へ反映する。
   - 長押しメニューからチャンネル削除導線を出す。
   - チャンネル別動画一覧の pull-to-refresh は、そのチャンネル限定の強制更新へ接続する。
+- [HelloWorld/Features/Browse/BrowseComponents.swift](HelloWorld/Features/Browse/BrowseComponents.swift)
+  - 一覧系共通コンテナ `InteractiveListScreen`。
+  - タイル部品、サムネイル表示、戻るスワイプ modifier など、一覧画面から共有される表示部品を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
   - チャンネル削除と整合性メンテナンスの起点。
   - 全体更新と単独チャンネル強制更新の両方を制御する。
+- [HelloWorld/Features/FeedCache/FeedChannelSyncService.swift](HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
+  - feed 取得、条件付き更新判定、store 反映を束ねる更新実行サービス。
+  - coordinator からネットワーク / 永続化の細部を切り離し、更新 orchestration の責務を薄くする。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - ファイル永続化、snapshot 読込、thumbnail 保存。
   - チャンネル一覧描画用の集約データを返す。
@@ -142,9 +149,13 @@
 - [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
   - ホーム画面の表示、手動更新導線、一覧ソート選択、バックアップを担う。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
-  - 一覧系 UI、共通挙動、並び順表示、長押しメニューを担う。
+  - 一覧系 UI、画面遷移、並び順表示、長押しメニューを担う。
+- [HelloWorld/Features/Browse/BrowseComponents.swift](HelloWorld/Features/Browse/BrowseComponents.swift)
+  - 一覧系 UI で共有される表示部品と共通レイアウトを担う。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制、引き継ぎ後の再読込、チャンネル削除を担う。
+- [HelloWorld/Features/FeedCache/FeedChannelSyncService.swift](HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
+  - 個別チャンネルの同期実行と store 反映を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - cache.json、bootstrap、thumbnail、channel registry の読取利用と整合性メンテナンスを担う。
 - [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
