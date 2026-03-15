@@ -157,8 +157,10 @@ struct YouTubeSearchService {
 
         return deduplicated.values.sorted {
             switch ($0.publishedAt, $1.publishedAt) {
-            case let (left?, right?):
+            case let (left?, right?) where left != right:
                 return left > right
+            case (_?, _?):
+                return $0.id < $1.id
             case (_?, nil):
                 return true
             case (nil, _?):

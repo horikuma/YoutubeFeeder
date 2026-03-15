@@ -14,7 +14,7 @@ final class YouTubeSearchServiceTests: XCTestCase {
             ]
         )
 
-        XCTAssertEqual(merged.map(\.id), ["video-2", "video-1"])
+        XCTAssertEqual(merged.map(\.id), ["video-1", "video-2"])
         XCTAssertEqual(merged.first?.publishedAt, newer)
     }
 

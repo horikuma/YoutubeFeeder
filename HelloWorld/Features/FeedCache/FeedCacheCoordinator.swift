@@ -446,7 +446,12 @@ final class FeedCacheCoordinator: ObservableObject {
             fetchStage: .idle(title: "更新チャンネル取得", callsPerSecond: 0),
             thumbnailStage: .idle(title: "サムネイル取得", callsPerSecond: 0)
         )
-        await refreshUI(currentChannelID: channelID, isRunning: false, lastError: progress.lastError)
+        await refreshUI(
+            currentChannelID: channelID,
+            isRunning: false,
+            lastError: progress.lastError,
+            allowsSuspendedStateUpdate: true
+        )
         refreshProgress = .idle
     }
 
@@ -528,7 +533,12 @@ final class FeedCacheCoordinator: ObservableObject {
         lastError = result.errorMessage
 
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
-        await refreshUI(currentChannelID: channelID, isRunning: false, lastError: lastError)
+        await refreshUI(
+            currentChannelID: channelID,
+            isRunning: false,
+            lastError: lastError,
+            allowsSuspendedStateUpdate: true
+        )
         refreshProgress = .idle
     }
 
@@ -540,7 +550,13 @@ final class FeedCacheCoordinator: ObservableObject {
         FeedOrdering.prioritizedChannelIDs(channels: channels, states: states)
     }
 
-    private func refreshUI(currentChannelID: String?, isRunning: Bool, lastError: String?, includesVideos: Bool = true) async {
+    private func refreshUI(
+        currentChannelID: String?,
+        isRunning: Bool,
+        lastError: String?,
+        includesVideos: Bool = true,
+        allowsSuspendedStateUpdate: Bool = false
+    ) async {
         let snapshot = await store.loadSnapshot()
         let cachedChannels = snapshot.channels.filter { $0.lastSuccessAt != nil }.count
         let cachedThumbnails = snapshot.videos.filter { $0.thumbnailLocalFilename != nil }.count
@@ -559,7 +575,7 @@ final class FeedCacheCoordinator: ObservableObject {
         )
         let nextMaintenanceItems = buildMaintenanceItems(from: snapshot)
 
-        if liveUpdateSuspendCount > 0 {
+        if liveUpdateSuspendCount > 0, !allowsSuspendedStateUpdate {
             needsRefreshWhenResumed = true
             return
         }
