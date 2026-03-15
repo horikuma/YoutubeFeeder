@@ -26,6 +26,10 @@ enum AppLaunchMode {
         guard usesMockData else { return nil }
         return UITestInitialRoute(rawValue: ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_INITIAL_ROUTE"] ?? "")
     }
+
+    var runtimeLoggingEnabled: Bool {
+        ProcessInfo.processInfo.environment["HELLOWORLD_RUNTIME_LOGGING"] == "1"
+    }
 }
 
 enum UITestInitialRoute: String {
@@ -71,6 +75,66 @@ final class StartupDiagnostics: ObservableObject {
     }
 }
 
+struct RuntimeLogEntry: Codable, Hashable {
+    let timestamp: String
+    let event: String
+    let detail: String
+    let metadata: [String: String]
+}
+
+@MainActor
+final class RuntimeDiagnostics: ObservableObject {
+    static let shared = RuntimeDiagnostics()
+
+    @Published private(set) var latestValue = "[]"
+
+    private let formatter = ISO8601DateFormatter()
+    private var entries: [RuntimeLogEntry] = []
+
+    var isEnabled: Bool {
+        AppLaunchMode.current.runtimeLoggingEnabled
+    }
+
+    func record(_ event: String, detail: String, metadata: [String: String] = [:]) {
+        guard isEnabled else { return }
+
+        let entry = RuntimeLogEntry(
+            timestamp: formatter.string(from: .now),
+            event: event,
+            detail: detail,
+            metadata: metadata.sorted { $0.key < $1.key }.reduce(into: [String: String]()) { partial, pair in
+                partial[pair.key] = pair.value
+            }
+        )
+
+        entries.append(entry)
+        if entries.count > 200 {
+            entries.removeFirst(entries.count - 200)
+        }
+        latestValue = encodedEntries()
+
+        if
+            let data = try? JSONEncoder().encode(entry),
+            let line = String(data: data, encoding: .utf8)
+        {
+            print("HELLOWORLD_RUNTIME_LOG \(line)")
+        } else {
+            print("HELLOWORLD_RUNTIME_LOG {\"event\":\"\(event)\",\"detail\":\"\(detail)\"}")
+        }
+    }
+
+    private func encodedEntries() -> String {
+        guard
+            let data = try? JSONEncoder().encode(entries),
+            let string = String(data: data, encoding: .utf8)
+        else {
+            return "[]"
+        }
+
+        return string
+    }
+}
+
 enum UITestFixtureSeeder {
     static func seedIfNeeded(bundle: Bundle = .main, fileManager: FileManager = .default) {
         guard AppLaunchMode.current.usesMockData else { return }
@@ -92,14 +156,25 @@ enum UITestFixtureSeeder {
 
 private struct DiagnosticsProbe: View {
     @ObservedObject var diagnostics = StartupDiagnostics.shared
+    @ObservedObject var runtimeDiagnostics = RuntimeDiagnostics.shared
 
     var body: some View {
-        if AppLaunchMode.current.usesMockData {
-            Text("diagnostics")
-                .font(.caption2)
-                .foregroundStyle(.clear)
-                .accessibilityIdentifier("diagnostics.timeline")
-                .accessibilityValue(diagnostics.timelineValue)
+        ZStack(alignment: .topLeading) {
+            if AppLaunchMode.current.usesMockData {
+                Text("diagnostics")
+                    .font(.caption2)
+                    .foregroundStyle(.clear)
+                    .accessibilityIdentifier("diagnostics.timeline")
+                    .accessibilityValue(diagnostics.timelineValue)
+            }
+
+            if runtimeDiagnostics.isEnabled {
+                Text("runtime")
+                    .font(.caption2)
+                    .foregroundStyle(.clear)
+                    .accessibilityIdentifier("diagnostics.runtimeLog")
+                    .accessibilityValue(runtimeDiagnostics.latestValue)
+            }
         }
     }
 }

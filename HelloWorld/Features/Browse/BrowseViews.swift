@@ -67,6 +67,14 @@ struct ChannelBrowseListView: View {
             items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
         }
         .onReceive(coordinator.$maintenanceItems.dropFirst()) { _ in
+            RuntimeDiagnostics.shared.record(
+                "channel_list_received_update",
+                detail: "チャンネル一覧が maintenanceItems の更新を受信",
+                metadata: [
+                    "itemCount": String(coordinator.maintenanceItems.count),
+                    "sort": sortDescriptor.shortLabel
+                ]
+            )
             Task {
                 items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
             }
@@ -301,8 +309,24 @@ struct SplitChannelBrowseView: View {
 
     private func refreshSelectedChannel() async {
         guard let selectedChannelID else { return }
+        RuntimeDiagnostics.shared.record(
+            "channel_refresh_gesture",
+            detail: "スプリット表示の動画一覧で下スワイプ更新",
+            metadata: [
+                "channelID": selectedChannelID,
+                "screen": "splitChannelVideos"
+            ]
+        )
         await coordinator.refreshChannelManually(selectedChannelID)
         videosByChannelID[selectedChannelID] = await coordinator.loadVideosForChannel(selectedChannelID)
+        RuntimeDiagnostics.shared.record(
+            "channel_refresh_view_reload_finished",
+            detail: "スプリット表示の動画一覧リロード完了",
+            metadata: [
+                "channelID": selectedChannelID,
+                "videoCount": String(videosByChannelID[selectedChannelID]?.count ?? 0)
+            ]
+        )
     }
 }
 
@@ -649,8 +673,24 @@ struct ChannelVideosView: View {
             path: $path,
             layout: layout,
             onRefresh: {
+                RuntimeDiagnostics.shared.record(
+                    "channel_refresh_gesture",
+                    detail: "チャンネル動画一覧で下スワイプ更新",
+                    metadata: [
+                        "channelID": channelID,
+                        "screen": "channelVideos"
+                    ]
+                )
                 await coordinator.refreshChannelManually(channelID)
                 await reloadVideos()
+                RuntimeDiagnostics.shared.record(
+                    "channel_refresh_view_reload_finished",
+                    detail: "チャンネル動画一覧リロード完了",
+                    metadata: [
+                        "channelID": channelID,
+                        "videoCount": String(videos.count)
+                    ]
+                )
             }
         ) {
             if AppLaunchMode.current.usesMockData {
@@ -739,5 +779,14 @@ struct ChannelVideosView: View {
 
     private func reloadVideos() async {
         videos = await coordinator.loadVideosForChannel(channelID)
+        RuntimeDiagnostics.shared.record(
+            "channel_videos_loaded",
+            detail: "チャンネル動画一覧を読み込み",
+            metadata: [
+                "channelID": channelID,
+                "videoCount": String(videos.count),
+                "title": channelTitle
+            ]
+        )
     }
 }

@@ -51,10 +51,23 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func suspendLiveUpdates() {
         liveUpdateSuspendCount += 1
+        RuntimeDiagnostics.shared.record(
+            "live_updates_suspended",
+            detail: "一覧のライブ更新を抑止",
+            metadata: ["suspendCount": String(liveUpdateSuspendCount)]
+        )
     }
 
     func resumeLiveUpdates() {
         liveUpdateSuspendCount = max(liveUpdateSuspendCount - 1, 0)
+        RuntimeDiagnostics.shared.record(
+            "live_updates_resumed",
+            detail: "一覧のライブ更新抑止を解除",
+            metadata: [
+                "suspendCount": String(liveUpdateSuspendCount),
+                "needsRefreshWhenResumed": needsRefreshWhenResumed ? "true" : "false"
+            ]
+        )
 
         guard liveUpdateSuspendCount == 0, needsRefreshWhenResumed else { return }
         needsRefreshWhenResumed = false
@@ -80,12 +93,37 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func refreshChannelManually(_ channelID: String) async {
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedChannelID.isEmpty else { return }
-        guard channels.contains(normalizedChannelID) else { return }
-        guard manualRefreshTask == nil else { return }
+        guard !normalizedChannelID.isEmpty else {
+            RuntimeDiagnostics.shared.record("channel_manual_refresh_ignored", detail: "空の channelID のため更新しない")
+            return
+        }
+        guard channels.contains(normalizedChannelID) else {
+            RuntimeDiagnostics.shared.record(
+                "channel_manual_refresh_ignored",
+                detail: "登録されていない channelID のため更新しない",
+                metadata: ["channelID": normalizedChannelID]
+            )
+            return
+        }
+        guard manualRefreshTask == nil else {
+            RuntimeDiagnostics.shared.record(
+                "channel_manual_refresh_ignored",
+                detail: "別の手動更新が進行中のため更新しない",
+                metadata: ["channelID": normalizedChannelID]
+            )
+            return
+        }
 
         manualRefreshTask = Task {
             StartupDiagnostics.shared.mark("channelManualRefreshStarted")
+            RuntimeDiagnostics.shared.record(
+                "channel_manual_refresh_started",
+                detail: "チャンネル単独更新を開始",
+                metadata: [
+                    "channelID": normalizedChannelID,
+                    "liveUpdateSuspendCount": String(liveUpdateSuspendCount)
+                ]
+            )
             lastManualChannelRefreshID = normalizedChannelID
             if AppLaunchMode.current.usesMockData {
                 await performMockChannelRefresh(channelID: normalizedChannelID)
@@ -93,6 +131,17 @@ final class FeedCacheCoordinator: ObservableObject {
                 await performManualChannelRefresh(channelID: normalizedChannelID)
             }
             StartupDiagnostics.shared.mark("channelManualRefreshFinished")
+            let updatedItem = maintenanceItems.first(where: { $0.channelID == normalizedChannelID })
+            RuntimeDiagnostics.shared.record(
+                "channel_manual_refresh_finished",
+                detail: "チャンネル単独更新を完了",
+                metadata: [
+                    "channelID": normalizedChannelID,
+                    "lastError": progress.lastError ?? "",
+                    "cachedVideoCount": String(updatedItem?.cachedVideoCount ?? 0),
+                    "latestPublishedAt": updatedItem?.latestPublishedAt?.formatted(date: .numeric, time: .standard) ?? ""
+                ]
+            )
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
@@ -440,6 +489,11 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     private func performMockChannelRefresh(channelID: String) async {
+        RuntimeDiagnostics.shared.record(
+            "channel_manual_refresh_mock",
+            detail: "モック経路でチャンネル更新を処理",
+            metadata: ["channelID": channelID]
+        )
         refreshProgress = CacheRefreshProgress(
             isRefreshing: true,
             checkStage: RefreshStageProgress(title: "チャンネル更新", completed: 0, total: 1, activeCalls: 1, callsPerSecond: 1),
@@ -456,6 +510,11 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     private func performManualChannelRefresh(channelID: String) async {
+        RuntimeDiagnostics.shared.record(
+            "channel_manual_refresh_fetch_started",
+            detail: "フィード取得を開始",
+            metadata: ["channelID": channelID]
+        )
         refreshProgress = CacheRefreshProgress(
             isRefreshing: true,
             checkStage: RefreshStageProgress(title: "チャンネル更新", completed: 0, total: 1, activeCalls: 1, callsPerSecond: 1),
@@ -466,6 +525,15 @@ final class FeedCacheCoordinator: ObservableObject {
         let lastError: String?
 
         let result = await channelSyncService.performForcedRefresh(channelID: channelID)
+        RuntimeDiagnostics.shared.record(
+            "channel_manual_refresh_fetch_finished",
+            detail: result.errorMessage == nil ? "フィード取得成功" : "フィード取得失敗",
+            metadata: [
+                "channelID": channelID,
+                "uncachedVideos": String(result.uncachedVideos.count),
+                "error": result.errorMessage ?? ""
+            ]
+        )
         if result.errorMessage == nil {
             refreshProgress.fetchStage = RefreshStageProgress(
                 title: refreshProgress.fetchStage.title,
@@ -498,6 +566,16 @@ final class FeedCacheCoordinator: ObservableObject {
             )
 
             for (index, video) in result.uncachedVideos.filter({ $0.thumbnailURL != nil }).enumerated() {
+                RuntimeDiagnostics.shared.record(
+                    "channel_manual_refresh_thumbnail_started",
+                    detail: "サムネイル取得を開始",
+                    metadata: [
+                        "channelID": channelID,
+                        "videoID": video.id,
+                        "index": String(index + 1),
+                        "total": String(result.uncachedVideos.filter { $0.thumbnailURL != nil }.count)
+                    ]
+                )
                 refreshProgress.thumbnailStage = RefreshStageProgress(
                     title: refreshProgress.thumbnailStage.title,
                     completed: index,
@@ -506,6 +584,15 @@ final class FeedCacheCoordinator: ObservableObject {
                     callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
                 )
                 await store.cacheThumbnail(for: video)
+                RuntimeDiagnostics.shared.record(
+                    "channel_manual_refresh_thumbnail_finished",
+                    detail: "サムネイル取得を完了",
+                    metadata: [
+                        "channelID": channelID,
+                        "videoID": video.id,
+                        "index": String(index + 1)
+                    ]
+                )
                 refreshProgress.thumbnailStage = RefreshStageProgress(
                     title: refreshProgress.thumbnailStage.title,
                     completed: index + 1,
@@ -532,7 +619,16 @@ final class FeedCacheCoordinator: ObservableObject {
         }
         lastError = result.errorMessage
 
-        _ = await performConsistencyMaintenanceIfNeeded(force: false)
+        let cleanup = await performConsistencyMaintenanceIfNeeded(force: false)
+        RuntimeDiagnostics.shared.record(
+            "channel_manual_refresh_maintenance_finished",
+            detail: "整合性メンテナンスを完了",
+            metadata: [
+                "channelID": channelID,
+                "removedVideos": String(cleanup?.removedVideoCount ?? 0),
+                "removedThumbnails": String(cleanup?.removedThumbnailCount ?? 0)
+            ]
+        )
         await refreshUI(
             currentChannelID: channelID,
             isRunning: false,
@@ -577,11 +673,31 @@ final class FeedCacheCoordinator: ObservableObject {
 
         if liveUpdateSuspendCount > 0, !allowsSuspendedStateUpdate {
             needsRefreshWhenResumed = true
+            RuntimeDiagnostics.shared.record(
+                "refresh_ui_deferred",
+                detail: "ライブ更新抑止中のため UI 反映を保留",
+                metadata: [
+                    "currentChannelID": currentChannelID ?? "",
+                    "suspendCount": String(liveUpdateSuspendCount),
+                    "maintenanceCount": String(nextMaintenanceItems.count)
+                ]
+            )
             return
         }
 
         progress = nextProgress
         maintenanceItems = nextMaintenanceItems
+        RuntimeDiagnostics.shared.record(
+            "refresh_ui_applied",
+            detail: "UI 状態を反映",
+            metadata: [
+                "currentChannelID": currentChannelID ?? "",
+                "maintenanceCount": String(nextMaintenanceItems.count),
+                "cachedVideos": String(nextProgress.cachedVideos),
+                "cachedChannels": String(nextProgress.cachedChannels),
+                "includesVideos": includesVideos ? "true" : "false"
+            ]
+        )
         await refreshHomeSystemStatus(snapshot: snapshot, currentProgress: nextProgress)
 
         await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)

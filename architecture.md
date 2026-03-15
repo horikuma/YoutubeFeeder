@@ -37,6 +37,7 @@
   - UI テスト用 launch mode、診断タイムライン、fixture seed、test marker。
   - UI テスト用の初期遷移指定。
   - 起動性能計測用の timeline marker。
+  - 実機調査用のランタイムイベントログと hidden diagnostics marker。
 - [Config/AppConfig.xcconfig](Config/AppConfig.xcconfig)
   - アプリ共通の build 設定。
   - optional include の `LocalSecrets.xcconfig` からローカル秘密情報を受ける。
@@ -68,6 +69,7 @@
   - 固定キーワード検索結果画面では、一時的な件数チップを下部へ重ねて表示する。
   - 一覧ごとにタイルの通し番号を 1 から振り直して表示する。
   - YouTube 検索結果は 20 件ずつの段階表示と下端到達での追加読込を行う。
+  - 実機調査時は、チャンネル別動画一覧の更新ジェスチャーと一覧再読込の完了をランタイムログへ流す。
 - [HelloWorld/Features/Browse/BrowseComponents.swift](HelloWorld/Features/Browse/BrowseComponents.swift)
   - 一覧系共通コンテナ `InteractiveListScreen`。
   - タイル部品、サムネイル表示、戻るスワイプ modifier など、一覧画面から共有される表示部品を担う。
@@ -79,6 +81,7 @@
   - 全体更新と単独チャンネル強制更新の両方を制御する。
   - キャッシュ検索結果、YouTube 検索結果、ホームのシステム状況集約を担う。
   - チャンネル別動画一覧では、通常キャッシュと検索キャッシュをチャンネル単位でマージして返す。
+  - 実機調査用に、単独チャンネル更新の開始/終了、フィード取得、整合性メンテナンス、UI 反映/保留を構造化ログで出力する。
 - [HelloWorld/Features/FeedCache/FeedChannelSyncService.swift](HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、条件付き更新判定、store 反映を束ねる更新実行サービス。
   - coordinator からネットワーク / 永続化の細部を切り離し、更新 orchestration の責務を薄くする。
@@ -125,6 +128,8 @@
   - UI テスト用 bootstrap。
 - [HelloWorld/Resources/TestFixtures/UITest.cache.json](HelloWorld/Resources/TestFixtures/UITest.cache.json)
   - UI テスト用 cache。
+- [scripts/stream_device_runtime_logs.sh](scripts/stream_device_runtime_logs.sh)
+  - 物理 `iPhone 12 mini` に `HELLOWORLD_RUNTIME_LOGGING=1` 付きでアプリを foreground 起動し、stdout ベースのランタイムログをコンソールへ流す。
 
 ## データとキャッシュ構造
 
@@ -258,6 +263,7 @@ xcodebuild test \
 - 自動更新経路を確認したいテストだけ `HELLOWORLD_UI_TEST_AUTO_REFRESH=1` を使う。
 - UI テストでは実ネットワークを使わない。
 - hidden button の直接タップより、起動環境変数や marker による観測を優先する。
+- 実機の再現調査では `scripts/stream_device_runtime_logs.sh` を使い、物理 `iPhone 12 mini` の foreground 起動とコンソール接続を同時に行う。
 - UI テスト用 identifier は tappable な本体要素に付ける。
 - 画面が描画されたことを示す marker と、主要要素が見えることの両方を待つ。
 - 性能しきい値は simulator の揺れを考慮して設定する。
