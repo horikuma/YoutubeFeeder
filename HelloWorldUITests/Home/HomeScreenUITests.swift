@@ -12,6 +12,19 @@ final class HomeScreenUITests: UITestCaseSupport {
         let timeline = try timelinePayload(in: app)
         XCTAssertLessThan(try offset(for: "bootstrapLoaded", in: timeline), 2000)
         XCTAssertLessThan(try offset(for: "maintenanceShown", in: timeline), 2500)
+        let startupMetrics = try startupMetrics(from: timeline)
+        let payload = [
+            "timeline": timeline,
+            "startup_metrics": startupMetrics,
+        ] as [String : Any]
+        if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]),
+           let text = String(data: data, encoding: .utf8) {
+            print("HELLOWORLD_STARTUP_METRICS \(text)")
+        }
+        try writeJSONIfRequested(
+            payload,
+            environmentKey: "HELLOWORLD_STARTUP_METRICS_OUTPUT"
+        )
         element("nav.channels", in: app).tap()
 
         XCTAssertTrue(app.buttons["動画投稿日時 ↓"].waitForExistence(timeout: 3))

@@ -35,6 +35,7 @@
 - [HelloWorld/App/Support/AppTestSupport.swift](HelloWorld/App/Support/AppTestSupport.swift)
   - UI テスト用 launch mode、診断タイムライン、fixture seed、test marker。
   - UI テスト用の初期遷移指定。
+  - 起動性能計測用の timeline marker。
 
 ### Features
 
@@ -179,6 +180,7 @@ xcodebuild test \
   - `チャンネル` / `動画` 導線
   - モック refresh 経路
   - 起動タイムライン
+  - `metrics.md` 更新用の起動性能 JSON 書き出し
 - [HelloWorldUITests/Browse/BrowseScreenUITests.swift](HelloWorldUITests/Browse/BrowseScreenUITests.swift)
   - 全動画一覧遷移
   - 一覧の縦スクロール
@@ -194,3 +196,5 @@ xcodebuild test \
 - UI テスト用 identifier は tappable な本体要素に付ける。
 - 画面が描画されたことを示す marker と、主要要素が見えることの両方を待つ。
 - 性能しきい値は simulator の揺れを考慮して設定する。
+- `scripts/collect_metrics.sh` は `xcodebuild build-for-testing` と `test-without-building` を分離して時間を採取し、UI テストが書き出した起動性能 JSON を `metrics.md` へ集約する。
+- 同スクリプトは Xcode の Scheme post-action や Run Script からも呼び出せるよう、CLI だけで完結する前提で設計する。

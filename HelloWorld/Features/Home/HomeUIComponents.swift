@@ -17,6 +17,9 @@ struct LaunchScreenView: View {
             }
             .padding(32)
         }
+        .onAppear {
+            StartupDiagnostics.shared.mark("splashShown")
+        }
     }
 }
 

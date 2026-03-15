@@ -1,4 +1,5 @@
 import XCTest
+import Foundation
 
 class UITestCaseSupport: XCTestCase {
     override func setUpWithError() throws {
@@ -43,6 +44,22 @@ class UITestCaseSupport: XCTestCase {
         return try XCTUnwrap(Int(value))
     }
 
+    func startupMetrics(from payload: [String: [String: String]]) throws -> [String: Int] {
+        let appLaunchToSplash = try offset(for: "splashShown", in: payload)
+        let appLaunchToBootstrap = try offset(for: "bootstrapLoaded", in: payload)
+        let appLaunchToHome = try offset(for: "maintenanceShown", in: payload)
+        let appLaunchToMaintenanceEnter = try offset(for: "maintenanceEntered", in: payload)
+
+        return [
+            "app_launch_to_splash_ms": appLaunchToSplash,
+            "app_launch_to_bootstrap_ms": appLaunchToBootstrap,
+            "app_launch_to_home_ms": appLaunchToHome,
+            "app_launch_to_maintenance_enter_ms": appLaunchToMaintenanceEnter,
+            "splash_to_home_ms": appLaunchToHome - appLaunchToSplash,
+            "bootstrap_to_home_ms": appLaunchToHome - appLaunchToBootstrap,
+        ]
+    }
+
     func element(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
@@ -66,5 +83,14 @@ class UITestCaseSupport: XCTestCase {
             RunLoop.current.run(until: Date().addingTimeInterval(pollInterval))
         }
         return condition()
+    }
+
+    func writeJSONIfRequested(_ object: Any, environmentKey: String) throws {
+        guard let outputPath = ProcessInfo.processInfo.environment[environmentKey], !outputPath.isEmpty else {
+            return
+        }
+
+        let data = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
+        try data.write(to: URL(fileURLWithPath: outputPath), options: [.atomic])
     }
 }
