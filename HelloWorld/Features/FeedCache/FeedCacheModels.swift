@@ -1,7 +1,7 @@
 import Foundation
 
 enum FeedCachePaths {
-    static func baseDirectory(fileManager: FileManager = .default) -> URL {
+    nonisolated static func baseDirectory(fileManager: FileManager = .default) -> URL {
         if let override = ProcessInfo.processInfo.environment["HELLOWORLD_FEEDCACHE_BASE_DIR"],
            !override.isEmpty {
             return URL(fileURLWithPath: override, isDirectory: true)
@@ -12,23 +12,23 @@ enum FeedCachePaths {
         return appSupport.appendingPathComponent("FeedCache", isDirectory: true)
     }
 
-    static func thumbnailsDirectory(fileManager: FileManager = .default) -> URL {
+    nonisolated static func thumbnailsDirectory(fileManager: FileManager = .default) -> URL {
         baseDirectory(fileManager: fileManager).appendingPathComponent("thumbnails", isDirectory: true)
     }
 
-    static func thumbnailURL(filename: String, fileManager: FileManager = .default) -> URL {
+    nonisolated static func thumbnailURL(filename: String, fileManager: FileManager = .default) -> URL {
         thumbnailsDirectory(fileManager: fileManager).appendingPathComponent(filename)
     }
 
-    static func bootstrapURL(fileManager: FileManager = .default) -> URL {
+    nonisolated static func bootstrapURL(fileManager: FileManager = .default) -> URL {
         baseDirectory(fileManager: fileManager).appendingPathComponent("maintenance-bootstrap.json")
     }
 
-    static func cacheURL(fileManager: FileManager = .default) -> URL {
+    nonisolated static func cacheURL(fileManager: FileManager = .default) -> URL {
         baseDirectory(fileManager: fileManager).appendingPathComponent("cache.json")
     }
 
-    static func channelRegistryURL(fileManager: FileManager = .default) -> URL {
+    nonisolated static func channelRegistryURL(fileManager: FileManager = .default) -> URL {
         baseDirectory(fileManager: fileManager).appendingPathComponent("channel-registry.json")
     }
 }
@@ -154,6 +154,28 @@ struct ChannelRegistrationFeedback: Hashable {
     let latestPublishedAt: Date?
     let cachedVideoCount: Int
     let latestFeedError: String?
+}
+
+struct ChannelRemovalFeedback: Identifiable, Hashable {
+    let channelID: String
+    let channelTitle: String
+    let removedVideoCount: Int
+    let removedThumbnailCount: Int
+
+    var id: String { channelID }
+
+    var title: String {
+        "チャンネルを削除しました"
+    }
+
+    var detail: String {
+        "\(channelTitle) を削除し、動画 \(removedVideoCount) 件・サムネイル \(removedThumbnailCount) 件を整理"
+    }
+}
+
+struct CacheConsistencyMaintenanceResult: Hashable {
+    let removedVideoCount: Int
+    let removedThumbnailCount: Int
 }
 
 enum ChannelRegistryTransferAction: Hashable {
@@ -473,6 +495,19 @@ enum ChannelRegistryStore {
             RegisteredChannelRecord(channelID: normalizedChannelID, addedAt: .now)
         )
         snapshot.channels = uniqueRecords(snapshot.channels)
+        try persist(snapshot: snapshot, fileManager: fileManager)
+        return true
+    }
+
+    static func removeChannelID(_ channelID: String, fileManager: FileManager = .default) throws -> Bool {
+        let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedChannelID.isEmpty else { return false }
+
+        var snapshot = loadSnapshot(fileManager: fileManager)
+        let originalCount = snapshot.channels.count
+        snapshot.channels.removeAll { $0.channelID == normalizedChannelID }
+        guard snapshot.channels.count != originalCount else { return false }
+
         try persist(snapshot: snapshot, fileManager: fileManager)
         return true
     }

@@ -56,12 +56,15 @@
   - 一覧系共通コンテナ `InteractiveListScreen`。
   - iPad 横向きのチャンネル閲覧は `NavigationSplitView` を使う。
   - 選択された並び順 descriptor を一覧サブタイトルと並び順へ反映する。
+  - 長押しメニューからチャンネル削除導線を出す。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
+  - チャンネル削除と整合性メンテナンスの起点。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - ファイル永続化、snapshot 読込、thumbnail 保存。
   - チャンネル一覧描画用の集約データを返す。
+  - 参照切れ動画と不要サムネイルの整合性メンテナンスを行う。
 - [HelloWorld/Features/FeedCache/FeedCacheModels.swift](HelloWorld/Features/FeedCache/FeedCacheModels.swift)
   - キャッシュ用モデルと進捗モデル。
   - チャンネル登録日時を含む registry 永続化モデル。
@@ -99,6 +102,8 @@
 - バックアップでは、現在登録されている全チャンネル情報を JSON として端末内の固定ファイルへ保存する。
 - インポートではローカルのチャンネル設定をその JSON で置き換え、動画やサムネイルは転送しない。
 - バックアップの固定パスは `~/Documents/HelloWorld/channel-registry.json` 相当とし、iPhone / Mac とも同じ JSON 形式を使う。
+- チャンネル削除時は registry、channel state、video cache、thumbnail cache を一貫して整理する。
+- 通常の更新経路では、整合性メンテナンスを軽い定期処理として差し込む。
 - 軽量 bootstrap と本体 cache を分ける。
   - bootstrap: ホーム画面を即時表示するための軽量情報
   - cache: チャンネル状態、動画メタデータ、サムネイル位置を含む本体
@@ -132,11 +137,11 @@
 - [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
   - ホーム画面の表示、手動更新導線、一覧ソート選択、バックアップを担う。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
-  - 一覧系 UI、共通挙動、並び順表示を担う。
+  - 一覧系 UI、共通挙動、並び順表示、長押しメニューを担う。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
-  - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制、引き継ぎ後の再読込を担う。
+  - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制、引き継ぎ後の再読込、チャンネル削除を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
-  - cache.json、bootstrap、thumbnail、channel registry の読取利用を担う。
+  - cache.json、bootstrap、thumbnail、channel registry の読取利用と整合性メンテナンスを担う。
 - [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
   - 更新確認、本体取得、XML parser を担う。
 - [HelloWorld/Shared/AppLogic.swift](HelloWorld/Shared/AppLogic.swift)
@@ -171,6 +176,8 @@ xcodebuild test \
   - uploads playlist ID 変換、feed parser。
 - [HelloWorldTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift](HelloWorldTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift)
   - channel registry の後方互換、バックアップ export / import。
+- [HelloWorldTests/Unit/Storage/FeedCacheMaintenanceTests.swift](HelloWorldTests/Unit/Storage/FeedCacheMaintenanceTests.swift)
+  - チャンネル削除と整合性メンテナンス。
 - [HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift](HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift)
   - 戻るスワイプ判定。
 - [HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift](HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift)

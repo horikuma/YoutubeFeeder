@@ -1,5 +1,12 @@
 import SwiftUI
 
+private struct PendingChannelRemoval: Identifiable, Hashable {
+    let channelID: String
+    let channelTitle: String
+
+    var id: String { channelID }
+}
+
 struct ChannelBrowseListView: View {
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
@@ -8,6 +15,8 @@ struct ChannelBrowseListView: View {
     let sortDescriptor: ChannelBrowseSortDescriptor
 
     @State private var items: [ChannelBrowseItem] = []
+    @State private var pendingChannelRemoval: PendingChannelRemoval?
+    @State private var removalFeedback: ChannelRemovalFeedback?
 
     var body: some View {
         Group {
@@ -18,7 +27,8 @@ struct ChannelBrowseListView: View {
                     path: $path,
                     layout: layout,
                     sortDescriptor: sortDescriptor,
-                    items: items
+                    items: items,
+                    onRequestRemoval: requestRemoval
                 )
             } else {
                 InteractiveListScreen(
@@ -37,6 +47,13 @@ struct ChannelBrowseListView: View {
                                     ChannelHeroTile(item: item)
                                 }
                                 .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        requestRemoval(item)
+                                    } label: {
+                                        Label("チャンネルを削除", systemImage: "trash")
+                                    }
+                                }
                                 .accessibilityIdentifier("channel.tile.\(item.channelID)")
                             }
                         }
@@ -47,8 +64,51 @@ struct ChannelBrowseListView: View {
         .task {
             items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
         }
+        .confirmationDialog(
+            pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
+            isPresented: Binding(
+                get: { pendingChannelRemoval != nil },
+                set: { if !$0 { pendingChannelRemoval = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("チャンネルを削除", role: .destructive) {
+                guard let pendingChannelRemoval else { return }
+                Task {
+                    if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
+                        await MainActor.run {
+                            handleRemovalFeedback(feedback)
+                        }
+                    }
+                }
+                self.pendingChannelRemoval = nil
+            }
+            Button("キャンセル", role: .cancel) {
+                pendingChannelRemoval = nil
+            }
+        } message: {
+            Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")
+        }
+        .alert(item: $removalFeedback) { feedback in
+            Alert(
+                title: Text(feedback.title),
+                message: Text(feedback.detail),
+                dismissButton: .default(Text("OK"))
+            )
+        }
         .onAppear {
             StartupDiagnostics.shared.mark("channelListShown")
+        }
+    }
+
+    private func requestRemoval(_ item: ChannelBrowseItem) {
+        pendingChannelRemoval = PendingChannelRemoval(channelID: item.channelID, channelTitle: item.channelTitle)
+    }
+
+    private func handleRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
+        removalFeedback = feedback
+        Task {
+            items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
         }
     }
 }
@@ -60,6 +120,7 @@ struct SplitChannelBrowseView: View {
     let layout: AppLayout
     let sortDescriptor: ChannelBrowseSortDescriptor
     let items: [ChannelBrowseItem]
+    let onRequestRemoval: (ChannelBrowseItem) -> Void
 
     @State private var selectedChannelID: String?
     @State private var videosByChannelID: [String: [CachedVideo]] = [:]
@@ -101,6 +162,13 @@ struct SplitChannelBrowseView: View {
                             .onTapGesture {
                                 selectChannel(item.channelID)
                             }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    onRequestRemoval(item)
+                                } label: {
+                                    Label("チャンネルを削除", systemImage: "trash")
+                                }
+                            }
                             .accessibilityIdentifier("channel.tile.\(item.channelID)")
                         }
                     }
@@ -140,7 +208,25 @@ struct SplitChannelBrowseView: View {
                     } else {
                         LazyVGrid(columns: layout.listColumns, spacing: 20) {
                             ForEach(videosForSelectedChannel) { video in
-                                LongPressVideoTile(video: video, openVideo: openVideo)
+                                LongPressVideoTile(
+                                    video: video,
+                                    openVideo: {
+                                        openVideo(video)
+                                    },
+                                    removeChannel: {
+                                        onRequestRemoval(
+                                            ChannelBrowseItem(
+                                                id: video.channelID,
+                                                channelID: video.channelID,
+                                                channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle,
+                                                latestPublishedAt: video.publishedAt,
+                                                registeredAt: nil,
+                                                latestVideo: video,
+                                                cachedVideoCount: 0
+                                            )
+                                        )
+                                    }
+                                )
                             }
                         }
                     }
@@ -194,8 +280,10 @@ struct SplitChannelBrowseView: View {
     }
 
     private func applyDefaultSelectionIfNeeded() {
-        guard selectedChannelID == nil else { return }
-        selectedChannelID = items.first?.channelID
+        if let selectedChannelID, items.contains(where: { $0.channelID == selectedChannelID }) {
+            return
+        }
+        self.selectedChannelID = items.first?.channelID
     }
 }
 
@@ -204,6 +292,8 @@ struct AllVideosView: View {
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let layout: AppLayout
+    @State private var pendingChannelRemoval: PendingChannelRemoval?
+    @State private var removalFeedback: ChannelRemovalFeedback?
 
     var body: some View {
         InteractiveListScreen(
@@ -218,13 +308,57 @@ struct AllVideosView: View {
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(coordinator.videos) { video in
-                        LongPressVideoTile(video: video, openVideo: openVideo)
+                        LongPressVideoTile(
+                            video: video,
+                            openVideo: {
+                                openVideo(video)
+                            },
+                            removeChannel: {
+                                pendingChannelRemoval = PendingChannelRemoval(
+                                    channelID: video.channelID,
+                                    channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
+                                )
+                            }
+                        )
                     }
                 }
             }
         }
         .task {
             coordinator.loadVideosFromCache()
+        }
+        .confirmationDialog(
+            pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
+            isPresented: Binding(
+                get: { pendingChannelRemoval != nil },
+                set: { if !$0 { pendingChannelRemoval = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("チャンネルを削除", role: .destructive) {
+                guard let pendingChannelRemoval else { return }
+                Task {
+                    if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
+                        await MainActor.run {
+                            removalFeedback = feedback
+                            coordinator.loadVideosFromCache()
+                        }
+                    }
+                }
+                self.pendingChannelRemoval = nil
+            }
+            Button("キャンセル", role: .cancel) {
+                pendingChannelRemoval = nil
+            }
+        } message: {
+            Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")
+        }
+        .alert(item: $removalFeedback) { feedback in
+            Alert(
+                title: Text(feedback.title),
+                message: Text(feedback.detail),
+                dismissButton: .default(Text("OK"))
+            )
         }
         .onAppear {
             StartupDiagnostics.shared.mark("allVideosShown")
@@ -240,6 +374,8 @@ struct ChannelVideosView: View {
     let layout: AppLayout
 
     @State private var videos: [CachedVideo] = []
+    @State private var pendingChannelRemoval: PendingChannelRemoval?
+    @State private var removalFeedback: ChannelRemovalFeedback?
 
     var body: some View {
         InteractiveListScreen(
@@ -261,13 +397,60 @@ struct ChannelVideosView: View {
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(videos) { video in
-                        LongPressVideoTile(video: video, openVideo: openVideo)
+                        LongPressVideoTile(
+                            video: video,
+                            openVideo: {
+                                openVideo(video)
+                            },
+                            removeChannel: {
+                                pendingChannelRemoval = PendingChannelRemoval(
+                                    channelID: video.channelID,
+                                    channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
+                                )
+                            }
+                        )
                     }
                 }
             }
         }
         .task {
             videos = await coordinator.loadVideosForChannel(channelID)
+        }
+        .confirmationDialog(
+            pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
+            isPresented: Binding(
+                get: { pendingChannelRemoval != nil },
+                set: { if !$0 { pendingChannelRemoval = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("チャンネルを削除", role: .destructive) {
+                guard let pendingChannelRemoval else { return }
+                Task {
+                    if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
+                        await MainActor.run {
+                            removalFeedback = feedback
+                        }
+                    }
+                }
+                self.pendingChannelRemoval = nil
+            }
+            Button("キャンセル", role: .cancel) {
+                pendingChannelRemoval = nil
+            }
+        } message: {
+            Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")
+        }
+        .alert(item: $removalFeedback) { feedback in
+            Alert(
+                title: Text(feedback.title),
+                message: Text(feedback.detail),
+                dismissButton: .default(Text("OK")) {
+                    if !path.isEmpty {
+                        path.removeLast()
+                    }
+                }
+            )
         }
         .onAppear {
             StartupDiagnostics.shared.mark("channelVideosShown")
@@ -319,25 +502,29 @@ struct InteractiveListScreen<Content: View>: View {
 
 struct LongPressVideoTile: View {
     let video: CachedVideo
-    let openVideo: (CachedVideo) -> Void
-
-    @State private var isPressing = false
+    let openVideo: () -> Void
+    let removeChannel: (() -> Void)?
 
     var body: some View {
         VideoHeroTile(video: video)
-            .scaleEffect(isPressing ? 0.985 : 1)
-            .animation(.easeOut(duration: 0.12), value: isPressing)
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .onLongPressGesture(
-                minimumDuration: VideoOpenPolicy.minimumPressDuration,
-                maximumDistance: VideoOpenPolicy.maximumMovement
-            ) {
-                openVideo(video)
-            } onPressingChanged: { pressing in
-                isPressing = pressing
+            .contextMenu {
+                Button {
+                    openVideo()
+                } label: {
+                    Label("YouTubeで開く", systemImage: "play.rectangle")
+                }
+
+                if let removeChannel {
+                    Button(role: .destructive) {
+                        removeChannel()
+                    } label: {
+                        Label("チャンネルを削除", systemImage: "trash")
+                    }
+                }
             }
             .accessibilityAddTraits(.isButton)
-            .accessibilityHint("1秒長押しでYouTubeを開きます")
+            .accessibilityHint("長押しでメニューを開きます")
             .accessibilityIdentifier("video.tile.\(video.id)")
     }
 }

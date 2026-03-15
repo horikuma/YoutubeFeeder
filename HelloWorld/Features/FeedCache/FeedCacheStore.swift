@@ -18,14 +18,13 @@ actor FeedCacheStore {
     private let cacheFileURL: URL
     private let bootstrapFileURL: URL
     private let thumbnailsDirectory: URL
+    private var lastConsistencyMaintenanceAt: Date?
 
     init() {
-        let appSupportURLs = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        let appSupport = appSupportURLs.first ?? FileManager.default.temporaryDirectory
-        baseDirectory = appSupport.appendingPathComponent("FeedCache", isDirectory: true)
-        cacheFileURL = baseDirectory.appendingPathComponent("cache.json")
-        bootstrapFileURL = baseDirectory.appendingPathComponent("maintenance-bootstrap.json")
-        thumbnailsDirectory = baseDirectory.appendingPathComponent("thumbnails", isDirectory: true)
+        baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
+        cacheFileURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+        bootstrapFileURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
+        thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
     }
 
     func loadSnapshot() -> FeedCacheSnapshot {
@@ -220,6 +219,71 @@ actor FeedCacheStore {
             snapshot.savedAt = .now
             persist(snapshot)
         }
+    }
+
+    func performConsistencyMaintenance(activeChannelIDs: [String], force: Bool = false, now: Date = .now) -> CacheConsistencyMaintenanceResult? {
+        let maintenanceInterval: TimeInterval = 15 * 60
+        if !force, let lastConsistencyMaintenanceAt, now.timeIntervalSince(lastConsistencyMaintenanceAt) < maintenanceInterval {
+            return nil
+        }
+
+        var snapshot = loadSnapshot()
+        let activeChannelIDSet = Set(activeChannelIDs)
+        let removedVideos = snapshot.videos.filter { !activeChannelIDSet.contains($0.channelID) }
+        let removedVideoCount = removedVideos.count
+
+        snapshot.channels.removeAll { !activeChannelIDSet.contains($0.channelID) }
+        snapshot.videos.removeAll { !activeChannelIDSet.contains($0.channelID) }
+
+        let latestPublishedAtByChannelID = Dictionary(
+            grouping: snapshot.videos,
+            by: \.channelID
+        ).mapValues { videos in
+            videos.compactMap(\.publishedAt).max()
+        }
+        let cachedVideoCountByChannelID = Dictionary(
+            grouping: snapshot.videos,
+            by: \.channelID
+        ).mapValues(\.count)
+
+        snapshot.channels = snapshot.channels.map { channel in
+            CachedChannelState(
+                channelID: channel.channelID,
+                channelTitle: channel.channelTitle,
+                lastAttemptAt: channel.lastAttemptAt,
+                lastCheckedAt: channel.lastCheckedAt,
+                lastSuccessAt: channel.lastSuccessAt,
+                latestPublishedAt: latestPublishedAtByChannelID[channel.channelID] ?? nil,
+                cachedVideoCount: cachedVideoCountByChannelID[channel.channelID] ?? 0,
+                lastError: channel.lastError,
+                etag: channel.etag,
+                lastModified: channel.lastModified
+            )
+        }
+
+        let referencedThumbnailFilenames = Set(snapshot.videos.compactMap(\.thumbnailLocalFilename))
+        let existingThumbnailFilenames = Set((try? fileManager.contentsOfDirectory(atPath: thumbnailsDirectory.path)) ?? [])
+        let orphanThumbnailFilenames = existingThumbnailFilenames.subtracting(referencedThumbnailFilenames)
+        for filename in orphanThumbnailFilenames {
+            try? fileManager.removeItem(at: thumbnailsDirectory.appendingPathComponent(filename))
+        }
+
+        let removedThumbnailCount = orphanThumbnailFilenames.count
+        if removedVideoCount > 0 || removedThumbnailCount > 0 || force {
+            snapshot.savedAt = now
+            persist(snapshot)
+        }
+
+        lastConsistencyMaintenanceAt = now
+
+        guard force, removedVideoCount > 0 || removedThumbnailCount > 0 else {
+            return nil
+        }
+
+        return CacheConsistencyMaintenanceResult(
+            removedVideoCount: removedVideoCount,
+            removedThumbnailCount: removedThumbnailCount
+        )
     }
 
     private func cacheThumbnailIfNeeded(from remoteURL: URL?, videoID: String) async -> String? {

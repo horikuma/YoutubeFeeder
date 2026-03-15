@@ -28,6 +28,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func bootstrapMaintenance() async {
+        _ = await performConsistencyMaintenanceIfNeeded(force: false)
         let bootstrap = FeedBootstrapStore.load(channels: channels)
         progress = bootstrap.progress
         maintenanceItems = bootstrap.maintenanceItems
@@ -95,6 +96,7 @@ final class FeedCacheCoordinator: ObservableObject {
         let didAdd = try ChannelRegistryStore.addChannelID(resolvedChannel.channelID)
         channels = ChannelRegistryStore.loadAllChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+        _ = await performConsistencyMaintenanceIfNeeded(force: false)
 
         let latestFeedError: String?
         let cachedItem: ChannelBrowseItem?
@@ -137,6 +139,31 @@ final class FeedCacheCoordinator: ObservableObject {
         )
     }
 
+    func removeChannel(_ channelID: String) async -> ChannelRemovalFeedback? {
+        let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedChannelID.isEmpty else { return nil }
+
+        let channelTitle = maintenanceItems.first(where: { $0.channelID == normalizedChannelID })?.channelTitle
+            ?? videos.first(where: { $0.channelID == normalizedChannelID })?.channelTitle
+            ?? normalizedChannelID
+
+        guard (try? ChannelRegistryStore.removeChannelID(normalizedChannelID)) == true else {
+            return nil
+        }
+
+        channels = ChannelRegistryStore.loadAllChannelIDs()
+        freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+        let cleanup = await performConsistencyMaintenanceIfNeeded(force: true)
+        await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
+
+        return ChannelRemovalFeedback(
+            channelID: normalizedChannelID,
+            channelTitle: channelTitle,
+            removedVideoCount: cleanup?.removedVideoCount ?? 0,
+            removedThumbnailCount: cleanup?.removedThumbnailCount ?? 0
+        )
+    }
+
     func exportChannelRegistry(backend: ChannelRegistryTransferBackend) throws -> ChannelRegistryTransferFeedback {
         let result = try ChannelRegistryTransferStore.export(backend: backend)
         return ChannelRegistryTransferFeedback(
@@ -152,6 +179,7 @@ final class FeedCacheCoordinator: ObservableObject {
         let result = try ChannelRegistryTransferStore.import(backend: backend)
         channels = ChannelRegistryStore.loadAllChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+        _ = await performConsistencyMaintenanceIfNeeded(force: true)
         await bootstrapMaintenance()
 
         let refreshMessage: String?
@@ -250,6 +278,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
             )
         )
+        _ = await performConsistencyMaintenanceIfNeeded(force: false)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
     }
 
@@ -263,6 +292,7 @@ final class FeedCacheCoordinator: ObservableObject {
         )
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
         refreshProgress.isRefreshing = false
+        _ = await performConsistencyMaintenanceIfNeeded(force: false)
     }
 
     private func processChannel(_ channelID: String, states: [String: CachedChannelState]) async -> String? {
@@ -349,5 +379,10 @@ final class FeedCacheCoordinator: ObservableObject {
 
     private func freshness(for lastSuccessAt: Date?) -> ChannelFreshness {
         FeedOrdering.freshness(lastSuccessAt: lastSuccessAt, freshnessInterval: freshnessInterval)
+    }
+
+    private func performConsistencyMaintenanceIfNeeded(force: Bool) async -> CacheConsistencyMaintenanceResult? {
+        guard force || !channels.isEmpty else { return nil }
+        return await store.performConsistencyMaintenance(activeChannelIDs: channels, force: force)
     }
 }
