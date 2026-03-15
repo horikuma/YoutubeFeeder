@@ -47,14 +47,16 @@ struct YouTubeSearchService {
             URLQueryItem(name: "type", value: "video"),
             URLQueryItem(name: "order", value: "date"),
             URLQueryItem(name: "maxResults", value: String(limit)),
-            URLQueryItem(name: "key", value: apiKey),
         ]
 
         guard let url = components?.url else {
             throw YouTubeSearchError.invalidResponse
         }
 
-        let (data, _) = try await URLSession.shared.data(from: url)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+        request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
+
+        let (data, _) = try await URLSession.shared.data(for: request)
         let response = try JSONDecoder.youtubeAPI.decode(SearchListResponse.self, from: data)
 
         let videos = response.items.compactMap { item -> YouTubeSearchVideo? in
@@ -86,7 +88,7 @@ struct YouTubeSearchService {
         let plistKey = Bundle.main.object(forInfoDictionaryKey: "YouTubeAPIKey") as? String
         if let plistKey {
             let trimmed = plistKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
+            if !trimmed.isEmpty, !trimmed.hasPrefix("$(") {
                 return trimmed
             }
         }

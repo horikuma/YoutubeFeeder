@@ -13,3 +13,6 @@ build/
 
 # Local metrics artifacts
 .metrics/
+
+# Local secrets
+Config/LocalSecrets.xcconfig

@@ -37,6 +37,9 @@
   - UI テスト用 launch mode、診断タイムライン、fixture seed、test marker。
   - UI テスト用の初期遷移指定。
   - 起動性能計測用の timeline marker。
+- [Config/AppConfig.xcconfig](Config/AppConfig.xcconfig)
+  - アプリ共通の build 設定。
+  - optional include の `LocalSecrets.xcconfig` からローカル秘密情報を受ける。
 
 ### Features
 
@@ -98,6 +101,8 @@
 - [HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift](HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift)
   - YouTube Data API v3 の search endpoint を呼び出す。
   - API キー解決とレスポンスの表示用モデル変換を担う。
+  - API キーは環境変数または `Info.plist` 経由の build setting 注入から受ける。
+  - API キーは URL クエリへ載せず、HTTP header で渡す。
 
 ### Shared
 
@@ -124,6 +129,7 @@
 - インポートではローカルのチャンネル設定をその JSON で置き換え、動画やサムネイルは転送しない。
 - YouTube 検索結果は `remote-search-<keyword>.json` として別ファイル保存し、通常キャッシュと責務を分ける。
 - 検索キャッシュは長めの TTL で扱い、通常の再訪では API 再取得を避ける。
+- ローカル秘密情報は `Config/LocalSecrets.xcconfig` に置き、`.gitignore` で追跡対象外にする。
 - registry ファイルがまだ存在しない旧データでは、bootstrap と cache からチャンネル ID を復元して registry を初期化する。
 - バックアップの固定パスは `~/Documents/HelloWorld/channel-registry.json` 相当とし、iPhone / Mac とも同じ JSON 形式を使う。
 - チャンネル削除時は registry、channel state、video cache、thumbnail cache を一貫して整理する。

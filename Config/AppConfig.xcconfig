@@ -1,0 +1,4 @@
+// Shared app configuration.
+// Local secrets must live in the ignored file below.
+YOUTUBE_API_KEY =
+#include? "LocalSecrets.xcconfig"
