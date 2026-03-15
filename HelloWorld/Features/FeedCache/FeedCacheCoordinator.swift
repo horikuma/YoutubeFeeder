@@ -8,6 +8,7 @@ final class FeedCacheCoordinator: ObservableObject {
     @Published private(set) var videos: [CachedVideo] = []
     @Published private(set) var refreshProgress: CacheRefreshProgress = .idle
     @Published private(set) var manualRefreshCount: Int = 0
+    @Published private(set) var lastManualChannelRefreshID: String?
 
     private var channels: [String]
     private let store = FeedCacheStore()
@@ -61,6 +62,26 @@ final class FeedCacheCoordinator: ObservableObject {
                 await performManualRefresh()
             }
             StartupDiagnostics.shared.mark("manualRefreshFinished")
+        }
+        await manualRefreshTask?.value
+        manualRefreshTask = nil
+    }
+
+    func refreshChannelManually(_ channelID: String) async {
+        let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedChannelID.isEmpty else { return }
+        guard channels.contains(normalizedChannelID) else { return }
+        guard manualRefreshTask == nil else { return }
+
+        manualRefreshTask = Task {
+            StartupDiagnostics.shared.mark("channelManualRefreshStarted")
+            lastManualChannelRefreshID = normalizedChannelID
+            if AppLaunchMode.current.usesMockData {
+                await performMockChannelRefresh(channelID: normalizedChannelID)
+            } else {
+                await performManualChannelRefresh(channelID: normalizedChannelID)
+            }
+            StartupDiagnostics.shared.mark("channelManualRefreshFinished")
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
@@ -296,6 +317,105 @@ final class FeedCacheCoordinator: ObservableObject {
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
         refreshProgress.isRefreshing = false
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
+    }
+
+    private func performMockChannelRefresh(channelID: String) async {
+        refreshProgress = CacheRefreshProgress(
+            isRefreshing: true,
+            checkStage: RefreshStageProgress(title: "チャンネル更新", completed: 0, total: 1, activeCalls: 1, callsPerSecond: 1),
+            fetchStage: .idle(title: "更新チャンネル取得", callsPerSecond: 0),
+            thumbnailStage: .idle(title: "サムネイル取得", callsPerSecond: 0)
+        )
+        await refreshUI(currentChannelID: channelID, isRunning: false, lastError: progress.lastError)
+        refreshProgress = .idle
+    }
+
+    private func performManualChannelRefresh(channelID: String) async {
+        refreshProgress = CacheRefreshProgress(
+            isRefreshing: true,
+            checkStage: RefreshStageProgress(title: "チャンネル更新", completed: 0, total: 1, activeCalls: 1, callsPerSecond: 1),
+            fetchStage: RefreshStageProgress(title: "更新チャンネル取得", completed: 0, total: 1, activeCalls: 0, callsPerSecond: 1),
+            thumbnailStage: RefreshStageProgress(title: "サムネイル取得", completed: 0, total: 0, activeCalls: 0, callsPerSecond: 1)
+        )
+
+        let lastError: String?
+
+        do {
+            let result = try await feedService.fetchLatestFeed(for: channelID)
+            refreshProgress.fetchStage = RefreshStageProgress(
+                title: refreshProgress.fetchStage.title,
+                completed: 0,
+                total: 1,
+                activeCalls: 1,
+                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
+            )
+
+            let uncachedVideos = await store.recordSuccess(channelID: channelID, videos: result.videos, metadata: result.metadata)
+
+            refreshProgress.checkStage = RefreshStageProgress(
+                title: refreshProgress.checkStage.title,
+                completed: 1,
+                total: 1,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.checkStage.callsPerSecond
+            )
+            refreshProgress.fetchStage = RefreshStageProgress(
+                title: refreshProgress.fetchStage.title,
+                completed: 1,
+                total: 1,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
+            )
+            refreshProgress.thumbnailStage = RefreshStageProgress(
+                title: refreshProgress.thumbnailStage.title,
+                completed: 0,
+                total: uncachedVideos.filter { $0.thumbnailURL != nil }.count,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+            )
+
+            for (index, video) in uncachedVideos.filter({ $0.thumbnailURL != nil }).enumerated() {
+                refreshProgress.thumbnailStage = RefreshStageProgress(
+                    title: refreshProgress.thumbnailStage.title,
+                    completed: index,
+                    total: refreshProgress.thumbnailStage.total,
+                    activeCalls: 1,
+                    callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+                )
+                await store.cacheThumbnail(for: video)
+                refreshProgress.thumbnailStage = RefreshStageProgress(
+                    title: refreshProgress.thumbnailStage.title,
+                    completed: index + 1,
+                    total: refreshProgress.thumbnailStage.total,
+                    activeCalls: 0,
+                    callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+                )
+            }
+
+            lastError = nil
+        } catch {
+            let message = error.localizedDescription
+            await store.recordFailure(channelID: channelID, checkedAt: .now, error: message)
+            refreshProgress.checkStage = RefreshStageProgress(
+                title: refreshProgress.checkStage.title,
+                completed: 1,
+                total: 1,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.checkStage.callsPerSecond
+            )
+            refreshProgress.fetchStage = RefreshStageProgress(
+                title: refreshProgress.fetchStage.title,
+                completed: 1,
+                total: 1,
+                activeCalls: 0,
+                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
+            )
+            lastError = message
+        }
+
+        _ = await performConsistencyMaintenanceIfNeeded(force: false)
+        await refreshUI(currentChannelID: channelID, isRunning: false, lastError: lastError)
+        refreshProgress = .idle
     }
 
     private func processChannel(_ channelID: String, states: [String: CachedChannelState]) async -> String? {

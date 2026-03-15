@@ -18,4 +18,24 @@ final class BrowseScreenUITests: UITestCaseSupport {
         let timeline = try timelinePayload(in: app)
         XCTAssertLessThan(try offset(for: "allVideosShown", in: timeline), 7000)
     }
+
+    func testChannelVideosPullToRefreshRefreshesOnlySelectedChannel() throws {
+        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelList"])
+
+        XCTAssertTrue(element("channel.tile.UC_TEST_ALPHA", in: app).waitForExistence(timeout: 3))
+        element("channel.tile.UC_TEST_ALPHA", in: app).tap()
+
+        XCTAssertTrue(element("screen.channelVideos.loaded", in: app).waitForExistence(timeout: 3))
+        let scrollView = app.scrollViews.firstMatch
+        XCTAssertTrue(scrollView.waitForExistence(timeout: 3))
+
+        let start = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+        let end = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
+        start.press(forDuration: 0.05, thenDragTo: end)
+
+        let marker = element("test.channelRefreshTarget", in: app)
+        XCTAssertTrue(eventually(timeout: 3) {
+            ((marker.label as String?) ?? "") == "UC_TEST_ALPHA"
+        })
+    }
 }

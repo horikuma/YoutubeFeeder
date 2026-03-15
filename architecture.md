@@ -57,10 +57,12 @@
   - iPad 横向きのチャンネル閲覧は `NavigationSplitView` を使う。
   - 選択された並び順 descriptor を一覧サブタイトルと並び順へ反映する。
   - 長押しメニューからチャンネル削除導線を出す。
+  - チャンネル別動画一覧の pull-to-refresh は、そのチャンネル限定の強制更新へ接続する。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
   - チャンネル削除と整合性メンテナンスの起点。
+  - 全体更新と単独チャンネル強制更新の両方を制御する。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - ファイル永続化、snapshot 読込、thumbnail 保存。
   - チャンネル一覧描画用の集約データを返す。
@@ -116,6 +118,7 @@
 ## 更新フロー
 
 - ホーム画面の pull-to-refresh を手動更新の入口とする。
+- チャンネル別動画一覧の pull-to-refresh は、条件付き取得ではなく `fetchLatestFeed` による単独チャンネルの強制更新へつなぐ。
 - 更新は `1チャンネル = 更新確認 -> 必要なら本体取得 -> 必要なら新着動画のサムネイル取得` の単一パイプラインで処理する。
 - 同時処理数は最大 `3` とする。
 - 更新順は `latestPublishedAt` 降順、次に `lastSuccessAt` 降順、最後に `lastCheckedAt` 昇順とする。
@@ -198,6 +201,7 @@ xcodebuild test \
 - [HelloWorldUITests/Browse/BrowseScreenUITests.swift](HelloWorldUITests/Browse/BrowseScreenUITests.swift)
   - 全動画一覧遷移
   - 一覧の縦スクロール
+  - チャンネル別動画一覧の pull-to-refresh が選択中チャンネルだけを更新すること
 - [HelloWorldUITests/Support/UITestCaseSupport.swift](HelloWorldUITests/Support/UITestCaseSupport.swift)
   - app 起動、timeline 解析、共通 wait。
 

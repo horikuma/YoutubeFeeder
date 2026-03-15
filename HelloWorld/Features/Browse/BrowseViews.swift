@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 private struct PendingChannelRemoval: Identifiable, Hashable {
     let channelID: String
@@ -36,7 +37,8 @@ struct ChannelBrowseListView: View {
                     subtitle: sortDescriptor.listSubtitle,
                     coordinator: coordinator,
                     path: $path,
-                    layout: layout
+                    layout: layout,
+                    onRefresh: nil
                 ) {
                     if items.isEmpty {
                         MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
@@ -63,6 +65,11 @@ struct ChannelBrowseListView: View {
         }
         .task {
             items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+        }
+        .onReceive(coordinator.$maintenanceItems.dropFirst()) { _ in
+            Task {
+                items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+            }
         }
         .confirmationDialog(
             pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
@@ -240,6 +247,9 @@ struct SplitChannelBrowseView: View {
             .padding(.vertical, 20)
         }
         .background(Color(.systemGroupedBackground))
+        .refreshable {
+            await refreshSelectedChannel()
+        }
         .task(id: selectedChannelID) {
             guard let selectedChannelID else { return }
             if videosByChannelID[selectedChannelID] == nil {
@@ -285,6 +295,12 @@ struct SplitChannelBrowseView: View {
         }
         self.selectedChannelID = items.first?.channelID
     }
+
+    private func refreshSelectedChannel() async {
+        guard let selectedChannelID else { return }
+        await coordinator.refreshChannelManually(selectedChannelID)
+        videosByChannelID[selectedChannelID] = await coordinator.loadVideosForChannel(selectedChannelID)
+    }
 }
 
 struct AllVideosView: View {
@@ -301,7 +317,8 @@ struct AllVideosView: View {
             subtitle: "キャッシュ済み動画を新しい順に最大50件表示",
             coordinator: coordinator,
             path: $path,
-            layout: layout
+            layout: layout,
+            onRefresh: nil
         ) {
             if coordinator.videos.isEmpty {
                 MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を最大50件まで表示します")
@@ -383,12 +400,20 @@ struct ChannelVideosView: View {
             subtitle: "このチャンネルの動画を新しい順に最大50件表示",
             coordinator: coordinator,
             path: $path,
-            layout: layout
+            layout: layout,
+            onRefresh: {
+                await coordinator.refreshChannelManually(channelID)
+                await reloadVideos()
+            }
         ) {
             if AppLaunchMode.current.usesMockData {
                 UITestMarker(
                     identifier: "screen.channelVideos.loaded",
                     value: videos.first?.id ?? "none"
+                )
+                UITestMarker(
+                    identifier: "test.channelRefreshTarget",
+                    value: coordinator.lastManualChannelRefreshID ?? "none"
                 )
             }
 
@@ -414,7 +439,7 @@ struct ChannelVideosView: View {
             }
         }
         .task {
-            videos = await coordinator.loadVideosForChannel(channelID)
+            await reloadVideos()
         }
         .confirmationDialog(
             pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
@@ -460,6 +485,10 @@ struct ChannelVideosView: View {
     private var channelTitle: String {
         coordinator.maintenanceItems.first(where: { $0.channelID == channelID })?.channelTitle ?? channelID
     }
+
+    private func reloadVideos() async {
+        videos = await coordinator.loadVideosForChannel(channelID)
+    }
 }
 
 struct InteractiveListScreen<Content: View>: View {
@@ -468,6 +497,7 @@ struct InteractiveListScreen<Content: View>: View {
     let coordinator: FeedCacheCoordinator
     @Binding var path: NavigationPath
     let layout: AppLayout
+    let onRefresh: (() async -> Void)?
     @ViewBuilder let content: () -> Content
 
     var body: some View {
@@ -491,6 +521,10 @@ struct InteractiveListScreen<Content: View>: View {
         .background(Color(.systemGroupedBackground))
         .toolbar(.hidden, for: .navigationBar)
         .modifier(BackSwipePopModifier(path: $path))
+        .refreshable {
+            guard let onRefresh else { return }
+            await onRefresh()
+        }
         .onAppear {
             coordinator.suspendLiveUpdates()
         }
