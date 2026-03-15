@@ -6,7 +6,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT="$REPO_ROOT/HelloWorld.xcodeproj"
 SCHEME="HelloWorld"
-DERIVED_DATA="$REPO_ROOT/.DerivedData"
+DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/HelloWorld"
+DERIVED_DATA="$DERIVED_DATA_BASE/DerivedData"
 METRICS_DIR="$REPO_ROOT/.metrics"
 METRICS_DOC="$REPO_ROOT/metrics.md"
 STARTUP_JSON="$METRICS_DIR/startup-metrics.json"
@@ -49,6 +50,7 @@ if [[ -z "$LABEL" ]]; then
 fi
 
 mkdir -p "$METRICS_DIR"
+mkdir -p "$DERIVED_DATA_BASE"
 rm -f "$STARTUP_JSON" "$BUILD_LOG" "$TEST_LOG"
 
 now_seconds() {

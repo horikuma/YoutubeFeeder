@@ -6,6 +6,21 @@
 
 ## 2026/03/15
 
+### 検証用DerivedDataを同期対象外へ移す
+
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `6.292s`
+- test-without-building: `68.462s`
+- 検証合計時間: `74.754s`
+- 手修正後の再試行回数: `1`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `479ms`
+- スプラッシュ表示からホーム表示まで: `115ms`
+- 起動からホーム表示まで: `594ms`
+- 起動から bootstrap 読込完了まで: `537ms`
+- 起動からホーム遷移開始まで: `636ms`
+
 ### iCloud保存の設定漏れを修正する
 
 - 種別: source

@@ -1,4 +1,6 @@
 ## 2026/03/15
+- CLI 検証の `DerivedData` はリポジトリ直下ではなく `~/Library/Caches/Codex/HelloWorld/DerivedData` を使う方針にした。
+  - このワークスペースは `Documents` 配下にあり、repo 直下へ build 生成物を置くと file provider 由来の拡張属性が app bundle に付いて codesign が失敗したため。Xcode の標準運用にも近い同期対象外のキャッシュ領域へ逃がして、検証フロー自体を安定させる。
 - iCloud Drive が使えない問題への本命対応として、container metadata を `Info.plist` の `NSUbiquitousContainers` に明示し、container へのアクセスも明示 ID + file coordination へ寄せた。
   - Apple の資料では、iCloud Drive に公開される document container は entitlement だけでなく `NSUbiquitousContainers` の metadata を参照し、変更時は `CFBundleVersion` の更新も必要とされているため。Mac 側で保存できなかった原因候補としてこの部分の欠落が最も大きく、実装も Apple 推奨の形へ寄せて再構成した。
 - iCloud 検証が不安定な間は、Mac アプリでは `ローカルDocuments` を既定 backend とし、同じ JSON を固定パスで扱えるようにした。

@@ -156,6 +156,8 @@
 - 継続運用のテストターゲットは `iPhone 12 mini` のみとする。
 - 他機種での補助確認は任意であり、正本の回帰確認には含めない。
 - UI テストは、重複する起動確認をワークフロー単位へまとめ、必要な画面は test support の初期遷移指定で直接開けるようにする。
+- CLI からの `xcodebuild` と計測スクリプトは、build 生成物を同期対象ディレクトリの外へ出す。
+  - `DerivedData` は `~/Library/Caches/Codex/HelloWorld/DerivedData` を使い、`Documents` 配下の file provider 属性が codesign を壊さないようにする。
 - 基本コマンドは次を使う。
 
 ```bash

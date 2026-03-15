@@ -6,10 +6,13 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT="$REPO_ROOT/HelloWorld.xcodeproj"
 SCHEME="HelloWorld"
-DERIVED_DATA="$REPO_ROOT/.DerivedData"
+DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/HelloWorld"
+DERIVED_DATA="$DERIVED_DATA_BASE/DerivedData"
 DESTINATIONS=(
   "iPhone 12 mini"
 )
+
+mkdir -p "$DERIVED_DATA_BASE"
 
 available_devices="$(xcrun simctl list devices available)"
 
