@@ -1,12 +1,8 @@
 ## 2026/03/15
+- `iCloud` を使う引き継ぎ仕様は当面撤回し、同じホーム導線のまま「この端末内のバックアップ / 復元」へ後退させた。
+  - Personal Team では `iCloud` capability を使えず、通常ビルド自体が成立しなかったため。GUI の操作感はなるべく維持しつつ、他デバイス移動ではなく 1 デバイス内バックアップとして成立する範囲へ仕様を戻した。
 - CLI 検証の `DerivedData` はリポジトリ直下ではなく `~/Library/Caches/Codex/HelloWorld/DerivedData` を使う方針にした。
   - このワークスペースは `Documents` 配下にあり、repo 直下へ build 生成物を置くと file provider 由来の拡張属性が app bundle に付いて codesign が失敗したため。Xcode の標準運用にも近い同期対象外のキャッシュ領域へ逃がして、検証フロー自体を安定させる。
-- iCloud Drive が使えない問題への本命対応として、container metadata を `Info.plist` の `NSUbiquitousContainers` に明示し、container へのアクセスも明示 ID + file coordination へ寄せた。
-  - Apple の資料では、iCloud Drive に公開される document container は entitlement だけでなく `NSUbiquitousContainers` の metadata を参照し、変更時は `CFBundleVersion` の更新も必要とされているため。Mac 側で保存できなかった原因候補としてこの部分の欠落が最も大きく、実装も Apple 推奨の形へ寄せて再構成した。
-- iCloud 検証が不安定な間は、Mac アプリでは `ローカルDocuments` を既定 backend とし、同じ JSON を固定パスで扱えるようにした。
-  - LLM から iCloud コンテナ状態や同期タイミングを安定して制御するのは難しいため。検証経路をなくさず、同じ転送フォーマットを Mac 上の固定パスへ逃がして、まず import / export の操作とデータ整合を確認できるようにした。
-- チャンネル設定の引き継ぎは、ホーム画面上の同一操作系に置いたまま、iCloud の固定 JSON ファイル 1 つで扱う方針にした。
-  - 端末変更時の目的は「一覧や登録状態を持ち運ぶこと」であり、動画キャッシュやサムネイルまで運ぶと転送量と互換性の管理が重くなるため。ホームから直接実行できる形を維持しつつ、引き継ぎ対象はユーザー追加チャンネル設定だけに絞り、最新動画情報は移行先で再取得する。
 - 開発統計と起動性能は、都度の印象ではなく `metrics.md` へ継続記録し、CLI から再取得できる形を正本とする。
   - build 時間や test 時間、起動所要時間は、体感だけでは劣化に気づきにくいため。コミット単位で履歴を持ち、UI テストの timeline と `xcodebuild` の実行結果から同じ方法で採り直せるようにして、設計の判断材料を残す。
 - UI テストは、重複するホーム導線確認を 1 本のワークフローテストへまとめ、画面個別テストでは初期遷移指定を使う方針にした。

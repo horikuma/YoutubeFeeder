@@ -80,4 +80,9 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
 
         XCTAssertEqual(path, "/tmp/HelloWorldTests/HelloWorld/channel-registry.json")
     }
+
+    func testTransferRuntimeUsesOnDeviceBackupOnly() {
+        XCTAssertEqual(ChannelRegistryTransferRuntime.preferredBackend, .localDocuments)
+        XCTAssertEqual(ChannelRegistryTransferRuntime.availableBackends, [.localDocuments])
+    }
 }

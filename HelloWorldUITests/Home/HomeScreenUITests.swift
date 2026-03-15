@@ -9,7 +9,7 @@ final class HomeScreenUITests: UITestCaseSupport {
         XCTAssertTrue(element("nav.videos", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.channelRegistration", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.registryTransfer", in: app).waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["環境引き継ぎ"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["バックアップ"].waitForExistence(timeout: 3))
 
         let timeline = try timelinePayload(in: app)
         XCTAssertLessThan(try offset(for: "bootstrapLoaded", in: timeline), 2000)

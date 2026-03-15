@@ -166,9 +166,9 @@ struct ChannelRegistryTransferFeedback: Hashable {
     var title: String {
         switch action {
         case .export:
-            return "iCloudへ書き出しました"
+            return "バックアップを書き出しました"
         case .import:
-            return "iCloudから読み込みました"
+            return "バックアップを読み込みました"
         }
     }
 
@@ -264,18 +264,15 @@ struct ChannelRegistryTransferDocument: Codable, Hashable {
 }
 
 enum ChannelRegistryTransferError: LocalizedError {
-    case iCloudUnavailable
     case importFileMissing
     case invalidImportData
 
     var errorDescription: String? {
         switch self {
-        case .iCloudUnavailable:
-            return "iCloud Drive を利用できません。iCloud Drive の設定を確認するか、Mac 検証用のローカルDocumentsを選択してください。"
         case .importFileMissing:
-            return "iCloud 上の引き継ぎファイルが見つかりません。先に書き出しを行ってください。"
+            return "この端末内のバックアップファイルが見つかりません。先に書き出しを行ってください。"
         case .invalidImportData:
-            return "引き継ぎファイルを読み込めませんでした。JSON の内容を確認してください。"
+            return "バックアップファイルを読み込めませんでした。JSON の内容を確認してください。"
         }
     }
 }
@@ -287,59 +284,37 @@ struct ChannelRegistryTransferResult: Hashable {
 }
 
 enum ChannelRegistryTransferBackend: String, CaseIterable, Hashable {
-    case iCloudDrive
     case localDocuments
 
     var shortLabel: String {
         switch self {
-        case .iCloudDrive:
-            return "iCloud Drive"
         case .localDocuments:
-            return "ローカルDocuments"
+            return "この端末内"
         }
     }
 
     var exportMenuTitle: String {
         switch self {
-        case .iCloudDrive:
-            return "iCloudへ書き出し"
         case .localDocuments:
-            return "Mac検証用に書き出し"
+            return "バックアップを書き出し"
         }
     }
 
     var importMenuTitle: String {
         switch self {
-        case .iCloudDrive:
-            return "iCloudから読み込み"
         case .localDocuments:
-            return "Mac検証用を読み込み"
+            return "バックアップを読み込み"
         }
     }
 }
 
 enum ChannelRegistryTransferRuntime {
-    static let iCloudContainerIdentifier = "iCloud.Neko.HelloWorld"
-
     static var preferredBackend: ChannelRegistryTransferBackend {
-        if let override = ProcessInfo.processInfo.environment["HELLOWORLD_REGISTRY_TRANSFER_BACKEND"],
-           let backend = ChannelRegistryTransferBackend(rawValue: override) {
-            return backend
-        }
-
-        #if targetEnvironment(macCatalyst)
         return .localDocuments
-        #else
-        return .iCloudDrive
-        #endif
     }
 
     static var availableBackends: [ChannelRegistryTransferBackend] {
-        #if targetEnvironment(macCatalyst)
-        return [.localDocuments, .iCloudDrive]
-        #else
-        return [.iCloudDrive, .localDocuments]
-        #endif
+        [.localDocuments]
     }
 }
 
@@ -542,21 +517,6 @@ enum ChannelRegistryTransferStore {
 
     private static func transferDocumentURL(fileManager: FileManager, backend: ChannelRegistryTransferBackend, containerURL: URL?) throws -> URL {
         switch backend {
-        case .iCloudDrive:
-            let rootURL: URL?
-            if let containerURL {
-                rootURL = containerURL
-            } else {
-                rootURL = fileManager.url(forUbiquityContainerIdentifier: ChannelRegistryTransferRuntime.iCloudContainerIdentifier)
-            }
-
-            guard let rootURL else {
-                throw ChannelRegistryTransferError.iCloudUnavailable
-            }
-
-            return rootURL
-                .appendingPathComponent("Documents", isDirectory: true)
-                .appendingPathComponent("channel-registry.json")
         case .localDocuments:
             let rootURL: URL
             if let containerURL {
@@ -577,67 +537,15 @@ enum ChannelRegistryTransferStore {
     }
 
     private static func write(_ data: Data, to url: URL, backend: ChannelRegistryTransferBackend) throws {
-        if backend == .iCloudDrive {
-            var coordinationError: NSError?
-            var writeError: Error?
-            let coordinator = NSFileCoordinator(filePresenter: nil)
-            coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { coordinatedURL in
-                do {
-                    try data.write(to: coordinatedURL, options: .atomic)
-                } catch {
-                    writeError = error
-                }
-            }
-
-            if let coordinationError {
-                throw coordinationError
-            }
-            if let writeError {
-                throw writeError
-            }
-            return
-        }
-
         try data.write(to: url, options: .atomic)
     }
 
     private static func read(from url: URL, backend: ChannelRegistryTransferBackend, fileManager: FileManager) throws -> Data {
-        if backend == .iCloudDrive {
-            if fileManager.isUbiquitousItem(at: url) {
-                try? fileManager.startDownloadingUbiquitousItem(at: url)
-            }
-
-            var coordinationError: NSError?
-            var payload: Data?
-            var readError: Error?
-            let coordinator = NSFileCoordinator(filePresenter: nil)
-            coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { coordinatedURL in
-                do {
-                    payload = try Data(contentsOf: coordinatedURL)
-                } catch {
-                    readError = error
-                }
-            }
-
-            if let coordinationError {
-                throw coordinationError
-            }
-            if let readError {
-                throw readError
-            }
-            guard let payload else {
-                throw ChannelRegistryTransferError.invalidImportData
-            }
-            return payload
-        }
-
         return try Data(contentsOf: url)
     }
 
     private static func fallbackPathDescription(for backend: ChannelRegistryTransferBackend) -> String {
         switch backend {
-        case .iCloudDrive:
-            return "iCloud Drive/Documents/channel-registry.json"
         case .localDocuments:
             return "~/Documents/HelloWorld/channel-registry.json"
         }

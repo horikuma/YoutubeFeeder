@@ -7,7 +7,6 @@ struct HomeScreenView: View {
     let navigationPath: Binding<NavigationPath>
     @State private var didRunAutoRefresh = false
     @State private var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
-    @State private var transferBackend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend
     @State private var transferFeedback: ChannelRegistryTransferFeedback?
     @State private var transferErrorMessage: String?
     @State private var isTransferringRegistry = false
@@ -111,26 +110,22 @@ struct HomeScreenView: View {
             .accessibilityIdentifier("nav.channelRegistration")
 
             Menu {
-                ForEach(ChannelRegistryTransferRuntime.availableBackends, id: \.self) { backend in
-                    Section(backend.shortLabel) {
-                        Button {
-                            exportRegistry(using: backend)
-                        } label: {
-                            Label(backend.exportMenuTitle, systemImage: "square.and.arrow.up")
-                        }
+                Button {
+                    exportRegistry()
+                } label: {
+                    Label("バックアップを書き出し", systemImage: "square.and.arrow.up")
+                }
 
-                        Button {
-                            importRegistry(using: backend)
-                        } label: {
-                            Label(backend.importMenuTitle, systemImage: "square.and.arrow.down")
-                        }
-                    }
+                Button {
+                    importRegistry()
+                } label: {
+                    Label("バックアップを読み込み", systemImage: "square.and.arrow.down")
                 }
             } label: {
                 MetricTile(
-                    title: "環境引き継ぎ",
+                    title: "バックアップ",
                     value: isTransferringRegistry ? "処理中..." : "",
-                    detail: transferFeedback?.detail ?? "\(transferBackend.shortLabel) の固定JSONへ書き出し / 読み戻し"
+                    detail: transferFeedback?.detail ?? "この端末内の固定JSONへ書き出し / 読み戻し"
                 )
             }
             .menuStyle(.borderlessButton)
@@ -139,15 +134,14 @@ struct HomeScreenView: View {
         }
     }
 
-    private func exportRegistry(using backend: ChannelRegistryTransferBackend) {
+    private func exportRegistry() {
         guard !isTransferringRegistry else { return }
-        transferBackend = backend
         transferErrorMessage = nil
         isTransferringRegistry = true
 
         Task {
             do {
-                let feedback = try coordinator.exportChannelRegistry(backend: backend)
+                let feedback = try coordinator.exportChannelRegistry(backend: .localDocuments)
                 await MainActor.run {
                     transferFeedback = feedback
                     isTransferringRegistry = false
@@ -162,15 +156,14 @@ struct HomeScreenView: View {
         }
     }
 
-    private func importRegistry(using backend: ChannelRegistryTransferBackend) {
+    private func importRegistry() {
         guard !isTransferringRegistry else { return }
-        transferBackend = backend
         transferErrorMessage = nil
         isTransferringRegistry = true
 
         Task {
             do {
-                let feedback = try await coordinator.importChannelRegistry(backend: backend)
+                let feedback = try await coordinator.importChannelRegistry(backend: .localDocuments)
                 await MainActor.run {
                     transferFeedback = feedback
                     isTransferringRegistry = false
@@ -211,14 +204,14 @@ struct HomeScreenView: View {
 
     private func registryTransferErrorCard(_ message: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("環境引き継ぎを完了できませんでした")
+            Text("バックアップを完了できませんでした")
                 .font(.headline)
 
             Text(message)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
-            Text(ChannelRegistryTransferStore.fixedPathDescription(backend: transferBackend))
+            Text(ChannelRegistryTransferStore.fixedPathDescription(backend: .localDocuments))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
