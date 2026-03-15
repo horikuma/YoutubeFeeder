@@ -8,6 +8,7 @@ final class HomeScreenUITests: UITestCaseSupport {
         XCTAssertTrue(element("nav.channels", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.videos", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.channelRegistration", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("nav.registryTransfer", in: app).waitForExistence(timeout: 3))
 
         let timeline = try timelinePayload(in: app)
         XCTAssertLessThan(try offset(for: "bootstrapLoaded", in: timeline), 2000)

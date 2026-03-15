@@ -151,6 +151,36 @@ struct ChannelRegistrationFeedback: Hashable {
     let latestFeedError: String?
 }
 
+enum ChannelRegistryTransferAction: Hashable {
+    case export
+    case `import`
+}
+
+struct ChannelRegistryTransferFeedback: Hashable {
+    let action: ChannelRegistryTransferAction
+    let channelCount: Int
+    let path: String
+    let refreshMessage: String?
+
+    var title: String {
+        switch action {
+        case .export:
+            return "iCloudへ書き出しました"
+        case .import:
+            return "iCloudから読み込みました"
+        }
+    }
+
+    var detail: String {
+        switch action {
+        case .export:
+            return "追加チャンネル \(channelCount) 件を保存"
+        case .import:
+            return "追加チャンネル \(channelCount) 件を反映"
+        }
+    }
+}
+
 struct FeedBootstrapSnapshot {
     var progress: CacheProgress
     var maintenanceItems: [ChannelMaintenanceItem]
@@ -205,6 +235,53 @@ struct ChannelRegistrySnapshot: Codable {
             ChannelRegistrySnapshot(customChannels: customChannels)
         }
     }
+}
+
+struct ChannelRegistryTransferDocument: Codable, Hashable {
+    let formatVersion: Int
+    let exportedAt: Date
+    let customChannels: [RegisteredChannelRecord]
+
+    init(formatVersion: Int = 1, exportedAt: Date = .now, customChannels: [RegisteredChannelRecord]) {
+        self.formatVersion = formatVersion
+        self.exportedAt = exportedAt
+        self.customChannels = customChannels
+    }
+
+    init(from decoder: Decoder) throws {
+        if let container = try? decoder.container(keyedBy: CodingKeys.self),
+           let formatVersion = try? container.decode(Int.self, forKey: .formatVersion),
+           let exportedAt = try? container.decode(Date.self, forKey: .exportedAt),
+           let customChannels = try? container.decode([RegisteredChannelRecord].self, forKey: .customChannels) {
+            self.init(formatVersion: formatVersion, exportedAt: exportedAt, customChannels: customChannels)
+            return
+        }
+
+        let snapshot = try ChannelRegistrySnapshot(from: decoder)
+        self.init(customChannels: snapshot.customChannels)
+    }
+}
+
+enum ChannelRegistryTransferError: LocalizedError {
+    case iCloudUnavailable
+    case importFileMissing
+    case invalidImportData
+
+    var errorDescription: String? {
+        switch self {
+        case .iCloudUnavailable:
+            return "iCloud Drive を利用できません。iCloud Drive の設定を確認してください。"
+        case .importFileMissing:
+            return "iCloud 上の引き継ぎファイルが見つかりません。先に書き出しを行ってください。"
+        case .invalidImportData:
+            return "引き継ぎファイルを読み込めませんでした。JSON の内容を確認してください。"
+        }
+    }
+}
+
+struct ChannelRegistryTransferResult: Hashable {
+    let fileURL: URL
+    let customChannelCount: Int
 }
 
 enum FeedBootstrapStore {
@@ -326,6 +403,15 @@ enum ChannelRegistryStore {
         try persist(snapshot: snapshot, fileManager: fileManager)
         return true
     }
+
+    static func loadCustomChannelRecords(fileManager: FileManager = .default) -> [RegisteredChannelRecord] {
+        loadSnapshot(fileManager: fileManager).customChannels
+    }
+
+    static func replaceCustomChannels(_ customChannels: [RegisteredChannelRecord], fileManager: FileManager = .default) throws {
+        try persist(snapshot: ChannelRegistrySnapshot(customChannels: uniqueRecords(customChannels)), fileManager: fileManager)
+    }
+
     private static func loadSnapshot(fileManager: FileManager) -> ChannelRegistrySnapshot {
         let url = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
         guard
@@ -356,6 +442,60 @@ enum ChannelRegistryStore {
     private static func uniqueRecords(_ channels: [RegisteredChannelRecord]) -> [RegisteredChannelRecord] {
         var seen = Set<String>()
         return channels.filter { seen.insert($0.channelID).inserted }
+    }
+}
+
+enum ChannelRegistryTransferStore {
+    static func exportToICloud(fileManager: FileManager = .default, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
+        let destinationURL = try iCloudDocumentURL(fileManager: fileManager, containerURL: containerURL)
+        try fileManager.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+        let document = ChannelRegistryTransferDocument(customChannels: ChannelRegistryStore.loadCustomChannelRecords(fileManager: fileManager))
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(document)
+        try data.write(to: destinationURL, options: .atomic)
+        return ChannelRegistryTransferResult(fileURL: destinationURL, customChannelCount: document.customChannels.count)
+    }
+
+    static func importFromICloud(fileManager: FileManager = .default, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
+        let sourceURL = try iCloudDocumentURL(fileManager: fileManager, containerURL: containerURL)
+        guard fileManager.fileExists(atPath: sourceURL.path) else {
+            throw ChannelRegistryTransferError.importFileMissing
+        }
+
+        let data = try Data(contentsOf: sourceURL)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let document = try? decoder.decode(ChannelRegistryTransferDocument.self, from: data) else {
+            throw ChannelRegistryTransferError.invalidImportData
+        }
+
+        try ChannelRegistryStore.replaceCustomChannels(document.customChannels, fileManager: fileManager)
+        return ChannelRegistryTransferResult(fileURL: sourceURL, customChannelCount: document.customChannels.count)
+    }
+
+    static func fixedPathDescription(fileManager: FileManager = .default, containerURL: URL? = nil) -> String {
+        (try? iCloudDocumentURL(fileManager: fileManager, containerURL: containerURL).path(percentEncoded: false))
+        ?? "iCloud Drive/Documents/channel-registry.json"
+    }
+
+    private static func iCloudDocumentURL(fileManager: FileManager, containerURL: URL?) throws -> URL {
+        let rootURL: URL?
+        if let containerURL {
+            rootURL = containerURL
+        } else {
+            rootURL = fileManager.url(forUbiquityContainerIdentifier: nil)
+        }
+
+        guard let rootURL else {
+            throw ChannelRegistryTransferError.iCloudUnavailable
+        }
+
+        return rootURL
+            .appendingPathComponent("Documents", isDirectory: true)
+            .appendingPathComponent("channel-registry.json")
     }
 }
 

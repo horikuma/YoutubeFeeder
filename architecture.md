@@ -45,6 +45,7 @@
   - `Menu` ベースのチャンネル一覧ソート選択。
   - チャンネル登録画面への導線。
   - チャンネル登録結果のフィードバック表示。
+  - iCloud への環境引き継ぎ導線と結果表示。
 - [HelloWorld/Features/Home/HomeUIComponents.swift](HelloWorld/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
 - [HelloWorld/Features/Home/HomeRoutes.swift](HelloWorld/Features/Home/HomeRoutes.swift)
@@ -64,6 +65,7 @@
 - [HelloWorld/Features/FeedCache/FeedCacheModels.swift](HelloWorld/Features/FeedCache/FeedCacheModels.swift)
   - キャッシュ用モデルと進捗モデル。
   - チャンネル登録日時を含む registry 永続化モデル。
+  - iCloud 転送用ドキュメントと固定ファイルパス。
 
 ### Infrastructure
 
@@ -96,6 +98,8 @@
 - キャッシュは永続データとして扱う。
 - ユーザー追加チャンネルは `Channel ID` を主キーとして別ファイルに永続化する。
 - ユーザー追加チャンネルには登録日時を保持し、一覧ソートの指標として再利用する。
+- 環境引き継ぎでは、ユーザー追加チャンネルと登録日時だけを JSON として iCloud Drive の固定ファイルへ保存する。
+- インポートではローカルのカスタムチャンネル設定をその JSON で置き換え、動画やサムネイルは転送しない。
 - 軽量 bootstrap と本体 cache を分ける。
   - bootstrap: ホーム画面を即時表示するための軽量情報
   - cache: チャンネル状態、動画メタデータ、サムネイル位置を含む本体
@@ -127,11 +131,11 @@
 - [HelloWorld/App/ContentView.swift](HelloWorld/App/ContentView.swift)
   - ルート画面、起動画面からホーム画面への遷移、ルートレベルの navigation を担う。
 - [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
-  - ホーム画面の表示、手動更新導線、一覧ソート選択を担う。
+  - ホーム画面の表示、手動更新導線、一覧ソート選択、環境引き継ぎを担う。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
   - 一覧系 UI、共通挙動、並び順表示を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
-  - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制を担う。
+  - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制、引き継ぎ後の再読込を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - cache.json、bootstrap、thumbnail、channel registry の読取利用を担う。
 - [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
@@ -166,6 +170,8 @@ xcodebuild test \
   - チャンネル ID resource 読込。
 - [HelloWorldTests/Unit/Parsing/YouTubeFeedParserTests.swift](HelloWorldTests/Unit/Parsing/YouTubeFeedParserTests.swift)
   - uploads playlist ID 変換、feed parser。
+- [HelloWorldTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift](HelloWorldTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift)
+  - channel registry の後方互換と引き継ぎドキュメントの decode。
 - [HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift](HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift)
   - 戻るスワイプ判定。
 - [HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift](HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift)

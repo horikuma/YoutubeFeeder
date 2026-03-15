@@ -137,6 +137,38 @@ final class FeedCacheCoordinator: ObservableObject {
         )
     }
 
+    func exportChannelRegistryToICloud() throws -> ChannelRegistryTransferFeedback {
+        let result = try ChannelRegistryTransferStore.exportToICloud()
+        return ChannelRegistryTransferFeedback(
+            action: .export,
+            channelCount: result.customChannelCount,
+            path: result.fileURL.path(percentEncoded: false),
+            refreshMessage: nil
+        )
+    }
+
+    func importChannelRegistryFromICloud() async throws -> ChannelRegistryTransferFeedback {
+        let result = try ChannelRegistryTransferStore.importFromICloud()
+        channels = ChannelRegistryStore.loadAllChannelIDs()
+        freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+        await bootstrapMaintenance()
+
+        let refreshMessage: String?
+        if AppLaunchMode.current.usesMockData {
+            refreshMessage = "UI テストモードでは最新情報の再取得を省略しました。"
+        } else {
+            await refreshCacheManually()
+            refreshMessage = progress.lastError.map { "最新情報の再取得は一部失敗しました: \($0)" } ?? "最新情報を再取得しました。"
+        }
+
+        return ChannelRegistryTransferFeedback(
+            action: .import,
+            channelCount: result.customChannelCount,
+            path: result.fileURL.path(percentEncoded: false),
+            refreshMessage: refreshMessage
+        )
+    }
+
     private func performManualRefresh() async {
         let snapshot = await store.loadSnapshot()
         let states = Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) })

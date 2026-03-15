@@ -7,6 +7,9 @@ struct HomeScreenView: View {
     let navigationPath: Binding<NavigationPath>
     @State private var didRunAutoRefresh = false
     @State private var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
+    @State private var transferFeedback: ChannelRegistryTransferFeedback?
+    @State private var transferErrorMessage: String?
+    @State private var isTransferringRegistry = false
 
     var body: some View {
         ScrollView {
@@ -23,6 +26,14 @@ struct HomeScreenView: View {
                     .accessibilityIdentifier("screen.home")
 
                 navigationSection
+
+                if let transferFeedback {
+                    registryTransferFeedbackCard(transferFeedback)
+                        .accessibilityIdentifier("home.transferFeedback")
+                } else if let transferErrorMessage {
+                    registryTransferErrorCard(transferErrorMessage)
+                        .accessibilityIdentifier("home.transferError")
+                }
             }
             .frame(maxWidth: layout.contentWidth ?? .infinity, alignment: .leading)
             .frame(maxWidth: .infinity)
@@ -97,7 +108,117 @@ struct HomeScreenView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("nav.channelRegistration")
+
+            Menu {
+                Button {
+                    exportRegistry()
+                } label: {
+                    Label("iCloudへ書き出し", systemImage: "square.and.arrow.up")
+                }
+
+                Button {
+                    importRegistry()
+                } label: {
+                    Label("iCloudから読み込み", systemImage: "square.and.arrow.down")
+                }
+            } label: {
+                MetricTile(
+                    title: "環境引き継ぎ",
+                    value: isTransferringRegistry ? "処理中..." : "",
+                    detail: transferFeedback?.detail ?? "iCloud の固定JSONへ書き出し / 読み戻し"
+                )
+            }
+            .menuStyle(.borderlessButton)
+            .disabled(isTransferringRegistry)
+            .accessibilityIdentifier("nav.registryTransfer")
         }
+    }
+
+    private func exportRegistry() {
+        guard !isTransferringRegistry else { return }
+        transferErrorMessage = nil
+        isTransferringRegistry = true
+
+        Task {
+            do {
+                let feedback = try coordinator.exportChannelRegistryToICloud()
+                await MainActor.run {
+                    transferFeedback = feedback
+                    isTransferringRegistry = false
+                }
+            } catch {
+                await MainActor.run {
+                    transferFeedback = nil
+                    transferErrorMessage = error.localizedDescription
+                    isTransferringRegistry = false
+                }
+            }
+        }
+    }
+
+    private func importRegistry() {
+        guard !isTransferringRegistry else { return }
+        transferErrorMessage = nil
+        isTransferringRegistry = true
+
+        Task {
+            do {
+                let feedback = try await coordinator.importChannelRegistryFromICloud()
+                await MainActor.run {
+                    transferFeedback = feedback
+                    isTransferringRegistry = false
+                }
+            } catch {
+                await MainActor.run {
+                    transferFeedback = nil
+                    transferErrorMessage = error.localizedDescription
+                    isTransferringRegistry = false
+                }
+            }
+        }
+    }
+
+    private func registryTransferFeedbackCard(_ feedback: ChannelRegistryTransferFeedback) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(feedback.title)
+                .font(.headline)
+
+            Text(feedback.detail)
+                .font(.subheadline)
+
+            Text(feedback.path)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+
+            if let refreshMessage = feedback.refreshMessage {
+                Text(refreshMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func registryTransferErrorCard(_ message: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("環境引き継ぎを完了できませんでした")
+                .font(.headline)
+
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            Text(ChannelRegistryTransferStore.fixedPathDescription())
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private var layoutColumns: [GridItem] {

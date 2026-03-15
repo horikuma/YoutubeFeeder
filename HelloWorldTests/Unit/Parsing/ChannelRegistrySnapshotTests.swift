@@ -19,4 +19,55 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
             ]
         )
     }
+
+    func testTransferDocumentDecodesCurrentFormat() throws {
+        let json = """
+        {
+          "formatVersion": 1,
+          "exportedAt": "2026-03-15T01:23:45Z",
+          "customChannels": [
+            {
+              "addedAt": "2026-03-14T12:00:00Z",
+              "channelID": "UC123"
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let document = try decoder.decode(ChannelRegistryTransferDocument.self, from: json)
+
+        XCTAssertEqual(document.formatVersion, 1)
+        XCTAssertEqual(document.customChannels, [RegisteredChannelRecord(channelID: "UC123", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z"))])
+    }
+
+    func testTransferDocumentDecodesLegacyRegistrySnapshot() throws {
+        let json = """
+        {
+          "customChannels": [
+            {
+              "addedAt": null,
+              "channelID": "UC123"
+            },
+            {
+              "addedAt": null,
+              "channelID": "UC456"
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let document = try decoder.decode(ChannelRegistryTransferDocument.self, from: json)
+
+        XCTAssertEqual(
+            document.customChannels,
+            [
+                RegisteredChannelRecord(channelID: "UC123", addedAt: nil),
+                RegisteredChannelRecord(channelID: "UC456", addedAt: nil),
+            ]
+        )
+    }
 }
