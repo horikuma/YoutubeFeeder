@@ -70,4 +70,14 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
             ]
         )
     }
+
+    func testTransferStoreUsesLocalDocumentsFixedPath() {
+        let rootURL = URL(fileURLWithPath: "/tmp/HelloWorldTests", isDirectory: true)
+        let path = ChannelRegistryTransferStore.fixedPathDescription(
+            backend: .localDocuments,
+            containerURL: rootURL
+        )
+
+        XCTAssertEqual(path, "/tmp/HelloWorldTests/HelloWorld/channel-registry.json")
+    }
 }

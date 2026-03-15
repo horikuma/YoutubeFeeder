@@ -8,6 +8,7 @@ xcuserdata/
 
 # Build products
 .DerivedData/
+.DerivedData-mac/
 build/
 
 # Local metrics artifacts

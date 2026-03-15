@@ -137,18 +137,19 @@ final class FeedCacheCoordinator: ObservableObject {
         )
     }
 
-    func exportChannelRegistryToICloud() throws -> ChannelRegistryTransferFeedback {
-        let result = try ChannelRegistryTransferStore.exportToICloud()
+    func exportChannelRegistry(backend: ChannelRegistryTransferBackend) throws -> ChannelRegistryTransferFeedback {
+        let result = try ChannelRegistryTransferStore.export(backend: backend)
         return ChannelRegistryTransferFeedback(
             action: .export,
+            backend: result.backend,
             channelCount: result.customChannelCount,
             path: result.fileURL.path(percentEncoded: false),
             refreshMessage: nil
         )
     }
 
-    func importChannelRegistryFromICloud() async throws -> ChannelRegistryTransferFeedback {
-        let result = try ChannelRegistryTransferStore.importFromICloud()
+    func importChannelRegistry(backend: ChannelRegistryTransferBackend) async throws -> ChannelRegistryTransferFeedback {
+        let result = try ChannelRegistryTransferStore.import(backend: backend)
         channels = ChannelRegistryStore.loadAllChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         await bootstrapMaintenance()
@@ -163,6 +164,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
         return ChannelRegistryTransferFeedback(
             action: .import,
+            backend: result.backend,
             channelCount: result.customChannelCount,
             path: result.fileURL.path(percentEncoded: false),
             refreshMessage: refreshMessage

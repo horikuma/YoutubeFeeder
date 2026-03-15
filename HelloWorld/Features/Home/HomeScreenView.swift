@@ -7,6 +7,7 @@ struct HomeScreenView: View {
     let navigationPath: Binding<NavigationPath>
     @State private var didRunAutoRefresh = false
     @State private var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
+    @State private var transferBackend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend
     @State private var transferFeedback: ChannelRegistryTransferFeedback?
     @State private var transferErrorMessage: String?
     @State private var isTransferringRegistry = false
@@ -110,22 +111,26 @@ struct HomeScreenView: View {
             .accessibilityIdentifier("nav.channelRegistration")
 
             Menu {
-                Button {
-                    exportRegistry()
-                } label: {
-                    Label("iCloudへ書き出し", systemImage: "square.and.arrow.up")
-                }
+                ForEach(ChannelRegistryTransferRuntime.availableBackends, id: \.self) { backend in
+                    Section(backend.shortLabel) {
+                        Button {
+                            exportRegistry(using: backend)
+                        } label: {
+                            Label(backend.exportMenuTitle, systemImage: "square.and.arrow.up")
+                        }
 
-                Button {
-                    importRegistry()
-                } label: {
-                    Label("iCloudから読み込み", systemImage: "square.and.arrow.down")
+                        Button {
+                            importRegistry(using: backend)
+                        } label: {
+                            Label(backend.importMenuTitle, systemImage: "square.and.arrow.down")
+                        }
+                    }
                 }
             } label: {
                 MetricTile(
                     title: "環境引き継ぎ",
                     value: isTransferringRegistry ? "処理中..." : "",
-                    detail: transferFeedback?.detail ?? "iCloud の固定JSONへ書き出し / 読み戻し"
+                    detail: transferFeedback?.detail ?? "\(transferBackend.shortLabel) の固定JSONへ書き出し / 読み戻し"
                 )
             }
             .menuStyle(.borderlessButton)
@@ -134,14 +139,15 @@ struct HomeScreenView: View {
         }
     }
 
-    private func exportRegistry() {
+    private func exportRegistry(using backend: ChannelRegistryTransferBackend) {
         guard !isTransferringRegistry else { return }
+        transferBackend = backend
         transferErrorMessage = nil
         isTransferringRegistry = true
 
         Task {
             do {
-                let feedback = try coordinator.exportChannelRegistryToICloud()
+                let feedback = try coordinator.exportChannelRegistry(backend: backend)
                 await MainActor.run {
                     transferFeedback = feedback
                     isTransferringRegistry = false
@@ -156,14 +162,15 @@ struct HomeScreenView: View {
         }
     }
 
-    private func importRegistry() {
+    private func importRegistry(using backend: ChannelRegistryTransferBackend) {
         guard !isTransferringRegistry else { return }
+        transferBackend = backend
         transferErrorMessage = nil
         isTransferringRegistry = true
 
         Task {
             do {
-                let feedback = try await coordinator.importChannelRegistryFromICloud()
+                let feedback = try await coordinator.importChannelRegistry(backend: backend)
                 await MainActor.run {
                     transferFeedback = feedback
                     isTransferringRegistry = false
@@ -211,7 +218,7 @@ struct HomeScreenView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
-            Text(ChannelRegistryTransferStore.fixedPathDescription())
+            Text(ChannelRegistryTransferStore.fixedPathDescription(backend: transferBackend))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)

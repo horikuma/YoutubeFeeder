@@ -158,6 +158,7 @@ enum ChannelRegistryTransferAction: Hashable {
 
 struct ChannelRegistryTransferFeedback: Hashable {
     let action: ChannelRegistryTransferAction
+    let backend: ChannelRegistryTransferBackend
     let channelCount: Int
     let path: String
     let refreshMessage: String?
@@ -174,9 +175,9 @@ struct ChannelRegistryTransferFeedback: Hashable {
     var detail: String {
         switch action {
         case .export:
-            return "追加チャンネル \(channelCount) 件を保存"
+            return "\(backend.shortLabel)へ追加チャンネル \(channelCount) 件を保存"
         case .import:
-            return "追加チャンネル \(channelCount) 件を反映"
+            return "\(backend.shortLabel)から追加チャンネル \(channelCount) 件を反映"
         }
     }
 }
@@ -270,7 +271,7 @@ enum ChannelRegistryTransferError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .iCloudUnavailable:
-            return "iCloud Drive を利用できません。iCloud Drive の設定を確認してください。"
+            return "iCloud Drive を利用できません。iCloud Drive の設定を確認するか、Mac 検証用のローカルDocumentsを選択してください。"
         case .importFileMissing:
             return "iCloud 上の引き継ぎファイルが見つかりません。先に書き出しを行ってください。"
         case .invalidImportData:
@@ -280,8 +281,64 @@ enum ChannelRegistryTransferError: LocalizedError {
 }
 
 struct ChannelRegistryTransferResult: Hashable {
+    let backend: ChannelRegistryTransferBackend
     let fileURL: URL
     let customChannelCount: Int
+}
+
+enum ChannelRegistryTransferBackend: String, CaseIterable, Hashable {
+    case iCloudDrive
+    case localDocuments
+
+    var shortLabel: String {
+        switch self {
+        case .iCloudDrive:
+            return "iCloud Drive"
+        case .localDocuments:
+            return "ローカルDocuments"
+        }
+    }
+
+    var exportMenuTitle: String {
+        switch self {
+        case .iCloudDrive:
+            return "iCloudへ書き出し"
+        case .localDocuments:
+            return "Mac検証用に書き出し"
+        }
+    }
+
+    var importMenuTitle: String {
+        switch self {
+        case .iCloudDrive:
+            return "iCloudから読み込み"
+        case .localDocuments:
+            return "Mac検証用を読み込み"
+        }
+    }
+}
+
+enum ChannelRegistryTransferRuntime {
+    static var preferredBackend: ChannelRegistryTransferBackend {
+        if let override = ProcessInfo.processInfo.environment["HELLOWORLD_REGISTRY_TRANSFER_BACKEND"],
+           let backend = ChannelRegistryTransferBackend(rawValue: override) {
+            return backend
+        }
+
+        #if targetEnvironment(macCatalyst)
+        return .localDocuments
+        #else
+        return .iCloudDrive
+        #endif
+    }
+
+    static var availableBackends: [ChannelRegistryTransferBackend] {
+        #if targetEnvironment(macCatalyst)
+        return [.localDocuments, .iCloudDrive]
+        #else
+        return [.iCloudDrive, .localDocuments]
+        #endif
+    }
 }
 
 enum FeedBootstrapStore {
@@ -446,8 +503,8 @@ enum ChannelRegistryStore {
 }
 
 enum ChannelRegistryTransferStore {
-    static func exportToICloud(fileManager: FileManager = .default, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
-        let destinationURL = try iCloudDocumentURL(fileManager: fileManager, containerURL: containerURL)
+    static func export(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
+        let destinationURL = try transferDocumentURL(fileManager: fileManager, backend: backend, containerURL: containerURL)
         try fileManager.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
 
         let document = ChannelRegistryTransferDocument(customChannels: ChannelRegistryStore.loadCustomChannelRecords(fileManager: fileManager))
@@ -456,11 +513,11 @@ enum ChannelRegistryTransferStore {
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(document)
         try data.write(to: destinationURL, options: .atomic)
-        return ChannelRegistryTransferResult(fileURL: destinationURL, customChannelCount: document.customChannels.count)
+        return ChannelRegistryTransferResult(backend: backend, fileURL: destinationURL, customChannelCount: document.customChannels.count)
     }
 
-    static func importFromICloud(fileManager: FileManager = .default, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
-        let sourceURL = try iCloudDocumentURL(fileManager: fileManager, containerURL: containerURL)
+    static func `import`(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
+        let sourceURL = try transferDocumentURL(fileManager: fileManager, backend: backend, containerURL: containerURL)
         guard fileManager.fileExists(atPath: sourceURL.path) else {
             throw ChannelRegistryTransferError.importFileMissing
         }
@@ -473,29 +530,57 @@ enum ChannelRegistryTransferStore {
         }
 
         try ChannelRegistryStore.replaceCustomChannels(document.customChannels, fileManager: fileManager)
-        return ChannelRegistryTransferResult(fileURL: sourceURL, customChannelCount: document.customChannels.count)
+        return ChannelRegistryTransferResult(backend: backend, fileURL: sourceURL, customChannelCount: document.customChannels.count)
     }
 
-    static func fixedPathDescription(fileManager: FileManager = .default, containerURL: URL? = nil) -> String {
-        (try? iCloudDocumentURL(fileManager: fileManager, containerURL: containerURL).path(percentEncoded: false))
-        ?? "iCloud Drive/Documents/channel-registry.json"
+    static func fixedPathDescription(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) -> String {
+        (try? transferDocumentURL(fileManager: fileManager, backend: backend, containerURL: containerURL).path(percentEncoded: false))
+        ?? fallbackPathDescription(for: backend)
     }
 
-    private static func iCloudDocumentURL(fileManager: FileManager, containerURL: URL?) throws -> URL {
-        let rootURL: URL?
-        if let containerURL {
-            rootURL = containerURL
-        } else {
-            rootURL = fileManager.url(forUbiquityContainerIdentifier: nil)
-        }
+    private static func transferDocumentURL(fileManager: FileManager, backend: ChannelRegistryTransferBackend, containerURL: URL?) throws -> URL {
+        switch backend {
+        case .iCloudDrive:
+            let rootURL: URL?
+            if let containerURL {
+                rootURL = containerURL
+            } else {
+                rootURL = fileManager.url(forUbiquityContainerIdentifier: nil)
+            }
 
-        guard let rootURL else {
-            throw ChannelRegistryTransferError.iCloudUnavailable
-        }
+            guard let rootURL else {
+                throw ChannelRegistryTransferError.iCloudUnavailable
+            }
 
-        return rootURL
-            .appendingPathComponent("Documents", isDirectory: true)
-            .appendingPathComponent("channel-registry.json")
+            return rootURL
+                .appendingPathComponent("Documents", isDirectory: true)
+                .appendingPathComponent("channel-registry.json")
+        case .localDocuments:
+            let rootURL: URL
+            if let containerURL {
+                rootURL = containerURL
+            } else if let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+                rootURL = documentsURL
+            } else {
+                #if os(macOS)
+                rootURL = fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Documents", isDirectory: true)
+                #else
+                rootURL = fileManager.temporaryDirectory
+                #endif
+            }
+            return rootURL
+                .appendingPathComponent("HelloWorld", isDirectory: true)
+                .appendingPathComponent("channel-registry.json")
+        }
+    }
+
+    private static func fallbackPathDescription(for backend: ChannelRegistryTransferBackend) -> String {
+        switch backend {
+        case .iCloudDrive:
+            return "iCloud Drive/Documents/channel-registry.json"
+        case .localDocuments:
+            return "~/Documents/HelloWorld/channel-registry.json"
+        }
     }
 }
 

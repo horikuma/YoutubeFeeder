@@ -46,6 +46,7 @@
   - チャンネル登録画面への導線。
   - チャンネル登録結果のフィードバック表示。
   - iCloud への環境引き継ぎ導線と結果表示。
+  - 転送先 backend の切替 UI。
 - [HelloWorld/Features/Home/HomeUIComponents.swift](HelloWorld/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
 - [HelloWorld/Features/Home/HomeRoutes.swift](HelloWorld/Features/Home/HomeRoutes.swift)
@@ -66,6 +67,7 @@
   - キャッシュ用モデルと進捗モデル。
   - チャンネル登録日時を含む registry 永続化モデル。
   - iCloud 転送用ドキュメントと固定ファイルパス。
+  - `iCloud Drive` と `ローカルDocuments` の転送 backend 定義。
 
 ### Infrastructure
 
@@ -100,6 +102,7 @@
 - ユーザー追加チャンネルには登録日時を保持し、一覧ソートの指標として再利用する。
 - 環境引き継ぎでは、ユーザー追加チャンネルと登録日時だけを JSON として iCloud Drive の固定ファイルへ保存する。
 - インポートではローカルのカスタムチャンネル設定をその JSON で置き換え、動画やサムネイルは転送しない。
+- Mac Catalyst では `ローカルDocuments` を既定 backend とし、LLM から制御しやすい固定パス `~/Documents/HelloWorld/channel-registry.json` を使って確認できるようにする。
 - 軽量 bootstrap と本体 cache を分ける。
   - bootstrap: ホーム画面を即時表示するための軽量情報
   - cache: チャンネル状態、動画メタデータ、サムネイル位置を含む本体
