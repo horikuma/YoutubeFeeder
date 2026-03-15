@@ -467,6 +467,11 @@ enum FeedBootstrapStore {
 }
 
 enum ChannelRegistryStore {
+    static func loadPersistedOrSeededChannelIDs(fileManager: FileManager = .default) -> [String] {
+        ensureSeededFromLegacyCacheIfNeeded(fileManager: fileManager)
+        return loadAllChannelIDs(fileManager: fileManager)
+    }
+
     static func loadAllChannels(fileManager: FileManager = .default) -> [RegisteredChannel] {
         let channels = loadSnapshot(fileManager: fileManager).channels.map {
             RegisteredChannel(channelID: $0.channelID, addedAt: $0.addedAt)
@@ -532,6 +537,41 @@ enum ChannelRegistryStore {
         }
 
         return snapshot
+    }
+
+    private static func ensureSeededFromLegacyCacheIfNeeded(fileManager: FileManager) {
+        let registryURL = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
+        guard !fileManager.fileExists(atPath: registryURL.path) else { return }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        var records: [RegisteredChannelRecord] = []
+
+        if
+            let data = try? Data(contentsOf: FeedCachePaths.bootstrapURL(fileManager: fileManager)),
+            let bootstrap = try? decoder.decode(FeedBootstrapSnapshot.self, from: data)
+        {
+            records.append(contentsOf: bootstrap.maintenanceItems.map {
+                RegisteredChannelRecord(channelID: $0.channelID, addedAt: nil)
+            })
+        }
+
+        if
+            let data = try? Data(contentsOf: FeedCachePaths.cacheURL(fileManager: fileManager)),
+            let snapshot = try? decoder.decode(FeedCacheSnapshot.self, from: data)
+        {
+            records.append(contentsOf: snapshot.channels.map {
+                RegisteredChannelRecord(channelID: $0.channelID, addedAt: nil)
+            })
+            records.append(contentsOf: snapshot.videos.map {
+                RegisteredChannelRecord(channelID: $0.channelID, addedAt: nil)
+            })
+        }
+
+        let seededRecords = uniqueRecords(records)
+        guard !seededRecords.isEmpty else { return }
+        try? persist(snapshot: ChannelRegistrySnapshot(channels: seededRecords), fileManager: fileManager)
     }
 
     private static func persist(snapshot: ChannelRegistrySnapshot, fileManager: FileManager) throws {

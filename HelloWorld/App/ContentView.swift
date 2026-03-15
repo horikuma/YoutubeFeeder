@@ -18,7 +18,7 @@ struct ContentView: View {
     @ObservedObject private var diagnostics = StartupDiagnostics.shared
 
     init() {
-        _coordinator = StateObject(wrappedValue: FeedCacheCoordinator(channels: ChannelRegistryStore.loadAllChannelIDs()))
+        _coordinator = StateObject(wrappedValue: FeedCacheCoordinator(channels: ChannelRegistryStore.loadPersistedOrSeededChannelIDs()))
     }
 
     var body: some View {

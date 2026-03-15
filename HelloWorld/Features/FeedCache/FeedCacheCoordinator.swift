@@ -14,6 +14,7 @@ final class FeedCacheCoordinator: ObservableObject {
     private let feedService = YouTubeFeedService()
     private let channelResolver = YouTubeChannelResolver()
     private var manualRefreshTask: Task<Void, Never>?
+    private var importRefreshTask: Task<Void, Never>?
     private var freshnessInterval: TimeInterval
     private var videoQuery = VideoQuery()
     private var liveUpdateSuspendCount = 0
@@ -28,6 +29,8 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func bootstrapMaintenance() async {
+        channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
+        freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         let bootstrap = FeedBootstrapStore.load(channels: channels)
         progress = bootstrap.progress
@@ -94,7 +97,7 @@ final class FeedCacheCoordinator: ObservableObject {
     func addChannel(input: String) async throws -> ChannelRegistrationFeedback {
         let resolvedChannel = try await channelResolver.resolve(input: input)
         let didAdd = try ChannelRegistryStore.addChannelID(resolvedChannel.channelID)
-        channels = ChannelRegistryStore.loadAllChannelIDs()
+        channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
 
@@ -151,7 +154,7 @@ final class FeedCacheCoordinator: ObservableObject {
             return nil
         }
 
-        channels = ChannelRegistryStore.loadAllChannelIDs()
+        channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         let cleanup = await performConsistencyMaintenanceIfNeeded(force: true)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
@@ -177,7 +180,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func importChannelRegistry(backend: ChannelRegistryTransferBackend) async throws -> ChannelRegistryTransferFeedback {
         let result = try ChannelRegistryTransferStore.import(backend: backend)
-        channels = ChannelRegistryStore.loadAllChannelIDs()
+        channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: true)
         await bootstrapMaintenance()
@@ -186,8 +189,8 @@ final class FeedCacheCoordinator: ObservableObject {
         if AppLaunchMode.current.usesMockData {
             refreshMessage = "UI テストモードでは最新情報の再取得を省略しました。"
         } else {
-            await refreshCacheManually()
-            refreshMessage = progress.lastError.map { "最新情報の再取得は一部失敗しました: \($0)" } ?? "最新情報を再取得しました。"
+            scheduleImportedChannelRefresh(channelIDs: channels)
+            refreshMessage = "最新情報の再取得をバックグラウンドで開始しました。"
         }
 
         return ChannelRegistryTransferFeedback(
@@ -379,6 +382,56 @@ final class FeedCacheCoordinator: ObservableObject {
 
     private func freshness(for lastSuccessAt: Date?) -> ChannelFreshness {
         FeedOrdering.freshness(lastSuccessAt: lastSuccessAt, freshnessInterval: freshnessInterval)
+    }
+
+    private func scheduleImportedChannelRefresh(channelIDs: [String]) {
+        guard !channelIDs.isEmpty else { return }
+        guard importRefreshTask == nil else { return }
+
+        importRefreshTask = Task {
+            await refreshImportedChannels(channelIDs)
+            importRefreshTask = nil
+        }
+    }
+
+    private func refreshImportedChannels(_ importedChannelIDs: [String]) async {
+        let snapshot = await store.loadSnapshot()
+        let states = Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) })
+        let cachedVideoChannelIDs = Set(snapshot.videos.map(\.channelID))
+        let prioritizedChannelIDs = importedChannelIDs.sorted { lhs, rhs in
+            let lhsNeedsWarmup = states[lhs]?.channelTitle == nil || !cachedVideoChannelIDs.contains(lhs)
+            let rhsNeedsWarmup = states[rhs]?.channelTitle == nil || !cachedVideoChannelIDs.contains(rhs)
+            if lhsNeedsWarmup != rhsNeedsWarmup {
+                return lhsNeedsWarmup && !rhsNeedsWarmup
+            }
+            return lhs < rhs
+        }
+
+        await withTaskGroup(of: Void.self) { group in
+            var nextIndex = 0
+            let initialCount = min(3, prioritizedChannelIDs.count)
+
+            for _ in 0 ..< initialCount {
+                let channelID = prioritizedChannelIDs[nextIndex]
+                nextIndex += 1
+                group.addTask {
+                    _ = await self.processChannel(channelID, states: states)
+                }
+            }
+
+            while await group.next() != nil {
+                if nextIndex < prioritizedChannelIDs.count {
+                    let channelID = prioritizedChannelIDs[nextIndex]
+                    nextIndex += 1
+                    group.addTask {
+                        _ = await self.processChannel(channelID, states: states)
+                    }
+                }
+            }
+        }
+
+        _ = await performConsistencyMaintenanceIfNeeded(force: false)
+        await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
     }
 
     private func performConsistencyMaintenanceIfNeeded(force: Bool) async -> CacheConsistencyMaintenanceResult? {

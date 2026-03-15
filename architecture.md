@@ -101,9 +101,11 @@
 - 各チャンネルには登録日時を保持し、一覧ソートの指標として再利用する。
 - バックアップでは、現在登録されている全チャンネル情報を JSON として端末内の固定ファイルへ保存する。
 - インポートではローカルのチャンネル設定をその JSON で置き換え、動画やサムネイルは転送しない。
+- registry ファイルがまだ存在しない旧データでは、bootstrap と cache からチャンネル ID を復元して registry を初期化する。
 - バックアップの固定パスは `~/Documents/HelloWorld/channel-registry.json` 相当とし、iPhone / Mac とも同じ JSON 形式を使う。
 - チャンネル削除時は registry、channel state、video cache、thumbnail cache を一貫して整理する。
 - 通常の更新経路では、整合性メンテナンスを軽い定期処理として差し込む。
+- バックアップ読込後の最新情報再取得は UI をブロックせず、バックグラウンド task で進める。
 - 軽量 bootstrap と本体 cache を分ける。
   - bootstrap: ホーム画面を即時表示するための軽量情報
   - cache: チャンネル状態、動画メタデータ、サムネイル位置を含む本体

@@ -192,6 +192,95 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
         }
     }
 
+    func testLoadPersistedOrSeededChannelIDsSeedsFromLegacyCacheWhenRegistryIsMissing() throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+            let bootstrapURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
+            try fileManager.createDirectory(at: cacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")
+            let cache = FeedCacheSnapshot(
+                savedAt: now ?? .now,
+                channels: [
+                    CachedChannelState(
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        lastAttemptAt: now,
+                        lastCheckedAt: now,
+                        lastSuccessAt: now,
+                        latestPublishedAt: now,
+                        cachedVideoCount: 1,
+                        lastError: nil,
+                        etag: nil,
+                        lastModified: nil
+                    ),
+                ],
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC222",
+                        channelTitle: "two",
+                        title: "title",
+                        publishedAt: now,
+                        videoURL: nil,
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: nil,
+                        fetchedAt: now ?? .now,
+                        searchableText: "title"
+                    ),
+                ]
+            )
+
+            let bootstrap = FeedBootstrapSnapshot(
+                progress: CacheProgress(
+                    totalChannels: 1,
+                    cachedChannels: 1,
+                    cachedVideos: 1,
+                    cachedThumbnails: 0,
+                    currentChannelID: nil,
+                    currentChannelNumber: nil,
+                    lastUpdatedAt: now,
+                    isRunning: false,
+                    lastError: nil
+                ),
+                maintenanceItems: [
+                    ChannelMaintenanceItem(
+                        id: "UC333",
+                        channelID: "UC333",
+                        channelTitle: "three",
+                        lastSuccessAt: now,
+                        lastCheckedAt: now,
+                        latestPublishedAt: now,
+                        cachedVideoCount: 1,
+                        lastError: nil,
+                        freshness: .fresh
+                    ),
+                ]
+            )
+
+            try encoder.encode(cache).write(to: cacheURL, options: .atomic)
+            try encoder.encode(bootstrap).write(to: bootstrapURL, options: .atomic)
+
+            XCTAssertEqual(
+                ChannelRegistryStore.loadPersistedOrSeededChannelIDs(fileManager: fileManager),
+                ["UC333", "UC111", "UC222"]
+            )
+            XCTAssertEqual(
+                ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager),
+                ["UC333", "UC111", "UC222"]
+            )
+        }
+    }
+
     private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () throws -> T) throws -> T {
         let key = "HELLOWORLD_FEEDCACHE_BASE_DIR"
         let previousValue = ProcessInfo.processInfo.environment[key]
