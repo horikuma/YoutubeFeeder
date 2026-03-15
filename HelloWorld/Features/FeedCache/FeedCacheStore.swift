@@ -301,6 +301,19 @@ actor FeedCacheStore {
         )
     }
 
+    func resetAllStoredData() -> (removedVideoCount: Int, removedThumbnailCount: Int) {
+        let snapshot = loadSnapshot()
+        let removedVideoCount = snapshot.videos.count
+        let removedThumbnailCount = Set(snapshot.videos.compactMap(\.thumbnailLocalFilename)).count
+
+        try? fileManager.removeItem(at: cacheFileURL)
+        try? fileManager.removeItem(at: bootstrapFileURL)
+        try? fileManager.removeItem(at: thumbnailsDirectory)
+
+        lastConsistencyMaintenanceAt = nil
+        return (removedVideoCount, removedThumbnailCount)
+    }
+
     private func cacheThumbnailIfNeeded(from remoteURL: URL?, videoID: String) async -> String? {
         guard let remoteURL else { return nil }
 

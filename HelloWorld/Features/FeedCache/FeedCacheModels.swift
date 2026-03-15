@@ -286,6 +286,21 @@ struct CacheConsistencyMaintenanceResult: Hashable {
     let removedThumbnailCount: Int
 }
 
+struct LocalStateResetFeedback: Hashable {
+    let removedChannelCount: Int
+    let removedVideoCount: Int
+    let removedThumbnailCount: Int
+    let removedSearchCacheCount: Int
+
+    var title: String {
+        "全設定をリセットしました"
+    }
+
+    var detail: String {
+        "チャンネル \(removedChannelCount) 件、動画 \(removedVideoCount) 件、サムネイル \(removedThumbnailCount) 件、検索履歴 \(removedSearchCacheCount) 件を削除"
+    }
+}
+
 enum ChannelRegistryTransferAction: Hashable {
     case export
     case `import`
@@ -334,63 +349,6 @@ struct RegisteredChannel: Hashable {
 
 struct ChannelRegistrySnapshot: Codable {
     var channels: [RegisteredChannelRecord]
-
-    init(channels: [RegisteredChannelRecord]) {
-        self.channels = channels
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-
-        if let snapshot = try? container.decode(LegacySnapshot.self) {
-            channels = snapshot.customChannelIDs.map {
-                RegisteredChannelRecord(channelID: $0, addedAt: nil)
-            }
-            return
-        }
-
-        self = try container.decode(CurrentSnapshot.self).snapshot
-    }
-
-    func encode(to encoder: Encoder) throws {
-        try CurrentSnapshot(snapshot: self).encode(to: encoder)
-    }
-
-    private struct LegacySnapshot: Codable {
-        let customChannelIDs: [String]
-    }
-
-    private struct CurrentSnapshot: Codable {
-        let channels: [RegisteredChannelRecord]
-
-        private enum CodingKeys: String, CodingKey {
-            case channels
-            case customChannels
-        }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            if let channels = try container.decodeIfPresent([RegisteredChannelRecord].self, forKey: .channels) {
-                self.channels = channels
-            } else {
-                let legacyChannels = try container.decode([RegisteredChannelRecord].self, forKey: .customChannels)
-                self.channels = legacyChannels
-            }
-        }
-
-        init(snapshot: ChannelRegistrySnapshot) {
-            channels = snapshot.channels
-        }
-
-        func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(channels, forKey: .channels)
-        }
-
-        var snapshot: ChannelRegistrySnapshot {
-            ChannelRegistrySnapshot(channels: channels)
-        }
-    }
 }
 
 struct ChannelRegistryTransferDocument: Codable, Hashable {
@@ -398,45 +356,10 @@ struct ChannelRegistryTransferDocument: Codable, Hashable {
     let exportedAt: Date
     let channels: [RegisteredChannelRecord]
 
-    private enum CodingKeys: String, CodingKey {
-        case formatVersion
-        case exportedAt
-        case channels
-        case customChannels
-    }
-
     init(formatVersion: Int = 2, exportedAt: Date = .now, channels: [RegisteredChannelRecord]) {
         self.formatVersion = formatVersion
         self.exportedAt = exportedAt
         self.channels = channels
-    }
-
-    init(from decoder: Decoder) throws {
-        if let container = try? decoder.container(keyedBy: CodingKeys.self),
-           let formatVersion = try? container.decode(Int.self, forKey: .formatVersion),
-           let exportedAt = try? container.decode(Date.self, forKey: .exportedAt),
-           let channels = try? container.decode([RegisteredChannelRecord].self, forKey: .channels) {
-            self.init(formatVersion: formatVersion, exportedAt: exportedAt, channels: channels)
-            return
-        }
-
-        if let container = try? decoder.container(keyedBy: CodingKeys.self),
-           let formatVersion = try? container.decode(Int.self, forKey: .formatVersion),
-           let exportedAt = try? container.decode(Date.self, forKey: .exportedAt),
-           let legacyChannels = try? container.decode([RegisteredChannelRecord].self, forKey: .customChannels) {
-            self.init(formatVersion: formatVersion, exportedAt: exportedAt, channels: legacyChannels)
-            return
-        }
-
-        let snapshot = try ChannelRegistrySnapshot(from: decoder)
-        self.init(channels: snapshot.channels)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(formatVersion, forKey: .formatVersion)
-        try container.encode(exportedAt, forKey: .exportedAt)
-        try container.encode(channels, forKey: .channels)
     }
 }
 
@@ -575,11 +498,6 @@ enum FeedBootstrapStore {
 }
 
 enum ChannelRegistryStore {
-    static func loadPersistedOrSeededChannelIDs(fileManager: FileManager = .default) -> [String] {
-        ensureSeededFromLegacyCacheIfNeeded(fileManager: fileManager)
-        return loadAllChannelIDs(fileManager: fileManager)
-    }
-
     static func loadAllChannels(fileManager: FileManager = .default) -> [RegisteredChannel] {
         let channels = loadSnapshot(fileManager: fileManager).channels.map {
             RegisteredChannel(channelID: $0.channelID, addedAt: $0.addedAt)
@@ -635,6 +553,15 @@ enum ChannelRegistryStore {
         try persist(snapshot: ChannelRegistrySnapshot(channels: uniqueRecords(channels)), fileManager: fileManager)
     }
 
+    static func reset(fileManager: FileManager = .default) throws -> Int {
+        let existingCount = loadAllChannels(fileManager: fileManager).count
+        let registryURL = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
+        if fileManager.fileExists(atPath: registryURL.path) {
+            try fileManager.removeItem(at: registryURL)
+        }
+        return existingCount
+    }
+
     private static func loadSnapshot(fileManager: FileManager) -> ChannelRegistrySnapshot {
         let url = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
         guard
@@ -646,42 +573,6 @@ enum ChannelRegistryStore {
 
         return snapshot
     }
-
-    private static func ensureSeededFromLegacyCacheIfNeeded(fileManager: FileManager) {
-        let registryURL = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
-        guard !fileManager.fileExists(atPath: registryURL.path) else { return }
-
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-
-        var records: [RegisteredChannelRecord] = []
-
-        if
-            let data = try? Data(contentsOf: FeedCachePaths.bootstrapURL(fileManager: fileManager)),
-            let bootstrap = try? decoder.decode(FeedBootstrapSnapshot.self, from: data)
-        {
-            records.append(contentsOf: bootstrap.maintenanceItems.map {
-                RegisteredChannelRecord(channelID: $0.channelID, addedAt: nil)
-            })
-        }
-
-        if
-            let data = try? Data(contentsOf: FeedCachePaths.cacheURL(fileManager: fileManager)),
-            let snapshot = try? decoder.decode(FeedCacheSnapshot.self, from: data)
-        {
-            records.append(contentsOf: snapshot.channels.map {
-                RegisteredChannelRecord(channelID: $0.channelID, addedAt: nil)
-            })
-            records.append(contentsOf: snapshot.videos.map {
-                RegisteredChannelRecord(channelID: $0.channelID, addedAt: nil)
-            })
-        }
-
-        let seededRecords = uniqueRecords(records)
-        guard !seededRecords.isEmpty else { return }
-        try? persist(snapshot: ChannelRegistrySnapshot(channels: seededRecords), fileManager: fileManager)
-    }
-
     private static func persist(snapshot: ChannelRegistrySnapshot, fileManager: FileManager) throws {
         let baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
         try fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)

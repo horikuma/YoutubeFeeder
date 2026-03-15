@@ -8,8 +8,11 @@ struct HomeScreenView: View {
     @State private var didRunAutoRefresh = false
     @State private var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
     @State private var transferFeedback: ChannelRegistryTransferFeedback?
+    @State private var resetFeedback: LocalStateResetFeedback?
     @State private var transferErrorMessage: String?
     @State private var isTransferringRegistry = false
+    @State private var isResettingAllSettings = false
+    @State private var shouldConfirmReset = false
 
     var body: some View {
         ScrollView {
@@ -31,6 +34,9 @@ struct HomeScreenView: View {
                 if let transferFeedback {
                     registryTransferFeedbackCard(transferFeedback)
                         .accessibilityIdentifier("home.transferFeedback")
+                } else if let resetFeedback {
+                    resetFeedbackCard(resetFeedback)
+                        .accessibilityIdentifier("home.resetFeedback")
                 } else if let transferErrorMessage {
                     registryTransferErrorCard(transferErrorMessage)
                         .accessibilityIdentifier("home.transferError")
@@ -55,6 +61,18 @@ struct HomeScreenView: View {
             guard !didRunAutoRefresh else { return }
             didRunAutoRefresh = true
             await coordinator.refreshCacheManually()
+        }
+        .confirmationDialog(
+            "この端末の設定をリセットしますか",
+            isPresented: $shouldConfirmReset,
+            titleVisibility: .visible
+        ) {
+            Button("全設定をリセット", role: .destructive) {
+                resetAllSettings()
+            }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("チャンネル設定、動画キャッシュ、検索履歴、サムネイルを削除します。Documents のバックアップファイルは残ります。")
         }
     }
 
@@ -152,11 +170,26 @@ struct HomeScreenView: View {
             .menuStyle(.borderlessButton)
             .disabled(isTransferringRegistry)
             .accessibilityIdentifier("nav.registryTransfer")
+
+            Button {
+                shouldConfirmReset = true
+            } label: {
+                MetricTile(
+                    title: "全設定リセット",
+                    value: isResettingAllSettings ? "処理中..." : "",
+                    detail: "この端末の設定とキャッシュを削除。バックアップ JSON は残す"
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(isTransferringRegistry || isResettingAllSettings)
+            .tint(.red)
+            .accessibilityIdentifier("nav.resetAllSettings")
         }
     }
 
     private func exportRegistry() {
         guard !isTransferringRegistry else { return }
+        resetFeedback = nil
         transferErrorMessage = nil
         isTransferringRegistry = true
 
@@ -179,6 +212,7 @@ struct HomeScreenView: View {
 
     private func importRegistry() {
         guard !isTransferringRegistry else { return }
+        resetFeedback = nil
         transferErrorMessage = nil
         isTransferringRegistry = true
 
@@ -194,6 +228,29 @@ struct HomeScreenView: View {
                     transferFeedback = nil
                     transferErrorMessage = error.localizedDescription
                     isTransferringRegistry = false
+                }
+            }
+        }
+    }
+
+    private func resetAllSettings() {
+        guard !isResettingAllSettings else { return }
+        transferFeedback = nil
+        transferErrorMessage = nil
+        isResettingAllSettings = true
+
+        Task {
+            do {
+                let feedback = try await coordinator.resetAllSettings()
+                await MainActor.run {
+                    resetFeedback = feedback
+                    isResettingAllSettings = false
+                }
+            } catch {
+                await MainActor.run {
+                    resetFeedback = nil
+                    transferErrorMessage = error.localizedDescription
+                    isResettingAllSettings = false
                 }
             }
         }
@@ -236,6 +293,23 @@ struct HomeScreenView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func resetFeedbackCard(_ feedback: LocalStateResetFeedback) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(feedback.title)
+                .font(.headline)
+
+            Text(feedback.detail)
+                .font(.subheadline)
+
+            Text("バックアップから戻す場合は、Documents/HelloWorld/channel-registry.json を読み込んでください。")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

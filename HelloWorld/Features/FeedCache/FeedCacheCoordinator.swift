@@ -40,7 +40,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func bootstrapMaintenance() async {
-        channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
+        channels = ChannelRegistryStore.loadAllChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         let bootstrap = FeedBootstrapStore.load(channels: channels)
@@ -97,14 +97,6 @@ final class FeedCacheCoordinator: ObservableObject {
             RuntimeDiagnostics.shared.record("channel_manual_refresh_ignored", detail: "空の channelID のため更新しない")
             return
         }
-        guard await ensureChannelAvailableForManualRefresh(normalizedChannelID) else {
-            RuntimeDiagnostics.shared.record(
-                "channel_manual_refresh_ignored",
-                detail: "手動更新対象として解決できない channelID のため更新しない",
-                metadata: ["channelID": normalizedChannelID]
-            )
-            return
-        }
         guard manualRefreshTask == nil else {
             RuntimeDiagnostics.shared.record(
                 "channel_manual_refresh_ignored",
@@ -145,46 +137,6 @@ final class FeedCacheCoordinator: ObservableObject {
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
-    }
-
-    private func ensureChannelAvailableForManualRefresh(_ channelID: String) async -> Bool {
-        if channels.contains(channelID) {
-            return true
-        }
-
-        let snapshot = await store.loadSnapshot()
-        let existsInCache = snapshot.channels.contains(where: { $0.channelID == channelID })
-            || snapshot.videos.contains(where: { $0.channelID == channelID })
-        let existsInVisibleItems = maintenanceItems.contains(where: { $0.channelID == channelID })
-
-        guard existsInCache || existsInVisibleItems else {
-            return false
-        }
-
-        do {
-            _ = try ChannelRegistryStore.addChannelID(channelID)
-            channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
-            freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
-            RuntimeDiagnostics.shared.record(
-                "channel_manual_refresh_registry_recovered",
-                detail: "registry に存在しないチャンネルを更新対象へ復旧",
-                metadata: [
-                    "channelID": channelID,
-                    "channelCount": String(channels.count)
-                ]
-            )
-            return true
-        } catch {
-            RuntimeDiagnostics.shared.record(
-                "channel_manual_refresh_registry_recovery_failed",
-                detail: "registry 復旧に失敗",
-                metadata: [
-                    "channelID": channelID,
-                    "error": error.localizedDescription
-                ]
-            )
-            return false
-        }
     }
 
     func refreshMaintenanceFromCache() {
@@ -327,7 +279,7 @@ final class FeedCacheCoordinator: ObservableObject {
     func addChannel(input: String) async throws -> ChannelRegistrationFeedback {
         let resolvedChannel = try await channelResolver.resolve(input: input)
         let didAdd = try ChannelRegistryStore.addChannelID(resolvedChannel.channelID)
-        channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
+        channels = ChannelRegistryStore.loadAllChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
 
@@ -384,7 +336,7 @@ final class FeedCacheCoordinator: ObservableObject {
             return nil
         }
 
-        channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
+        channels = ChannelRegistryStore.loadAllChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         let cleanup = await performConsistencyMaintenanceIfNeeded(force: true)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
@@ -410,7 +362,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func importChannelRegistry(backend: ChannelRegistryTransferBackend) async throws -> ChannelRegistryTransferFeedback {
         let result = try ChannelRegistryTransferStore.import(backend: backend)
-        channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
+        channels = ChannelRegistryStore.loadAllChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: true)
         await bootstrapMaintenance()
@@ -429,6 +381,42 @@ final class FeedCacheCoordinator: ObservableObject {
             channelCount: result.channelCount,
             path: result.fileURL.path(percentEncoded: false),
             refreshMessage: refreshMessage
+        )
+    }
+
+    func resetAllSettings() async throws -> LocalStateResetFeedback {
+        let removedChannelCount = try ChannelRegistryStore.reset()
+        let clearedSearchCacheCount = await remoteSearchCacheStore.clearAll()
+        let clearedCache = await store.resetAllStoredData()
+
+        channels = []
+        freshnessInterval = 60
+        manualRefreshCount = 0
+        lastManualChannelRefreshID = nil
+        refreshProgress = .idle
+        progress = CacheProgress(
+            totalChannels: 0,
+            cachedChannels: 0,
+            cachedVideos: 0,
+            cachedThumbnails: 0,
+            currentChannelID: nil,
+            currentChannelNumber: nil,
+            lastUpdatedAt: nil,
+            isRunning: false,
+            lastError: nil
+        )
+        maintenanceItems = []
+        videos = []
+        await refreshHomeSystemStatus(
+            snapshot: .empty,
+            currentProgress: progress
+        )
+
+        return LocalStateResetFeedback(
+            removedChannelCount: removedChannelCount,
+            removedVideoCount: clearedCache.removedVideoCount,
+            removedThumbnailCount: clearedCache.removedThumbnailCount,
+            removedSearchCacheCount: clearedSearchCacheCount
         )
     }
 
@@ -550,10 +538,14 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     private func performManualChannelRefresh(channelID: String) async {
+        let isRegisteredChannel = channels.contains(channelID)
         RuntimeDiagnostics.shared.record(
             "channel_manual_refresh_fetch_started",
             detail: "フィード取得を開始",
-            metadata: ["channelID": channelID]
+            metadata: [
+                "channelID": channelID,
+                "registered": isRegisteredChannel ? "true" : "false"
+            ]
         )
         refreshProgress = CacheRefreshProgress(
             isRefreshing: true,
@@ -659,10 +651,10 @@ final class FeedCacheCoordinator: ObservableObject {
         }
         lastError = result.errorMessage
 
-        let cleanup = await performConsistencyMaintenanceIfNeeded(force: false)
+        let cleanup = isRegisteredChannel ? await performConsistencyMaintenanceIfNeeded(force: false) : nil
         RuntimeDiagnostics.shared.record(
             "channel_manual_refresh_maintenance_finished",
-            detail: "整合性メンテナンスを完了",
+            detail: isRegisteredChannel ? "整合性メンテナンスを完了" : "未登録チャンネルのため整合性メンテナンスを省略",
             metadata: [
                 "channelID": channelID,
                 "removedVideos": String(cleanup?.removedVideoCount ?? 0),

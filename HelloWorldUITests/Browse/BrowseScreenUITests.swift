@@ -20,10 +20,10 @@ final class BrowseScreenUITests: UITestCaseSupport {
     }
 
     func testChannelVideosPullToRefreshRefreshesOnlySelectedChannel() throws {
-        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelList"])
+        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "allVideos"])
 
-        XCTAssertTrue(element("channel.tile.UC_TEST_ALPHA", in: app).waitForExistence(timeout: 3))
-        element("channel.tile.UC_TEST_ALPHA", in: app).tap()
+        XCTAssertTrue(element("video.tile.alpha-12", in: app).waitForExistence(timeout: 5))
+        element("video.tile.alpha-12", in: app).tap()
 
         XCTAssertTrue(element("screen.channelVideos.loaded", in: app).waitForExistence(timeout: 3))
         let scrollView = app.scrollViews.firstMatch

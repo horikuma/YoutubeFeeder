@@ -1,0 +1,16 @@
+{
+  "channels" : [
+    {
+      "addedAt" : "2026-03-12T09:00:05Z",
+      "channelID" : "UC_TEST_ALPHA"
+    },
+    {
+      "addedAt" : "2026-03-12T08:50:00Z",
+      "channelID" : "UC_TEST_BETA"
+    },
+    {
+      "addedAt" : "2026-03-11T18:00:00Z",
+      "channelID" : "UC_TEST_GAMMA"
+    }
+  ]
+}

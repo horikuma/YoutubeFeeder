@@ -11,6 +11,7 @@ final class HomeScreenUITests: UITestCaseSupport {
         XCTAssertTrue(element("nav.remoteSearch", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.channelRegistration", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.registryTransfer", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("nav.resetAllSettings", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("home.systemStatus", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["バックアップ"].waitForExistence(timeout: 3))
 

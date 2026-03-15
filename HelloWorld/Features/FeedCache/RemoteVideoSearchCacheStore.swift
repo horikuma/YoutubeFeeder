@@ -69,6 +69,16 @@ actor RemoteVideoSearchCacheStore {
         try? fileManager.removeItem(at: fileURL)
     }
 
+    func clearAll() -> Int {
+        let baseURL = FeedCachePaths.baseDirectory(fileManager: fileManager)
+        let filenames = (try? fileManager.contentsOfDirectory(atPath: baseURL.path)) ?? []
+        let targets = filenames.filter { $0.hasPrefix("remote-search-") && $0.hasSuffix(".json") }
+        for filename in targets {
+            try? fileManager.removeItem(at: baseURL.appendingPathComponent(filename))
+        }
+        return targets.count
+    }
+
     func status(keyword: String, ttl: TimeInterval, now: Date = .now) -> RemoteSearchCacheStatus {
         guard let entry = load(keyword: keyword) else {
             return .empty(keyword: keyword)

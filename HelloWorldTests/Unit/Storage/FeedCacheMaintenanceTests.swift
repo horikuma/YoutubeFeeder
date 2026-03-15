@@ -119,6 +119,99 @@ final class FeedCacheMaintenanceTests: XCTestCase {
         }
     }
 
+    func testResetAllStoredDataClearsCacheButLeavesBackupRecoverable() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let backupURL = temporaryRoot
+            .appendingPathComponent("HelloWorld", isDirectory: true)
+            .appendingPathComponent("channel-registry.json")
+        try fileManager.createDirectory(at: backupURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(
+            ChannelRegistryTransferDocument(
+                channels: [
+                    RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
+                ]
+            )
+        ).write(to: backupURL, options: .atomic)
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+            try ChannelRegistryStore.replaceChannels(
+                [
+                    RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
+                ],
+                fileManager: fileManager
+            )
+
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let snapshot = FeedCacheSnapshot(
+                savedAt: now,
+                channels: [
+                    CachedChannelState(
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        lastAttemptAt: now,
+                        lastCheckedAt: now,
+                        lastSuccessAt: now,
+                        latestPublishedAt: now,
+                        cachedVideoCount: 1,
+                        lastError: nil,
+                        etag: nil,
+                        lastModified: nil
+                    ),
+                ],
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "kept",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=1"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: "video-1.jpg",
+                        fetchedAt: now,
+                        searchableText: "kept",
+                        durationSeconds: 1_500,
+                        viewCount: 101
+                    ),
+                ]
+            )
+            try encoder.encode(snapshot).write(to: cacheURL, options: .atomic)
+            try Data("keep".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-1.jpg"), options: .atomic)
+
+            let store = FeedCacheStore()
+            let reset = await store.resetAllStoredData()
+            let removedChannelCount = try ChannelRegistryStore.reset(fileManager: fileManager)
+
+            XCTAssertEqual(reset.removedVideoCount, 1)
+            XCTAssertEqual(reset.removedThumbnailCount, 1)
+            XCTAssertEqual(removedChannelCount, 2)
+            XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), [])
+            XCTAssertFalse(fileManager.fileExists(atPath: cacheURL.path))
+            XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.path))
+            XCTAssertTrue(fileManager.fileExists(atPath: backupURL.path))
+
+            _ = try ChannelRegistryTransferStore.import(
+                fileManager: fileManager,
+                backend: .localDocuments,
+                containerURL: temporaryRoot
+            )
+            XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), ["UC111", "UC222"])
+        }
+    }
+
     private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () async throws -> T) async throws -> T {
         let key = "HELLOWORLD_FEEDCACHE_BASE_DIR"
         let previousValue = ProcessInfo.processInfo.environment[key]

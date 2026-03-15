@@ -2,10 +2,19 @@ import XCTest
 @testable import HelloWorld
 
 final class ChannelRegistrySnapshotTests: XCTestCase {
-    func testDecodeSupportsLegacyCustomChannelIDsFormat() throws {
+    func testDecodeSupportsCurrentRegistryFormat() throws {
         let json = """
         {
-          "customChannelIDs": ["UC123", "UC456"]
+          "channels": [
+            {
+              "addedAt": null,
+              "channelID": "UC123"
+            },
+            {
+              "addedAt": null,
+              "channelID": "UC456"
+            }
+          ]
         }
         """.data(using: .utf8)!
 
@@ -40,66 +49,6 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
 
         XCTAssertEqual(document.formatVersion, 2)
         XCTAssertEqual(document.channels, [RegisteredChannelRecord(channelID: "UC123", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z"))])
-    }
-
-    func testTransferDocumentDecodesPreviousTransferFormat() throws {
-        let json = """
-        {
-          "formatVersion": 1,
-          "exportedAt": "2026-03-15T01:23:45Z",
-          "customChannels": [
-            {
-              "addedAt": null,
-              "channelID": "UC123"
-            },
-            {
-              "addedAt": null,
-              "channelID": "UC456"
-            }
-          ]
-        }
-        """.data(using: .utf8)!
-
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let document = try decoder.decode(ChannelRegistryTransferDocument.self, from: json)
-
-        XCTAssertEqual(
-            document.channels,
-            [
-                RegisteredChannelRecord(channelID: "UC123", addedAt: nil),
-                RegisteredChannelRecord(channelID: "UC456", addedAt: nil),
-            ]
-        )
-    }
-
-    func testTransferDocumentDecodesLegacyRegistrySnapshot() throws {
-        let json = """
-        {
-          "customChannels": [
-            {
-              "addedAt": null,
-              "channelID": "UC123"
-            },
-            {
-              "addedAt": null,
-              "channelID": "UC456"
-            }
-          ]
-        }
-        """.data(using: .utf8)!
-
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let document = try decoder.decode(ChannelRegistryTransferDocument.self, from: json)
-
-        XCTAssertEqual(
-            document.channels,
-            [
-                RegisteredChannelRecord(channelID: "UC123", addedAt: nil),
-                RegisteredChannelRecord(channelID: "UC456", addedAt: nil),
-            ]
-        )
     }
 
     func testTransferStoreUsesLocalDocumentsFixedPath() {
@@ -192,7 +141,7 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
         }
     }
 
-    func testLoadPersistedOrSeededChannelIDsSeedsFromLegacyCacheWhenRegistryIsMissing() throws {
+    func testLoadAllChannelIDsDoesNotRestoreFromLegacyCacheWhenRegistryIsMissing() throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
@@ -272,14 +221,7 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
             try encoder.encode(cache).write(to: cacheURL, options: .atomic)
             try encoder.encode(bootstrap).write(to: bootstrapURL, options: .atomic)
 
-            XCTAssertEqual(
-                ChannelRegistryStore.loadPersistedOrSeededChannelIDs(fileManager: fileManager),
-                ["UC333", "UC111", "UC222"]
-            )
-            XCTAssertEqual(
-                ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager),
-                ["UC333", "UC111", "UC222"]
-            )
+            XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), [])
         }
     }
 
