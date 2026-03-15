@@ -12,7 +12,7 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
         let snapshot = try JSONDecoder().decode(ChannelRegistrySnapshot.self, from: json)
 
         XCTAssertEqual(
-            snapshot.customChannels,
+            snapshot.channels,
             [
                 RegisteredChannelRecord(channelID: "UC123", addedAt: nil),
                 RegisteredChannelRecord(channelID: "UC456", addedAt: nil),
@@ -117,29 +117,22 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
         XCTAssertEqual(ChannelRegistryTransferRuntime.availableBackends, [.localDocuments])
     }
 
-    func testExportIncludesBundledAndCustomChannels() throws {
+    func testExportIncludesRegisteredChannels() throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
         defer { try? fileManager.removeItem(at: temporaryRoot) }
 
-        let bundle = try makeBundle(
-            named: "ExportChannels",
-            channelsContents: """
-            UC111
-            UC222
-            """
-        )
-        defer { try? fileManager.removeItem(at: bundle.bundleURL) }
-
         try withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
-            try ChannelRegistryStore.replaceCustomChannels(
-                [RegisteredChannelRecord(channelID: "UC333", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z"))],
+            try ChannelRegistryStore.replaceChannels(
+                [
+                    RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z")),
+                ],
                 fileManager: fileManager
             )
 
             let result = try ChannelRegistryTransferStore.export(
-                bundle: bundle,
                 fileManager: fileManager,
                 backend: .localDocuments,
                 containerURL: temporaryRoot
@@ -154,14 +147,13 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
                 document.channels,
                 [
                     RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
-                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
-                    RegisteredChannelRecord(channelID: "UC333", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z")),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z")),
                 ]
             )
         }
     }
 
-    func testImportKeepsAllChannelsAvailableWithoutBundledList() throws {
+    func testImportRestoresRegisteredChannels() throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
@@ -183,9 +175,6 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
         )
         try encoder.encode(backup).write(to: backupURL, options: .atomic)
 
-        let emptyBundle = try makeBundle(named: "EmptyChannels", channelsContents: nil)
-        defer { try? fileManager.removeItem(at: emptyBundle.bundleURL) }
-
         try withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
             _ = try ChannelRegistryTransferStore.import(
                 fileManager: fileManager,
@@ -194,7 +183,7 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
             )
 
             XCTAssertEqual(
-                ChannelRegistryStore.loadAllChannels(bundle: emptyBundle, fileManager: fileManager),
+                ChannelRegistryStore.loadAllChannels(fileManager: fileManager),
                 [
                     RegisteredChannel(channelID: "UC111", addedAt: nil),
                     RegisteredChannel(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z")),
@@ -215,41 +204,5 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
             }
         }
         return try operation()
-    }
-
-    private func makeBundle(named name: String, channelsContents: String?) throws -> Bundle {
-        let fileManager = FileManager.default
-        let bundleURL = fileManager.temporaryDirectory.appendingPathComponent("\(name).bundle", isDirectory: true)
-        let resourcesURL = bundleURL.appendingPathComponent("Contents/Resources", isDirectory: true)
-        try fileManager.createDirectory(at: resourcesURL, withIntermediateDirectories: true)
-
-        let infoPlist = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleIdentifier</key>
-            <string>test.\(name)</string>
-            <key>CFBundleName</key>
-            <string>\(name)</string>
-            <key>CFBundlePackageType</key>
-            <string>BNDL</string>
-            <key>CFBundleVersion</key>
-            <string>1</string>
-        </dict>
-        </plist>
-        """
-        try infoPlist.write(to: bundleURL.appendingPathComponent("Contents/Info.plist"), atomically: true, encoding: .utf8)
-
-        if let channelsContents {
-            try channelsContents.write(to: resourcesURL.appendingPathComponent("Channels.txt"), atomically: true, encoding: .utf8)
-        }
-
-        guard let bundle = Bundle(url: bundleURL) else {
-            XCTFail("Failed to create test bundle")
-            throw NSError(domain: "ChannelRegistrySnapshotTests", code: 1)
-        }
-
-        return bundle
     }
 }

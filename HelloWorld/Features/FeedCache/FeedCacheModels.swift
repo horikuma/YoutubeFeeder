@@ -203,17 +203,17 @@ struct RegisteredChannel: Hashable {
 }
 
 struct ChannelRegistrySnapshot: Codable {
-    var customChannels: [RegisteredChannelRecord]
+    var channels: [RegisteredChannelRecord]
 
-    init(customChannels: [RegisteredChannelRecord]) {
-        self.customChannels = customChannels
+    init(channels: [RegisteredChannelRecord]) {
+        self.channels = channels
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 
         if let snapshot = try? container.decode(LegacySnapshot.self) {
-            customChannels = snapshot.customChannelIDs.map {
+            channels = snapshot.customChannelIDs.map {
                 RegisteredChannelRecord(channelID: $0, addedAt: nil)
             }
             return
@@ -231,14 +231,34 @@ struct ChannelRegistrySnapshot: Codable {
     }
 
     private struct CurrentSnapshot: Codable {
-        let customChannels: [RegisteredChannelRecord]
+        let channels: [RegisteredChannelRecord]
+
+        private enum CodingKeys: String, CodingKey {
+            case channels
+            case customChannels
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            if let channels = try container.decodeIfPresent([RegisteredChannelRecord].self, forKey: .channels) {
+                self.channels = channels
+            } else {
+                let legacyChannels = try container.decode([RegisteredChannelRecord].self, forKey: .customChannels)
+                self.channels = legacyChannels
+            }
+        }
 
         init(snapshot: ChannelRegistrySnapshot) {
-            customChannels = snapshot.customChannels
+            channels = snapshot.channels
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(channels, forKey: .channels)
         }
 
         var snapshot: ChannelRegistrySnapshot {
-            ChannelRegistrySnapshot(customChannels: customChannels)
+            ChannelRegistrySnapshot(channels: channels)
         }
     }
 }
@@ -273,13 +293,13 @@ struct ChannelRegistryTransferDocument: Codable, Hashable {
         if let container = try? decoder.container(keyedBy: CodingKeys.self),
            let formatVersion = try? container.decode(Int.self, forKey: .formatVersion),
            let exportedAt = try? container.decode(Date.self, forKey: .exportedAt),
-           let customChannels = try? container.decode([RegisteredChannelRecord].self, forKey: .customChannels) {
-            self.init(formatVersion: formatVersion, exportedAt: exportedAt, channels: customChannels)
+           let legacyChannels = try? container.decode([RegisteredChannelRecord].self, forKey: .customChannels) {
+            self.init(formatVersion: formatVersion, exportedAt: exportedAt, channels: legacyChannels)
             return
         }
 
         let snapshot = try ChannelRegistrySnapshot(from: decoder)
-        self.init(channels: snapshot.customChannels)
+        self.init(channels: snapshot.channels)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -307,7 +327,7 @@ enum ChannelRegistryTransferError: LocalizedError {
 struct ChannelRegistryTransferResult: Hashable {
     let backend: ChannelRegistryTransferBackend
     let fileURL: URL
-    let customChannelCount: Int
+    let channelCount: Int
 }
 
 enum ChannelRegistryTransferBackend: String, CaseIterable, Hashable {
@@ -425,58 +445,46 @@ enum FeedBootstrapStore {
 }
 
 enum ChannelRegistryStore {
-    static func loadAllChannels(bundle: Bundle = .main, fileManager: FileManager = .default) -> [RegisteredChannel] {
-        let bundledChannels = ChannelResource.loadChannelIDs(bundle: bundle).map {
-            RegisteredChannel(channelID: $0, addedAt: nil)
-        }
-        let customChannels = loadSnapshot(fileManager: fileManager).customChannels.map {
+    static func loadAllChannels(fileManager: FileManager = .default) -> [RegisteredChannel] {
+        let channels = loadSnapshot(fileManager: fileManager).channels.map {
             RegisteredChannel(channelID: $0.channelID, addedAt: $0.addedAt)
         }
-        return uniqueChannels(bundledChannels + customChannels)
+        return uniqueChannels(channels)
     }
 
-    static func loadAllChannelIDs(bundle: Bundle = .main, fileManager: FileManager = .default) -> [String] {
-        loadAllChannels(bundle: bundle, fileManager: fileManager).map(\.channelID)
+    static func loadAllChannelIDs(fileManager: FileManager = .default) -> [String] {
+        loadAllChannels(fileManager: fileManager).map(\.channelID)
     }
 
-    static func registrationDate(for channelID: String, bundle: Bundle = .main, fileManager: FileManager = .default) -> Date? {
-        loadAllChannels(bundle: bundle, fileManager: fileManager).first(where: { $0.channelID == channelID })?.addedAt
+    static func registrationDate(for channelID: String, fileManager: FileManager = .default) -> Date? {
+        loadAllChannels(fileManager: fileManager).first(where: { $0.channelID == channelID })?.addedAt
     }
 
     static func addChannelID(_ channelID: String, fileManager: FileManager = .default) throws -> Bool {
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedChannelID.isEmpty else { return false }
 
-        let bundledChannelIDs = Set(ChannelResource.loadChannelIDs())
-        if bundledChannelIDs.contains(normalizedChannelID) {
-            return false
-        }
-
         var snapshot = loadSnapshot(fileManager: fileManager)
-        guard !snapshot.customChannels.contains(where: { $0.channelID == normalizedChannelID }) else {
+        guard !snapshot.channels.contains(where: { $0.channelID == normalizedChannelID }) else {
             return false
         }
 
-        snapshot.customChannels.append(
+        snapshot.channels.append(
             RegisteredChannelRecord(channelID: normalizedChannelID, addedAt: .now)
         )
-        snapshot.customChannels = uniqueRecords(snapshot.customChannels)
+        snapshot.channels = uniqueRecords(snapshot.channels)
         try persist(snapshot: snapshot, fileManager: fileManager)
         return true
     }
 
-    static func loadCustomChannelRecords(fileManager: FileManager = .default) -> [RegisteredChannelRecord] {
-        loadSnapshot(fileManager: fileManager).customChannels
-    }
-
-    static func loadAllChannelRecords(bundle: Bundle = .main, fileManager: FileManager = .default) -> [RegisteredChannelRecord] {
-        loadAllChannels(bundle: bundle, fileManager: fileManager).map {
+    static func loadChannelRecords(fileManager: FileManager = .default) -> [RegisteredChannelRecord] {
+        loadAllChannels(fileManager: fileManager).map {
             RegisteredChannelRecord(channelID: $0.channelID, addedAt: $0.addedAt)
         }
     }
 
-    static func replaceCustomChannels(_ customChannels: [RegisteredChannelRecord], fileManager: FileManager = .default) throws {
-        try persist(snapshot: ChannelRegistrySnapshot(customChannels: uniqueRecords(customChannels)), fileManager: fileManager)
+    static func replaceChannels(_ channels: [RegisteredChannelRecord], fileManager: FileManager = .default) throws {
+        try persist(snapshot: ChannelRegistrySnapshot(channels: uniqueRecords(channels)), fileManager: fileManager)
     }
 
     private static func loadSnapshot(fileManager: FileManager) -> ChannelRegistrySnapshot {
@@ -485,7 +493,7 @@ enum ChannelRegistryStore {
             let data = try? Data(contentsOf: url),
             let snapshot = try? JSONDecoder().decode(ChannelRegistrySnapshot.self, from: data)
         else {
-            return ChannelRegistrySnapshot(customChannels: [])
+            return ChannelRegistrySnapshot(channels: [])
         }
 
         return snapshot
@@ -513,17 +521,17 @@ enum ChannelRegistryStore {
 }
 
 enum ChannelRegistryTransferStore {
-    static func export(bundle: Bundle = .main, fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
+    static func export(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
         let destinationURL = try transferDocumentURL(fileManager: fileManager, backend: backend, containerURL: containerURL)
         try fileManager.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-        let document = ChannelRegistryTransferDocument(channels: ChannelRegistryStore.loadAllChannelRecords(bundle: bundle, fileManager: fileManager))
+        let document = ChannelRegistryTransferDocument(channels: ChannelRegistryStore.loadChannelRecords(fileManager: fileManager))
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(document)
         try write(data, to: destinationURL, backend: backend)
-        return ChannelRegistryTransferResult(backend: backend, fileURL: destinationURL, customChannelCount: document.channels.count)
+        return ChannelRegistryTransferResult(backend: backend, fileURL: destinationURL, channelCount: document.channels.count)
     }
 
     static func `import`(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
@@ -539,8 +547,8 @@ enum ChannelRegistryTransferStore {
             throw ChannelRegistryTransferError.invalidImportData
         }
 
-        try ChannelRegistryStore.replaceCustomChannels(document.channels, fileManager: fileManager)
-        return ChannelRegistryTransferResult(backend: backend, fileURL: sourceURL, customChannelCount: document.channels.count)
+        try ChannelRegistryStore.replaceChannels(document.channels, fileManager: fileManager)
+        return ChannelRegistryTransferResult(backend: backend, fileURL: sourceURL, channelCount: document.channels.count)
     }
 
     static func fixedPathDescription(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) -> String {

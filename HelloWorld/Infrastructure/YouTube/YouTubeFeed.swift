@@ -29,26 +29,6 @@ struct YouTubeVideo: Identifiable, Hashable {
     let thumbnailURL: URL?
 }
 
-enum ChannelResource {
-    static func loadChannelIDs(bundle: Bundle = .main) -> [String] {
-        guard
-            let url = bundle.url(forResource: "Channels", withExtension: "txt"),
-            let contents = try? String(contentsOf: url, encoding: .utf8)
-        else {
-            return []
-        }
-
-        return parseChannelIDs(contents)
-    }
-
-    static func parseChannelIDs(_ contents: String) -> [String] {
-        contents
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-    }
-}
-
 struct ResolvedYouTubeChannel: Hashable {
     let channelID: String
 }

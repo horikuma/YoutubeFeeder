@@ -142,7 +142,7 @@ final class FeedCacheCoordinator: ObservableObject {
         return ChannelRegistryTransferFeedback(
             action: .export,
             backend: result.backend,
-            channelCount: result.customChannelCount,
+            channelCount: result.channelCount,
             path: result.fileURL.path(percentEncoded: false),
             refreshMessage: nil
         )
@@ -165,7 +165,7 @@ final class FeedCacheCoordinator: ObservableObject {
         return ChannelRegistryTransferFeedback(
             action: .import,
             backend: result.backend,
-            channelCount: result.customChannelCount,
+            channelCount: result.channelCount,
             path: result.fileURL.path(percentEncoded: false),
             refreshMessage: refreshMessage
         )
