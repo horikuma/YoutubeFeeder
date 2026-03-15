@@ -21,6 +21,17 @@ enum AppLaunchMode {
     var autoRefreshOnLaunch: Bool {
         ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_AUTO_REFRESH"] == "1"
     }
+
+    var initialUITestRoute: UITestInitialRoute? {
+        guard usesMockData else { return nil }
+        return UITestInitialRoute(rawValue: ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_INITIAL_ROUTE"] ?? "")
+    }
+}
+
+enum UITestInitialRoute: String {
+    case allVideos
+    case channelRegistration
+    case channelList
 }
 
 @MainActor

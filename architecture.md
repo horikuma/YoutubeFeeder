@@ -34,6 +34,7 @@
   - 日付などの共通 formatter。
 - [HelloWorld/App/Support/AppTestSupport.swift](HelloWorld/App/Support/AppTestSupport.swift)
   - UI テスト用 launch mode、診断タイムライン、fixture seed、test marker。
+  - UI テスト用の初期遷移指定。
 
 ### Features
 
@@ -143,6 +144,7 @@
 
 - 継続運用のテストターゲットは `iPhone 12 mini` のみとする。
 - 他機種での補助確認は任意であり、正本の回帰確認には含めない。
+- UI テストは、重複する起動確認をワークフロー単位へまとめ、必要な画面は test support の初期遷移指定で直接開けるようにする。
 - 基本コマンドは次を使う。
 
 ```bash

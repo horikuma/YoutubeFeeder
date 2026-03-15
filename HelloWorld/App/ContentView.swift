@@ -13,6 +13,7 @@ struct ContentView: View {
     @StateObject private var coordinator: FeedCacheCoordinator
     @State private var hasEnteredMaintenance = false
     @State private var hasPreparedMaintenance = false
+    @State private var hasAppliedInitialUITestRoute = false
     @State private var navigationPath = NavigationPath()
     @ObservedObject private var diagnostics = StartupDiagnostics.shared
 
@@ -74,6 +75,19 @@ struct ContentView: View {
         .task(id: hasEnteredMaintenance) {
             guard hasEnteredMaintenance else { return }
             diagnostics.mark("maintenanceEntered")
+
+            guard !hasAppliedInitialUITestRoute else { return }
+            guard let initialRoute = AppLaunchMode.current.initialUITestRoute else { return }
+
+            hasAppliedInitialUITestRoute = true
+            switch initialRoute {
+            case .allVideos:
+                navigationPath.append(MaintenanceRoute.allVideos)
+            case .channelRegistration:
+                navigationPath.append(MaintenanceRoute.channelRegistration)
+            case .channelList:
+                navigationPath.append(MaintenanceRoute.channelList(.default))
+            }
         }
     }
 

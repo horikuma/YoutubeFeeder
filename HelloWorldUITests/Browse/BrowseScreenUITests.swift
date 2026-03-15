@@ -2,10 +2,8 @@ import XCTest
 
 final class BrowseScreenUITests: UITestCaseSupport {
     func testAllVideosScreenScrollsWithMockData() throws {
-        let app = launchApp()
+        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "allVideos"])
 
-        XCTAssertTrue(element("nav.videos", in: app).waitForExistence(timeout: 5))
-        element("nav.videos", in: app).tap()
         XCTAssertTrue(element("screen.title", in: app).waitForExistence(timeout: 3))
 
         let scrollView = app.scrollViews.firstMatch

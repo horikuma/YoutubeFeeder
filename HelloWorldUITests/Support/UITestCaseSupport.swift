@@ -25,6 +25,19 @@ class UITestCaseSupport: XCTestCase {
         return try XCTUnwrap(json)
     }
 
+    func timelinePayloadIfAvailable(in app: XCUIApplication) -> [String: [String: String]]? {
+        let marker = element("diagnostics.timeline", in: app)
+        guard marker.exists || marker.waitForExistence(timeout: 0.2) else {
+            return nil
+        }
+
+        guard let rawValue = (marker.value as? String)?.data(using: .utf8) else {
+            return nil
+        }
+
+        return try? JSONSerialization.jsonObject(with: rawValue) as? [String: [String: String]]
+    }
+
     func offset(for key: String, in payload: [String: [String: String]]) throws -> Int {
         let value = try XCTUnwrap(payload[key]?["offset_ms"])
         return try XCTUnwrap(Int(value))
@@ -32,6 +45,16 @@ class UITestCaseSupport: XCTestCase {
 
     func element(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    func waitForHomeScreen(in app: XCUIApplication, timeout: TimeInterval = 5) {
+        XCTAssertTrue(element("screen.home", in: app).waitForExistence(timeout: timeout))
+    }
+
+    func swipeBack(in app: XCUIApplication) {
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.5))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.5))
+        start.press(forDuration: 0.01, thenDragTo: end)
     }
 
     func eventually(timeout: TimeInterval, pollInterval: TimeInterval = 0.2, _ condition: () -> Bool) -> Bool {
