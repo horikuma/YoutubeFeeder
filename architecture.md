@@ -43,6 +43,7 @@
   - ホーム画面本体。
   - 手動更新と一覧画面への導線。
   - `Menu` ベースのチャンネル一覧ソート選択。
+  - 固定キーワード検索結果画面への導線。
   - チャンネル登録結果のフィードバック表示。
   - この端末内バックアップの書き出し / 読み戻し導線と結果表示。
 - [HelloWorld/Features/Home/ChannelRegistrationView.swift](HelloWorld/Features/Home/ChannelRegistrationView.swift)
@@ -54,11 +55,12 @@
   - 一覧系画面への遷移定義。
   - チャンネル一覧には並び順 descriptor を渡す。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
-  - チャンネル一覧、全動画一覧、チャンネル別動画一覧。
+  - チャンネル一覧、全動画一覧、固定キーワード検索結果一覧、チャンネル別動画一覧。
   - iPad 横向きのチャンネル閲覧は `NavigationSplitView` を使う。
   - 選択された並び順 descriptor を一覧サブタイトルと並び順へ反映する。
   - 長押しメニューからチャンネル削除導線を出す。
   - チャンネル別動画一覧の pull-to-refresh は、そのチャンネル限定の強制更新へ接続する。
+  - 固定キーワード検索結果画面では、一時的な件数チップを下部へ重ねて表示する。
 - [HelloWorld/Features/Browse/BrowseComponents.swift](HelloWorld/Features/Browse/BrowseComponents.swift)
   - 一覧系共通コンテナ `InteractiveListScreen`。
   - タイル部品、サムネイル表示、戻るスワイプ modifier など、一覧画面から共有される表示部品を担う。
@@ -67,12 +69,14 @@
   - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
   - チャンネル削除と整合性メンテナンスの起点。
   - 全体更新と単独チャンネル強制更新の両方を制御する。
+  - キーワード検索結果の集約読込を担う。
 - [HelloWorld/Features/FeedCache/FeedChannelSyncService.swift](HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、条件付き更新判定、store 反映を束ねる更新実行サービス。
   - coordinator からネットワーク / 永続化の細部を切り離し、更新 orchestration の責務を薄くする。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - ファイル永続化、snapshot 読込、thumbnail 保存。
   - チャンネル一覧描画用の集約データを返す。
+  - 動画検索条件に一致する件数と一覧を返す。
   - 参照切れ動画と不要サムネイルの整合性メンテナンスを行う。
 - [HelloWorld/Features/FeedCache/FeedCacheModels.swift](HelloWorld/Features/FeedCache/FeedCacheModels.swift)
   - キャッシュ用モデルと進捗モデル。

@@ -383,6 +383,106 @@ struct AllVideosView: View {
     }
 }
 
+struct KeywordSearchResultsView: View {
+    let keyword: String
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+    @Binding var path: NavigationPath
+    let layout: AppLayout
+
+    @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
+    @State private var isChipVisible = true
+
+    var body: some View {
+        InteractiveListScreen(
+            title: "検索結果",
+            subtitle: "「\(keyword)」に一致する動画を新しい順に20件表示",
+            coordinator: coordinator,
+            path: $path,
+            layout: layout,
+            onRefresh: {
+                await reloadResults()
+                dismissChip()
+            }
+        ) {
+            if result.videos.isEmpty {
+                MetricTile(title: "検索結果", value: "0件", detail: "一致する動画がキャッシュにありません")
+            } else {
+                LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
+                    ForEach(result.videos) { video in
+                        LongPressVideoTile(
+                            video: video,
+                            openVideo: {
+                                dismissChip()
+                                openVideo(video)
+                            },
+                            removeChannel: nil
+                        )
+                    }
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if isChipVisible {
+                SearchResultCountChip(totalCount: result.totalCount)
+                    .padding(.bottom, 10)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { _ in
+                    dismissChip()
+                }
+        )
+        .task {
+            await reloadResults()
+            scheduleChipDismiss()
+        }
+        .onAppear {
+            StartupDiagnostics.shared.mark("keywordSearchShown")
+        }
+    }
+
+    private func reloadResults() async {
+        result = await coordinator.searchVideos(keyword: keyword, limit: 20)
+    }
+
+    private func scheduleChipDismiss() {
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            await MainActor.run {
+                dismissChip()
+            }
+        }
+    }
+
+    private func dismissChip() {
+        guard isChipVisible else { return }
+        withAnimation(.easeOut(duration: 0.2)) {
+            isChipVisible = false
+        }
+    }
+}
+
+private struct SearchResultCountChip: View {
+    let totalCount: Int
+
+    var body: some View {
+        Text("検索結果 \(totalCount) 件")
+            .font(.footnote.weight(.semibold))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(.white.opacity(0.35), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+            .accessibilityIdentifier("search.resultChip")
+    }
+}
+
 struct ChannelVideosView: View {
     let channelID: String
     let coordinator: FeedCacheCoordinator

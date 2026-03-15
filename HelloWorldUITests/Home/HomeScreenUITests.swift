@@ -7,6 +7,7 @@ final class HomeScreenUITests: UITestCaseSupport {
         waitForHomeScreen(in: app)
         XCTAssertTrue(element("nav.channels", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.videos", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("nav.search", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.channelRegistration", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.registryTransfer", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["バックアップ"].waitForExistence(timeout: 3))
@@ -35,6 +36,20 @@ final class HomeScreenUITests: UITestCaseSupport {
 
         XCTAssertTrue(element("screen.title", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["動画投稿日時が新しい順"].waitForExistence(timeout: 3))
+
+        swipeBack(in: app)
+        waitForHomeScreen(in: app, timeout: 3)
+
+        element("nav.search", in: app).tap()
+        XCTAssertTrue(app.staticTexts["「ゆっくり実況」に一致する動画を新しい順に20件表示"].waitForExistence(timeout: 3))
+        XCTAssertTrue(element("search.resultChip", in: app).waitForExistence(timeout: 3))
+
+        let searchScrollView = app.scrollViews.firstMatch
+        XCTAssertTrue(searchScrollView.waitForExistence(timeout: 3))
+        searchScrollView.swipeUp()
+        XCTAssertTrue(eventually(timeout: 3) {
+            !self.element("search.resultChip", in: app).exists
+        })
 
         swipeBack(in: app)
         waitForHomeScreen(in: app, timeout: 3)

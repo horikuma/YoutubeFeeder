@@ -49,6 +49,8 @@ struct ContentView: View {
                                 )
                             case .allVideos:
                                 AllVideosView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
+                            case let .keywordSearchResults(keyword):
+                                KeywordSearchResultsView(keyword: keyword, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
                             case .channelRegistration:
                                 ChannelRegistrationView(coordinator: coordinator)
                             case let .channelVideos(channelID):
@@ -83,6 +85,8 @@ struct ContentView: View {
             switch initialRoute {
             case .allVideos:
                 navigationPath.append(MaintenanceRoute.allVideos)
+            case .channelSearchResults:
+                navigationPath.append(MaintenanceRoute.keywordSearchResults("ゆっくり実況"))
             case .channelRegistration:
                 navigationPath.append(MaintenanceRoute.channelRegistration)
             case .channelList:

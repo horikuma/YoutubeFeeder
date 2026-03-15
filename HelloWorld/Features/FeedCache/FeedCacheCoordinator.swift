@@ -119,6 +119,14 @@ final class FeedCacheCoordinator: ObservableObject {
         await store.loadVideos(query: VideoQuery(limit: 50, channelID: channelID, keyword: nil, sortOrder: .publishedDescending, excludeShorts: true))
     }
 
+    func searchVideos(keyword: String, limit: Int = 20) async -> VideoSearchResult {
+        let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = VideoQuery(limit: limit, channelID: nil, keyword: normalizedKeyword, sortOrder: .publishedDescending, excludeShorts: true)
+        let videos = await store.loadVideos(query: query)
+        let totalCount = await store.countVideos(query: VideoQuery(limit: .max, channelID: nil, keyword: normalizedKeyword, sortOrder: .publishedDescending, excludeShorts: true))
+        return VideoSearchResult(keyword: normalizedKeyword, videos: videos, totalCount: totalCount)
+    }
+
     func addChannel(input: String) async throws -> ChannelRegistrationFeedback {
         let resolvedChannel = try await channelResolver.resolve(input: input)
         let didAdd = try ChannelRegistryStore.addChannelID(resolvedChannel.channelID)

@@ -42,15 +42,15 @@ actor FeedCacheStore {
         let snapshot = loadSnapshot()
 
         return snapshot.videos
-            .filter { video in
-                let matchesChannel = query.channelID.map { video.channelID == $0 } ?? true
-                let matchesKeyword = query.keyword.map { video.searchableText.contains($0.lowercased()) } ?? true
-                let matchesShorts = query.excludeShorts ? !looksLikeShort(video) : true
-                return matchesChannel && matchesKeyword && matchesShorts
-            }
+            .filter { matches($0, query: query) }
             .sorted(by: sortComparator(query.sortOrder))
             .prefix(query.limit)
             .map { $0 }
+    }
+
+    func countVideos(query: VideoQuery) -> Int {
+        let snapshot = loadSnapshot()
+        return snapshot.videos.filter { matches($0, query: query) }.count
     }
 
     func loadChannelBrowseItems(channelIDs: [String], registeredAtByChannelID: [String: Date?] = [:]) -> [ChannelBrowseItem] {
@@ -348,5 +348,12 @@ actor FeedCacheStore {
         } else {
             channels.append(channel)
         }
+    }
+
+    private func matches(_ video: CachedVideo, query: VideoQuery) -> Bool {
+        let matchesChannel = query.channelID.map { video.channelID == $0 } ?? true
+        let matchesKeyword = query.keyword.map { video.searchableText.contains($0.lowercased()) } ?? true
+        let matchesShorts = query.excludeShorts ? !looksLikeShort(video) : true
+        return matchesChannel && matchesKeyword && matchesShorts
     }
 }

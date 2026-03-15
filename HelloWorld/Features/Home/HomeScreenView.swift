@@ -99,6 +99,16 @@ struct HomeScreenView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("nav.videos")
 
+            NavigationLink(value: MaintenanceRoute.keywordSearchResults("ゆっくり実況")) {
+                MetricTile(
+                    title: "検索",
+                    value: "ゆっくり実況",
+                    detail: "投稿が新しい順に20件表示"
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("nav.search")
+
             NavigationLink(value: MaintenanceRoute.channelRegistration) {
                 MetricTile(
                     title: "チャンネル登録",

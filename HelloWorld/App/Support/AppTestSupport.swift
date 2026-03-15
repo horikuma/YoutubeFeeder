@@ -30,6 +30,7 @@ enum AppLaunchMode {
 
 enum UITestInitialRoute: String {
     case allVideos
+    case channelSearchResults
     case channelRegistration
     case channelList
 }

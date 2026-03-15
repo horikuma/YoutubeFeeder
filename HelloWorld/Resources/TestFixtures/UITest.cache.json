@@ -45,10 +45,10 @@
       "fetchedAt" : "2026-03-12T09:00:05Z",
       "id" : "alpha-12",
       "publishedAt" : "2026-03-12T08:55:00Z",
-      "searchableText" : "alpha video 12\nalpha channel\nalpha-12",
+      "searchableText" : "ゆっくり実況 alpha video 12\nalpha channel\nalpha-12",
       "thumbnailLocalFilename" : null,
       "thumbnailRemoteURL" : null,
-      "title" : "Alpha Video 12",
+      "title" : "ゆっくり実況 Alpha Video 12",
       "videoURL" : "https://www.youtube.com/watch?v=alpha-12"
     },
     {
@@ -69,10 +69,10 @@
       "fetchedAt" : "2026-03-12T08:50:00Z",
       "id" : "beta-2",
       "publishedAt" : "2026-03-12T08:40:00Z",
-      "searchableText" : "beta update 2\nbeta channel\nbeta-2",
+      "searchableText" : "ゆっくり実況 beta update 2\nbeta channel\nbeta-2",
       "thumbnailLocalFilename" : null,
       "thumbnailRemoteURL" : null,
-      "title" : "Beta Update 2",
+      "title" : "ゆっくり実況 Beta Update 2",
       "videoURL" : "https://www.youtube.com/watch?v=beta-2"
     },
     {

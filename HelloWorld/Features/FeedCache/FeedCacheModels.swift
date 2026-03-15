@@ -141,6 +141,12 @@ struct ChannelBrowseItem: Identifiable, Hashable {
     let cachedVideoCount: Int
 }
 
+struct VideoSearchResult: Hashable {
+    let keyword: String
+    let videos: [CachedVideo]
+    let totalCount: Int
+}
+
 enum ChannelRegistrationStatus: Hashable {
     case added
     case alreadyRegistered
