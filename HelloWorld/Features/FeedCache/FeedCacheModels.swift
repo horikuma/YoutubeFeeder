@@ -135,6 +135,21 @@ struct ChannelBrowseItem: Identifiable, Hashable {
     let cachedVideoCount: Int
 }
 
+enum ChannelRegistrationStatus: Hashable {
+    case added
+    case alreadyRegistered
+}
+
+struct ChannelRegistrationFeedback: Hashable {
+    let status: ChannelRegistrationStatus
+    let channelID: String
+    let channelTitle: String
+    let latestVideoTitle: String?
+    let latestPublishedAt: Date?
+    let cachedVideoCount: Int
+    let latestFeedError: String?
+}
+
 struct FeedBootstrapSnapshot {
     var progress: CacheProgress
     var maintenanceItems: [ChannelMaintenanceItem]

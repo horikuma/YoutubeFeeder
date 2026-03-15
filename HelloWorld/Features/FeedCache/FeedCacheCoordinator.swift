@@ -88,13 +88,43 @@ final class FeedCacheCoordinator: ObservableObject {
         await store.loadVideos(query: VideoQuery(limit: 50, channelID: channelID, keyword: nil, sortOrder: .publishedDescending, excludeShorts: true))
     }
 
-    func addChannel(input: String) async throws -> Bool {
+    func addChannel(input: String) async throws -> ChannelRegistrationFeedback {
         let resolvedChannel = try await channelResolver.resolve(input: input)
         let didAdd = try ChannelRegistryStore.addChannelID(resolvedChannel.channelID)
         channels = ChannelRegistryStore.loadAllChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+
+        let latestFeedError: String?
+        let cachedItem: ChannelBrowseItem?
+        do {
+            let result = try await feedService.fetchLatestFeed(for: resolvedChannel.channelID)
+            let uncachedVideos = await store.recordSuccess(
+                channelID: resolvedChannel.channelID,
+                videos: result.videos,
+                metadata: result.metadata
+            )
+            for video in uncachedVideos where video.thumbnailURL != nil {
+                await store.cacheThumbnail(for: video)
+            }
+            latestFeedError = nil
+            cachedItem = await store.loadChannelBrowseItems(channelIDs: [resolvedChannel.channelID]).first
+        } catch {
+            latestFeedError = error.localizedDescription
+            cachedItem = await store.loadChannelBrowseItems(channelIDs: [resolvedChannel.channelID]).first
+        }
+
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError, includesVideos: false)
-        return didAdd
+
+        let channelTitle = cachedItem?.channelTitle.isEmpty == false ? cachedItem?.channelTitle : nil
+        return ChannelRegistrationFeedback(
+            status: didAdd ? .added : .alreadyRegistered,
+            channelID: resolvedChannel.channelID,
+            channelTitle: channelTitle ?? resolvedChannel.channelID,
+            latestVideoTitle: cachedItem?.latestVideo?.title,
+            latestPublishedAt: cachedItem?.latestPublishedAt,
+            cachedVideoCount: cachedItem?.cachedVideoCount ?? 0,
+            latestFeedError: latestFeedError
+        )
     }
 
     private func performManualRefresh() async {

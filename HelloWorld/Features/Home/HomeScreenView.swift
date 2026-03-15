@@ -93,11 +93,11 @@ struct HomeScreenView: View {
 
 struct ChannelRegistrationView: View {
     @ObservedObject var coordinator: FeedCacheCoordinator
-    @Environment(\.dismiss) private var dismiss
 
     @State private var input = ""
     @State private var errorMessage: String?
     @State private var isSubmitting = false
+    @State private var feedback: ChannelRegistrationFeedback?
 
     var body: some View {
         ScrollView {
@@ -123,6 +123,11 @@ struct ChannelRegistrationView: View {
                             .foregroundStyle(.red)
                             .accessibilityIdentifier("channelRegistration.error")
                     }
+                }
+
+                if let feedback {
+                    registrationFeedbackCard(feedback)
+                        .accessibilityIdentifier("channelRegistration.feedback")
                 }
 
                 Button {
@@ -160,14 +165,16 @@ struct ChannelRegistrationView: View {
         guard !trimmedInput.isEmpty else { return }
 
         errorMessage = nil
+        feedback = nil
         isSubmitting = true
 
         Task {
             do {
-                _ = try await coordinator.addChannel(input: trimmedInput)
+                let result = try await coordinator.addChannel(input: trimmedInput)
                 await MainActor.run {
+                    feedback = result
+                    input = ""
                     isSubmitting = false
-                    dismiss()
                 }
             } catch {
                 await MainActor.run {
@@ -176,5 +183,49 @@ struct ChannelRegistrationView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func registrationFeedbackCard(_ feedback: ChannelRegistrationFeedback) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(feedback.status == .added ? "チャンネルを登録しました" : "すでに登録済みでした")
+                .font(.headline)
+
+            Text(feedback.channelTitle)
+                .font(.title3.bold())
+
+            Text(feedback.channelID)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+
+            if let latestVideoTitle = feedback.latestVideoTitle {
+                Text("最新動画: \(latestVideoTitle)")
+                    .font(.subheadline)
+
+                if let latestPublishedAt = feedback.latestPublishedAt {
+                    Text("公開日: \(latestPublishedAt.formatted(date: .abbreviated, time: .omitted))")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("最新動画はまだ取得できていません。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text("キャッシュ済み動画: \(feedback.cachedVideoCount) 件")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            if let latestFeedError = feedback.latestFeedError {
+                Text("最新情報の取得は完了していません: \(latestFeedError)")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }

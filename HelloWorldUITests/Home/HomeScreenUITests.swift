@@ -25,4 +25,14 @@ final class HomeScreenUITests: UITestCaseSupport {
             return timeline["manualRefreshFinished"] != nil
         })
     }
+
+    func testChannelRegistrationScreenShowsInputControls() throws {
+        let app = launchApp()
+
+        XCTAssertTrue(element("nav.channelRegistration", in: app).waitForExistence(timeout: 5))
+        element("nav.channelRegistration", in: app).tap()
+
+        XCTAssertTrue(element("channelRegistration.input", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("channelRegistration.submit", in: app).waitForExistence(timeout: 3))
+    }
 }

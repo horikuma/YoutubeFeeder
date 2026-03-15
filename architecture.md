@@ -41,6 +41,7 @@
   - ホーム画面本体。
   - 手動更新と一覧画面への導線。
   - チャンネル登録画面への導線。
+  - チャンネル登録結果のフィードバック表示。
 - [HelloWorld/Features/Home/HomeUIComponents.swift](HelloWorld/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
 - [HelloWorld/Features/Home/HomeRoutes.swift](HelloWorld/Features/Home/HomeRoutes.swift)
@@ -63,6 +64,7 @@
   - YouTube feed の取得、更新判定、XML パース。
   - 条件付き取得用の `ETag` と `Last-Modified` を扱う。
   - `@handle` や URL から `Channel ID` を解決する。
+  - 登録直後のフィードバック用に最新動画要約の取得にも使う。
 
 ### Shared
 
