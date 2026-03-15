@@ -97,10 +97,10 @@ final class FeedCacheCoordinator: ObservableObject {
             RuntimeDiagnostics.shared.record("channel_manual_refresh_ignored", detail: "空の channelID のため更新しない")
             return
         }
-        guard channels.contains(normalizedChannelID) else {
+        guard await ensureChannelAvailableForManualRefresh(normalizedChannelID) else {
             RuntimeDiagnostics.shared.record(
                 "channel_manual_refresh_ignored",
-                detail: "登録されていない channelID のため更新しない",
+                detail: "手動更新対象として解決できない channelID のため更新しない",
                 metadata: ["channelID": normalizedChannelID]
             )
             return
@@ -145,6 +145,46 @@ final class FeedCacheCoordinator: ObservableObject {
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
+    }
+
+    private func ensureChannelAvailableForManualRefresh(_ channelID: String) async -> Bool {
+        if channels.contains(channelID) {
+            return true
+        }
+
+        let snapshot = await store.loadSnapshot()
+        let existsInCache = snapshot.channels.contains(where: { $0.channelID == channelID })
+            || snapshot.videos.contains(where: { $0.channelID == channelID })
+        let existsInVisibleItems = maintenanceItems.contains(where: { $0.channelID == channelID })
+
+        guard existsInCache || existsInVisibleItems else {
+            return false
+        }
+
+        do {
+            _ = try ChannelRegistryStore.addChannelID(channelID)
+            channels = ChannelRegistryStore.loadPersistedOrSeededChannelIDs()
+            freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+            RuntimeDiagnostics.shared.record(
+                "channel_manual_refresh_registry_recovered",
+                detail: "registry に存在しないチャンネルを更新対象へ復旧",
+                metadata: [
+                    "channelID": channelID,
+                    "channelCount": String(channels.count)
+                ]
+            )
+            return true
+        } catch {
+            RuntimeDiagnostics.shared.record(
+                "channel_manual_refresh_registry_recovery_failed",
+                detail: "registry 復旧に失敗",
+                metadata: [
+                    "channelID": channelID,
+                    "error": error.localizedDescription
+                ]
+            )
+            return false
+        }
     }
 
     func refreshMaintenanceFromCache() {
