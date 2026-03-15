@@ -66,6 +66,16 @@ struct HomeScreenView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("nav.videos")
+
+            NavigationLink(value: MaintenanceRoute.channelRegistration) {
+                MetricTile(
+                    title: "チャンネル登録",
+                    value: "",
+                    detail: "タップで追加"
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("nav.channelRegistration")
         }
     }
 
@@ -78,5 +88,93 @@ struct HomeScreenView: View {
         }
 
         return [GridItem(.flexible(), spacing: 16, alignment: .top)]
+    }
+}
+
+struct ChannelRegistrationView: View {
+    @ObservedObject var coordinator: FeedCacheCoordinator
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var input = ""
+    @State private var errorMessage: String?
+    @State private var isSubmitting = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("チャンネル登録")
+                    .font(.largeTitle.bold())
+
+                Text("Channel ID、@handle、YouTube のチャンネル URL を入力できます。登録時は解決後の Channel ID を使います。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    TextField("UC... / @handle / URL", text: $input)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .accessibilityIdentifier("channelRegistration.input")
+                        .padding(14)
+                        .background(.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .accessibilityIdentifier("channelRegistration.error")
+                    }
+                }
+
+                Button {
+                    submit()
+                } label: {
+                    HStack {
+                        if isSubmitting {
+                            ProgressView()
+                                .tint(.white)
+                        }
+                        Text(isSubmitting ? "解決中..." : "追加する")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isSubmitting || trimmedInput.isEmpty)
+                .accessibilityIdentifier("channelRegistration.submit")
+            }
+            .padding(20)
+            .frame(maxWidth: 720, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("チャンネル登録")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var trimmedInput: String {
+        input.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func submit() {
+        guard !trimmedInput.isEmpty else { return }
+
+        errorMessage = nil
+        isSubmitting = true
+
+        Task {
+            do {
+                _ = try await coordinator.addChannel(input: trimmedInput)
+                await MainActor.run {
+                    isSubmitting = false
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    isSubmitting = false
+                }
+            }
+        }
     }
 }

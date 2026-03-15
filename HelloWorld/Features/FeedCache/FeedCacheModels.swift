@@ -22,6 +22,10 @@ enum FeedCachePaths {
     static func cacheURL(fileManager: FileManager = .default) -> URL {
         baseDirectory(fileManager: fileManager).appendingPathComponent("cache.json")
     }
+
+    static func channelRegistryURL(fileManager: FileManager = .default) -> URL {
+        baseDirectory(fileManager: fileManager).appendingPathComponent("channel-registry.json")
+    }
 }
 
 struct CachedVideo: Identifiable, Hashable {
@@ -136,6 +140,10 @@ struct FeedBootstrapSnapshot {
     var maintenanceItems: [ChannelMaintenanceItem]
 }
 
+struct ChannelRegistrySnapshot: Codable {
+    var customChannelIDs: [String]
+}
+
 enum FeedBootstrapStore {
     static func load(channels: [String], fileManager: FileManager = .default) -> FeedBootstrapSnapshot {
         let url = FeedCachePaths.bootstrapURL(fileManager: fileManager)
@@ -143,10 +151,11 @@ enum FeedBootstrapStore {
         decoder.dateDecodingStrategy = .iso8601
 
         if let data = try? Data(contentsOf: url), let snapshot = try? decoder.decode(FeedBootstrapSnapshot.self, from: data) {
-            return snapshot
+            return merged(snapshot: snapshot, channels: channels)
         }
 
-        return FeedBootstrapSnapshot(
+        return merged(
+            snapshot: FeedBootstrapSnapshot(
             progress: CacheProgress(
                 totalChannels: channels.count,
                 cachedChannels: 0,
@@ -171,7 +180,105 @@ enum FeedBootstrapStore {
                     freshness: .neverFetched
                 )
             }
+            ),
+            channels: channels
         )
+    }
+
+    private static func merged(snapshot: FeedBootstrapSnapshot, channels: [String]) -> FeedBootstrapSnapshot {
+        let existingItems = Dictionary(uniqueKeysWithValues: snapshot.maintenanceItems.map { ($0.channelID, $0) })
+        let mergedItems = channels.map { channelID in
+            existingItems[channelID] ?? ChannelMaintenanceItem(
+                id: channelID,
+                channelID: channelID,
+                channelTitle: nil,
+                lastSuccessAt: nil,
+                lastCheckedAt: nil,
+                latestPublishedAt: nil,
+                cachedVideoCount: 0,
+                lastError: nil,
+                freshness: .neverFetched
+            )
+        }
+
+        let currentChannelID = snapshot.progress.currentChannelID.flatMap { channels.contains($0) ? $0 : nil }
+        let currentChannelNumber = currentChannelID.flatMap { channelID in
+            channels.firstIndex(of: channelID).map { $0 + 1 }
+        }
+
+        return FeedBootstrapSnapshot(
+            progress: CacheProgress(
+                totalChannels: channels.count,
+                cachedChannels: min(snapshot.progress.cachedChannels, channels.count),
+                cachedVideos: snapshot.progress.cachedVideos,
+                cachedThumbnails: snapshot.progress.cachedThumbnails,
+                currentChannelID: currentChannelID,
+                currentChannelNumber: currentChannelNumber,
+                lastUpdatedAt: snapshot.progress.lastUpdatedAt,
+                isRunning: snapshot.progress.isRunning,
+                lastError: snapshot.progress.lastError
+            ),
+            maintenanceItems: mergedItems
+        )
+    }
+}
+
+enum ChannelRegistryStore {
+    static func loadAllChannelIDs(bundle: Bundle = .main, fileManager: FileManager = .default) -> [String] {
+        let bundledChannelIDs = ChannelResource.loadChannelIDs(bundle: bundle)
+        let customChannelIDs = loadCustomChannelIDs(fileManager: fileManager)
+        return uniqueChannelIDs(bundledChannelIDs + customChannelIDs)
+    }
+
+    static func addChannelID(_ channelID: String, fileManager: FileManager = .default) throws -> Bool {
+        let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedChannelID.isEmpty else { return false }
+
+        let bundledChannelIDs = Set(ChannelResource.loadChannelIDs())
+        if bundledChannelIDs.contains(normalizedChannelID) {
+            return false
+        }
+
+        var snapshot = loadSnapshot(fileManager: fileManager)
+        guard !snapshot.customChannelIDs.contains(normalizedChannelID) else {
+            return false
+        }
+
+        snapshot.customChannelIDs.append(normalizedChannelID)
+        snapshot.customChannelIDs = uniqueChannelIDs(snapshot.customChannelIDs)
+        try persist(snapshot: snapshot, fileManager: fileManager)
+        return true
+    }
+
+    private static func loadCustomChannelIDs(fileManager: FileManager) -> [String] {
+        loadSnapshot(fileManager: fileManager).customChannelIDs
+    }
+
+    private static func loadSnapshot(fileManager: FileManager) -> ChannelRegistrySnapshot {
+        let url = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
+        guard
+            let data = try? Data(contentsOf: url),
+            let snapshot = try? JSONDecoder().decode(ChannelRegistrySnapshot.self, from: data)
+        else {
+            return ChannelRegistrySnapshot(customChannelIDs: [])
+        }
+
+        return snapshot
+    }
+
+    private static func persist(snapshot: ChannelRegistrySnapshot, fileManager: FileManager) throws {
+        let baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
+        try fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(snapshot)
+        try data.write(to: FeedCachePaths.channelRegistryURL(fileManager: fileManager), options: .atomic)
+    }
+
+    private static func uniqueChannelIDs(_ channelIDs: [String]) -> [String] {
+        var seen = Set<String>()
+        return channelIDs.filter { seen.insert($0).inserted }
     }
 }
 

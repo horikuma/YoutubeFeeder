@@ -66,6 +66,7 @@ enum UITestFixtureSeeder {
         let baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
         try? fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
 
+        try? fileManager.removeItem(at: FeedCachePaths.channelRegistryURL(fileManager: fileManager))
         copyFixture(named: "UITest.bootstrap", extension: "json", to: FeedCachePaths.bootstrapURL(fileManager: fileManager), bundle: bundle)
         copyFixture(named: "UITest.cache", extension: "json", to: FeedCachePaths.cacheURL(fileManager: fileManager), bundle: bundle)
     }

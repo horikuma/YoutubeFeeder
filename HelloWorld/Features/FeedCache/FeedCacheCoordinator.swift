@@ -9,11 +9,12 @@ final class FeedCacheCoordinator: ObservableObject {
     @Published private(set) var refreshProgress: CacheRefreshProgress = .idle
     @Published private(set) var manualRefreshCount: Int = 0
 
-    private let channels: [String]
+    private var channels: [String]
     private let store = FeedCacheStore()
     private let feedService = YouTubeFeedService()
+    private let channelResolver = YouTubeChannelResolver()
     private var manualRefreshTask: Task<Void, Never>?
-    private let freshnessInterval: TimeInterval
+    private var freshnessInterval: TimeInterval
     private var videoQuery = VideoQuery()
     private var liveUpdateSuspendCount = 0
     private var needsRefreshWhenResumed = false
@@ -85,6 +86,15 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func loadVideosForChannel(_ channelID: String) async -> [CachedVideo] {
         await store.loadVideos(query: VideoQuery(limit: 50, channelID: channelID, keyword: nil, sortOrder: .publishedDescending, excludeShorts: true))
+    }
+
+    func addChannel(input: String) async throws -> Bool {
+        let resolvedChannel = try await channelResolver.resolve(input: input)
+        let didAdd = try ChannelRegistryStore.addChannelID(resolvedChannel.channelID)
+        channels = ChannelRegistryStore.loadAllChannelIDs()
+        freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+        await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError, includesVideos: false)
+        return didAdd
     }
 
     private func performManualRefresh() async {

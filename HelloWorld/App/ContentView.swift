@@ -17,7 +17,7 @@ struct ContentView: View {
     @ObservedObject private var diagnostics = StartupDiagnostics.shared
 
     init() {
-        _coordinator = StateObject(wrappedValue: FeedCacheCoordinator(channels: ChannelResource.loadChannelIDs()))
+        _coordinator = StateObject(wrappedValue: FeedCacheCoordinator(channels: ChannelRegistryStore.loadAllChannelIDs()))
     }
 
     var body: some View {
@@ -42,6 +42,8 @@ struct ContentView: View {
                                 ChannelBrowseListView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
                             case .allVideos:
                                 AllVideosView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
+                            case .channelRegistration:
+                                ChannelRegistrationView(coordinator: coordinator)
                             case let .channelVideos(channelID):
                                 ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
                             }

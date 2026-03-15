@@ -40,6 +40,7 @@
 - [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
   - ホーム画面本体。
   - 手動更新と一覧画面への導線。
+  - チャンネル登録画面への導線。
 - [HelloWorld/Features/Home/HomeUIComponents.swift](HelloWorld/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
 - [HelloWorld/Features/Home/HomeRoutes.swift](HelloWorld/Features/Home/HomeRoutes.swift)
@@ -61,6 +62,7 @@
 - [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
   - YouTube feed の取得、更新判定、XML パース。
   - 条件付き取得用の `ETag` と `Last-Modified` を扱う。
+  - `@handle` や URL から `Channel ID` を解決する。
 
 ### Shared
 
@@ -82,6 +84,7 @@
 ## データとキャッシュ構造
 
 - キャッシュは永続データとして扱う。
+- ユーザー追加チャンネルは `Channel ID` を主キーとして別ファイルに永続化する。
 - 軽量 bootstrap と本体 cache を分ける。
   - bootstrap: ホーム画面を即時表示するための軽量情報
   - cache: チャンネル状態、動画メタデータ、サムネイル位置を含む本体
