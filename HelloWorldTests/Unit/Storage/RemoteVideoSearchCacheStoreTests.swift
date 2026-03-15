@@ -112,6 +112,29 @@ final class RemoteVideoSearchCacheStoreTests: XCTestCase {
         }
     }
 
+    func testClearAllRemovesDefaultAndSanitizedSearchCacheFiles() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let store = RemoteVideoSearchCacheStore()
+            let fetchedAt = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+
+            await store.save(keyword: "ゆっくり実況", videos: [], totalCount: 93, fetchedAt: fetchedAt)
+            await store.save(keyword: "test keyword", videos: [], totalCount: 12, fetchedAt: fetchedAt)
+
+            let removedCount = await store.clearAll()
+            let japaneseEntry = await store.load(keyword: "ゆっくり実況")
+            let asciiEntry = await store.load(keyword: "test keyword")
+
+            XCTAssertEqual(removedCount, 2)
+            XCTAssertNil(japaneseEntry)
+            XCTAssertNil(asciiEntry)
+        }
+    }
+
     private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () async throws -> T) async throws -> T {
         let key = "HELLOWORLD_FEEDCACHE_BASE_DIR"
         let previousValue = ProcessInfo.processInfo.environment[key]
