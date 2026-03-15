@@ -68,6 +68,8 @@
   - チャンネル登録日時を含む registry 永続化モデル。
   - iCloud 転送用ドキュメントと固定ファイルパス。
   - `iCloud Drive` と `ローカルDocuments` の転送 backend 定義。
+- [HelloWorld-Info.plist](HelloWorld-Info.plist)
+  - `NSUbiquitousContainers` を含むアプリの外部公開メタデータ。
 
 ### Infrastructure
 
@@ -103,6 +105,7 @@
 - 環境引き継ぎでは、ユーザー追加チャンネルと登録日時だけを JSON として iCloud Drive の固定ファイルへ保存する。
 - インポートではローカルのカスタムチャンネル設定をその JSON で置き換え、動画やサムネイルは転送しない。
 - Mac Catalyst では `ローカルDocuments` を既定 backend とし、LLM から制御しやすい固定パス `~/Documents/HelloWorld/channel-registry.json` を使って確認できるようにする。
+- iCloud backend では `NSFileCoordinator` を通して読み書きし、`url(forUbiquityContainerIdentifier:)` には明示的な container identifier を渡す。
 - 軽量 bootstrap と本体 cache を分ける。
   - bootstrap: ホーム画面を即時表示するための軽量情報
   - cache: チャンネル状態、動画メタデータ、サムネイル位置を含む本体

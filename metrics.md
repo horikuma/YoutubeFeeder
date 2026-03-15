@@ -6,6 +6,21 @@
 
 ## 2026/03/15
 
+### iCloud保存の設定漏れを修正する
+
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `2.609s`
+- test-without-building: `69.159s`
+- 検証合計時間: `71.768s`
+- 手修正後の再試行回数: `2`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `456ms`
+- スプラッシュ表示からホーム表示まで: `115ms`
+- 起動からホーム表示まで: `571ms`
+- 起動から bootstrap 読込完了まで: `511ms`
+- 起動からホーム遷移開始まで: `582ms`
+
 ### Mac検証用ローカル転送とiCloud切替を追加する
 
 - 種別: source

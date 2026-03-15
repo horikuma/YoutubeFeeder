@@ -319,6 +319,8 @@ enum ChannelRegistryTransferBackend: String, CaseIterable, Hashable {
 }
 
 enum ChannelRegistryTransferRuntime {
+    static let iCloudContainerIdentifier = "iCloud.Neko.HelloWorld"
+
     static var preferredBackend: ChannelRegistryTransferBackend {
         if let override = ProcessInfo.processInfo.environment["HELLOWORLD_REGISTRY_TRANSFER_BACKEND"],
            let backend = ChannelRegistryTransferBackend(rawValue: override) {
@@ -512,7 +514,7 @@ enum ChannelRegistryTransferStore {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(document)
-        try data.write(to: destinationURL, options: .atomic)
+        try write(data, to: destinationURL, backend: backend)
         return ChannelRegistryTransferResult(backend: backend, fileURL: destinationURL, customChannelCount: document.customChannels.count)
     }
 
@@ -522,7 +524,7 @@ enum ChannelRegistryTransferStore {
             throw ChannelRegistryTransferError.importFileMissing
         }
 
-        let data = try Data(contentsOf: sourceURL)
+        let data = try read(from: sourceURL, backend: backend, fileManager: fileManager)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         guard let document = try? decoder.decode(ChannelRegistryTransferDocument.self, from: data) else {
@@ -545,7 +547,7 @@ enum ChannelRegistryTransferStore {
             if let containerURL {
                 rootURL = containerURL
             } else {
-                rootURL = fileManager.url(forUbiquityContainerIdentifier: nil)
+                rootURL = fileManager.url(forUbiquityContainerIdentifier: ChannelRegistryTransferRuntime.iCloudContainerIdentifier)
             }
 
             guard let rootURL else {
@@ -572,6 +574,64 @@ enum ChannelRegistryTransferStore {
                 .appendingPathComponent("HelloWorld", isDirectory: true)
                 .appendingPathComponent("channel-registry.json")
         }
+    }
+
+    private static func write(_ data: Data, to url: URL, backend: ChannelRegistryTransferBackend) throws {
+        if backend == .iCloudDrive {
+            var coordinationError: NSError?
+            var writeError: Error?
+            let coordinator = NSFileCoordinator(filePresenter: nil)
+            coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { coordinatedURL in
+                do {
+                    try data.write(to: coordinatedURL, options: .atomic)
+                } catch {
+                    writeError = error
+                }
+            }
+
+            if let coordinationError {
+                throw coordinationError
+            }
+            if let writeError {
+                throw writeError
+            }
+            return
+        }
+
+        try data.write(to: url, options: .atomic)
+    }
+
+    private static func read(from url: URL, backend: ChannelRegistryTransferBackend, fileManager: FileManager) throws -> Data {
+        if backend == .iCloudDrive {
+            if fileManager.isUbiquitousItem(at: url) {
+                try? fileManager.startDownloadingUbiquitousItem(at: url)
+            }
+
+            var coordinationError: NSError?
+            var payload: Data?
+            var readError: Error?
+            let coordinator = NSFileCoordinator(filePresenter: nil)
+            coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { coordinatedURL in
+                do {
+                    payload = try Data(contentsOf: coordinatedURL)
+                } catch {
+                    readError = error
+                }
+            }
+
+            if let coordinationError {
+                throw coordinationError
+            }
+            if let readError {
+                throw readError
+            }
+            guard let payload else {
+                throw ChannelRegistryTransferError.invalidImportData
+            }
+            return payload
+        }
+
+        return try Data(contentsOf: url)
     }
 
     private static func fallbackPathDescription(for backend: ChannelRegistryTransferBackend) -> String {

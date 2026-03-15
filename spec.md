@@ -101,6 +101,8 @@
 - 固定ファイルパスは iCloud コンテナ内の `Documents/channel-registry.json` とすること
 - Mac アプリでの検証用固定ファイルパスは `~/Documents/HelloWorld/channel-registry.json` とすること
 - iCloud を利用できない場合やファイルが存在しない場合は、ホーム画面上で明確に失敗理由を返すこと
+- iCloud Drive へ公開するメタデータは `Info.plist` の `NSUbiquitousContainers` に定義すること
+- `NSUbiquitousContainers` を変更した場合は、Apple の運用要件に従って `CFBundleVersion` を更新すること
 
 ### 5.5 チャンネル一覧画面
 

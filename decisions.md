@@ -1,4 +1,6 @@
 ## 2026/03/15
+- iCloud Drive が使えない問題への本命対応として、container metadata を `Info.plist` の `NSUbiquitousContainers` に明示し、container へのアクセスも明示 ID + file coordination へ寄せた。
+  - Apple の資料では、iCloud Drive に公開される document container は entitlement だけでなく `NSUbiquitousContainers` の metadata を参照し、変更時は `CFBundleVersion` の更新も必要とされているため。Mac 側で保存できなかった原因候補としてこの部分の欠落が最も大きく、実装も Apple 推奨の形へ寄せて再構成した。
 - iCloud 検証が不安定な間は、Mac アプリでは `ローカルDocuments` を既定 backend とし、同じ JSON を固定パスで扱えるようにした。
   - LLM から iCloud コンテナ状態や同期タイミングを安定して制御するのは難しいため。検証経路をなくさず、同じ転送フォーマットを Mac 上の固定パスへ逃がして、まず import / export の操作とデータ整合を確認できるようにした。
 - チャンネル設定の引き継ぎは、ホーム画面上の同一操作系に置いたまま、iCloud の固定 JSON ファイル 1 つで扱う方針にした。
