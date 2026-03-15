@@ -54,6 +54,8 @@ struct CachedVideo: Identifiable, Hashable {
     let thumbnailLocalFilename: String?
     let fetchedAt: Date
     let searchableText: String
+    let durationSeconds: Int?
+    let viewCount: Int?
 }
 
 struct CachedChannelState: Hashable {
@@ -230,6 +232,7 @@ struct RemoteSearchCacheStatus: Hashable {
 struct HomeSystemStatus: Hashable {
     let registeredChannelCount: Int
     let cachedVideoCount: Int
+    let cachedThumbnailBytes: Int64
     let cacheLastUpdatedAt: Date?
     let apiKeyConfigured: Bool
     let searchCacheStatus: RemoteSearchCacheStatus
@@ -238,6 +241,7 @@ struct HomeSystemStatus: Hashable {
         HomeSystemStatus(
             registeredChannelCount: 0,
             cachedVideoCount: 0,
+            cachedThumbnailBytes: 0,
             cacheLastUpdatedAt: nil,
             apiKeyConfigured: false,
             searchCacheStatus: .empty(keyword: keyword)

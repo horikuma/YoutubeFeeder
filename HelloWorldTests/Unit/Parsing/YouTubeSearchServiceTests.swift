@@ -14,7 +14,7 @@ final class YouTubeSearchServiceTests: XCTestCase {
             ]
         )
 
-        XCTAssertEqual(merged.map(\.id), ["video-1", "video-2"])
+        XCTAssertEqual(merged.map(\.id), ["video-2", "video-1"])
         XCTAssertEqual(merged.first?.publishedAt, newer)
     }
 
@@ -24,6 +24,12 @@ final class YouTubeSearchServiceTests: XCTestCase {
           "items": [
             {
               "id": "video-1",
+              "contentDetails": {
+                "duration": "PT27M10S"
+              },
+              "statistics": {
+                "viewCount": "12345"
+              },
               "snippet": {
                 "publishedAt": "2026-03-15T02:00:00Z",
                 "channelId": "UC111",
@@ -37,6 +43,12 @@ final class YouTubeSearchServiceTests: XCTestCase {
             },
             {
               "id": "video-2",
+              "contentDetails": {
+                "duration": "PT45M00S"
+              },
+              "statistics": {
+                "viewCount": "67890"
+              },
               "snippet": {
                 "publishedAt": "2026-03-15T01:00:00Z",
                 "channelId": "UC222",
@@ -59,5 +71,7 @@ final class YouTubeSearchServiceTests: XCTestCase {
 
         let filtered = YouTubeSearchService.filterPlayableVideos(response?.items ?? [])
         XCTAssertEqual(filtered.map(\.id), ["video-1"])
+        XCTAssertEqual(filtered.first?.durationSeconds, 1_630)
+        XCTAssertEqual(filtered.first?.viewCount, 12_345)
     }
 }

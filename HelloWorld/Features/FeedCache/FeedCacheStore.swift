@@ -57,6 +57,15 @@ actor FeedCacheStore {
         loadSnapshot().videos.count
     }
 
+    func totalThumbnailBytes() -> Int64 {
+        let filenames = Set(loadSnapshot().videos.compactMap(\.thumbnailLocalFilename))
+        return filenames.reduce(into: Int64(0)) { total, filename in
+            let url = thumbnailsDirectory.appendingPathComponent(filename)
+            let size = (try? fileManager.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
+            total += size
+        }
+    }
+
     func loadChannelBrowseItems(channelIDs: [String], registeredAtByChannelID: [String: Date?] = [:]) -> [ChannelBrowseItem] {
         let snapshot = loadSnapshot()
         let groupedVideos = Dictionary(grouping: snapshot.videos.filter { !looksLikeShort($0) }, by: \.channelID)
@@ -128,8 +137,6 @@ actor FeedCacheStore {
         let fetchedAt = metadata.checkedAt
         let existingVideoIDs = Set(snapshot.videos.lazy.map(\.id))
         let uncachedVideos = videos.filter { !existingVideoIDs.contains($0.id) }
-
-        snapshot.videos.removeAll { $0.channelID == channelID }
         var cachedVideosByID = Dictionary(uniqueKeysWithValues: snapshot.videos.map { ($0.id, $0) })
 
         for video in videos {
@@ -144,7 +151,9 @@ actor FeedCacheStore {
                 thumbnailRemoteURL: video.thumbnailURL,
                 thumbnailLocalFilename: cachedVideosByID[video.id]?.thumbnailLocalFilename,
                 fetchedAt: fetchedAt,
-                searchableText: [video.title, channelTitle, video.id].joined(separator: "\n").lowercased()
+                searchableText: [video.title, channelTitle, video.id].joined(separator: "\n").lowercased(),
+                durationSeconds: video.durationSeconds ?? cachedVideosByID[video.id]?.durationSeconds,
+                viewCount: video.viewCount ?? cachedVideosByID[video.id]?.viewCount
             )
         }
 
@@ -218,7 +227,9 @@ actor FeedCacheStore {
                 thumbnailRemoteURL: existing.thumbnailRemoteURL,
                 thumbnailLocalFilename: localThumbnailFilename,
                 fetchedAt: existing.fetchedAt,
-                searchableText: existing.searchableText
+                searchableText: existing.searchableText,
+                durationSeconds: existing.durationSeconds,
+                viewCount: existing.viewCount
             )
             snapshot.savedAt = .now
             persist(snapshot)

@@ -24,7 +24,9 @@ final class RemoteVideoSearchCacheStoreTests: XCTestCase {
                         thumbnailRemoteURL: nil,
                         thumbnailLocalFilename: nil,
                         fetchedAt: fetchedAt,
-                        searchableText: "ゆっくり実況 one"
+                        searchableText: "ゆっくり実況 one",
+                        durationSeconds: 1_560,
+                        viewCount: 12_345
                     )
                 ],
                 totalCount: 24,
@@ -48,6 +50,65 @@ final class RemoteVideoSearchCacheStoreTests: XCTestCase {
             XCTAssertTrue(staleStatus.exists)
             XCTAssertFalse(staleStatus.isFresh)
             XCTAssertEqual(staleStatus.label, "期限切れ")
+        }
+    }
+
+    func testMergeKeepsExistingVideosAndAddsNewOnes() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let store = RemoteVideoSearchCacheStore()
+            let fetchedAt = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+
+            await store.save(
+                keyword: "ゆっくり実況",
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "Channel One",
+                        title: "first",
+                        publishedAt: fetchedAt,
+                        videoURL: nil,
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: nil,
+                        fetchedAt: fetchedAt,
+                        searchableText: "first",
+                        durationSeconds: 1_400,
+                        viewCount: 100
+                    )
+                ],
+                totalCount: 1,
+                fetchedAt: fetchedAt
+            )
+
+            await store.merge(
+                keyword: "ゆっくり実況",
+                videos: [
+                    CachedVideo(
+                        id: "video-2",
+                        channelID: "UC222",
+                        channelTitle: "Channel Two",
+                        title: "second",
+                        publishedAt: fetchedAt.addingTimeInterval(60),
+                        videoURL: nil,
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: nil,
+                        fetchedAt: fetchedAt.addingTimeInterval(60),
+                        searchableText: "second",
+                        durationSeconds: 2_400,
+                        viewCount: 200
+                    )
+                ],
+                fetchedAt: fetchedAt.addingTimeInterval(60)
+            )
+
+            let entry = await store.load(keyword: "ゆっくり実況")
+            XCTAssertEqual(entry?.videos.map(\.id), ["video-2", "video-1"])
+            XCTAssertEqual(entry?.totalCount, 2)
         }
     }
 

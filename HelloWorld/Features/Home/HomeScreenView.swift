@@ -114,7 +114,7 @@ struct HomeScreenView: View {
                 MetricTile(
                     title: "YouTube検索",
                     value: "ゆっくり実況",
-                    detail: "開いた先で下に引っ張ると API 検索し、最大100件を保存"
+                    detail: "開いた先で下に引っ張ると API 検索し、履歴を順次マージ"
                 )
             }
             .buttonStyle(.plain)

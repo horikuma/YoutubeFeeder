@@ -8,6 +8,8 @@ struct YouTubeSearchVideo: Hashable {
     let publishedAt: Date?
     let videoURL: URL?
     let thumbnailURL: URL?
+    let durationSeconds: Int?
+    let viewCount: Int?
 }
 
 struct YouTubeSearchResponse: Hashable {
@@ -181,7 +183,9 @@ struct YouTubeSearchService {
                 title: item.snippet.title,
                 publishedAt: item.snippet.publishedAt,
                 videoURL: URL(string: "https://www.youtube.com/watch?v=\(item.id)"),
-                thumbnailURL: thumbnailURL
+                thumbnailURL: thumbnailURL,
+                durationSeconds: parseDuration(item.contentDetails.duration),
+                viewCount: item.statistics?.viewCount.flatMap(Int.init)
             )
         }
     }
@@ -250,6 +254,8 @@ struct VideoListResponse: Decodable {
     struct Item: Decodable {
         let id: String
         let snippet: Snippet
+        let contentDetails: ContentDetails
+        let statistics: Statistics?
         let liveStreamingDetails: LiveStreamingDetails?
     }
 
@@ -269,6 +275,14 @@ struct VideoListResponse: Decodable {
             case liveBroadcastContent
             case thumbnails
         }
+    }
+
+    struct ContentDetails: Decodable {
+        let duration: String
+    }
+
+    struct Statistics: Decodable {
+        let viewCount: String?
     }
 
     struct LiveStreamingDetails: Decodable {}
@@ -310,4 +324,32 @@ private extension JSONDecoder {
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }()
+}
+
+private func parseDuration(_ rawValue: String) -> Int? {
+    guard rawValue.hasPrefix("PT") else { return nil }
+
+    var total = 0
+    var buffer = ""
+    for character in rawValue.dropFirst(2) {
+        if character.isNumber {
+            buffer.append(character)
+            continue
+        }
+
+        guard let value = Int(buffer) else { continue }
+        switch character {
+        case "H":
+            total += value * 3_600
+        case "M":
+            total += value * 60
+        case "S":
+            total += value
+        default:
+            break
+        }
+        buffer.removeAll(keepingCapacity: true)
+    }
+
+    return total > 0 ? total : nil
 }

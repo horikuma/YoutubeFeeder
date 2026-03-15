@@ -100,6 +100,7 @@ struct SystemStatusTile: View {
 
             statusRow(title: "登録チャンネル", value: "\(status.registeredChannelCount)件")
             statusRow(title: "動画キャッシュ", value: "\(status.cachedVideoCount)件")
+            statusRow(title: "サムネイル容量", value: AppFormatting.compactByteCount(status.cachedThumbnailBytes))
             statusRow(title: "検索キャッシュ", value: "\(status.searchCacheStatus.label) / \(status.searchCacheStatus.totalCount)件")
             statusRow(title: "YouTube API", value: status.apiKeyConfigured ? "設定済み" : "未設定")
             statusRow(title: "最終更新", value: status.cacheLastUpdatedAt.map(Self.timestampFormatter.string(from:)) ?? "まだありません")

@@ -235,7 +235,9 @@ final class ChannelRegistrySnapshotTests: XCTestCase {
                         thumbnailRemoteURL: nil,
                         thumbnailLocalFilename: nil,
                         fetchedAt: now ?? .now,
-                        searchableText: "title"
+                        searchableText: "title",
+                        durationSeconds: 1_800,
+                        viewCount: 303
                     ),
                 ]
             )

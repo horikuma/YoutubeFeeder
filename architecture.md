@@ -66,15 +66,19 @@
   - 長押しメニューからチャンネル削除導線を出す。
   - チャンネル別動画一覧の pull-to-refresh は、そのチャンネル限定の強制更新へ接続する。
   - 固定キーワード検索結果画面では、一時的な件数チップを下部へ重ねて表示する。
+  - 一覧ごとにタイルの通し番号を 1 から振り直して表示する。
+  - YouTube 検索結果は 20 件ずつの段階表示と下端到達での追加読込を行う。
 - [HelloWorld/Features/Browse/BrowseComponents.swift](HelloWorld/Features/Browse/BrowseComponents.swift)
   - 一覧系共通コンテナ `InteractiveListScreen`。
   - タイル部品、サムネイル表示、戻るスワイプ modifier など、一覧画面から共有される表示部品を担う。
+  - 動画タイル右下の再生数 / 時間区分バッジを担う。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
   - チャンネル削除と整合性メンテナンスの起点。
   - 全体更新と単独チャンネル強制更新の両方を制御する。
   - キャッシュ検索結果、YouTube 検索結果、ホームのシステム状況集約を担う。
+  - チャンネル別動画一覧では、通常キャッシュと検索キャッシュをチャンネル単位でマージして返す。
 - [HelloWorld/Features/FeedCache/FeedChannelSyncService.swift](HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、条件付き更新判定、store 反映を束ねる更新実行サービス。
   - coordinator からネットワーク / 永続化の細部を切り離し、更新 orchestration の責務を薄くする。
@@ -86,6 +90,7 @@
 - [HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift](HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - YouTube 検索結果の端末内キャッシュを永続化する。
   - 検索キャッシュの鮮度判定と件数要約を返す。
+  - 同一キーワードの検索履歴を append / merge し、クリア操作を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheModels.swift](HelloWorld/Features/FeedCache/FeedCacheModels.swift)
   - キャッシュ用モデルと進捗モデル。
   - チャンネル登録日時を含む registry 永続化モデル。
@@ -131,6 +136,8 @@
 - YouTube 検索結果は `remote-search-<keyword>.json` として別ファイル保存し、通常キャッシュと責務を分ける。
 - 検索キャッシュは長めの TTL で扱い、通常の再訪では API 再取得を避ける。
 - 検索画面表示時はキャッシュだけを読む。実検索は pull-to-refresh でだけ走らせ、API クォータ消費のタイミングをユーザーへ委ねる。
+- YouTube 検索結果は同一キーワードで上書きせず、動画 ID 単位でマージしながら蓄積する。
+- チャンネル別動画一覧は feed cache と検索 cache を channel ID 単位で突き合わせて統合表示する。
 - ローカル秘密情報は `Config/LocalSecrets.xcconfig` に置き、`.gitignore` で追跡対象外にする。
 - registry ファイルがまだ存在しない旧データでは、bootstrap と cache からチャンネル ID を復元して registry を初期化する。
 - バックアップの固定パスは `~/Documents/HelloWorld/channel-registry.json` 相当とし、iPhone / Mac とも同じ JSON 形式を使う。
@@ -182,7 +189,7 @@
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - cache.json、bootstrap、thumbnail、channel registry の読取利用と整合性メンテナンスを担う。
 - [HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift](HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
-  - 検索結果キャッシュの永続化を担う。
+  - 検索結果キャッシュの永続化、マージ、クリアを担う。
 - [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
   - 更新確認、本体取得、XML parser を担う。
 - [HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift](HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift)

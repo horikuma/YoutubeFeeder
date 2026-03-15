@@ -73,7 +73,9 @@ final class FeedCacheMaintenanceTests: XCTestCase {
                         thumbnailRemoteURL: nil,
                         thumbnailLocalFilename: "video-1.jpg",
                         fetchedAt: now,
-                        searchableText: "kept"
+                        searchableText: "kept",
+                        durationSeconds: 1_500,
+                        viewCount: 101
                     ),
                     CachedVideo(
                         id: "video-2",
@@ -85,7 +87,9 @@ final class FeedCacheMaintenanceTests: XCTestCase {
                         thumbnailRemoteURL: nil,
                         thumbnailLocalFilename: "video-2.jpg",
                         fetchedAt: now,
-                        searchableText: "removed"
+                        searchableText: "removed",
+                        durationSeconds: 2_100,
+                        viewCount: 202
                     ),
                 ]
             )

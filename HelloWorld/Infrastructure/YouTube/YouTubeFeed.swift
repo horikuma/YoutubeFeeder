@@ -27,6 +27,8 @@ struct YouTubeVideo: Identifiable, Hashable {
     let publishedAt: Date?
     let videoURL: URL?
     let thumbnailURL: URL?
+    let durationSeconds: Int?
+    let viewCount: Int?
 }
 
 struct ResolvedYouTubeChannel: Hashable {
@@ -246,7 +248,7 @@ struct YouTubeFeedService {
             )
         )
 
-        let videos = YouTubeFeedParser().parse(data: data)
+        let parsedVideos = YouTubeFeedParser().parse(data: data)
             .sorted { lhs, rhs in
                 switch (lhs.publishedAt, rhs.publishedAt) {
                 case let (left?, right?):
@@ -257,6 +259,12 @@ struct YouTubeFeedService {
                     return false
                 }
             }
+
+        let videos = if let details = try? await fetchVideoDetails(for: parsedVideos.map(\.id)) {
+            applyVideoDetails(details, to: parsedVideos)
+        } else {
+            parsedVideos
+        }
 
         return (videos, metadata)
     }
@@ -306,6 +314,127 @@ struct YouTubeFeedService {
 
     private static func feedURL(for channelID: String) -> URL {
         URL(string: "https://www.youtube.com/feeds/videos.xml?playlist_id=\(uploadsPlaylistID(for: channelID))")!
+    }
+
+    private func fetchVideoDetails(for videoIDs: [String]) async throws -> [String: FeedVideoDetail] {
+        guard let apiKey = resolvedAPIKey else { return [:] }
+        guard !videoIDs.isEmpty else { return [:] }
+
+        var detailsByID: [String: FeedVideoDetail] = [:]
+        for batch in videoIDs.chunked(into: 50) {
+            var components = URLComponents(string: "https://www.googleapis.com/youtube/v3/videos")
+            components?.queryItems = [
+                URLQueryItem(name: "part", value: "contentDetails,statistics"),
+                URLQueryItem(name: "id", value: batch.joined(separator: ",")),
+                URLQueryItem(name: "maxResults", value: String(batch.count)),
+            ]
+
+            guard let url = components?.url else { continue }
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+            request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let decoder = JSONDecoder()
+            let response = try decoder.decode(FeedVideoListResponse.self, from: data)
+            for item in response.items {
+                detailsByID[item.id] = FeedVideoDetail(
+                    durationSeconds: Self.parseDuration(item.contentDetails.duration),
+                    viewCount: item.statistics.viewCount.flatMap(Int.init)
+                )
+            }
+        }
+
+        return detailsByID
+    }
+
+    private func applyVideoDetails(_ details: [String: FeedVideoDetail], to videos: [YouTubeVideo]) -> [YouTubeVideo] {
+        videos.map { video in
+            let detail = details[video.id]
+            return YouTubeVideo(
+                id: video.id,
+                title: video.title,
+                channelTitle: video.channelTitle,
+                publishedAt: video.publishedAt,
+                videoURL: video.videoURL,
+                thumbnailURL: video.thumbnailURL,
+                durationSeconds: detail?.durationSeconds,
+                viewCount: detail?.viewCount
+            )
+        }
+    }
+
+    private var resolvedAPIKey: String? {
+        let environmentKey = ProcessInfo.processInfo.environment["HELLOWORLD_YOUTUBE_API_KEY"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let environmentKey, !environmentKey.isEmpty {
+            return environmentKey
+        }
+
+        let plistKey = Bundle.main.object(forInfoDictionaryKey: "YouTubeAPIKey") as? String
+        if let plistKey {
+            let trimmed = plistKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty, !trimmed.hasPrefix("$(") {
+                return trimmed
+            }
+        }
+
+        return nil
+    }
+
+    private static func parseDuration(_ value: String) -> Int? {
+        let pattern = #"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(value.startIndex..., in: value)
+        guard let match = regex.firstMatch(in: value, range: range) else { return nil }
+
+        func component(_ index: Int) -> Int {
+            guard
+                match.numberOfRanges > index,
+                let range = Range(match.range(at: index), in: value)
+            else { return 0 }
+            return Int(value[range]) ?? 0
+        }
+
+        let hours = component(1)
+        let minutes = component(2)
+        let seconds = component(3)
+        return hours * 3600 + minutes * 60 + seconds
+    }
+}
+
+private struct FeedVideoDetail {
+    let durationSeconds: Int?
+    let viewCount: Int?
+}
+
+private struct FeedVideoListResponse: Decodable {
+    let items: [Item]
+
+    struct Item: Decodable {
+        let id: String
+        let contentDetails: ContentDetails
+        let statistics: Statistics
+    }
+
+    struct ContentDetails: Decodable {
+        let duration: String
+    }
+
+    struct Statistics: Decodable {
+        let viewCount: String?
+    }
+}
+
+private extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        guard size > 0 else { return [self] }
+        var result: [[Element]] = []
+        var index = startIndex
+        while index < endIndex {
+            let nextIndex = self.index(index, offsetBy: size, limitedBy: endIndex) ?? endIndex
+            result.append(Array(self[index ..< nextIndex]))
+            index = nextIndex
+        }
+        return result
     }
 }
 
@@ -396,7 +525,9 @@ final class YouTubeFeedParser: NSObject, XMLParserDelegate {
                     channelTitle: currentChannelTitle,
                     publishedAt: currentPublishedAt,
                     videoURL: currentVideoURL,
-                    thumbnailURL: currentThumbnailURL
+                    thumbnailURL: currentThumbnailURL,
+                    durationSeconds: nil,
+                    viewCount: nil
                 )
             )
             inEntry = false

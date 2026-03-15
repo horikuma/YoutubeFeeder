@@ -45,17 +45,21 @@ struct InteractiveListScreen<Content: View>: View {
 
 struct LongPressVideoTile: View {
     let video: CachedVideo
-    let openVideo: () -> Void
+    let tapAction: (() -> Void)?
+    let openVideoAction: (() -> Void)?
     let removeChannel: (() -> Void)?
+    let index: Int?
 
     var body: some View {
-        VideoHeroTile(video: video)
+        let tile = VideoHeroTile(video: video, index: index)
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .contextMenu {
-                Button {
-                    openVideo()
-                } label: {
-                    Label("YouTubeで開く", systemImage: "play.rectangle")
+                if let openVideoAction {
+                    Button {
+                        openVideoAction()
+                    } label: {
+                        Label("YouTubeで開く", systemImage: "play.rectangle")
+                    }
                 }
 
                 if let removeChannel {
@@ -69,11 +73,21 @@ struct LongPressVideoTile: View {
             .accessibilityAddTraits(.isButton)
             .accessibilityHint("長押しでメニューを開きます")
             .accessibilityIdentifier("video.tile.\(video.id)")
+
+        if let tapAction {
+            Button(action: tapAction) {
+                tile
+            }
+            .buttonStyle(.plain)
+        } else {
+            tile
+        }
     }
 }
 
 struct ChannelHeroTile: View {
     let item: ChannelBrowseItem
+    let index: Int?
 
     var body: some View {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -104,6 +118,12 @@ struct ChannelHeroTile: View {
                 }
                 .padding(16)
             }
+            .overlay(alignment: .topTrailing) {
+                if let index {
+                    TileIndexBadge(index: index)
+                        .padding(12)
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
@@ -116,6 +136,7 @@ struct ChannelHeroTile: View {
 struct ChannelSelectionTile: View {
     let item: ChannelBrowseItem
     let isSelected: Bool
+    let index: Int?
 
     var body: some View {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -157,6 +178,12 @@ struct ChannelSelectionTile: View {
                 }
                 .padding(16)
             }
+            .overlay(alignment: .topTrailing) {
+                if let index {
+                    TileIndexBadge(index: index)
+                        .padding(12)
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
@@ -169,6 +196,7 @@ struct ChannelSelectionTile: View {
 
 struct VideoHeroTile: View {
     let video: CachedVideo
+    let index: Int?
 
     var body: some View {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -198,12 +226,53 @@ struct VideoHeroTile: View {
                 }
                 .padding(16)
             }
+            .overlay(alignment: .topTrailing) {
+                if let index {
+                    TileIndexBadge(index: index)
+                        .padding(12)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                VideoDebugBadge(video: video)
+                    .padding(14)
+            }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private func formattedDate(_ date: Date?) -> String {
         guard let date else { return "投稿日なし" }
         return AppFormatting.dateTimeFormatter.string(from: date)
+    }
+}
+
+private struct TileIndexBadge: View {
+    let index: Int
+
+    var body: some View {
+        Text("\(index)")
+            .font(.caption2.monospacedDigit().weight(.bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(.black.opacity(0.7), in: Capsule())
+    }
+}
+
+private struct VideoDebugBadge: View {
+    let video: CachedVideo
+
+    var body: some View {
+        Text("\(AppFormatting.compactViewCount(video.viewCount)) \(durationBucketLabel)")
+            .font(.caption2.monospacedDigit().weight(.bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(.black.opacity(0.72), in: Capsule())
+    }
+
+    private var durationBucketLabel: String {
+        guard let durationSeconds = video.durationSeconds else { return "--" }
+        return durationSeconds >= 20 * 60 ? "L" : "M"
     }
 }
 
@@ -259,4 +328,3 @@ struct BackSwipePopModifier: ViewModifier {
         }
     }
 }
-

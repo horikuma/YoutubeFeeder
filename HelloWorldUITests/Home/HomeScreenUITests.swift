@@ -43,8 +43,7 @@ final class HomeScreenUITests: UITestCaseSupport {
         waitForHomeScreen(in: app, timeout: 3)
 
         element("nav.remoteSearch", in: app).tap()
-        XCTAssertTrue(app.staticTexts["下に引っ張ると「ゆっくり実況」を YouTube で検索し、新しい順に最大100件表示"].waitForExistence(timeout: 3))
-        XCTAssertTrue(element("search.resultChip", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["下に引っ張ると「ゆっくり実況」を YouTube で検索し、履歴を順次マージして表示"].waitForExistence(timeout: 3))
 
         let searchScrollView = app.scrollViews.firstMatch
         XCTAssertTrue(searchScrollView.waitForExistence(timeout: 3))

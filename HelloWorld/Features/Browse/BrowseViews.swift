@@ -44,9 +44,9 @@ struct ChannelBrowseListView: View {
                         MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
                     } else {
                         LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                            ForEach(items) { item in
+                            ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
                                 NavigationLink(value: MaintenanceRoute.channelVideos(item.channelID)) {
-                                    ChannelHeroTile(item: item)
+                                    ChannelHeroTile(item: item, index: offset + 1)
                                 }
                                 .buttonStyle(.plain)
                                 .contextMenu {
@@ -161,10 +161,11 @@ struct SplitChannelBrowseView: View {
                     MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
                 } else {
                     LazyVStack(spacing: 16) {
-                        ForEach(items) { item in
+                        ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
                             ChannelSelectionTile(
                                 item: item,
-                                isSelected: item.channelID == selectedChannelID
+                                isSelected: item.channelID == selectedChannelID,
+                                index: offset + 1
                             )
                             .onTapGesture {
                                 selectChannel(item.channelID)
@@ -214,10 +215,11 @@ struct SplitChannelBrowseView: View {
                         MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
                     } else {
                         LazyVGrid(columns: layout.listColumns, spacing: 20) {
-                            ForEach(videosForSelectedChannel) { video in
+                            ForEach(Array(videosForSelectedChannel.enumerated()), id: \.element.id) { offset, video in
                                 LongPressVideoTile(
                                     video: video,
-                                    openVideo: {
+                                    tapAction: nil,
+                                    openVideoAction: {
                                         openVideo(video)
                                     },
                                     removeChannel: {
@@ -232,7 +234,8 @@ struct SplitChannelBrowseView: View {
                                                 cachedVideoCount: 0
                                             )
                                         )
-                                    }
+                                    },
+                                    index: offset + 1
                                 )
                             }
                         }
@@ -324,18 +327,20 @@ struct AllVideosView: View {
                 MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を最大50件まで表示します")
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                    ForEach(coordinator.videos) { video in
+                    ForEach(Array(coordinator.videos.enumerated()), id: \.element.id) { offset, video in
                         LongPressVideoTile(
                             video: video,
-                            openVideo: {
-                                openVideo(video)
+                            tapAction: {
+                                path.append(MaintenanceRoute.channelVideos(video.channelID))
                             },
+                            openVideoAction: nil,
                             removeChannel: {
                                 pendingChannelRemoval = PendingChannelRemoval(
                                     channelID: video.channelID,
                                     channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
                                 )
-                            }
+                            },
+                            index: offset + 1
                         )
                     }
                 }
@@ -409,14 +414,16 @@ struct KeywordSearchResultsView: View {
                 MetricTile(title: "検索結果", value: "0件", detail: "一致する動画がキャッシュにありません")
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                    ForEach(result.videos) { video in
+                    ForEach(Array(result.videos.enumerated()), id: \.element.id) { offset, video in
                         LongPressVideoTile(
                             video: video,
-                            openVideo: {
+                            tapAction: {
                                 dismissChip()
-                                openVideo(video)
+                                path.append(MaintenanceRoute.channelVideos(video.channelID))
                             },
-                            removeChannel: nil
+                            openVideoAction: nil,
+                            removeChannel: nil,
+                            index: offset + 1
                         )
                     }
                 }
@@ -508,11 +515,12 @@ struct RemoteKeywordSearchResultsView: View {
 
     @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
     @State private var isChipVisible = true
+    @State private var visibleCount = 20
 
     var body: some View {
         InteractiveListScreen(
             title: "YouTube検索",
-            subtitle: "下に引っ張ると「\(keyword)」を YouTube で検索し、新しい順に最大100件表示",
+            subtitle: "下に引っ張ると「\(keyword)」を YouTube で検索し、履歴を順次マージして表示",
             coordinator: coordinator,
             path: $path,
             layout: layout,
@@ -532,16 +540,35 @@ struct RemoteKeywordSearchResultsView: View {
             } else if result.videos.isEmpty {
                 MetricTile(title: "YouTube検索", value: "0件", detail: "一致する動画が見つかりませんでした")
             } else {
+                let visibleVideos = Array(result.videos.prefix(visibleCount))
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                    ForEach(result.videos) { video in
+                    ForEach(Array(visibleVideos.enumerated()), id: \.element.id) { offset, video in
                         LongPressVideoTile(
                             video: video,
-                            openVideo: {
+                            tapAction: {
                                 dismissChip()
-                                openVideo(video)
+                                path.append(MaintenanceRoute.channelVideos(video.channelID))
                             },
-                            removeChannel: nil
+                            openVideoAction: nil,
+                            removeChannel: nil,
+                            index: offset + 1
                         )
+                        .onAppear {
+                            guard offset >= visibleVideos.count - 1 else { return }
+                            loadMoreIfNeeded()
+                        }
+                    }
+                }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if result.totalCount > 0 {
+                    Button("クリア") {
+                        Task {
+                            await coordinator.clearRemoteSearchHistory(keyword: keyword)
+                            await loadSnapshot()
+                        }
                     }
                 }
             }
@@ -570,11 +597,13 @@ struct RemoteKeywordSearchResultsView: View {
 
     private func loadSnapshot() async {
         result = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
+        visibleCount = min(20, max(result.videos.count, 20))
         isChipVisible = result.fetchedAt != nil
     }
 
     private func reloadResults(forceRefresh: Bool) async {
         result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: forceRefresh)
+        visibleCount = min(20, max(result.videos.count, 20))
         isChipVisible = result.fetchedAt != nil
     }
 
@@ -593,6 +622,11 @@ struct RemoteKeywordSearchResultsView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             isChipVisible = false
         }
+    }
+
+    private func loadMoreIfNeeded() {
+        guard visibleCount < result.videos.count else { return }
+        visibleCount = min(visibleCount + 20, result.videos.count)
     }
 }
 
@@ -634,10 +668,11 @@ struct ChannelVideosView: View {
                 MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                    ForEach(videos) { video in
+                    ForEach(Array(videos.enumerated()), id: \.element.id) { offset, video in
                         LongPressVideoTile(
                             video: video,
-                            openVideo: {
+                            tapAction: nil,
+                            openVideoAction: {
                                 openVideo(video)
                             },
                             removeChannel: {
@@ -645,7 +680,8 @@ struct ChannelVideosView: View {
                                     channelID: video.channelID,
                                     channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
                                 )
-                            }
+                            },
+                            index: offset + 1
                         )
                     }
                 }
@@ -696,7 +732,9 @@ struct ChannelVideosView: View {
     }
 
     private var channelTitle: String {
-        coordinator.maintenanceItems.first(where: { $0.channelID == channelID })?.channelTitle ?? channelID
+        coordinator.maintenanceItems.first(where: { $0.channelID == channelID })?.channelTitle
+            ?? videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
+            ?? channelID
     }
 
     private func reloadVideos() async {
