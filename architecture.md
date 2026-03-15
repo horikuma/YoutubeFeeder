@@ -40,23 +40,28 @@
 - [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
   - ホーム画面本体。
   - 手動更新と一覧画面への導線。
+  - `Menu` ベースのチャンネル一覧ソート選択。
   - チャンネル登録画面への導線。
   - チャンネル登録結果のフィードバック表示。
 - [HelloWorld/Features/Home/HomeUIComponents.swift](HelloWorld/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
 - [HelloWorld/Features/Home/HomeRoutes.swift](HelloWorld/Features/Home/HomeRoutes.swift)
   - 一覧系画面への遷移定義。
+  - チャンネル一覧には並び順 descriptor を渡す。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル一覧、全動画一覧、チャンネル別動画一覧。
   - 一覧系共通コンテナ `InteractiveListScreen`。
   - iPad 横向きのチャンネル閲覧は `NavigationSplitView` を使う。
+  - 選択された並び順 descriptor を一覧サブタイトルと並び順へ反映する。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - ファイル永続化、snapshot 読込、thumbnail 保存。
+  - チャンネル一覧描画用の集約データを返す。
 - [HelloWorld/Features/FeedCache/FeedCacheModels.swift](HelloWorld/Features/FeedCache/FeedCacheModels.swift)
   - キャッシュ用モデルと進捗モデル。
+  - チャンネル登録日時を含む registry 永続化モデル。
 
 ### Infrastructure
 
@@ -72,6 +77,7 @@
   - `BackSwipePolicy`
   - `VideoOpenPolicy`
   - `FeedOrdering`
+  - `ChannelBrowseSortDescriptor`
   - 画面から切り離せる pure logic を集約する。
 
 ### Resources
@@ -87,6 +93,7 @@
 
 - キャッシュは永続データとして扱う。
 - ユーザー追加チャンネルは `Channel ID` を主キーとして別ファイルに永続化する。
+- ユーザー追加チャンネルには登録日時を保持し、一覧ソートの指標として再利用する。
 - 軽量 bootstrap と本体 cache を分ける。
   - bootstrap: ホーム画面を即時表示するための軽量情報
   - cache: チャンネル状態、動画メタデータ、サムネイル位置を含む本体
@@ -118,17 +125,17 @@
 - [HelloWorld/App/ContentView.swift](HelloWorld/App/ContentView.swift)
   - ルート画面、起動画面からホーム画面への遷移、ルートレベルの navigation を担う。
 - [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
-  - ホーム画面の表示と手動更新導線を担う。
+  - ホーム画面の表示、手動更新導線、一覧ソート選択を担う。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
-  - 一覧系 UI とその共通挙動を担う。
+  - 一覧系 UI、共通挙動、並び順表示を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
-  - cache.json、bootstrap、thumbnail の永続化と query を担う。
+  - cache.json、bootstrap、thumbnail、channel registry の読取利用を担う。
 - [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
   - 更新確認、本体取得、XML parser を担う。
 - [HelloWorld/Shared/AppLogic.swift](HelloWorld/Shared/AppLogic.swift)
-  - スワイプ判定、長押し判定、並び順、鮮度判定などの pure logic を担う。
+  - スワイプ判定、長押し判定、一覧並び順、鮮度判定などの pure logic を担う。
 
 ## テスト構造
 

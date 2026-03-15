@@ -79,9 +79,11 @@ final class FeedCacheCoordinator: ObservableObject {
         }
     }
 
-    func loadChannelBrowseItems() async -> [ChannelBrowseItem] {
+    func loadChannelBrowseItems(sortDescriptor: ChannelBrowseSortDescriptor = .default) async -> [ChannelBrowseItem] {
         let channelIDs = maintenanceItems.map(\.channelID).isEmpty ? channels : maintenanceItems.map(\.channelID)
-        return await store.loadChannelBrowseItems(channelIDs: channelIDs)
+        let registeredAtByChannelID = Dictionary(uniqueKeysWithValues: ChannelRegistryStore.loadAllChannels().map { ($0.channelID, $0.addedAt) })
+        let items = await store.loadChannelBrowseItems(channelIDs: channelIDs, registeredAtByChannelID: registeredAtByChannelID)
+        return FeedOrdering.sortBrowseItems(items, by: sortDescriptor)
     }
 
     func loadVideosForChannel(_ channelID: String) async -> [CachedVideo] {
@@ -107,10 +109,18 @@ final class FeedCacheCoordinator: ObservableObject {
                 await store.cacheThumbnail(for: video)
             }
             latestFeedError = nil
-            cachedItem = await store.loadChannelBrowseItems(channelIDs: [resolvedChannel.channelID]).first
+            let registeredAtByChannelID = [resolvedChannel.channelID: ChannelRegistryStore.registrationDate(for: resolvedChannel.channelID)]
+            cachedItem = await store.loadChannelBrowseItems(
+                channelIDs: [resolvedChannel.channelID],
+                registeredAtByChannelID: registeredAtByChannelID
+            ).first
         } catch {
             latestFeedError = error.localizedDescription
-            cachedItem = await store.loadChannelBrowseItems(channelIDs: [resolvedChannel.channelID]).first
+            let registeredAtByChannelID = [resolvedChannel.channelID: ChannelRegistryStore.registrationDate(for: resolvedChannel.channelID)]
+            cachedItem = await store.loadChannelBrowseItems(
+                channelIDs: [resolvedChannel.channelID],
+                registeredAtByChannelID: registeredAtByChannelID
+            ).first
         }
 
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError, includesVideos: false)

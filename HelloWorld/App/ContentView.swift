@@ -38,8 +38,14 @@ struct ContentView: View {
                         )
                         .navigationDestination(for: MaintenanceRoute.self) { route in
                             switch route {
-                            case .channelList:
-                                ChannelBrowseListView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
+                            case let .channelList(sortDescriptor):
+                                ChannelBrowseListView(
+                                    coordinator: coordinator,
+                                    openVideo: openVideo,
+                                    path: $navigationPath,
+                                    layout: layout,
+                                    sortDescriptor: sortDescriptor
+                                )
                             case .allVideos:
                                 AllVideosView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
                             case .channelRegistration:

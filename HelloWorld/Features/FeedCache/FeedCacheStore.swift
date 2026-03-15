@@ -54,7 +54,7 @@ actor FeedCacheStore {
             .map { $0 }
     }
 
-    func loadChannelBrowseItems(channelIDs: [String]) -> [ChannelBrowseItem] {
+    func loadChannelBrowseItems(channelIDs: [String], registeredAtByChannelID: [String: Date?] = [:]) -> [ChannelBrowseItem] {
         let snapshot = loadSnapshot()
         let groupedVideos = Dictionary(grouping: snapshot.videos.filter { !looksLikeShort($0) }, by: \.channelID)
         let states = Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) })
@@ -67,17 +67,10 @@ actor FeedCacheStore {
                 channelID: channelID,
                 channelTitle: state?.channelTitle ?? latestVideo?.channelTitle ?? channelID,
                 latestPublishedAt: state?.latestPublishedAt ?? latestVideo?.publishedAt,
+                registeredAt: registeredAtByChannelID[channelID] ?? nil,
                 latestVideo: latestVideo,
                 cachedVideoCount: state?.cachedVideoCount ?? groupedVideos[channelID]?.count ?? 0
             )
-        }
-        .sorted { lhs, rhs in
-            switch (lhs.latestPublishedAt, rhs.latestPublishedAt) {
-            case let (left?, right?): return left > right
-            case (_?, nil): return true
-            case (nil, _?): return false
-            default: return lhs.channelTitle < rhs.channelTitle
-            }
         }
     }
 

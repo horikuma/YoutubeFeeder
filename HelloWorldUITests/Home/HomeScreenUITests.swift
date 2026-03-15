@@ -35,4 +35,14 @@ final class HomeScreenUITests: UITestCaseSupport {
         XCTAssertTrue(element("channelRegistration.input", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("channelRegistration.submit", in: app).waitForExistence(timeout: 3))
     }
+
+    func testChannelMenuShowsSortOptions() throws {
+        let app = launchApp()
+
+        XCTAssertTrue(element("nav.channels", in: app).waitForExistence(timeout: 5))
+        element("nav.channels", in: app).tap()
+
+        XCTAssertTrue(app.buttons["動画投稿日時 ↓"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["チャンネル登録日時 ↓"].waitForExistence(timeout: 3))
+    }
 }

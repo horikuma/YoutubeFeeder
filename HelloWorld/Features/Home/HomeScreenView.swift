@@ -6,6 +6,7 @@ struct HomeScreenView: View {
     let diagnostics: StartupDiagnostics
     let navigationPath: Binding<NavigationPath>
     @State private var didRunAutoRefresh = false
+    @State private var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
 
     var body: some View {
         ScrollView {
@@ -47,14 +48,34 @@ struct HomeScreenView: View {
 
     private var navigationSection: some View {
         LazyVGrid(columns: layoutColumns, spacing: 16) {
-            NavigationLink(value: MaintenanceRoute.channelList) {
+            Menu {
+                ForEach(ChannelBrowseSortMetric.allCases) { metric in
+                    Section(metric.label) {
+                        ForEach(SortDirection.allCases, id: \.self) { direction in
+                            let option = ChannelBrowseSortDescriptor(metric: metric, direction: direction)
+                            Button {
+                                channelSortDescriptor = option
+                                navigationPath.wrappedValue.append(MaintenanceRoute.channelList(option))
+                            } label: {
+                                HStack {
+                                    Text(option.shortLabel)
+                                    if option == channelSortDescriptor {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } label: {
                 MetricTile(
                     title: "チャンネル",
-                    value: "",
-                    detail: "タップでチャンネル一覧"
+                    value: channelSortDescriptor.shortLabel,
+                    detail: "並び順を選んでチャンネル一覧へ"
                 )
             }
-            .buttonStyle(.plain)
+            .menuStyle(.borderlessButton)
             .accessibilityIdentifier("nav.channels")
 
             NavigationLink(value: MaintenanceRoute.allVideos) {

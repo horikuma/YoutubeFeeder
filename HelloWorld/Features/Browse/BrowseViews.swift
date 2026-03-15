@@ -5,6 +5,7 @@ struct ChannelBrowseListView: View {
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let layout: AppLayout
+    let sortDescriptor: ChannelBrowseSortDescriptor
 
     @State private var items: [ChannelBrowseItem] = []
 
@@ -16,12 +17,13 @@ struct ChannelBrowseListView: View {
                     openVideo: openVideo,
                     path: $path,
                     layout: layout,
+                    sortDescriptor: sortDescriptor,
                     items: items
                 )
             } else {
                 InteractiveListScreen(
                     title: "チャンネル一覧",
-                    subtitle: "最新投稿日が新しい順",
+                    subtitle: sortDescriptor.listSubtitle,
                     coordinator: coordinator,
                     path: $path,
                     layout: layout
@@ -43,7 +45,7 @@ struct ChannelBrowseListView: View {
             }
         }
         .task {
-            items = await coordinator.loadChannelBrowseItems()
+            items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
         }
         .onAppear {
             StartupDiagnostics.shared.mark("channelListShown")
@@ -56,6 +58,7 @@ struct SplitChannelBrowseView: View {
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let layout: AppLayout
+    let sortDescriptor: ChannelBrowseSortDescriptor
     let items: [ChannelBrowseItem]
 
     @State private var selectedChannelID: String?
@@ -165,7 +168,7 @@ struct SplitChannelBrowseView: View {
                 .font(.system(size: 34, weight: .black, design: .rounded))
                 .accessibilityIdentifier("screen.title")
 
-            Text("最新投稿日が新しい順")
+            Text(sortDescriptor.listSubtitle)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }

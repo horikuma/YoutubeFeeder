@@ -102,4 +102,79 @@ final class FeedOrderingTests: XCTestCase {
             ["A", "B"]
         )
     }
+
+    func testSortBrowseItemsByRegistrationDateDescending() {
+        let older = Date(timeIntervalSince1970: 1_000)
+        let newer = Date(timeIntervalSince1970: 2_000)
+        let items = [
+            ChannelBrowseItem(
+                id: "A",
+                channelID: "A",
+                channelTitle: "A",
+                latestPublishedAt: nil,
+                registeredAt: older,
+                latestVideo: nil,
+                cachedVideoCount: 0
+            ),
+            ChannelBrowseItem(
+                id: "B",
+                channelID: "B",
+                channelTitle: "B",
+                latestPublishedAt: nil,
+                registeredAt: newer,
+                latestVideo: nil,
+                cachedVideoCount: 0
+            ),
+            ChannelBrowseItem(
+                id: "C",
+                channelID: "C",
+                channelTitle: "C",
+                latestPublishedAt: nil,
+                registeredAt: nil,
+                latestVideo: nil,
+                cachedVideoCount: 0
+            ),
+        ]
+
+        XCTAssertEqual(
+            FeedOrdering.sortBrowseItems(
+                items,
+                by: ChannelBrowseSortDescriptor(metric: .registrationDate, direction: .descending)
+            ).map(\.channelID),
+            ["B", "A", "C"]
+        )
+    }
+
+    func testSortBrowseItemsByRegistrationDateAscending() {
+        let older = Date(timeIntervalSince1970: 1_000)
+        let newer = Date(timeIntervalSince1970: 2_000)
+        let items = [
+            ChannelBrowseItem(
+                id: "A",
+                channelID: "A",
+                channelTitle: "A",
+                latestPublishedAt: nil,
+                registeredAt: older,
+                latestVideo: nil,
+                cachedVideoCount: 0
+            ),
+            ChannelBrowseItem(
+                id: "B",
+                channelID: "B",
+                channelTitle: "B",
+                latestPublishedAt: nil,
+                registeredAt: newer,
+                latestVideo: nil,
+                cachedVideoCount: 0
+            ),
+        ]
+
+        XCTAssertEqual(
+            FeedOrdering.sortBrowseItems(
+                items,
+                by: ChannelBrowseSortDescriptor(metric: .registrationDate, direction: .ascending)
+            ).map(\.channelID),
+            ["A", "B"]
+        )
+    }
 }
