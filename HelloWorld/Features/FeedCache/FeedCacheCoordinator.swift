@@ -134,7 +134,7 @@ final class FeedCacheCoordinator: ObservableObject {
         return VideoSearchResult(keyword: normalizedKeyword, videos: videos, totalCount: totalCount, source: .localCache)
     }
 
-    func searchRemoteVideos(keyword: String, limit: Int = 20, forceRefresh: Bool = false) async -> VideoSearchResult {
+    func loadRemoteSearchSnapshot(keyword: String, limit: Int = 100) async -> VideoSearchResult {
         let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedKeyword.isEmpty else {
             return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
@@ -152,9 +152,25 @@ final class FeedCacheCoordinator: ObservableObject {
             )
         }
 
-        if !forceRefresh,
-           let cached = await cachedRemoteSearchResult(keyword: normalizedKeyword, limit: limit, allowExpired: false) {
+        if let cached = await cachedRemoteSearchResult(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
             return cached
+        }
+
+        return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
+    }
+
+    func searchRemoteVideos(keyword: String, limit: Int = 100, forceRefresh: Bool = false) async -> VideoSearchResult {
+        let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedKeyword.isEmpty else {
+            return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
+        }
+
+        if AppLaunchMode.current.usesMockData {
+            return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
+        }
+
+        if !forceRefresh {
+            return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
         }
 
         do {

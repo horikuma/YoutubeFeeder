@@ -424,7 +424,7 @@ struct KeywordSearchResultsView: View {
         }
         .safeAreaInset(edge: .bottom) {
             if isChipVisible {
-                SearchResultCountChip(totalCount: result.totalCount, sourceLabel: result.source.label)
+                SearchResultCountChip(totalCount: result.totalCount, sourceLabel: result.source.label, fetchedAt: result.fetchedAt)
                     .padding(.bottom, 10)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -468,10 +468,14 @@ struct KeywordSearchResultsView: View {
 private struct SearchResultCountChip: View {
     let totalCount: Int
     let sourceLabel: String
+    let fetchedAt: Date?
 
     var body: some View {
         HStack(spacing: 8) {
-            Text("検索結果 \(totalCount) 件")
+            if let fetchedAt {
+                Text("最終更新 \(Self.timestampFormatter.string(from: fetchedAt))")
+            }
+            Text("\(totalCount) 件")
             Text(sourceLabel)
                 .foregroundStyle(.secondary)
         }
@@ -486,6 +490,13 @@ private struct SearchResultCountChip: View {
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
         .accessibilityIdentifier("search.resultChip")
     }
+
+    private static let timestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "M/d HH:mm"
+        return formatter
+    }()
 }
 
 struct RemoteKeywordSearchResultsView: View {
@@ -501,16 +512,22 @@ struct RemoteKeywordSearchResultsView: View {
     var body: some View {
         InteractiveListScreen(
             title: "YouTube検索",
-            subtitle: "「\(keyword)」を YouTube で検索し、新しい順に20件表示",
+            subtitle: "下に引っ張ると「\(keyword)」を YouTube で検索し、新しい順に最大100件表示",
             coordinator: coordinator,
             path: $path,
             layout: layout,
             onRefresh: {
                 await reloadResults(forceRefresh: true)
-                dismissChip()
+                scheduleChipDismiss()
             }
         ) {
-            if let errorMessage = result.errorMessage, result.videos.isEmpty {
+            if result.fetchedAt == nil, result.videos.isEmpty, result.errorMessage == nil {
+                MetricTile(
+                    title: "YouTube検索",
+                    value: "未取得",
+                    detail: "この画面で下に引っ張ると検索します。結果はキャッシュされ、次回はその内容を表示します"
+                )
+            } else if let errorMessage = result.errorMessage, result.videos.isEmpty {
                 MetricTile(title: "YouTube検索", value: "取得できません", detail: errorMessage)
             } else if result.videos.isEmpty {
                 MetricTile(title: "YouTube検索", value: "0件", detail: "一致する動画が見つかりませんでした")
@@ -530,8 +547,8 @@ struct RemoteKeywordSearchResultsView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if isChipVisible {
-                SearchResultCountChip(totalCount: result.totalCount, sourceLabel: result.source.label)
+            if isChipVisible, result.fetchedAt != nil {
+                SearchResultCountChip(totalCount: result.totalCount, sourceLabel: result.source.label, fetchedAt: result.fetchedAt)
                     .padding(.bottom, 10)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -543,7 +560,7 @@ struct RemoteKeywordSearchResultsView: View {
                 }
         )
         .task {
-            await reloadResults(forceRefresh: false)
+            await loadSnapshot()
             scheduleChipDismiss()
         }
         .onAppear {
@@ -551,12 +568,18 @@ struct RemoteKeywordSearchResultsView: View {
         }
     }
 
+    private func loadSnapshot() async {
+        result = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
+        isChipVisible = result.fetchedAt != nil
+    }
+
     private func reloadResults(forceRefresh: Bool) async {
-        result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 20, forceRefresh: forceRefresh)
-        isChipVisible = true
+        result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: forceRefresh)
+        isChipVisible = result.fetchedAt != nil
     }
 
     private func scheduleChipDismiss() {
+        guard result.fetchedAt != nil else { return }
         Task {
             try? await Task.sleep(for: .seconds(4))
             await MainActor.run {

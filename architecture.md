@@ -103,6 +103,7 @@
   - API キー解決とレスポンスの表示用モデル変換を担う。
   - API キーは環境変数または `Info.plist` 経由の build setting 注入から受ける。
   - API キーは URL クエリへ載せず、HTTP header で渡す。
+  - `medium` と `long` の 2 検索を束ね、`videos.list` でライブ除外と最終整形を行う。
 
 ### Shared
 
@@ -129,6 +130,7 @@
 - インポートではローカルのチャンネル設定をその JSON で置き換え、動画やサムネイルは転送しない。
 - YouTube 検索結果は `remote-search-<keyword>.json` として別ファイル保存し、通常キャッシュと責務を分ける。
 - 検索キャッシュは長めの TTL で扱い、通常の再訪では API 再取得を避ける。
+- 検索画面表示時はキャッシュだけを読む。実検索は pull-to-refresh でだけ走らせ、API クォータ消費のタイミングをユーザーへ委ねる。
 - ローカル秘密情報は `Config/LocalSecrets.xcconfig` に置き、`.gitignore` で追跡対象外にする。
 - registry ファイルがまだ存在しない旧データでは、bootstrap と cache からチャンネル ID を復元して registry を初期化する。
 - バックアップの固定パスは `~/Documents/HelloWorld/channel-registry.json` 相当とし、iPhone / Mac とも同じ JSON 形式を使う。
