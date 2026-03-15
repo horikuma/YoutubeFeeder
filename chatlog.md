@@ -1,8 +1,13 @@
 ## 2026/03/15
+- 現状はチャンネル情報を組み込んでいるが、本来これはユーザ固有の情報とすべきである。（直前のLLM所要時間: 約1m）
+- よって、バックアップする対象としてマスクするのではなく、全チャンネル情報を出力するようにする。（直前のLLM所要時間: 約1m）
+- バックアップしたのちに、改めてアプリ内部から固有のチャンネルリストを削除する予定なので、過渡的なオペレーションも視野に入れてテストせよ。（直前のLLM所要時間: 約1m）
+- decisions.mdも、他と同様、日付の見出しを追加する時は一行空行を挿入する。（直前のLLM所要時間: 約1m）
+- また、chatlog.mdに出力する際、フルパスが相対パスに変更されていないので、rules.mdを確認し個人情報に準ずる情報はマスクするようにする。（直前のLLM所要時間: 約1m）
 - 結構、ではiCloudを使うという仕様はオミットし、IFはそのままにデバイス単体に閉じた運用を当面は継続する。（直前のLLM所要時間: 約2m）
 - GUIを整理し、適切な状態まで後退せよ。（直前のLLM所要時間: 約2m）
 - 本機能は、他デバイス間移動ではなく、1デバイス内でのバックアップ用という位置付けとする。（直前のLLM所要時間: 約2m）
-- `/Users/ak/Documents/Codex/HelloWorld/HelloWorld.xcodeproj Cannot create a iOS App Development provisioning profile for "Neko.HelloWorld". Personal development teams do not support the iCloud capability.` というエラーでビルドできていない。何でテストを通している？
+- `<workspace>/HelloWorld.xcodeproj Cannot create a iOS App Development provisioning profile for "Neko.HelloWorld". Personal development teams do not support the iCloud capability.` というエラーでビルドできていない。何でテストを通している？
 - ビルドに失敗しているので、修正せよ。（直前のLLM所要時間: 約11m）
 - Macでも、iCloudに保存できなかった。（直前のLLM所要時間: 約11m）
 - この問題を解決せよ。（直前のLLM所要時間: 約11m）

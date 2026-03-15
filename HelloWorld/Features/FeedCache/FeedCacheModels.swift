@@ -2,6 +2,11 @@ import Foundation
 
 enum FeedCachePaths {
     static func baseDirectory(fileManager: FileManager = .default) -> URL {
+        if let override = ProcessInfo.processInfo.environment["HELLOWORLD_FEEDCACHE_BASE_DIR"],
+           !override.isEmpty {
+            return URL(fileURLWithPath: override, isDirectory: true)
+        }
+
         let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? fileManager.temporaryDirectory
         return appSupport.appendingPathComponent("FeedCache", isDirectory: true)
@@ -175,9 +180,9 @@ struct ChannelRegistryTransferFeedback: Hashable {
     var detail: String {
         switch action {
         case .export:
-            return "\(backend.shortLabel)へ追加チャンネル \(channelCount) 件を保存"
+            return "\(backend.shortLabel)へチャンネル \(channelCount) 件を保存"
         case .import:
-            return "\(backend.shortLabel)から追加チャンネル \(channelCount) 件を反映"
+            return "\(backend.shortLabel)からチャンネル \(channelCount) 件を反映"
         }
     }
 }
@@ -241,25 +246,47 @@ struct ChannelRegistrySnapshot: Codable {
 struct ChannelRegistryTransferDocument: Codable, Hashable {
     let formatVersion: Int
     let exportedAt: Date
-    let customChannels: [RegisteredChannelRecord]
+    let channels: [RegisteredChannelRecord]
 
-    init(formatVersion: Int = 1, exportedAt: Date = .now, customChannels: [RegisteredChannelRecord]) {
+    private enum CodingKeys: String, CodingKey {
+        case formatVersion
+        case exportedAt
+        case channels
+        case customChannels
+    }
+
+    init(formatVersion: Int = 2, exportedAt: Date = .now, channels: [RegisteredChannelRecord]) {
         self.formatVersion = formatVersion
         self.exportedAt = exportedAt
-        self.customChannels = customChannels
+        self.channels = channels
     }
 
     init(from decoder: Decoder) throws {
         if let container = try? decoder.container(keyedBy: CodingKeys.self),
            let formatVersion = try? container.decode(Int.self, forKey: .formatVersion),
            let exportedAt = try? container.decode(Date.self, forKey: .exportedAt),
+           let channels = try? container.decode([RegisteredChannelRecord].self, forKey: .channels) {
+            self.init(formatVersion: formatVersion, exportedAt: exportedAt, channels: channels)
+            return
+        }
+
+        if let container = try? decoder.container(keyedBy: CodingKeys.self),
+           let formatVersion = try? container.decode(Int.self, forKey: .formatVersion),
+           let exportedAt = try? container.decode(Date.self, forKey: .exportedAt),
            let customChannels = try? container.decode([RegisteredChannelRecord].self, forKey: .customChannels) {
-            self.init(formatVersion: formatVersion, exportedAt: exportedAt, customChannels: customChannels)
+            self.init(formatVersion: formatVersion, exportedAt: exportedAt, channels: customChannels)
             return
         }
 
         let snapshot = try ChannelRegistrySnapshot(from: decoder)
-        self.init(customChannels: snapshot.customChannels)
+        self.init(channels: snapshot.customChannels)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(formatVersion, forKey: .formatVersion)
+        try container.encode(exportedAt, forKey: .exportedAt)
+        try container.encode(channels, forKey: .channels)
     }
 }
 
@@ -442,6 +469,12 @@ enum ChannelRegistryStore {
         loadSnapshot(fileManager: fileManager).customChannels
     }
 
+    static func loadAllChannelRecords(bundle: Bundle = .main, fileManager: FileManager = .default) -> [RegisteredChannelRecord] {
+        loadAllChannels(bundle: bundle, fileManager: fileManager).map {
+            RegisteredChannelRecord(channelID: $0.channelID, addedAt: $0.addedAt)
+        }
+    }
+
     static func replaceCustomChannels(_ customChannels: [RegisteredChannelRecord], fileManager: FileManager = .default) throws {
         try persist(snapshot: ChannelRegistrySnapshot(customChannels: uniqueRecords(customChannels)), fileManager: fileManager)
     }
@@ -480,17 +513,17 @@ enum ChannelRegistryStore {
 }
 
 enum ChannelRegistryTransferStore {
-    static func export(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
+    static func export(bundle: Bundle = .main, fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
         let destinationURL = try transferDocumentURL(fileManager: fileManager, backend: backend, containerURL: containerURL)
         try fileManager.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-        let document = ChannelRegistryTransferDocument(customChannels: ChannelRegistryStore.loadCustomChannelRecords(fileManager: fileManager))
+        let document = ChannelRegistryTransferDocument(channels: ChannelRegistryStore.loadAllChannelRecords(bundle: bundle, fileManager: fileManager))
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(document)
         try write(data, to: destinationURL, backend: backend)
-        return ChannelRegistryTransferResult(backend: backend, fileURL: destinationURL, customChannelCount: document.customChannels.count)
+        return ChannelRegistryTransferResult(backend: backend, fileURL: destinationURL, customChannelCount: document.channels.count)
     }
 
     static func `import`(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
@@ -506,8 +539,8 @@ enum ChannelRegistryTransferStore {
             throw ChannelRegistryTransferError.invalidImportData
         }
 
-        try ChannelRegistryStore.replaceCustomChannels(document.customChannels, fileManager: fileManager)
-        return ChannelRegistryTransferResult(backend: backend, fileURL: sourceURL, customChannelCount: document.customChannels.count)
+        try ChannelRegistryStore.replaceCustomChannels(document.channels, fileManager: fileManager)
+        return ChannelRegistryTransferResult(backend: backend, fileURL: sourceURL, customChannelCount: document.channels.count)
     }
 
     static func fixedPathDescription(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) -> String {
