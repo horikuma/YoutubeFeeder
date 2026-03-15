@@ -70,7 +70,7 @@
 - [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
   - YouTube feed の取得、更新判定、XML パース。
   - 条件付き取得用の `ETag` と `Last-Modified` を扱う。
-  - `@handle` や URL から `Channel ID` を解決する。
+  - `@handle`、チャンネル URL、動画 URL から `Channel ID` を解決する。
   - 登録直後のフィードバック用に最新動画要約の取得にも使う。
 
 ### Shared

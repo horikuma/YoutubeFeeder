@@ -126,12 +126,12 @@ struct ChannelRegistrationView: View {
                 Text("チャンネル登録")
                     .font(.largeTitle.bold())
 
-                Text("Channel ID、@handle、YouTube のチャンネル URL を入力できます。登録時は解決後の Channel ID を使います。")
+                Text("Channel ID、@handle、YouTube のチャンネル URL、動画 URL を入力できます。登録時は解決後の Channel ID を使います。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    TextField("UC... / @handle / URL", text: $input)
+                    TextField("UC... / @handle / チャンネルURL / 動画URL", text: $input)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("channelRegistration.input")
