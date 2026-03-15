@@ -17,6 +17,7 @@
 - 現在の主導線は `ホーム画面`、`チャンネル一覧`、`全動画一覧`、`チャンネル別動画一覧` で構成する。
 - 起動時は `LaunchScreenView` を表示し、その裏で軽量 bootstrap を読み込んでホーム画面へ遷移する。
 - ホーム画面はダッシュボードではなく、一覧画面への導線を担う。
+- ホーム画面には操作タイルとは別に、非操作のシステム状況タイルを 1 枚置く。
 
 ## ディレクトリ責務
 
@@ -43,9 +44,10 @@
   - ホーム画面本体。
   - 手動更新と一覧画面への導線。
   - `Menu` ベースのチャンネル一覧ソート選択。
-  - 固定キーワード検索結果画面への導線。
+  - キャッシュ検索と YouTube 検索結果画面への導線。
   - チャンネル登録結果のフィードバック表示。
   - この端末内バックアップの書き出し / 読み戻し導線と結果表示。
+  - 非操作のシステム状況タイル表示。
 - [HelloWorld/Features/Home/ChannelRegistrationView.swift](HelloWorld/Features/Home/ChannelRegistrationView.swift)
   - チャンネル登録画面本体。
   - 入力、登録実行、登録結果フィードバックを担う。
@@ -55,7 +57,7 @@
   - 一覧系画面への遷移定義。
   - チャンネル一覧には並び順 descriptor を渡す。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
-  - チャンネル一覧、全動画一覧、固定キーワード検索結果一覧、チャンネル別動画一覧。
+  - チャンネル一覧、全動画一覧、固定キーワード検索結果一覧、YouTube 検索結果一覧、チャンネル別動画一覧。
   - iPad 横向きのチャンネル閲覧は `NavigationSplitView` を使う。
   - 選択された並び順 descriptor を一覧サブタイトルと並び順へ反映する。
   - 長押しメニューからチャンネル削除導線を出す。
@@ -69,7 +71,7 @@
   - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
   - チャンネル削除と整合性メンテナンスの起点。
   - 全体更新と単独チャンネル強制更新の両方を制御する。
-  - キーワード検索結果の集約読込を担う。
+  - キャッシュ検索結果、YouTube 検索結果、ホームのシステム状況集約を担う。
 - [HelloWorld/Features/FeedCache/FeedChannelSyncService.swift](HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、条件付き更新判定、store 反映を束ねる更新実行サービス。
   - coordinator からネットワーク / 永続化の細部を切り離し、更新 orchestration の責務を薄くする。
@@ -78,6 +80,9 @@
   - チャンネル一覧描画用の集約データを返す。
   - 動画検索条件に一致する件数と一覧を返す。
   - 参照切れ動画と不要サムネイルの整合性メンテナンスを行う。
+- [HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift](HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
+  - YouTube 検索結果の端末内キャッシュを永続化する。
+  - 検索キャッシュの鮮度判定と件数要約を返す。
 - [HelloWorld/Features/FeedCache/FeedCacheModels.swift](HelloWorld/Features/FeedCache/FeedCacheModels.swift)
   - キャッシュ用モデルと進捗モデル。
   - チャンネル登録日時を含む registry 永続化モデル。
@@ -90,6 +95,9 @@
   - 条件付き取得用の `ETag` と `Last-Modified` を扱う。
   - `@handle`、チャンネル URL、動画 URL から `Channel ID` を解決する。
   - 登録直後のフィードバック用に最新動画要約の取得にも使う。
+- [HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift](HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift)
+  - YouTube Data API v3 の search endpoint を呼び出す。
+  - API キー解決とレスポンスの表示用モデル変換を担う。
 
 ### Shared
 
@@ -114,6 +122,8 @@
 - 各チャンネルには登録日時を保持し、一覧ソートの指標として再利用する。
 - バックアップでは、現在登録されている全チャンネル情報を JSON として端末内の固定ファイルへ保存する。
 - インポートではローカルのチャンネル設定をその JSON で置き換え、動画やサムネイルは転送しない。
+- YouTube 検索結果は `remote-search-<keyword>.json` として別ファイル保存し、通常キャッシュと責務を分ける。
+- 検索キャッシュは長めの TTL で扱い、通常の再訪では API 再取得を避ける。
 - registry ファイルがまだ存在しない旧データでは、bootstrap と cache からチャンネル ID を復元して registry を初期化する。
 - バックアップの固定パスは `~/Documents/HelloWorld/channel-registry.json` 相当とし、iPhone / Mac とも同じ JSON 形式を使う。
 - チャンネル削除時は registry、channel state、video cache、thumbnail cache を一貫して整理する。
@@ -158,12 +168,17 @@
   - 一覧系 UI で共有される表示部品と共通レイアウトを担う。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制、引き継ぎ後の再読込、チャンネル削除を担う。
+  - YouTube 検索 API のキャッシュ利用とホーム向け状態要約も担う。
 - [HelloWorld/Features/FeedCache/FeedChannelSyncService.swift](HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - 個別チャンネルの同期実行と store 反映を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - cache.json、bootstrap、thumbnail、channel registry の読取利用と整合性メンテナンスを担う。
+- [HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift](HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
+  - 検索結果キャッシュの永続化を担う。
 - [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
   - 更新確認、本体取得、XML parser を担う。
+- [HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift](HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift)
+  - YouTube 検索 API 呼び出しを担う。
 - [HelloWorld/Shared/AppLogic.swift](HelloWorld/Shared/AppLogic.swift)
   - スワイプ判定、長押し判定、一覧並び順、鮮度判定などの pure logic を担う。
 
@@ -198,6 +213,8 @@ xcodebuild test \
   - channel registry の後方互換、バックアップ export / import。
 - [HelloWorldTests/Unit/Storage/FeedCacheMaintenanceTests.swift](HelloWorldTests/Unit/Storage/FeedCacheMaintenanceTests.swift)
   - チャンネル削除と整合性メンテナンス。
+- [HelloWorldTests/Unit/Storage/RemoteVideoSearchCacheStoreTests.swift](HelloWorldTests/Unit/Storage/RemoteVideoSearchCacheStoreTests.swift)
+  - YouTube 検索キャッシュの鮮度判定。
 - [HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift](HelloWorldTests/Unit/Policies/BackSwipePolicyTests.swift)
   - 戻るスワイプ判定。
 - [HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift](HelloWorldTests/Unit/Ordering/FeedOrderingTests.swift)

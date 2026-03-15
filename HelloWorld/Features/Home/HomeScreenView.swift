@@ -26,6 +26,7 @@ struct HomeScreenView: View {
                     .accessibilityIdentifier("screen.home")
 
                 navigationSection
+                SystemStatusTile(status: coordinator.homeSystemStatus)
 
                 if let transferFeedback {
                     registryTransferFeedbackCard(transferFeedback)
@@ -101,13 +102,23 @@ struct HomeScreenView: View {
 
             NavigationLink(value: MaintenanceRoute.keywordSearchResults("ゆっくり実況")) {
                 MetricTile(
-                    title: "検索",
+                    title: "キャッシュ検索",
                     value: "ゆっくり実況",
-                    detail: "投稿が新しい順に20件表示"
+                    detail: "端末内キャッシュから新しい順に20件表示"
                 )
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("nav.search")
+
+            NavigationLink(value: MaintenanceRoute.remoteKeywordSearchResults("ゆっくり実況")) {
+                MetricTile(
+                    title: "YouTube検索",
+                    value: "ゆっくり実況",
+                    detail: "YouTube 検索 API で新しい順に20件表示"
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("nav.remoteSearch")
 
             NavigationLink(value: MaintenanceRoute.channelRegistration) {
                 MetricTile(

@@ -9,17 +9,23 @@ final class FeedCacheCoordinator: ObservableObject {
     @Published private(set) var refreshProgress: CacheRefreshProgress = .idle
     @Published private(set) var manualRefreshCount: Int = 0
     @Published private(set) var lastManualChannelRefreshID: String?
+    @Published private(set) var homeSystemStatus = HomeSystemStatus.empty(keyword: FeedCacheCoordinator.homeSearchKeyword)
 
     private var channels: [String]
     private let store = FeedCacheStore()
     private let feedService = YouTubeFeedService()
     private let channelResolver = YouTubeChannelResolver()
+    private let searchService = YouTubeSearchService()
+    private let remoteSearchCacheStore = RemoteVideoSearchCacheStore()
     private var manualRefreshTask: Task<Void, Never>?
     private var importRefreshTask: Task<Void, Never>?
     private var freshnessInterval: TimeInterval
     private var videoQuery = VideoQuery()
     private var liveUpdateSuspendCount = 0
     private var needsRefreshWhenResumed = false
+    private let remoteSearchCacheLifetime: TimeInterval = 12 * 60 * 60
+
+    static let homeSearchKeyword = "ゆっくり実況"
 
     private var channelSyncService: FeedChannelSyncService {
         FeedChannelSyncService(store: store, feedService: feedService)
@@ -40,6 +46,7 @@ final class FeedCacheCoordinator: ObservableObject {
         let bootstrap = FeedBootstrapStore.load(channels: channels)
         progress = bootstrap.progress
         maintenanceItems = bootstrap.maintenanceItems
+        await refreshHomeSystemStatus()
     }
 
     func suspendLiveUpdates() {
@@ -124,7 +131,83 @@ final class FeedCacheCoordinator: ObservableObject {
         let query = VideoQuery(limit: limit, channelID: nil, keyword: normalizedKeyword, sortOrder: .publishedDescending, excludeShorts: true)
         let videos = await store.loadVideos(query: query)
         let totalCount = await store.countVideos(query: VideoQuery(limit: .max, channelID: nil, keyword: normalizedKeyword, sortOrder: .publishedDescending, excludeShorts: true))
-        return VideoSearchResult(keyword: normalizedKeyword, videos: videos, totalCount: totalCount)
+        return VideoSearchResult(keyword: normalizedKeyword, videos: videos, totalCount: totalCount, source: .localCache)
+    }
+
+    func searchRemoteVideos(keyword: String, limit: Int = 20, forceRefresh: Bool = false) async -> VideoSearchResult {
+        let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedKeyword.isEmpty else {
+            return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
+        }
+
+        if AppLaunchMode.current.usesMockData {
+            let local = await searchVideos(keyword: normalizedKeyword, limit: limit)
+            return VideoSearchResult(
+                keyword: normalizedKeyword,
+                videos: local.videos,
+                totalCount: local.totalCount,
+                source: .mockData,
+                fetchedAt: .now,
+                expiresAt: Date().addingTimeInterval(remoteSearchCacheLifetime)
+            )
+        }
+
+        if !forceRefresh,
+           let cached = await cachedRemoteSearchResult(keyword: normalizedKeyword, limit: limit, allowExpired: false) {
+            return cached
+        }
+
+        do {
+            let response = try await searchService.searchVideos(keyword: normalizedKeyword, limit: limit)
+            let cachedVideos = response.videos.map { video in
+                CachedVideo(
+                    id: video.id,
+                    channelID: video.channelID,
+                    channelTitle: video.channelTitle,
+                    title: video.title,
+                    publishedAt: video.publishedAt,
+                    videoURL: video.videoURL,
+                    thumbnailRemoteURL: video.thumbnailURL,
+                    thumbnailLocalFilename: nil,
+                    fetchedAt: response.fetchedAt,
+                    searchableText: [video.title, video.channelTitle, video.id].joined(separator: "\n").lowercased()
+                )
+            }
+            await remoteSearchCacheStore.save(
+                keyword: normalizedKeyword,
+                videos: cachedVideos,
+                totalCount: response.totalCount,
+                fetchedAt: response.fetchedAt
+            )
+            await refreshHomeSystemStatus()
+            return VideoSearchResult(
+                keyword: normalizedKeyword,
+                videos: cachedVideos,
+                totalCount: response.totalCount,
+                source: .remoteAPI,
+                fetchedAt: response.fetchedAt,
+                expiresAt: response.fetchedAt.addingTimeInterval(remoteSearchCacheLifetime)
+            )
+        } catch {
+            if let cached = await cachedRemoteSearchResult(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+                return VideoSearchResult(
+                    keyword: cached.keyword,
+                    videos: cached.videos,
+                    totalCount: cached.totalCount,
+                    source: .staleRemoteCache,
+                    fetchedAt: cached.fetchedAt,
+                    expiresAt: cached.expiresAt,
+                    errorMessage: error.localizedDescription
+                )
+            }
+            return VideoSearchResult(
+                keyword: normalizedKeyword,
+                videos: [],
+                totalCount: 0,
+                source: .remoteAPI,
+                errorMessage: error.localizedDescription
+            )
+        }
     }
 
     func addChannel(input: String) async throws -> ChannelRegistrationFeedback {
@@ -458,6 +541,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
         progress = nextProgress
         maintenanceItems = nextMaintenanceItems
+        await refreshHomeSystemStatus(snapshot: snapshot, currentProgress: nextProgress)
 
         await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
 
@@ -541,5 +625,39 @@ final class FeedCacheCoordinator: ObservableObject {
     private func performConsistencyMaintenanceIfNeeded(force: Bool) async -> CacheConsistencyMaintenanceResult? {
         guard force || !channels.isEmpty else { return nil }
         return await store.performConsistencyMaintenance(activeChannelIDs: channels, force: force)
+    }
+
+    private func cachedRemoteSearchResult(keyword: String, limit: Int, allowExpired: Bool) async -> VideoSearchResult? {
+        guard let entry = await remoteSearchCacheStore.load(keyword: keyword) else { return nil }
+        let expiresAt = entry.fetchedAt.addingTimeInterval(remoteSearchCacheLifetime)
+        guard allowExpired || expiresAt > .now else { return nil }
+        return VideoSearchResult(
+            keyword: entry.keyword,
+            videos: Array(entry.videos.prefix(limit)),
+            totalCount: entry.totalCount,
+            source: allowExpired && expiresAt <= .now ? .staleRemoteCache : .remoteCache,
+            fetchedAt: entry.fetchedAt,
+            expiresAt: expiresAt
+        )
+    }
+
+    private func refreshHomeSystemStatus(snapshot: FeedCacheSnapshot? = nil, currentProgress: CacheProgress? = nil) async {
+        let resolvedSnapshot: FeedCacheSnapshot
+        if let snapshot {
+            resolvedSnapshot = snapshot
+        } else {
+            resolvedSnapshot = await store.loadSnapshot()
+        }
+        let cacheStatus = await remoteSearchCacheStore.status(
+            keyword: Self.homeSearchKeyword,
+            ttl: remoteSearchCacheLifetime
+        )
+        homeSystemStatus = HomeSystemStatus(
+            registeredChannelCount: ChannelRegistryStore.loadAllChannels().count,
+            cachedVideoCount: resolvedSnapshot.videos.count,
+            cacheLastUpdatedAt: currentProgress?.lastUpdatedAt ?? (resolvedSnapshot.savedAt == .distantPast ? nil : resolvedSnapshot.savedAt),
+            apiKeyConfigured: searchService.isConfigured,
+            searchCacheStatus: cacheStatus
+        )
     }
 }

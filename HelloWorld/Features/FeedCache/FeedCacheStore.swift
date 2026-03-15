@@ -53,6 +53,10 @@ actor FeedCacheStore {
         return snapshot.videos.filter { matches($0, query: query) }.count
     }
 
+    func totalVideoCount() -> Int {
+        loadSnapshot().videos.count
+    }
+
     func loadChannelBrowseItems(channelIDs: [String], registeredAtByChannelID: [String: Date?] = [:]) -> [ChannelBrowseItem] {
         let snapshot = loadSnapshot()
         let groupedVideos = Dictionary(grouping: snapshot.videos.filter { !looksLikeShort($0) }, by: \.channelID)

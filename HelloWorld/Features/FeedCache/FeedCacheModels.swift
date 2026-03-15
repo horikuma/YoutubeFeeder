@@ -31,6 +31,16 @@ enum FeedCachePaths {
     nonisolated static func channelRegistryURL(fileManager: FileManager = .default) -> URL {
         baseDirectory(fileManager: fileManager).appendingPathComponent("channel-registry.json")
     }
+
+    nonisolated static func remoteSearchCacheURL(keyword: String, fileManager: FileManager = .default) -> URL {
+        let sanitizedKeyword = keyword
+            .precomposedStringWithCompatibilityMapping
+            .lowercased()
+            .replacingOccurrences(of: "[^0-9a-z]+", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        let filename = sanitizedKeyword.isEmpty ? "remote-search.json" : "remote-search-\(sanitizedKeyword).json"
+        return baseDirectory(fileManager: fileManager).appendingPathComponent(filename)
+    }
 }
 
 struct CachedVideo: Identifiable, Hashable {
@@ -145,6 +155,94 @@ struct VideoSearchResult: Hashable {
     let keyword: String
     let videos: [CachedVideo]
     let totalCount: Int
+    let source: VideoSearchSource
+    let fetchedAt: Date?
+    let expiresAt: Date?
+    let errorMessage: String?
+
+    init(
+        keyword: String,
+        videos: [CachedVideo],
+        totalCount: Int,
+        source: VideoSearchSource = .localCache,
+        fetchedAt: Date? = nil,
+        expiresAt: Date? = nil,
+        errorMessage: String? = nil
+    ) {
+        self.keyword = keyword
+        self.videos = videos
+        self.totalCount = totalCount
+        self.source = source
+        self.fetchedAt = fetchedAt
+        self.expiresAt = expiresAt
+        self.errorMessage = errorMessage
+    }
+}
+
+enum VideoSearchSource: String, Hashable {
+    case localCache
+    case remoteAPI
+    case remoteCache
+    case staleRemoteCache
+    case mockData
+
+    var label: String {
+        switch self {
+        case .localCache:
+            return "キャッシュ"
+        case .remoteAPI:
+            return "YouTube"
+        case .remoteCache:
+            return "検索キャッシュ"
+        case .staleRemoteCache:
+            return "古い検索キャッシュ"
+        case .mockData:
+            return "UIテスト"
+        }
+    }
+}
+
+struct RemoteVideoSearchCacheEntry: Hashable {
+    let keyword: String
+    let videos: [CachedVideo]
+    let totalCount: Int
+    let fetchedAt: Date
+}
+
+struct RemoteSearchCacheStatus: Hashable {
+    let keyword: String
+    let isFresh: Bool
+    let totalCount: Int
+    let fetchedAt: Date?
+    let expiresAt: Date?
+    let exists: Bool
+
+    nonisolated static func empty(keyword: String) -> RemoteSearchCacheStatus {
+        RemoteSearchCacheStatus(keyword: keyword, isFresh: false, totalCount: 0, fetchedAt: nil, expiresAt: nil, exists: false)
+    }
+
+    var label: String {
+        guard exists else { return "未作成" }
+        return isFresh ? "有効" : "期限切れ"
+    }
+}
+
+struct HomeSystemStatus: Hashable {
+    let registeredChannelCount: Int
+    let cachedVideoCount: Int
+    let cacheLastUpdatedAt: Date?
+    let apiKeyConfigured: Bool
+    let searchCacheStatus: RemoteSearchCacheStatus
+
+    nonisolated static func empty(keyword: String) -> HomeSystemStatus {
+        HomeSystemStatus(
+            registeredChannelCount: 0,
+            cachedVideoCount: 0,
+            cacheLastUpdatedAt: nil,
+            apiKeyConfigured: false,
+            searchCacheStatus: .empty(keyword: keyword)
+        )
+    }
 }
 
 enum ChannelRegistrationStatus: Hashable {
@@ -696,3 +794,4 @@ nonisolated extension ChannelFreshness: Codable {}
 nonisolated extension ChannelMaintenanceItem: Codable {}
 nonisolated extension FeedBootstrapSnapshot: Codable {}
 nonisolated extension VideoSortOrder: Codable {}
+nonisolated extension RemoteVideoSearchCacheEntry: Codable {}

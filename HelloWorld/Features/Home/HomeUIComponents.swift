@@ -80,3 +80,57 @@ struct ChannelStateLiveCard: View {
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
+
+struct SystemStatusTile: View {
+    let status: HomeSystemStatus
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("システム状況")
+                    .font(.headline)
+                Spacer()
+                Text("情報")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.quaternary, in: Capsule())
+            }
+
+            statusRow(title: "登録チャンネル", value: "\(status.registeredChannelCount)件")
+            statusRow(title: "動画キャッシュ", value: "\(status.cachedVideoCount)件")
+            statusRow(title: "検索キャッシュ", value: "\(status.searchCacheStatus.label) / \(status.searchCacheStatus.totalCount)件")
+            statusRow(title: "YouTube API", value: status.apiKeyConfigured ? "設定済み" : "未設定")
+            statusRow(title: "最終更新", value: status.cacheLastUpdatedAt.map(Self.timestampFormatter.string(from:)) ?? "まだありません")
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(.secondary.opacity(0.12), lineWidth: 1)
+        }
+        .accessibilityIdentifier("home.systemStatus")
+    }
+
+    private func statusRow(title: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.footnote.monospacedDigit())
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    private static let timestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "M/d HH:mm"
+        return formatter
+    }()
+}

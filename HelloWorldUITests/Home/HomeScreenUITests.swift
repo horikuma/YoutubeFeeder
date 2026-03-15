@@ -8,8 +8,10 @@ final class HomeScreenUITests: UITestCaseSupport {
         XCTAssertTrue(element("nav.channels", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.videos", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.search", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("nav.remoteSearch", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.channelRegistration", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.registryTransfer", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("home.systemStatus", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["バックアップ"].waitForExistence(timeout: 3))
 
         let timeline = try timelinePayload(in: app)
@@ -40,8 +42,8 @@ final class HomeScreenUITests: UITestCaseSupport {
         swipeBack(in: app)
         waitForHomeScreen(in: app, timeout: 3)
 
-        element("nav.search", in: app).tap()
-        XCTAssertTrue(app.staticTexts["「ゆっくり実況」に一致する動画を新しい順に20件表示"].waitForExistence(timeout: 3))
+        element("nav.remoteSearch", in: app).tap()
+        XCTAssertTrue(app.staticTexts["「ゆっくり実況」を YouTube で検索し、新しい順に20件表示"].waitForExistence(timeout: 3))
         XCTAssertTrue(element("search.resultChip", in: app).waitForExistence(timeout: 3))
 
         let searchScrollView = app.scrollViews.firstMatch

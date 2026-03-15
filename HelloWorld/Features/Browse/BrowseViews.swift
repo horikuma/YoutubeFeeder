@@ -424,7 +424,7 @@ struct KeywordSearchResultsView: View {
         }
         .safeAreaInset(edge: .bottom) {
             if isChipVisible {
-                SearchResultCountChip(totalCount: result.totalCount)
+                SearchResultCountChip(totalCount: result.totalCount, sourceLabel: result.source.label)
                     .padding(.bottom, 10)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -467,19 +467,109 @@ struct KeywordSearchResultsView: View {
 
 private struct SearchResultCountChip: View {
     let totalCount: Int
+    let sourceLabel: String
 
     var body: some View {
-        Text("検索結果 \(totalCount) 件")
-            .font(.footnote.weight(.semibold))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay {
-                Capsule()
-                    .strokeBorder(.white.opacity(0.35), lineWidth: 1)
+        HStack(spacing: 8) {
+            Text("検索結果 \(totalCount) 件")
+            Text(sourceLabel)
+                .foregroundStyle(.secondary)
+        }
+        .font(.footnote.weight(.semibold))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay {
+            Capsule()
+                .strokeBorder(.white.opacity(0.35), lineWidth: 1)
             }
-            .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
-            .accessibilityIdentifier("search.resultChip")
+        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+        .accessibilityIdentifier("search.resultChip")
+    }
+}
+
+struct RemoteKeywordSearchResultsView: View {
+    let keyword: String
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+    @Binding var path: NavigationPath
+    let layout: AppLayout
+
+    @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
+    @State private var isChipVisible = true
+
+    var body: some View {
+        InteractiveListScreen(
+            title: "YouTube検索",
+            subtitle: "「\(keyword)」を YouTube で検索し、新しい順に20件表示",
+            coordinator: coordinator,
+            path: $path,
+            layout: layout,
+            onRefresh: {
+                await reloadResults(forceRefresh: true)
+                dismissChip()
+            }
+        ) {
+            if let errorMessage = result.errorMessage, result.videos.isEmpty {
+                MetricTile(title: "YouTube検索", value: "取得できません", detail: errorMessage)
+            } else if result.videos.isEmpty {
+                MetricTile(title: "YouTube検索", value: "0件", detail: "一致する動画が見つかりませんでした")
+            } else {
+                LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
+                    ForEach(result.videos) { video in
+                        LongPressVideoTile(
+                            video: video,
+                            openVideo: {
+                                dismissChip()
+                                openVideo(video)
+                            },
+                            removeChannel: nil
+                        )
+                    }
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if isChipVisible {
+                SearchResultCountChip(totalCount: result.totalCount, sourceLabel: result.source.label)
+                    .padding(.bottom, 10)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { _ in
+                    dismissChip()
+                }
+        )
+        .task {
+            await reloadResults(forceRefresh: false)
+            scheduleChipDismiss()
+        }
+        .onAppear {
+            StartupDiagnostics.shared.mark("keywordSearchShown")
+        }
+    }
+
+    private func reloadResults(forceRefresh: Bool) async {
+        result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 20, forceRefresh: forceRefresh)
+        isChipVisible = true
+    }
+
+    private func scheduleChipDismiss() {
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            await MainActor.run {
+                dismissChip()
+            }
+        }
+    }
+
+    private func dismissChip() {
+        guard isChipVisible else { return }
+        withAnimation(.easeOut(duration: 0.2)) {
+            isChipVisible = false
+        }
     }
 }
 
