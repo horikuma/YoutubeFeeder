@@ -93,6 +93,7 @@
   - 下部チップは自動タイマーでは閉じず、ユーザー操作が始まるまで表示を維持する。
   - YouTube 検索結果は 20 件ずつの段階表示と下端到達での追加読込を行う。
   - YouTube 検索結果からチャンネル画面へ入る時は、チャンネル名と選択動画 ID を route context として引き継ぐ。
+  - 再生数は `videos.list` の `statistics.viewCount` を使ってタイル右下へ表示する。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - チャンネル別動画一覧の pull-to-refresh は、そのチャンネル限定の強制更新へ接続する。
@@ -214,9 +215,10 @@
 
 ## UI 実装方針
 
-- `iPhone` の見た目と操作感を基準とし、`iPad` は広い画面に合わせて余白と列数だけ調整する。
+- `iPhone` の見た目と操作感を基準とし、`iPad` は広い画面に合わせて余白と readable width を調整する。
 - 機能ロジックは共通化し、端末差は `AppLayout` で吸収する。
 - `iPad 縦向き` は原則として `iPhone` と同じ操作モデルを維持する。
+- 1 列リストは複数列化せず、Apple の `readableContentGuide` 相当の考え方で本文幅だけを制限する。
 - 一覧画面の振る舞いは `InteractiveListScreen` に集約し、画面ごとの差異を作らない。
 - 戻るスワイプの判定は `BackSwipePolicy` を使う。
 - 動画を開く判定は `VideoOpenPolicy` を使う。

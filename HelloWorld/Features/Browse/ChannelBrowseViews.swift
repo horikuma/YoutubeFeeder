@@ -267,7 +267,7 @@ struct SplitChannelBrowseView: View {
                     MetricTile(title: "動画一覧", value: "チャンネル未選択", detail: "左側のチャンネルを選ぶと動画を表示します")
                 }
             }
-            .frame(maxWidth: layout.contentWidth ?? .infinity, alignment: .leading)
+            .frame(maxWidth: layout.readableContentWidth ?? layout.contentWidth ?? .infinity, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, layout.horizontalPadding)
             .padding(.vertical, 20)

@@ -353,6 +353,21 @@
 
 ## 2026/03/16
 
+### YouTube検索の再生数表示とiPadのreadable widthを是正する
+
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `5.308s`
+- test-without-building: `121.441s`
+- 検証合計時間: `126.749s`
+- 手修正後の再試行回数: `1`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `435ms`
+- スプラッシュ表示からホーム表示まで: `133ms`
+- 起動からホーム表示まで: `568ms`
+- 起動から bootstrap 読込完了まで: `509ms`
+- 起動からホーム遷移開始まで: `608ms`
+
 ### チャンネル一覧の先頭にTipsタイルを追加する
 
 - 種別: source

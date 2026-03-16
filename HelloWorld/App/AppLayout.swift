@@ -6,6 +6,7 @@ struct AppLayout {
     let usesRegularWidth: Bool
     let usesSplitChannelBrowser: Bool
     let contentWidth: CGFloat?
+    let readableContentWidth: CGFloat?
     let horizontalPadding: CGFloat
     let sectionSpacing: CGFloat
     let listColumns: [GridItem]
@@ -23,6 +24,7 @@ struct AppLayout {
                 usesRegularWidth: true,
                 usesSplitChannelBrowser: usesSplitChannelBrowser,
                 contentWidth: usesSplitChannelBrowser ? 1280 : 1080,
+                readableContentWidth: 920,
                 horizontalPadding: 28,
                 sectionSpacing: 22,
                 listColumns: [GridItem(.flexible(), spacing: 20, alignment: .top)],
@@ -39,6 +41,7 @@ struct AppLayout {
             usesRegularWidth: false,
             usesSplitChannelBrowser: false,
             contentWidth: nil,
+            readableContentWidth: nil,
             horizontalPadding: 16,
             sectionSpacing: 16,
             listColumns: [GridItem(.flexible(), spacing: 14, alignment: .top)],

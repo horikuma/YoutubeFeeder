@@ -33,6 +33,8 @@ enum YouTubeSearchError: LocalizedError {
 }
 
 struct YouTubeSearchService {
+    nonisolated static let videoDetailsPartParameter = "snippet,contentDetails,statistics,liveStreamingDetails"
+
     var isConfigured: Bool {
         AppLaunchMode.current.usesMockData || resolvedAPIKey != nil
     }
@@ -122,7 +124,7 @@ struct YouTubeSearchService {
         for batch in videoIDs.chunked(into: 50) {
             var components = URLComponents(string: "https://www.googleapis.com/youtube/v3/videos")
             components?.queryItems = [
-                URLQueryItem(name: "part", value: "snippet,contentDetails,liveStreamingDetails"),
+                URLQueryItem(name: "part", value: Self.videoDetailsPartParameter),
                 URLQueryItem(name: "id", value: batch.joined(separator: ",")),
                 URLQueryItem(name: "maxResults", value: String(batch.count)),
             ]

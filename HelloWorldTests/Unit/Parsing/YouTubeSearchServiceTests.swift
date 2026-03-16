@@ -2,6 +2,13 @@ import XCTest
 @testable import HelloWorld
 
 final class YouTubeSearchServiceTests: XCTestCase {
+    func testVideoDetailsPartIncludesStatistics() {
+        XCTAssertEqual(
+            YouTubeSearchService.videoDetailsPartParameter,
+            "snippet,contentDetails,statistics,liveStreamingDetails"
+        )
+    }
+
     func testMergeCandidatesKeepsLatestPublishedAtAndSortsDescending() {
         let older = ISO8601DateFormatter().date(from: "2026-03-15T01:00:00Z")!
         let newer = ISO8601DateFormatter().date(from: "2026-03-15T02:00:00Z")!

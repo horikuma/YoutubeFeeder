@@ -1,4 +1,8 @@
 ## 2026/03/16
+- YouTube 検索結果の再生数表示は `videos.list` の `statistics` を必須として取得する方針にした。
+  - 検索結果タイルは右下へ再生数を常時出す仕様だが、詳細取得の `part` に `statistics` が含まれていないと `--回` のままになってしまうため。`search.list` の候補取得と `videos.list` の詳細取得を分ける構成は維持しつつ、詳細側で再生数を確実に埋める。
+- `iPad` の 1 列リストは、複数列化ではなく readable width の制限で読みやすさを確保する方針にした。
+  - Apple の `readableContentGuide` と WWDC の readability margins の考え方に合わせ、広い画面でも行長を抑えた方が視線移動が安定するため。今回は 1 列表示を保ったまま、リスト系画面の最大本文幅を `920pt` に制限する。
 - チャンネル一覧の `Tips` タイルは、表示内容を unit test、存在と非操作契約を UI test で担保する方針にした。
   - 直近の検証では、件数や並び順の文言まで UI test へ載せると観測点の不安定さで試行が増えやすかったため。`Tips` タイル自体の存在は UI 層の契約として残し、サマリー文言は `ChannelBrowseTipsSummary` の pure logic として unit test で固定する。
 - UI テストは画面でしか担保できない契約へ絞り、非同期表示内容の細部は unit test や marker ベースへ寄せる方針にした。

@@ -22,7 +22,7 @@ struct InteractiveListScreen<Content: View>: View {
 
                 content()
             }
-            .frame(maxWidth: layout.contentWidth ?? .infinity, alignment: .leading)
+            .frame(maxWidth: layout.readableContentWidth ?? layout.contentWidth ?? .infinity, alignment: .leading)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, layout.horizontalPadding)
             .padding(.vertical, 20)

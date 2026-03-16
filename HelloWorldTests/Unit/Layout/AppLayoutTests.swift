@@ -35,4 +35,20 @@ final class AppLayoutTests: XCTestCase {
         XCTAssertFalse(layout.usesSplitChannelBrowser)
         XCTAssertTrue(layout.isPad)
     }
+
+    func testRegularWidthUsesReadableContentWidthForSingleColumnLists() {
+        let portrait = AppLayout.current(
+            size: CGSize(width: 1024, height: 1366),
+            horizontalSizeClass: .regular
+        )
+        let landscape = AppLayout.current(
+            size: CGSize(width: 1366, height: 1024),
+            horizontalSizeClass: .regular
+        )
+
+        XCTAssertEqual(portrait.readableContentWidth, 920)
+        XCTAssertEqual(landscape.readableContentWidth, 920)
+        XCTAssertEqual(portrait.listColumns.count, 1)
+        XCTAssertEqual(landscape.listColumns.count, 1)
+    }
 }
