@@ -226,14 +226,8 @@ struct VideoHeroTile: View {
                 }
                 .padding(16)
             }
-            .overlay(alignment: .topTrailing) {
-                if let index {
-                    TileIndexBadge(index: index)
-                        .padding(12)
-                }
-            }
             .overlay(alignment: .bottomTrailing) {
-                VideoDebugBadge(video: video)
+                VideoDebugBadge(video: video, index: index)
                     .padding(14)
             }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -260,19 +254,15 @@ private struct TileIndexBadge: View {
 
 private struct VideoDebugBadge: View {
     let video: CachedVideo
+    let index: Int?
 
     var body: some View {
-        Text("\(AppFormatting.compactViewCount(video.viewCount)) \(durationBucketLabel)")
+        Text(AppFormatting.videoTileBadgeText(index: index, durationSeconds: video.durationSeconds, viewCount: video.viewCount))
             .font(.caption2.monospacedDigit().weight(.bold))
             .foregroundStyle(.white)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .background(.black.opacity(0.72), in: Capsule())
-    }
-
-    private var durationBucketLabel: String {
-        guard let durationSeconds = video.durationSeconds else { return "--" }
-        return durationSeconds >= 20 * 60 ? "L" : "M"
     }
 }
 

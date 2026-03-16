@@ -92,6 +92,7 @@
   - 固定キーワード検索結果画面では、一時的な件数チップを下部へ重ねて表示する。
   - 下部チップは自動タイマーでは閉じず、ユーザー操作が始まるまで表示を維持する。
   - YouTube 検索結果は 20 件ずつの段階表示と下端到達での追加読込を行う。
+  - `iPad 横向き` の YouTube 検索結果は `NavigationSplitView` で左に検索結果、右に選択中チャンネルの動画一覧を出す。
   - YouTube 検索結果からチャンネル画面へ入る時は、チャンネル名と選択動画 ID を route context として引き継ぐ。
   - 再生数は `videos.list` の `statistics.viewCount` を使ってタイル右下へ表示する。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
@@ -104,7 +105,7 @@
 - [HelloWorld/Features/Browse/BrowseComponents.swift](HelloWorld/Features/Browse/BrowseComponents.swift)
   - 一覧系共通コンテナ `InteractiveListScreen`。
   - タイル部品、サムネイル表示、戻るスワイプ modifier など、一覧画面から共有される表示部品を担う。
-  - 動画タイル右下の再生数 / 時間区分バッジを担う。
+  - 動画タイル右下の `No : 再生時間 再生数 (M/L)` バッジを担い、動画番号を右上へ重複表示しない。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
@@ -220,6 +221,7 @@
 - `iPad 縦向き` は原則として `iPhone` と同じ操作モデルを維持する。
 - 1 列リストは複数列化せず、Apple の `readableContentGuide` 相当の考え方で本文幅だけを制限する。
 - 一覧画面の振る舞いは `InteractiveListScreen` に集約し、画面ごとの差異を作らない。
+- 動画系一覧の番号表示は 0 始まりとし、右下の情報バッジへ統合する。
 - 戻るスワイプの判定は `BackSwipePolicy` を使う。
 - 動画を開く判定は `VideoOpenPolicy` を使う。
 - チャンネル一覧の分割表示は SwiftUI の適応的コンテナを優先し、現在は `NavigationSplitView` を採用する。

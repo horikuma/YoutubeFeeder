@@ -353,6 +353,21 @@
 
 ## 2026/03/16
 
+### YouTube検索の2ペイン化と動画タイル情報表示を再調整する
+
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `4.070s`
+- test-without-building: `144.931s`
+- 検証合計時間: `149.001s`
+- 手修正後の再試行回数: `1`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `414ms`
+- スプラッシュ表示からホーム表示まで: `129ms`
+- 起動からホーム表示まで: `543ms`
+- 起動から bootstrap 読込完了まで: `486ms`
+- 起動からホーム遷移開始まで: `579ms`
+
 ### YouTube検索の再生数表示とiPadのreadable widthを是正する
 
 - 種別: source

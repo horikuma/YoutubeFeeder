@@ -23,7 +23,35 @@ enum AppFormatting {
         }
     }
 
+    static func videoTileBadgeText(index: Int?, durationSeconds: Int?, viewCount: Int?) -> String {
+        let indexText = String(index ?? 0)
+        let durationText = formattedPlaybackDuration(durationSeconds)
+        let bucketText = durationBucketLabel(durationSeconds)
+        return "\(indexText) : \(durationText) \(compactViewCount(viewCount)) (\(bucketText))"
+    }
+
     static func compactByteCount(_ value: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+    }
+
+    private static func formattedPlaybackDuration(_ durationSeconds: Int?) -> String {
+        guard let durationSeconds, durationSeconds >= 0 else { return "--s" }
+
+        let hours = durationSeconds / 3600
+        let minutes = (durationSeconds % 3600) / 60
+        let seconds = durationSeconds % 60
+
+        if hours > 0 {
+            return "\(hours)h\(minutes)m\(seconds)s"
+        }
+        if minutes > 0 {
+            return "\(minutes)m\(seconds)s"
+        }
+        return "\(seconds)s"
+    }
+
+    private static func durationBucketLabel(_ durationSeconds: Int?) -> String {
+        guard let durationSeconds else { return "--" }
+        return durationSeconds >= 20 * 60 ? "L" : "M"
     }
 }
