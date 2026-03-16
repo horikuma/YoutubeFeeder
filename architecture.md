@@ -85,6 +85,7 @@
   - チャンネル一覧、全動画一覧、iPad 横向けの分割チャンネル閲覧。
   - iPad 横向きのチャンネル閲覧は `NavigationSplitView` を使う。
   - 選択された並び順 descriptor を一覧サブタイトルと並び順へ反映する。
+  - チャンネル一覧の先頭には、非操作の `Tips` タイルを共通表示し、件数、並び順、基本操作を要約する。
   - 長押しメニューからチャンネル削除導線を出す。
 - [HelloWorld/Features/Browse/SearchResultsViews.swift](HelloWorld/Features/Browse/SearchResultsViews.swift)
   - 固定キーワード検索結果一覧、YouTube 検索結果一覧。

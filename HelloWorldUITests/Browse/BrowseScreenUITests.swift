@@ -39,6 +39,16 @@ final class BrowseScreenUITests: UITestCaseSupport {
         })
     }
 
+    func testChannelListShowsNonInteractiveTipsTile() throws {
+        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelList"])
+
+        XCTAssertTrue(element("screen.title", in: app).waitForExistence(timeout: 5))
+
+        let tipsTile = element("channel.tipsTile", in: app)
+        XCTAssertTrue(tipsTile.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["channel.tipsTile"].exists)
+    }
+
     func testRemoteSearchRefreshUpdatesResultsWithDummyTrigger() throws {
         let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
 

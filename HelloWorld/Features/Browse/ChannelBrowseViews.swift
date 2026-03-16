@@ -40,6 +40,8 @@ struct ChannelBrowseListView: View {
                     layout: layout,
                     onRefresh: nil
                 ) {
+                    ChannelBrowseTipsTile(summary: tipsSummary)
+
                     if items.isEmpty {
                         MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
                     } else {
@@ -133,6 +135,10 @@ struct ChannelBrowseListView: View {
             items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
         }
     }
+
+    private var tipsSummary: ChannelBrowseTipsSummary {
+        ChannelBrowseTipsSummary.build(items: items, sortDescriptor: sortDescriptor)
+    }
 }
 
 struct SplitChannelBrowseView: View {
@@ -172,6 +178,8 @@ struct SplitChannelBrowseView: View {
     private var leftPane: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                ChannelBrowseTipsTile(summary: tipsSummary)
+
                 if items.isEmpty {
                     MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
                 } else {
@@ -335,6 +343,10 @@ struct SplitChannelBrowseView: View {
             ]
         )
     }
+
+    private var tipsSummary: ChannelBrowseTipsSummary {
+        ChannelBrowseTipsSummary.build(items: items, sortDescriptor: sortDescriptor)
+    }
 }
 
 struct AllVideosView: View {
@@ -424,5 +436,38 @@ struct AllVideosView: View {
         .onAppear {
             StartupDiagnostics.shared.mark("allVideosShown")
         }
+    }
+}
+
+private struct ChannelBrowseTipsTile: View {
+    let summary: ChannelBrowseTipsSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Tips")
+                    .font(.headline)
+                Spacer()
+                Text(summary.countText)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(summary.sortText)
+                .font(.title3.bold())
+                .foregroundStyle(.primary)
+
+            Text("\(summary.primaryHint) / \(summary.secondaryHint)")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(.secondary.opacity(0.12), lineWidth: 1)
+        }
+        .accessibilityIdentifier("channel.tipsTile")
     }
 }

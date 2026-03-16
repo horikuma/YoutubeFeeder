@@ -69,6 +69,22 @@ struct ChannelBrowseSortDescriptor: Hashable {
     }
 }
 
+struct ChannelBrowseTipsSummary: Hashable {
+    let countText: String
+    let sortText: String
+    let primaryHint: String
+    let secondaryHint: String
+
+    static func build(items: [ChannelBrowseItem], sortDescriptor: ChannelBrowseSortDescriptor) -> Self {
+        Self(
+            countText: "\(items.count)件",
+            sortText: sortDescriptor.shortLabel,
+            primaryHint: "タップで動画一覧",
+            secondaryHint: "長押しで削除"
+        )
+    }
+}
+
 enum FeedOrdering {
     static func prioritizedChannelIDs(channels: [String], states: [String: CachedChannelState]) -> [String] {
         channels.sorted { lhs, rhs in
