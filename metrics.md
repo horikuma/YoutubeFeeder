@@ -350,3 +350,80 @@
 - 起動からホーム表示まで: `608ms`
 - 起動から bootstrap 読込完了まで: `533ms`
 - 起動からホーム遷移開始まで: `626ms`
+
+## 2026/03/16
+
+### YouTube検索からのチャンネル遷移で必要時だけ自動更新し下部チップを操作まで維持する
+
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `3.028s`
+- test-without-building: `113.961s`
+- 検証合計時間: `116.989s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `409ms`
+- スプラッシュ表示からホーム表示まで: `122ms`
+- 起動からホーム表示まで: `531ms`
+- 起動から bootstrap 読込完了まで: `477ms`
+- 起動からホーム遷移開始まで: `566ms`
+
+### warningゼロのビルド検証とactor隔離設定を是正する
+
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `1.926s`
+- test-without-building: `95.869s`
+- 検証合計時間: `97.795s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `415ms`
+- スプラッシュ表示からホーム表示まで: `123ms`
+- 起動からホーム表示まで: `538ms`
+- 起動から bootstrap 読込完了まで: `480ms`
+- 起動からホーム遷移開始まで: `576ms`
+
+### YouTube検索の更新をダミー発火付きUIテストで修正する
+
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `4.231s`
+- test-without-building: `93.950s`
+- 検証合計時間: `98.181s`
+- 手修正後の再試行回数: `1`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `449ms`
+- スプラッシュ表示からホーム表示まで: `148ms`
+- 起動からホーム表示まで: `597ms`
+- 起動から bootstrap 読込完了まで: `519ms`
+- 起動からホーム遷移開始まで: `658ms`
+
+### MVVMとClean Architectureの依存方向を明文化して依存注入へ寄せる
+
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `3.892s`
+- test-without-building: `90.993s`
+- 検証合計時間: `94.885s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `430ms`
+- スプラッシュ表示からホーム表示まで: `125ms`
+- 起動からホーム表示まで: `555ms`
+- 起動から bootstrap 読込完了まで: `496ms`
+- 起動からホーム遷移開始まで: `593ms`
+
+### 実装健康度バロメタを導入して責務境界を再整理する
+
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `3.947s`
+- test-without-building: `95.403s`
+- 検証合計時間: `99.350s`
+- 手修正後の再試行回数: `2`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `437ms`
+- スプラッシュ表示からホーム表示まで: `126ms`
+- 起動からホーム表示まで: `563ms`
+- 起動から bootstrap 読込完了まで: `502ms`
+- 起動からホーム遷移開始まで: `601ms`

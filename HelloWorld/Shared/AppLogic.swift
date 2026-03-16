@@ -152,3 +152,17 @@ enum FeedOrdering {
         }
     }
 }
+
+enum ChannelVideosAutoRefreshPolicy {
+    static func shouldRefresh(cachedChannelVideos: [CachedVideo], selectedVideoID: String?) -> Bool {
+        if cachedChannelVideos.isEmpty {
+            return true
+        }
+
+        guard let selectedVideoID, !selectedVideoID.isEmpty else {
+            return false
+        }
+
+        return !cachedChannelVideos.contains { $0.id == selectedVideoID }
+    }
+}

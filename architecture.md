@@ -19,16 +19,35 @@
 - ホーム画面はダッシュボードではなく、一覧画面への導線を担う。
 - ホーム画面には操作タイルとは別に、非操作のシステム状況タイルを 1 枚置く。
 
+## 採用アーキテクチャ
+
+- 基本モデルは `MVVM + Clean Architecture` とする。
+- `View`
+  - SwiftUI 画面。
+  - 一時的な UI 状態、アニメーション、選択、ダイアログ状態を持つ。
+- `ViewModel / Coordinator`
+  - 画面や機能単位の state と orchestration を担う。
+  - 現在は `FeedCacheCoordinator` が maintenance 文脈を横断する view model として機能する。
+- `UseCase / Service`
+  - registry 更新、検索再取得、ホーム状態集約、チャンネル同期など、意味のある処理単位を担う。
+- `Store / Infrastructure`
+  - 永続化、キャッシュ、外部 API 通信、固定パス解決を担う。
+- dependency graph の組み立ては `App` 層で行い、`ViewModel` 自身が `Store` や `Service` を new しない。
+
 ## ディレクトリ責務
 
 ### App
 
 - [HelloWorld/App/HelloWorldApp.swift](HelloWorld/App/HelloWorldApp.swift)
   - アプリ起動入口。
+- [HelloWorld/App/AppDependencies.swift](HelloWorld/App/AppDependencies.swift)
+  - composition root。
+  - `FeedCacheCoordinator` へ渡す live dependency を組み立てる。
 - [HelloWorld/App/ContentView.swift](HelloWorld/App/ContentView.swift)
   - ルート画面。
   - `LaunchScreenView` からホーム画面へ遷移する。
   - `NavigationStack` と `MaintenanceRoute` を束ねる。
+  - app layer で dependency graph を組み立て、view model へ注入する。
 - [HelloWorld/App/AppLayout.swift](HelloWorld/App/AppLayout.swift)
   - size class を基準に `iPhone` と `iPad` のレイアウト差分を吸収する。
 - [HelloWorld/App/AppFormatting.swift](HelloWorld/App/AppFormatting.swift)
@@ -41,6 +60,7 @@
 - [Config/AppConfig.xcconfig](Config/AppConfig.xcconfig)
   - アプリ共通の build 設定。
   - optional include の `LocalSecrets.xcconfig` からローカル秘密情報を受ける。
+  - `AppIntents` を使わない target でも warning-free build を維持するため、弱リンク設定を集約する。
 
 ### Features
 
@@ -61,15 +81,23 @@
 - [HelloWorld/Features/Home/HomeRoutes.swift](HelloWorld/Features/Home/HomeRoutes.swift)
   - 一覧系画面への遷移定義。
   - チャンネル一覧には並び順 descriptor を渡す。
-- [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
-  - チャンネル一覧、全動画一覧、固定キーワード検索結果一覧、YouTube 検索結果一覧、チャンネル別動画一覧。
+- [HelloWorld/Features/Browse/ChannelBrowseViews.swift](HelloWorld/Features/Browse/ChannelBrowseViews.swift)
+  - チャンネル一覧、全動画一覧、iPad 横向けの分割チャンネル閲覧。
   - iPad 横向きのチャンネル閲覧は `NavigationSplitView` を使う。
   - 選択された並び順 descriptor を一覧サブタイトルと並び順へ反映する。
   - 長押しメニューからチャンネル削除導線を出す。
-  - チャンネル別動画一覧の pull-to-refresh は、そのチャンネル限定の強制更新へ接続する。
+- [HelloWorld/Features/Browse/SearchResultsViews.swift](HelloWorld/Features/Browse/SearchResultsViews.swift)
+  - 固定キーワード検索結果一覧、YouTube 検索結果一覧。
   - 固定キーワード検索結果画面では、一時的な件数チップを下部へ重ねて表示する。
-  - 一覧ごとにタイルの通し番号を 1 から振り直して表示する。
+  - 下部チップは自動タイマーでは閉じず、ユーザー操作が始まるまで表示を維持する。
   - YouTube 検索結果は 20 件ずつの段階表示と下端到達での追加読込を行う。
+  - YouTube 検索結果からチャンネル画面へ入る時は、チャンネル名と選択動画 ID を route context として引き継ぐ。
+- [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
+  - チャンネル別動画一覧。
+  - チャンネル別動画一覧の pull-to-refresh は、そのチャンネル限定の強制更新へ接続する。
+  - YouTube 検索結果からの遷移時は、ローカル channel cache が未作成、または選択動画が local feed cache に無い場合に自動 feed 更新する。
+  - 初回タイトルは maintenance item や local cache を待たず、route context で受けたチャンネル名を即時表示へ使える。
+  - 一覧ごとにタイルの通し番号を 1 から振り直して表示する。
   - 実機調査時は、チャンネル別動画一覧の更新ジェスチャーと一覧再読込の完了をランタイムログへ流す。
 - [HelloWorld/Features/Browse/BrowseComponents.swift](HelloWorld/Features/Browse/BrowseComponents.swift)
   - 一覧系共通コンテナ `InteractiveListScreen`。
@@ -81,12 +109,14 @@
   - チャンネル削除と整合性メンテナンスの起点。
   - 全設定リセット時の状態破棄とホーム状態の初期化。
   - 全体更新と単独チャンネル強制更新の両方を制御する。
-  - キャッシュ検索結果、YouTube 検索結果、ホームのシステム状況集約を担う。
   - チャンネル別動画一覧では、通常キャッシュと検索キャッシュをチャンネル単位でマージして返す。
   - 実機調査用に、単独チャンネル更新の開始/終了、フィード取得、整合性メンテナンス、UI 反映/保留を構造化ログで出力する。
 - [HelloWorld/Features/FeedCache/FeedChannelSyncService.swift](HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、条件付き更新判定、store 反映を束ねる更新実行サービス。
   - coordinator からネットワーク / 永続化の細部を切り離し、更新 orchestration の責務を薄くする。
+- [HelloWorld/Features/FeedCache/ChannelRegistryMaintenanceService.swift](HelloWorld/Features/FeedCache/ChannelRegistryMaintenanceService.swift)
+  - チャンネル登録、削除、バックアップ入出力、全設定リセットの実処理を担う。
+  - coordinator から registry と初期化まわりの変更責務を切り離す。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - ファイル永続化、snapshot 読込、thumbnail 保存。
   - チャンネル一覧描画用の集約データを返す。
@@ -98,10 +128,18 @@
   - 検索キャッシュの鮮度判定と件数要約を返す。
   - 同一キーワードの検索履歴を append / merge し、クリア操作を担う。
   - 全検索履歴の一括削除を担う。
+- [HelloWorld/Features/FeedCache/RemoteVideoSearchService.swift](HelloWorld/Features/FeedCache/RemoteVideoSearchService.swift)
+  - YouTube 検索 API の再取得、端末内検索キャッシュの読込、TTL 判定、履歴クリアを束ねる。
+- [HelloWorld/Features/FeedCache/HomeSystemStatusService.swift](HelloWorld/Features/FeedCache/HomeSystemStatusService.swift)
+  - ホーム画面へ出すシステム状況を集約する。
+- [HelloWorld/Features/FeedCache/FeedCachePaths.swift](HelloWorld/Features/FeedCache/FeedCachePaths.swift)
+  - キャッシュ、bootstrap、registry、検索キャッシュ、thumbnail の固定パスを集約する。
+- [HelloWorld/Features/FeedCache/FeedBootstrapStore.swift](HelloWorld/Features/FeedCache/FeedBootstrapStore.swift)
+  - ホーム初期表示用 bootstrap の読込と整形を担う。
+- [HelloWorld/Features/FeedCache/ChannelRegistryStore.swift](HelloWorld/Features/FeedCache/ChannelRegistryStore.swift)
+  - channel registry と端末内バックアップ JSON の永続化責務を担う。
 - [HelloWorld/Features/FeedCache/FeedCacheModels.swift](HelloWorld/Features/FeedCache/FeedCacheModels.swift)
-  - キャッシュ用モデルと進捗モデル。
-  - チャンネル登録日時を含む registry 永続化モデル。
-  - 端末内バックアップ用ドキュメントと固定ファイルパス。
+  - キャッシュ用モデル、進捗モデル、検索結果モデルなど、I/O を持たない値型を集約する。
 
 ### Infrastructure
 
@@ -116,6 +154,7 @@
   - API キーは環境変数または `Info.plist` 経由の build setting 注入から受ける。
   - API キーは URL クエリへ載せず、HTTP header で渡す。
   - `medium` と `long` の 2 検索を束ね、`videos.list` でライブ除外と最終整形を行う。
+  - `videos.list` は動画 ID を 50 件単位でまとめて呼び、ヒット件数ぶん 1 件ずつ API を叩かない。
 
 ### Shared
 
@@ -134,6 +173,8 @@
   - UI テスト用 cache。
 - [scripts/stream_device_runtime_logs.sh](scripts/stream_device_runtime_logs.sh)
   - 物理 `iPhone 12 mini` に `HELLOWORLD_RUNTIME_LOGGING=1` 付きでアプリを foreground 起動し、stdout ベースのランタイムログをコンソールへ流す。
+- [scripts/health_barometer.sh](scripts/health_barometer.sh)
+  - Swift ファイル行数、関数行数、型数、`@Published` 数を集計し、責務越境と複雑度の早期検知に使う。
 
 ## データとキャッシュ構造
 
@@ -180,25 +221,40 @@
 - 動画を開く判定は `VideoOpenPolicy` を使う。
 - チャンネル一覧の分割表示は SwiftUI の適応的コンテナを優先し、現在は `NavigationSplitView` を採用する。
 
+## Concurrency と Build 検証
+
+- project 全体の `SWIFT_DEFAULT_ACTOR_ISOLATION` は `MainActor` へ広げず、UI 起点で本当に必要な型だけを `@MainActor` とする。
+- `FeedCacheCoordinator` や UI test support のような画面駆動の型は明示的に `@MainActor` を付け、永続化モデルや parser、store の値型は非 UI 文脈で再利用できる状態を保つ。
+- build 検証は `error 0` だけでなく `warning 0` も成立条件に含める。
+
 ## 実装責務の要点
 
 - [HelloWorld/App/ContentView.swift](HelloWorld/App/ContentView.swift)
   - ルート画面、起動画面からホーム画面への遷移、ルートレベルの navigation を担う。
 - [HelloWorld/Features/Home/HomeScreenView.swift](HelloWorld/Features/Home/HomeScreenView.swift)
   - ホーム画面の表示、手動更新導線、一覧ソート選択、バックアップ、全設定リセットを担う。
+- [HelloWorld/Features/Browse/ChannelBrowseViews.swift](HelloWorld/Features/Browse/ChannelBrowseViews.swift)
+  - チャンネル一覧、全動画一覧、チャンネル削除導線を担う。
+- [HelloWorld/Features/Browse/SearchResultsViews.swift](HelloWorld/Features/Browse/SearchResultsViews.swift)
+  - キャッシュ検索と YouTube 検索結果画面、および件数チップを担う。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
-  - 一覧系 UI、画面遷移、並び順表示、長押しメニューを担う。
+  - チャンネル別動画一覧を担う。
 - [HelloWorld/Features/Browse/BrowseComponents.swift](HelloWorld/Features/Browse/BrowseComponents.swift)
   - 一覧系 UI で共有される表示部品と共通レイアウトを担う。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
-  - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制、引き継ぎ後の再読込、チャンネル削除を担う。
-  - YouTube 検索 API のキャッシュ利用とホーム向け状態要約も担う。
+  - bootstrap 読込、手動更新フロー制御、一覧用 state 公開、live update 抑制、引き継ぎ後の再読込を担う。
 - [HelloWorld/Features/FeedCache/FeedChannelSyncService.swift](HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - 個別チャンネルの同期実行と store 反映を担う。
+- [HelloWorld/Features/FeedCache/ChannelRegistryMaintenanceService.swift](HelloWorld/Features/FeedCache/ChannelRegistryMaintenanceService.swift)
+  - registry 更新、バックアップ入出力、全設定リセットを担う。
 - [HelloWorld/Features/FeedCache/FeedCacheStore.swift](HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - cache.json、bootstrap、thumbnail、channel registry の読取利用と整合性メンテナンスを担う。
 - [HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift](HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - 検索結果キャッシュの永続化、マージ、クリアを担う。
+- [HelloWorld/Features/FeedCache/RemoteVideoSearchService.swift](HelloWorld/Features/FeedCache/RemoteVideoSearchService.swift)
+  - 検索 API と検索キャッシュを束ねた再取得フローを担う。
+- [HelloWorld/Features/FeedCache/HomeSystemStatusService.swift](HelloWorld/Features/FeedCache/HomeSystemStatusService.swift)
+  - ホームのシステム状況集約を担う。
 - [HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift](HelloWorld/Infrastructure/YouTube/YouTubeFeed.swift)
   - 更新確認、本体取得、XML parser を担う。
 - [HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift](HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift)
@@ -267,9 +323,11 @@ xcodebuild test \
 - 自動更新経路を確認したいテストだけ `HELLOWORLD_UI_TEST_AUTO_REFRESH=1` を使う。
 - UI テストでは実ネットワークを使わない。
 - hidden button の直接タップより、起動環境変数や marker による観測を優先する。
+- スワイプ系 UI テストでは、必要に応じて `UITestAsyncActionTrigger` のような専用 trigger で同等イベントを発火してよい。
 - 実機の再現調査では `scripts/stream_device_runtime_logs.sh` を使い、物理 `iPhone 12 mini` の foreground 起動とコンソール接続を同時に行う。
 - UI テスト用 identifier は tappable な本体要素に付ける。
 - 画面が描画されたことを示す marker と、主要要素が見えることの両方を待つ。
 - 性能しきい値は simulator の揺れを考慮して設定する。
 - `scripts/collect_metrics.sh` は `xcodebuild build-for-testing` と `test-without-building` を分離して時間を採取し、UI テストが書き出した起動性能 JSON を `metrics.md` へ集約する。
+- `scripts/health_barometer.sh` は、実装健康度の警告点を定量確認するための軽量点検コマンドとして扱う。
 - 同スクリプトは Xcode の Scheme post-action や Run Script からも呼び出せるよう、CLI だけで完結する前提で設計する。

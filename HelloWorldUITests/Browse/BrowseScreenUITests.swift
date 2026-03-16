@@ -38,4 +38,61 @@ final class BrowseScreenUITests: UITestCaseSupport {
             ((marker.label as String?) ?? "") == "UC_TEST_ALPHA"
         })
     }
+
+    func testRemoteSearchRefreshUpdatesResultsWithDummyTrigger() throws {
+        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
+
+        let firstVideoMarker = element("test.remoteSearch.firstVideoID", in: app)
+        XCTAssertTrue(firstVideoMarker.waitForExistence(timeout: 5))
+        XCTAssertNotEqual(firstVideoMarker.label, "remote-refresh-001")
+
+        let refreshTrigger = element("test.remoteSearch.refresh", in: app)
+        XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
+        refreshTrigger.tap()
+
+        XCTAssertTrue(eventually(timeout: 5) {
+            firstVideoMarker.label == "remote-refresh-001"
+        })
+        XCTAssertTrue(element("video.tile.remote-refresh-001", in: app).waitForExistence(timeout: 3))
+    }
+
+    func testRemoteSearchChipStaysVisibleUntilUserInteraction() throws {
+        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
+
+        let refreshTrigger = element("test.remoteSearch.refresh", in: app)
+        XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
+        refreshTrigger.tap()
+
+        let chip = element("search.resultChip", in: app)
+        XCTAssertTrue(chip.waitForExistence(timeout: 3))
+        sleep(5)
+        XCTAssertTrue(chip.exists)
+
+        app.scrollViews.firstMatch.swipeUp()
+        XCTAssertTrue(eventually(timeout: 3) {
+            !chip.exists
+        })
+    }
+
+    func testRemoteSearchTapShowsChannelTitleAndTriggersAutomaticRefresh() throws {
+        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
+
+        let refreshTrigger = element("test.remoteSearch.refresh", in: app)
+        XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
+        refreshTrigger.tap()
+
+        let remoteTile = element("video.tile.remote-refresh-001", in: app)
+        XCTAssertTrue(remoteTile.waitForExistence(timeout: 3))
+        remoteTile.tap()
+
+        let title = element("screen.title", in: app)
+        XCTAssertTrue(title.waitForExistence(timeout: 3))
+        XCTAssertEqual(title.label, "Refresh Channel")
+
+        let refreshMarker = element("test.channelRefreshTarget", in: app)
+        XCTAssertTrue(refreshMarker.waitForExistence(timeout: 3))
+        XCTAssertTrue(eventually(timeout: 3) {
+            refreshMarker.label == "UC_REMOTE_REFRESH"
+        })
+    }
 }

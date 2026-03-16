@@ -16,9 +16,17 @@ struct ContentView: View {
     @State private var hasAppliedInitialUITestRoute = false
     @State private var navigationPath = NavigationPath()
     @ObservedObject private var diagnostics = StartupDiagnostics.shared
+    private let dependencies: FeedCacheDependencies
 
     init() {
-        _coordinator = StateObject(wrappedValue: FeedCacheCoordinator(channels: ChannelRegistryStore.loadAllChannelIDs()))
+        let dependencies = FeedCacheDependencies.live()
+        self.dependencies = dependencies
+        _coordinator = StateObject(
+            wrappedValue: FeedCacheCoordinator(
+                channels: ChannelRegistryStore.loadAllChannelIDs(),
+                dependencies: dependencies
+            )
+        )
     }
 
     var body: some View {
@@ -55,8 +63,8 @@ struct ContentView: View {
                                 RemoteKeywordSearchResultsView(keyword: keyword, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
                             case .channelRegistration:
                                 ChannelRegistrationView(coordinator: coordinator)
-                            case let .channelVideos(channelID):
-                                ChannelVideosView(channelID: channelID, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
+                            case let .channelVideos(context):
+                                ChannelVideosView(context: context, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
                             }
                         }
                     }

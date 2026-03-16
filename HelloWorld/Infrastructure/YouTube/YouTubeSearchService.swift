@@ -34,10 +34,14 @@ enum YouTubeSearchError: LocalizedError {
 
 struct YouTubeSearchService {
     var isConfigured: Bool {
-        resolvedAPIKey != nil
+        AppLaunchMode.current.usesMockData || resolvedAPIKey != nil
     }
 
     func searchVideos(keyword: String, limit: Int = 100) async throws -> YouTubeSearchResponse {
+        if AppLaunchMode.current.usesMockData {
+            return mockSearchResponse(keyword: keyword, limit: limit)
+        }
+
         guard let apiKey = resolvedAPIKey else {
             throw YouTubeSearchError.apiKeyMissing
         }
@@ -202,6 +206,38 @@ struct YouTubeSearchService {
                 return (order[lhs.id] ?? .max) < (order[rhs.id] ?? .max)
             }
         }
+    }
+
+    private func mockSearchResponse(keyword: String, limit: Int) -> YouTubeSearchResponse {
+        let videos = [
+            YouTubeSearchVideo(
+                id: "remote-refresh-001",
+                channelID: "UC_REMOTE_REFRESH",
+                channelTitle: "Refresh Channel",
+                title: "\(keyword) 最新テスト動画",
+                publishedAt: .now.addingTimeInterval(60),
+                videoURL: URL(string: "https://www.youtube.com/watch?v=remote-refresh-001"),
+                thumbnailURL: URL(string: "https://example.com/remote-refresh-001.jpg"),
+                durationSeconds: 1240,
+                viewCount: 4242
+            ),
+            YouTubeSearchVideo(
+                id: "remote-refresh-002",
+                channelID: "UC_REMOTE_REFRESH",
+                channelTitle: "Refresh Channel",
+                title: "\(keyword) 追加テスト動画",
+                publishedAt: .now,
+                videoURL: URL(string: "https://www.youtube.com/watch?v=remote-refresh-002"),
+                thumbnailURL: URL(string: "https://example.com/remote-refresh-002.jpg"),
+                durationSeconds: 980,
+                viewCount: 2024
+            )
+        ]
+        return YouTubeSearchResponse(
+            videos: Array(videos.prefix(limit)),
+            totalCount: min(videos.count, limit),
+            fetchedAt: .now
+        )
     }
 }
 

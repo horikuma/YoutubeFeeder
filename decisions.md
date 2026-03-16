@@ -1,3 +1,21 @@
+## 2026/03/16
+- YouTube検索結果からチャンネルへ入る導線は、チャンネル名と選択動画 ID を route context で引き継ぎ、必要時だけ自動 feed 更新する方針にした。
+  - 検索結果の動画タイルから入った直後にチャンネル名すら出ないと文脈が切れやすく、かといって毎回無条件で更新すると API 呼び出しが増えて操作も重くなりやすいため。検索時に取得済みのチャンネル名を初期表示へ使い、local feed cache が未作成か選択動画が欠けている時だけ更新して不足分を補う。
+- build を `warning 0` まで含めて完了条件とし、project 全体の既定 actor 隔離は `MainActor` へ広げない方針にした。
+  - `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` を app target へ広く掛けると、UI 以外の model や parser、test まで main actor 隔離として扱われ、Swift 6 互換警告が雪だるま式に増えて保守性を落とすため。UI 主導の型だけを明示 `@MainActor` に戻し、あわせて `AppIntents` 未使用 target の metadata warning は弱リンクで抑えて、検証を warning-free に保つ。
+- 不具合修正では、想定原因ごとの失敗テストを先に追加してから修正する方針にした。
+  - 症状だけ見て直接直し始めると、真因を取り違えたまま別経路を壊しやすいため。原因仮説ごとに再現テストや非再現テストを置いてから直すことで、修正の狙いと回帰防止を同時に残せるようにする。
+- スワイプ系 UI テストは、実ジェスチャーだけに依存せず、test support のダミー trigger でも同等イベントを起こせる方針にした。
+  - pull-to-refresh や drag gesture は simulator で揺れやすく、バグ再現用の回帰テストまで不安定になると保守性が下がるため。ユーザー体験は実機や通常 UI テストで担保しつつ、機能回帰の検証には専用 trigger を併用できるようにした。
+- 本アプリの基準アーキテクチャは、過剰な抽象化を避けた `MVVM + Clean Architecture` と明示する方針にした。
+  - 現状の責務分割は概ねその方向に寄っていたが、規範が曖昧なままだと今後の変更で coordinator への責務逆流や View からの直接 I/O が再発しやすいため。基本モデルを明文化しつつ、protocol の量産までは求めない運用にした。
+- `FeedCacheCoordinator` の依存は内部生成ではなく app layer の composition root から注入する方針に改めた。
+  - coordinator が `Store` や `Service` を自前で new すると、Clean Architecture の依存方向が緩み、テスト差し替えや将来の分割も難しくなるため。まずは `AppDependencies` で live dependency を束ねる形へ寄せ、複雑度を増やさず境界だけ整える。
+- 実装健康度は `scripts/health_barometer.sh` を正本の軽量点検として継続観測する方針にした。
+  - 障害復旧の難化は機能単体の正しさだけでなく、責務越境、巨大ファイル、長大関数、状態公開量の肥大化を早期に見逃していたことが要因になりやすいため。数値しきい値を `rules.md` に置き、毎回同じ物差しで悪化を検知できるようにする。
+- FeedCache まわりの広域責務は coordinator へ積み増さず、registry 保守、検索再取得、ホーム状態集約、固定パス / bootstrap / registry 永続化へ分割する方針にした。
+  - coordinator が検索 API、ホーム状態、registry 入出力、リセット処理まで抱えると、障害原因の切り分けと局所修正が難しくなるため。MVVM を過剰に形式化するのではなく、意味のある service / store 単位へ責務を戻して更新容易性を保つ。
+
 ## 2026/03/15
 - レガシー cache / bootstrap から channel registry を自動復旧する処理は撤廃し、channel registry を唯一の正本として扱う方針に改めた。
   - 旧形式データを実行時に救済し続けると、更新経路や削除経路まで複雑化しやすく、現行仕様の保守性を下げるため。復旧手段はバックアップ読込へ絞り、最新環境の単純さを優先した。

@@ -12,11 +12,11 @@ final class FeedCacheCoordinator: ObservableObject {
     @Published private(set) var homeSystemStatus = HomeSystemStatus.empty(keyword: FeedCacheCoordinator.homeSearchKeyword)
 
     private var channels: [String]
-    private let store = FeedCacheStore()
-    private let feedService = YouTubeFeedService()
-    private let channelResolver = YouTubeChannelResolver()
-    private let searchService = YouTubeSearchService()
-    private let remoteSearchCacheStore = RemoteVideoSearchCacheStore()
+    private let store: FeedCacheStore
+    private let feedService: YouTubeFeedService
+    private let channelResolver: YouTubeChannelResolver
+    private let searchService: YouTubeSearchService
+    private let remoteSearchCacheStore: RemoteVideoSearchCacheStore
     private var manualRefreshTask: Task<Void, Never>?
     private var importRefreshTask: Task<Void, Never>?
     private var freshnessInterval: TimeInterval
@@ -31,8 +31,42 @@ final class FeedCacheCoordinator: ObservableObject {
         FeedChannelSyncService(store: store, feedService: feedService)
     }
 
-    init(channels: [String], freshnessInterval: TimeInterval? = nil) {
+    private var remoteSearchService: RemoteVideoSearchService {
+        RemoteVideoSearchService(
+            searchService: searchService,
+            cacheStore: remoteSearchCacheStore,
+            cacheLifetime: remoteSearchCacheLifetime
+        )
+    }
+
+    private var homeSystemStatusService: HomeSystemStatusService {
+        HomeSystemStatusService(
+            store: store,
+            remoteSearchService: remoteSearchService,
+            homeSearchKeyword: Self.homeSearchKeyword
+        )
+    }
+
+    private var channelRegistryMaintenanceService: ChannelRegistryMaintenanceService {
+        ChannelRegistryMaintenanceService(
+            store: store,
+            feedService: feedService,
+            channelResolver: channelResolver,
+            remoteSearchService: remoteSearchService
+        )
+    }
+
+    init(
+        channels: [String],
+        dependencies: FeedCacheDependencies,
+        freshnessInterval: TimeInterval? = nil
+    ) {
         self.channels = channels
+        self.store = dependencies.store
+        self.feedService = dependencies.feedService
+        self.channelResolver = dependencies.channelResolver
+        self.searchService = dependencies.searchService
+        self.remoteSearchCacheStore = dependencies.remoteSearchCacheStore
         self.freshnessInterval = freshnessInterval ?? TimeInterval(max(channels.count, 1) * 60)
         let bootstrap = FeedBootstrapStore.load(channels: channels)
         self.progress = bootstrap.progress
@@ -164,10 +198,8 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func loadVideosForChannel(_ channelID: String) async -> [CachedVideo] {
-        let cachedVideos = await store.loadVideos(
-            query: VideoQuery(limit: .max, channelID: channelID, keyword: nil, sortOrder: .publishedDescending, excludeShorts: true)
-        )
-        let remoteVideos = await remoteSearchCacheStore.allVideos(channelID: channelID)
+        let cachedVideos = await loadCachedVideosForChannel(channelID)
+        let remoteVideos = await remoteSearchService.allVideos(channelID: channelID)
         let mergedByID = Dictionary(uniqueKeysWithValues: (cachedVideos + remoteVideos).map { ($0.id, $0) })
         return mergedByID.values
             .sorted { lhs, rhs in
@@ -186,6 +218,29 @@ final class FeedCacheCoordinator: ObservableObject {
             .map { $0 }
     }
 
+    func openChannelVideos(_ context: ChannelVideosRouteContext) async -> [CachedVideo] {
+        let channelID = context.channelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !channelID.isEmpty else { return [] }
+
+        var mergedVideos = await loadVideosForChannel(channelID)
+        guard context.prefersAutomaticRefresh else {
+            return mergedVideos
+        }
+
+        let cachedVideos = await loadCachedVideosForChannel(channelID)
+        let shouldRefresh = ChannelVideosAutoRefreshPolicy.shouldRefresh(
+            cachedChannelVideos: cachedVideos,
+            selectedVideoID: context.selectedVideoID
+        )
+        guard shouldRefresh else {
+            return mergedVideos
+        }
+
+        await refreshChannelManually(channelID)
+        mergedVideos = await loadVideosForChannel(channelID)
+        return mergedVideos
+    }
+
     func searchVideos(keyword: String, limit: Int = 20) async -> VideoSearchResult {
         let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         let query = VideoQuery(limit: limit, channelID: nil, keyword: normalizedKeyword, sortOrder: .publishedDescending, excludeShorts: true)
@@ -201,6 +256,9 @@ final class FeedCacheCoordinator: ObservableObject {
         }
 
         if AppLaunchMode.current.usesMockData {
+            if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+                return cached
+            }
             let local = await searchVideos(keyword: normalizedKeyword, limit: limit)
             return VideoSearchResult(
                 keyword: normalizedKeyword,
@@ -212,7 +270,7 @@ final class FeedCacheCoordinator: ObservableObject {
             )
         }
 
-        if let cached = await cachedRemoteSearchResult(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+        if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
             return cached
         }
 
@@ -226,6 +284,15 @@ final class FeedCacheCoordinator: ObservableObject {
         }
 
         if AppLaunchMode.current.usesMockData {
+            if forceRefresh {
+                do {
+                    let freshResult = try await remoteSearchService.refresh(keyword: normalizedKeyword, limit: limit)
+                    await refreshHomeSystemStatus()
+                    return freshResult
+                } catch {
+                    return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
+                }
+            }
             return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
         }
 
@@ -234,28 +301,11 @@ final class FeedCacheCoordinator: ObservableObject {
         }
 
         do {
-            let response = try await searchService.searchVideos(keyword: normalizedKeyword, limit: limit)
-            let cachedVideos = response.videos.map { video in
-                CachedVideo(
-                    id: video.id,
-                    channelID: video.channelID,
-                    channelTitle: video.channelTitle,
-                    title: video.title,
-                    publishedAt: video.publishedAt,
-                    videoURL: video.videoURL,
-                    thumbnailRemoteURL: video.thumbnailURL,
-                    thumbnailLocalFilename: nil,
-                    fetchedAt: response.fetchedAt,
-                    searchableText: [video.title, video.channelTitle, video.id].joined(separator: "\n").lowercased(),
-                    durationSeconds: video.durationSeconds,
-                    viewCount: video.viewCount
-                )
-            }
-            await remoteSearchCacheStore.merge(keyword: normalizedKeyword, videos: cachedVideos, fetchedAt: response.fetchedAt)
+            let freshResult = try await remoteSearchService.refresh(keyword: normalizedKeyword, limit: limit)
             await refreshHomeSystemStatus()
-            return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
+            return freshResult
         } catch {
-            if let cached = await cachedRemoteSearchResult(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+            if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
                 return VideoSearchResult(
                     keyword: cached.keyword,
                     videos: cached.videos,
@@ -277,117 +327,52 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func addChannel(input: String) async throws -> ChannelRegistrationFeedback {
-        let resolvedChannel = try await channelResolver.resolve(input: input)
-        let didAdd = try ChannelRegistryStore.addChannelID(resolvedChannel.channelID)
-        channels = ChannelRegistryStore.loadAllChannelIDs()
+        let execution = try await channelRegistryMaintenanceService.addChannel(input: input)
+        channels = execution.channels
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
-
-        let latestFeedError: String?
-        let cachedItem: ChannelBrowseItem?
-        do {
-            let result = try await feedService.fetchLatestFeed(for: resolvedChannel.channelID)
-            let uncachedVideos = await store.recordSuccess(
-                channelID: resolvedChannel.channelID,
-                videos: result.videos,
-                metadata: result.metadata
-            )
-            for video in uncachedVideos where video.thumbnailURL != nil {
-                await store.cacheThumbnail(for: video)
-            }
-            latestFeedError = nil
-            let registeredAtByChannelID = [resolvedChannel.channelID: ChannelRegistryStore.registrationDate(for: resolvedChannel.channelID)]
-            cachedItem = await store.loadChannelBrowseItems(
-                channelIDs: [resolvedChannel.channelID],
-                registeredAtByChannelID: registeredAtByChannelID
-            ).first
-        } catch {
-            latestFeedError = error.localizedDescription
-            let registeredAtByChannelID = [resolvedChannel.channelID: ChannelRegistryStore.registrationDate(for: resolvedChannel.channelID)]
-            cachedItem = await store.loadChannelBrowseItems(
-                channelIDs: [resolvedChannel.channelID],
-                registeredAtByChannelID: registeredAtByChannelID
-            ).first
-        }
-
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError, includesVideos: false)
-
-        let channelTitle = cachedItem?.channelTitle.isEmpty == false ? cachedItem?.channelTitle : nil
-        return ChannelRegistrationFeedback(
-            status: didAdd ? .added : .alreadyRegistered,
-            channelID: resolvedChannel.channelID,
-            channelTitle: channelTitle ?? resolvedChannel.channelID,
-            latestVideoTitle: cachedItem?.latestVideo?.title,
-            latestPublishedAt: cachedItem?.latestPublishedAt,
-            cachedVideoCount: cachedItem?.cachedVideoCount ?? 0,
-            latestFeedError: latestFeedError
-        )
+        return execution.feedback
     }
 
     func removeChannel(_ channelID: String) async -> ChannelRemovalFeedback? {
-        let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedChannelID.isEmpty else { return nil }
-
-        let channelTitle = maintenanceItems.first(where: { $0.channelID == normalizedChannelID })?.channelTitle
-            ?? videos.first(where: { $0.channelID == normalizedChannelID })?.channelTitle
-            ?? normalizedChannelID
-
-        guard (try? ChannelRegistryStore.removeChannelID(normalizedChannelID)) == true else {
+        guard let execution = await channelRegistryMaintenanceService.removeChannel(
+            channelID: channelID,
+            maintenanceItems: maintenanceItems,
+            videos: videos
+        ) else {
             return nil
         }
 
-        channels = ChannelRegistryStore.loadAllChannelIDs()
+        channels = execution.channels
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
-        let cleanup = await performConsistencyMaintenanceIfNeeded(force: true)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
-
-        return ChannelRemovalFeedback(
-            channelID: normalizedChannelID,
-            channelTitle: channelTitle,
-            removedVideoCount: cleanup?.removedVideoCount ?? 0,
-            removedThumbnailCount: cleanup?.removedThumbnailCount ?? 0
-        )
+        return execution.feedback
     }
 
     func exportChannelRegistry(backend: ChannelRegistryTransferBackend) throws -> ChannelRegistryTransferFeedback {
-        let result = try ChannelRegistryTransferStore.export(backend: backend)
-        return ChannelRegistryTransferFeedback(
-            action: .export,
-            backend: result.backend,
-            channelCount: result.channelCount,
-            path: result.fileURL.path(percentEncoded: false),
-            refreshMessage: nil
-        )
+        try channelRegistryMaintenanceService.exportChannelRegistry(backend: backend)
     }
 
     func importChannelRegistry(backend: ChannelRegistryTransferBackend) async throws -> ChannelRegistryTransferFeedback {
-        let result = try ChannelRegistryTransferStore.import(backend: backend)
-        channels = ChannelRegistryStore.loadAllChannelIDs()
+        let execution = try channelRegistryMaintenanceService.importChannelRegistry(
+            backend: backend,
+            usesMockData: AppLaunchMode.current.usesMockData
+        )
+        channels = execution.channels
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: true)
         await bootstrapMaintenance()
 
-        let refreshMessage: String?
-        if AppLaunchMode.current.usesMockData {
-            refreshMessage = "UI テストモードでは最新情報の再取得を省略しました。"
-        } else {
+        if !AppLaunchMode.current.usesMockData {
             scheduleImportedChannelRefresh(channelIDs: channels)
-            refreshMessage = "最新情報の再取得をバックグラウンドで開始しました。"
         }
 
-        return ChannelRegistryTransferFeedback(
-            action: .import,
-            backend: result.backend,
-            channelCount: result.channelCount,
-            path: result.fileURL.path(percentEncoded: false),
-            refreshMessage: refreshMessage
-        )
+        return execution.feedback
     }
 
     func resetAllSettings() async throws -> LocalStateResetFeedback {
-        let removedChannelCount = try ChannelRegistryStore.reset()
-        let clearedSearchCacheCount = await remoteSearchCacheStore.clearAll()
-        let clearedCache = await store.resetAllStoredData()
+        let feedback = try await channelRegistryMaintenanceService.resetAllSettings()
 
         channels = []
         freshnessInterval = 60
@@ -412,11 +397,12 @@ final class FeedCacheCoordinator: ObservableObject {
             currentProgress: progress
         )
 
-        return LocalStateResetFeedback(
-            removedChannelCount: removedChannelCount,
-            removedVideoCount: clearedCache.removedVideoCount,
-            removedThumbnailCount: clearedCache.removedThumbnailCount,
-            removedSearchCacheCount: clearedSearchCacheCount
+        return feedback
+    }
+
+    private func loadCachedVideosForChannel(_ channelID: String) async -> [CachedVideo] {
+        await store.loadVideos(
+            query: VideoQuery(limit: .max, channelID: channelID, keyword: nil, sortOrder: .publishedDescending, excludeShorts: true)
         )
     }
 
@@ -424,81 +410,11 @@ final class FeedCacheCoordinator: ObservableObject {
         let snapshot = await store.loadSnapshot()
         let states = Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) })
         let sortedChannels = prioritizedChannelIDs(states: states)
-        var lastError: String?
         let totalChannels = sortedChannels.count
 
-        refreshProgress = CacheRefreshProgress(
-            isRefreshing: true,
-            checkStage: RefreshStageProgress(title: "フィード更新確認", completed: 0, total: totalChannels, activeCalls: 0, callsPerSecond: 3),
-            fetchStage: .idle(title: "更新チャンネル取得", callsPerSecond: 0),
-            thumbnailStage: .idle(title: "サムネイル取得", callsPerSecond: 0)
-        )
-
-        var nextIndex = 0
-        await withTaskGroup(of: String?.self) { group in
-            let initialCount = min(3, totalChannels)
-            refreshProgress.checkStage = RefreshStageProgress(
-                title: refreshProgress.checkStage.title,
-                completed: 0,
-                total: refreshProgress.checkStage.total,
-                activeCalls: initialCount,
-                callsPerSecond: refreshProgress.checkStage.callsPerSecond
-            )
-
-            for _ in 0 ..< initialCount {
-                let channelID = sortedChannels[nextIndex]
-                nextIndex += 1
-                group.addTask { await self.processChannel(channelID, states: states) }
-            }
-
-            while let result = await group.next() {
-                if let result {
-                    lastError = result
-                }
-
-                let completed = refreshProgress.checkStage.completed + 1
-                let remaining = totalChannels - completed
-                let activeCalls = min(3, remaining)
-                refreshProgress.checkStage = RefreshStageProgress(
-                    title: refreshProgress.checkStage.title,
-                    completed: completed,
-                    total: refreshProgress.checkStage.total,
-                    activeCalls: activeCalls,
-                    callsPerSecond: refreshProgress.checkStage.callsPerSecond
-                )
-
-                if nextIndex < totalChannels {
-                    let channelID = sortedChannels[nextIndex]
-                    nextIndex += 1
-                    group.addTask { await self.processChannel(channelID, states: states) }
-                }
-            }
-        }
-
-        refreshProgress = CacheRefreshProgress(
-            isRefreshing: false,
-            checkStage: RefreshStageProgress(
-                title: refreshProgress.checkStage.title,
-                completed: refreshProgress.checkStage.completed,
-                total: refreshProgress.checkStage.total,
-                activeCalls: 0,
-                callsPerSecond: refreshProgress.checkStage.callsPerSecond
-            ),
-            fetchStage: RefreshStageProgress(
-                title: refreshProgress.fetchStage.title,
-                completed: refreshProgress.fetchStage.completed,
-                total: refreshProgress.fetchStage.total,
-                activeCalls: 0,
-                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
-            ),
-            thumbnailStage: RefreshStageProgress(
-                title: refreshProgress.thumbnailStage.title,
-                completed: refreshProgress.thumbnailStage.completed,
-                total: refreshProgress.thumbnailStage.total,
-                activeCalls: 0,
-                callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
-            )
-        )
+        beginManualRefreshProgress(totalChannels: totalChannels)
+        let lastError = await runManualRefreshChannels(sortedChannels, states: states)
+        finishManualRefreshProgress()
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
     }
@@ -554,8 +470,6 @@ final class FeedCacheCoordinator: ObservableObject {
             thumbnailStage: RefreshStageProgress(title: "サムネイル取得", completed: 0, total: 0, activeCalls: 0, callsPerSecond: 1)
         )
 
-        let lastError: String?
-
         let result = await channelSyncService.performForcedRefresh(channelID: channelID)
         RuntimeDiagnostics.shared.record(
             "channel_manual_refresh_fetch_finished",
@@ -567,89 +481,10 @@ final class FeedCacheCoordinator: ObservableObject {
             ]
         )
         if result.errorMessage == nil {
-            refreshProgress.fetchStage = RefreshStageProgress(
-                title: refreshProgress.fetchStage.title,
-                completed: 0,
-                total: 1,
-                activeCalls: 1,
-                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
-            )
-
-            refreshProgress.checkStage = RefreshStageProgress(
-                title: refreshProgress.checkStage.title,
-                completed: 1,
-                total: 1,
-                activeCalls: 0,
-                callsPerSecond: refreshProgress.checkStage.callsPerSecond
-            )
-            refreshProgress.fetchStage = RefreshStageProgress(
-                title: refreshProgress.fetchStage.title,
-                completed: 1,
-                total: 1,
-                activeCalls: 0,
-                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
-            )
-            refreshProgress.thumbnailStage = RefreshStageProgress(
-                title: refreshProgress.thumbnailStage.title,
-                completed: 0,
-                total: result.uncachedVideos.filter { $0.thumbnailURL != nil }.count,
-                activeCalls: 0,
-                callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
-            )
-
-            for (index, video) in result.uncachedVideos.filter({ $0.thumbnailURL != nil }).enumerated() {
-                RuntimeDiagnostics.shared.record(
-                    "channel_manual_refresh_thumbnail_started",
-                    detail: "サムネイル取得を開始",
-                    metadata: [
-                        "channelID": channelID,
-                        "videoID": video.id,
-                        "index": String(index + 1),
-                        "total": String(result.uncachedVideos.filter { $0.thumbnailURL != nil }.count)
-                    ]
-                )
-                refreshProgress.thumbnailStage = RefreshStageProgress(
-                    title: refreshProgress.thumbnailStage.title,
-                    completed: index,
-                    total: refreshProgress.thumbnailStage.total,
-                    activeCalls: 1,
-                    callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
-                )
-                await store.cacheThumbnail(for: video)
-                RuntimeDiagnostics.shared.record(
-                    "channel_manual_refresh_thumbnail_finished",
-                    detail: "サムネイル取得を完了",
-                    metadata: [
-                        "channelID": channelID,
-                        "videoID": video.id,
-                        "index": String(index + 1)
-                    ]
-                )
-                refreshProgress.thumbnailStage = RefreshStageProgress(
-                    title: refreshProgress.thumbnailStage.title,
-                    completed: index + 1,
-                    total: refreshProgress.thumbnailStage.total,
-                    activeCalls: 0,
-                    callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
-                )
-            }
+            await applyForcedRefreshSuccess(result, channelID: channelID)
         } else {
-            refreshProgress.checkStage = RefreshStageProgress(
-                title: refreshProgress.checkStage.title,
-                completed: 1,
-                total: 1,
-                activeCalls: 0,
-                callsPerSecond: refreshProgress.checkStage.callsPerSecond
-            )
-            refreshProgress.fetchStage = RefreshStageProgress(
-                title: refreshProgress.fetchStage.title,
-                completed: 1,
-                total: 1,
-                activeCalls: 0,
-                callsPerSecond: refreshProgress.fetchStage.callsPerSecond
-            )
+            applyForcedRefreshFailure()
         }
-        lastError = result.errorMessage
 
         let cleanup = isRegisteredChannel ? await performConsistencyMaintenanceIfNeeded(force: false) : nil
         RuntimeDiagnostics.shared.record(
@@ -664,10 +499,150 @@ final class FeedCacheCoordinator: ObservableObject {
         await refreshUI(
             currentChannelID: channelID,
             isRunning: false,
-            lastError: lastError,
+            lastError: result.errorMessage,
             allowsSuspendedStateUpdate: true
         )
         refreshProgress = .idle
+    }
+
+    private func beginManualRefreshProgress(totalChannels: Int) {
+        refreshProgress = CacheRefreshProgress(
+            isRefreshing: true,
+            checkStage: RefreshStageProgress(title: "フィード更新確認", completed: 0, total: totalChannels, activeCalls: 0, callsPerSecond: 3),
+            fetchStage: .idle(title: "更新チャンネル取得", callsPerSecond: 0),
+            thumbnailStage: .idle(title: "サムネイル取得", callsPerSecond: 0)
+        )
+    }
+
+    private func runManualRefreshChannels(_ sortedChannels: [String], states: [String: CachedChannelState]) async -> String? {
+        var lastError: String?
+        var nextIndex = 0
+
+        await withTaskGroup(of: String?.self) { group in
+            let initialCount = min(3, sortedChannels.count)
+            updateManualRefreshActiveCalls(completed: 0, totalChannels: sortedChannels.count, activeCalls: initialCount)
+
+            for _ in 0 ..< initialCount {
+                let channelID = sortedChannels[nextIndex]
+                nextIndex += 1
+                group.addTask { await self.processChannel(channelID, states: states) }
+            }
+
+            while let result = await group.next() {
+                if let result {
+                    lastError = result
+                }
+
+                let completed = refreshProgress.checkStage.completed + 1
+                let remaining = sortedChannels.count - completed
+                updateManualRefreshActiveCalls(completed: completed, totalChannels: sortedChannels.count, activeCalls: min(3, remaining))
+
+                if nextIndex < sortedChannels.count {
+                    let channelID = sortedChannels[nextIndex]
+                    nextIndex += 1
+                    group.addTask { await self.processChannel(channelID, states: states) }
+                }
+            }
+        }
+
+        return lastError
+    }
+
+    private func updateManualRefreshActiveCalls(completed: Int, totalChannels: Int, activeCalls: Int) {
+        refreshProgress.checkStage = RefreshStageProgress(
+            title: refreshProgress.checkStage.title,
+            completed: completed,
+            total: totalChannels,
+            activeCalls: activeCalls,
+            callsPerSecond: refreshProgress.checkStage.callsPerSecond
+        )
+    }
+
+    private func finishManualRefreshProgress() {
+        refreshProgress = CacheRefreshProgress(
+            isRefreshing: false,
+            checkStage: completedStage(refreshProgress.checkStage),
+            fetchStage: completedStage(refreshProgress.fetchStage),
+            thumbnailStage: completedStage(refreshProgress.thumbnailStage)
+        )
+    }
+
+    private func applyForcedRefreshSuccess(_ result: FeedChannelForcedRefreshResult, channelID: String) async {
+        refreshProgress.fetchStage = RefreshStageProgress(
+            title: refreshProgress.fetchStage.title,
+            completed: 0,
+            total: 1,
+            activeCalls: 1,
+            callsPerSecond: refreshProgress.fetchStage.callsPerSecond
+        )
+        refreshProgress.checkStage = completedStage(refreshProgress.checkStage, total: 1)
+        refreshProgress.fetchStage = completedStage(refreshProgress.fetchStage, total: 1)
+
+        let thumbnailTargets = result.uncachedVideos.filter { $0.thumbnailURL != nil }
+        refreshProgress.thumbnailStage = RefreshStageProgress(
+            title: refreshProgress.thumbnailStage.title,
+            completed: 0,
+            total: thumbnailTargets.count,
+            activeCalls: 0,
+            callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+        )
+
+        for (index, video) in thumbnailTargets.enumerated() {
+            await cacheForcedRefreshThumbnail(video, channelID: channelID, index: index, total: thumbnailTargets.count)
+        }
+    }
+
+    private func cacheForcedRefreshThumbnail(_ video: YouTubeVideo, channelID: String, index: Int, total: Int) async {
+        RuntimeDiagnostics.shared.record(
+            "channel_manual_refresh_thumbnail_started",
+            detail: "サムネイル取得を開始",
+            metadata: [
+                "channelID": channelID,
+                "videoID": video.id,
+                "index": String(index + 1),
+                "total": String(total)
+            ]
+        )
+        refreshProgress.thumbnailStage = RefreshStageProgress(
+            title: refreshProgress.thumbnailStage.title,
+            completed: index,
+            total: total,
+            activeCalls: 1,
+            callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+        )
+        await store.cacheThumbnail(for: video)
+        RuntimeDiagnostics.shared.record(
+            "channel_manual_refresh_thumbnail_finished",
+            detail: "サムネイル取得を完了",
+            metadata: [
+                "channelID": channelID,
+                "videoID": video.id,
+                "index": String(index + 1)
+            ]
+        )
+        refreshProgress.thumbnailStage = RefreshStageProgress(
+            title: refreshProgress.thumbnailStage.title,
+            completed: index + 1,
+            total: total,
+            activeCalls: 0,
+            callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
+        )
+    }
+
+    private func applyForcedRefreshFailure() {
+        refreshProgress.checkStage = completedStage(refreshProgress.checkStage, total: 1)
+        refreshProgress.fetchStage = completedStage(refreshProgress.fetchStage, total: 1)
+    }
+
+    private func completedStage(_ stage: RefreshStageProgress, total: Int? = nil, completed: Int? = nil) -> RefreshStageProgress {
+        let resolvedTotal = total ?? stage.total
+        return RefreshStageProgress(
+            title: stage.title,
+            completed: completed ?? resolvedTotal,
+            total: resolvedTotal,
+            activeCalls: 0,
+            callsPerSecond: stage.callsPerSecond
+        )
     }
 
     private func processChannel(_ channelID: String, states: [String: CachedChannelState]) async -> String? {
@@ -816,43 +791,15 @@ final class FeedCacheCoordinator: ObservableObject {
         return await store.performConsistencyMaintenance(activeChannelIDs: channels, force: force)
     }
 
-    private func cachedRemoteSearchResult(keyword: String, limit: Int, allowExpired: Bool) async -> VideoSearchResult? {
-        guard let entry = await remoteSearchCacheStore.load(keyword: keyword) else { return nil }
-        let expiresAt = entry.fetchedAt.addingTimeInterval(remoteSearchCacheLifetime)
-        guard allowExpired || expiresAt > .now else { return nil }
-        return VideoSearchResult(
-            keyword: entry.keyword,
-            videos: Array(entry.videos.prefix(limit)),
-            totalCount: entry.totalCount,
-            source: allowExpired && expiresAt <= .now ? .staleRemoteCache : .remoteCache,
-            fetchedAt: entry.fetchedAt,
-            expiresAt: expiresAt
-        )
-    }
-
     private func refreshHomeSystemStatus(snapshot: FeedCacheSnapshot? = nil, currentProgress: CacheProgress? = nil) async {
-        let resolvedSnapshot: FeedCacheSnapshot
-        if let snapshot {
-            resolvedSnapshot = snapshot
-        } else {
-            resolvedSnapshot = await store.loadSnapshot()
-        }
-        let cacheStatus = await remoteSearchCacheStore.status(
-            keyword: Self.homeSearchKeyword,
-            ttl: remoteSearchCacheLifetime
-        )
-        homeSystemStatus = HomeSystemStatus(
-            registeredChannelCount: ChannelRegistryStore.loadAllChannels().count,
-            cachedVideoCount: resolvedSnapshot.videos.count,
-            cachedThumbnailBytes: await store.totalThumbnailBytes(),
-            cacheLastUpdatedAt: currentProgress?.lastUpdatedAt ?? (resolvedSnapshot.savedAt == .distantPast ? nil : resolvedSnapshot.savedAt),
-            apiKeyConfigured: searchService.isConfigured,
-            searchCacheStatus: cacheStatus
+        homeSystemStatus = await homeSystemStatusService.loadStatus(
+            snapshot: snapshot,
+            currentProgress: currentProgress
         )
     }
 
     func clearRemoteSearchHistory(keyword: String) async {
-        await remoteSearchCacheStore.clear(keyword: keyword)
+        await remoteSearchService.clear(keyword: keyword)
         await refreshHomeSystemStatus()
     }
 }

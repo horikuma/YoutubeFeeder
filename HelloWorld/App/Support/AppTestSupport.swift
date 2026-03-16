@@ -141,6 +141,7 @@ enum UITestFixtureSeeder {
 
         let baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
         try? fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
+        clearRemoteSearchFixtures(baseDirectory: baseDirectory, fileManager: fileManager)
 
         copyFixture(named: "UITest.channel-registry", extension: "json", to: FeedCachePaths.channelRegistryURL(fileManager: fileManager), bundle: bundle)
         copyFixture(named: "UITest.bootstrap", extension: "json", to: FeedCachePaths.bootstrapURL(fileManager: fileManager), bundle: bundle)
@@ -151,6 +152,16 @@ enum UITestFixtureSeeder {
         guard let source = bundle.url(forResource: name, withExtension: ext) else { return }
         try? FileManager.default.removeItem(at: destination)
         try? FileManager.default.copyItem(at: source, to: destination)
+    }
+
+    private static func clearRemoteSearchFixtures(baseDirectory: URL, fileManager: FileManager) {
+        let filenames = (try? fileManager.contentsOfDirectory(atPath: baseDirectory.path)) ?? []
+        let targets = filenames.filter {
+            ($0 == "remote-search.json" || $0.hasPrefix("remote-search-")) && $0.hasSuffix(".json")
+        }
+        for filename in targets {
+            try? fileManager.removeItem(at: baseDirectory.appendingPathComponent(filename))
+        }
     }
 }
 
@@ -199,5 +210,28 @@ struct UITestMarker: View {
             .opacity(0.01)
             .accessibilityIdentifier(identifier)
             .accessibilityLabel(value)
+    }
+}
+
+struct UITestAsyncActionTrigger: View {
+    let identifier: String
+    let action: () async -> Void
+
+    var body: some View {
+        if AppLaunchMode.current.usesMockData {
+            Button {
+                Task {
+                    await action()
+                }
+            } label: {
+                Image(systemName: "sparkle")
+                    .font(.caption2)
+                    .foregroundStyle(.clear)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(identifier)
+        }
     }
 }
