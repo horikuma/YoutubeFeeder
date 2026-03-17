@@ -1,4 +1,18 @@
 ## 2026/03/17
+### 計測スクリプトを単一の全体実行へ統合する
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `1.793s`
+- test-without-building: `96.488s`
+- 検証合計時間: `98.281s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `417ms`
+- スプラッシュ表示からホーム表示まで: `119ms`
+- 起動からホーム表示まで: `536ms`
+- 起動から bootstrap 読込完了まで: `481ms`
+- 起動からホーム遷移開始まで: `573ms`
+
 ### Adaptive UIへ分割条件を委譲する
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

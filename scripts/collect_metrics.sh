@@ -10,6 +10,7 @@ DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/HelloWorld"
 DERIVED_DATA="$DERIVED_DATA_BASE/DerivedData"
 METRICS_DIR="$REPO_ROOT/.metrics"
 METRICS_DOC="$REPO_ROOT/metrics-latest.md"
+TEST_METRICS_DOC="$REPO_ROOT/test-metrics.md"
 STARTUP_JSON="$METRICS_DIR/startup-metrics.json"
 BUILD_LOG="$METRICS_DIR/build-for-testing.log"
 TEST_LOG="$METRICS_DIR/test-without-building.log"
@@ -98,6 +99,11 @@ if (( test_status != 0 )); then
   echo "test-without-building failed. See $TEST_LOG" >&2
   exit 1
 fi
+
+python3 "$SCRIPT_DIR/render_test_metrics.py" \
+  "$REPO_ROOT" \
+  "$TEST_METRICS_DOC" \
+  "$TEST_LOG"
 
 BUILD_DURATION="$(python3 - <<PY
 print(f"{float('$build_end') - float('$build_start'):.3f}")

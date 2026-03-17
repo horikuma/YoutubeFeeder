@@ -1,4 +1,8 @@
 ## 2026/03/17
+- 最終の全体検証は `collect_metrics.sh` を正本とし、`metrics-latest.md` と `test-metrics.md` を同じ全体 test 実行から同時更新する方針にした。
+  - `collect_test_metrics.sh` と `collect_metrics.sh` を別々に全体実行すると、同じ suite を 2 度流して無駄な待ち時間が発生するため。部分集合確認は `collect_test_metrics.sh` に残し、最終の full run は 1 回に寄せる。
+- 先に追加した failing test をその後の実装で通す `赤 -> 緑` は、retry 回数に数えない方針を明記した。
+  - これは仕様固定のための正規プロセスであり、失敗に対するやり直し回数と混ぜると、実際の手戻り量を過大評価してしまうため。
 - 分割ブラウズ UI の有効化条件は、アプリ独自の `landscape` 判定ではなく `horizontalSizeClass == .regular` を使う方針に改めた。
   - `iPad` の縦横による挙動差は Adaptive UI 側の責務として扱うため。アプリ側で `regular width && landscape` を固定すると、要求から外した向き依存ルールを実装が持ち続けてしまうため、幅クラスベースへ寄せる。
 - `iPad 縦向き` と `iPad 横向き` を要求文書で直接規定するのをやめ、`単独画面` と `Adaptive UI による分割レイアウト` へ表現を寄せる方針にした。
