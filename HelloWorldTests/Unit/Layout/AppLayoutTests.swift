@@ -14,7 +14,7 @@ final class AppLayoutTests: LoggedTestCase {
         XCTAssertFalse(layout.isPad)
     }
 
-    func testRegularWidthLandscapeUsesSplitChannelBrowser() {
+    func testRegularWidthUsesSplitChannelBrowserInLandscape() {
         let layout = AppLayout.current(
             size: CGSize(width: 1366, height: 1024),
             horizontalSizeClass: .regular
@@ -23,17 +23,19 @@ final class AppLayoutTests: LoggedTestCase {
         XCTAssertTrue(layout.usesRegularWidth)
         XCTAssertTrue(layout.usesSplitChannelBrowser)
         XCTAssertTrue(layout.isPad)
+        XCTAssertTrue(layout.isLandscape)
     }
 
-    func testRegularWidthPortraitKeepsSingleColumnChannelBrowser() {
+    func testRegularWidthUsesSplitChannelBrowserInPortrait() {
         let layout = AppLayout.current(
             size: CGSize(width: 1024, height: 1366),
             horizontalSizeClass: .regular
         )
 
         XCTAssertTrue(layout.usesRegularWidth)
-        XCTAssertFalse(layout.usesSplitChannelBrowser)
+        XCTAssertTrue(layout.usesSplitChannelBrowser)
         XCTAssertTrue(layout.isPad)
+        XCTAssertFalse(layout.isLandscape)
     }
 
     func testRegularWidthUsesReadableContentWidthForSingleColumnLists() {

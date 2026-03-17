@@ -15,7 +15,7 @@ struct AppLayout {
     static func current(size: CGSize, horizontalSizeClass: UserInterfaceSizeClass?) -> AppLayout {
         let isLandscape = size.width > size.height
         let usesRegularWidth = horizontalSizeClass == .regular
-        let usesSplitChannelBrowser = usesRegularWidth && isLandscape
+        let usesSplitChannelBrowser = usesRegularWidth
 
         if usesRegularWidth {
             return AppLayout(

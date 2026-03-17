@@ -1,4 +1,6 @@
 ## 2026/03/17
+- 分割ブラウズ UI の有効化条件は、アプリ独自の `landscape` 判定ではなく `horizontalSizeClass == .regular` を使う方針に改めた。
+  - `iPad` の縦横による挙動差は Adaptive UI 側の責務として扱うため。アプリ側で `regular width && landscape` を固定すると、要求から外した向き依存ルールを実装が持ち続けてしまうため、幅クラスベースへ寄せる。
 - `iPad 縦向き` と `iPad 横向き` を要求文書で直接規定するのをやめ、`単独画面` と `Adaptive UI による分割レイアウト` へ表現を寄せる方針にした。
   - `iPad` と `iPhone` の両対応は維持しつつ、縦横の振る舞いそのものを要求へ固定すると OS 側の adaptive behavior と競合しやすいため。要求では機能と体験を記述し、向き依存の細部は UI 基盤と実装側の責務へ戻す。
 - YouTube 検索結果画面の chip 表示状態、段階表示件数、split 初期選択は `RemoteSearchPresentationState` として pure logic へ切り出し、UI テストはユーザー導線だけを残す方針にした。

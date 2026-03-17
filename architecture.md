@@ -49,7 +49,7 @@
   - `NavigationStack` と `MaintenanceRoute` を束ねる。
   - app layer で dependency graph を組み立て、view model へ注入する。
 - [HelloWorld/App/AppLayout.swift](HelloWorld/App/AppLayout.swift)
-  - size class と表示幅条件を基準に、単独画面と分割レイアウトの差分を吸収する。
+  - `horizontalSizeClass` を主な基準として、単独画面と分割レイアウトの差分を吸収する。
 - [HelloWorld/App/AppFormatting.swift](HelloWorld/App/AppFormatting.swift)
   - 日付などの共通 formatter。
 - [HelloWorld/App/Support/AppTestSupport.swift](HelloWorld/App/Support/AppTestSupport.swift)

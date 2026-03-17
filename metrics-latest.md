@@ -1,4 +1,18 @@
 ## 2026/03/17
+### Adaptive UIへ分割条件を委譲する
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `1.707s`
+- test-without-building: `96.450s`
+- 検証合計時間: `98.157s`
+- 手修正後の再試行回数: `1`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `403ms`
+- スプラッシュ表示からホーム表示まで: `120ms`
+- 起動からホーム表示まで: `523ms`
+- 起動から bootstrap 読込完了まで: `466ms`
+- 起動からホーム遷移開始まで: `561ms`
+
 ### UIテスト責務を見直して検証コストを調整する
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
