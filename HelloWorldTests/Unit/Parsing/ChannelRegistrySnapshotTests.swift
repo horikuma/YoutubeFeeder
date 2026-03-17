@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class ChannelRegistrySnapshotTests: XCTestCase {
+final class ChannelRegistrySnapshotTests: LoggedTestCase {
     func testDecodeSupportsCurrentRegistryFormat() throws {
         let json = """
         {

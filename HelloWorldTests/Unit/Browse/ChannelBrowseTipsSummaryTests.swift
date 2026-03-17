@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class ChannelBrowseTipsSummaryTests: XCTestCase {
+final class ChannelBrowseTipsSummaryTests: LoggedTestCase {
     func testBuildSummarizesChannelCountAndSort() {
         let items = [
             makeItem(channelID: "UC001", title: "Alpha"),

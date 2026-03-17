@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class AppFormattingTests: XCTestCase {
+final class AppFormattingTests: LoggedTestCase {
     func testVideoTileBadgeTextIncludesIndexDurationViewCountAndBucket() {
         XCTAssertEqual(
             AppFormatting.videoTileBadgeText(index: 0, durationSeconds: 83, viewCount: 45),

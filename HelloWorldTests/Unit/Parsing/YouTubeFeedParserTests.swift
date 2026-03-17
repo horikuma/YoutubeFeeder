@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class YouTubeFeedParserTests: XCTestCase {
+final class YouTubeFeedParserTests: LoggedTestCase {
     func testUploadsPlaylistIDConvertsChannelID() {
         XCTAssertEqual(
             YouTubeFeedService.uploadsPlaylistID(for: "UCabcdefghijk"),

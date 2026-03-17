@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class FeedOrderingTests: XCTestCase {
+final class FeedOrderingTests: LoggedTestCase {
     func testPrioritizesLatestPublishedThenOldestChecked() {
         let now = Date(timeIntervalSince1970: 1_000)
         let channels = ["A", "B", "C"]

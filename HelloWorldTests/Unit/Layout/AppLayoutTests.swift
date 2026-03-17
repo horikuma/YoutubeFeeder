@@ -2,7 +2,7 @@ import SwiftUI
 import XCTest
 @testable import HelloWorld
 
-final class AppLayoutTests: XCTestCase {
+final class AppLayoutTests: LoggedTestCase {
     func testCompactWidthNeverUsesSplitChannelBrowser() {
         let layout = AppLayout.current(
             size: CGSize(width: 844, height: 390),

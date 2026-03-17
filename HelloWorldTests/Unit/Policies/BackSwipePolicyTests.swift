@@ -2,7 +2,7 @@ import CoreGraphics
 import XCTest
 @testable import HelloWorld
 
-final class BackSwipePolicyTests: XCTestCase {
+final class BackSwipePolicyTests: LoggedTestCase {
     func testAcceptsHorizontalSwipeFromLeftEdge() {
         XCTAssertTrue(
             BackSwipePolicy.shouldNavigateBack(

@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class RemoteVideoSearchCacheStoreTests: XCTestCase {
+final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
     func testRemoteSearchCacheStatusReflectsFreshnessWindow() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

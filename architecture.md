@@ -306,6 +306,8 @@ xcodebuild test \
   - 優先順、鮮度判定。
 - [HelloWorldTests/Unit/Layout/AppLayoutTests.swift](HelloWorldTests/Unit/Layout/AppLayoutTests.swift)
   - size class に応じたレイアウト切替。
+- [HelloWorldTests/Support/TestMetricsObserver.swift](HelloWorldTests/Support/TestMetricsObserver.swift)
+  - unit test の開始時刻、終了時刻、所要時間を観測し、`xcodebuild` ログへ構造化イベントを書き出す。
 
 #### UI Test
 
@@ -321,6 +323,8 @@ xcodebuild test \
   - チャンネル別動画一覧の pull-to-refresh が選択中チャンネルだけを更新すること
 - [HelloWorldUITests/Support/UITestCaseSupport.swift](HelloWorldUITests/Support/UITestCaseSupport.swift)
   - app 起動、timeline 解析、共通 wait。
+- [HelloWorldUITests/Support/UITestMetricsObserver.swift](HelloWorldUITests/Support/UITestMetricsObserver.swift)
+  - UI test の開始時刻、終了時刻、所要時間を観測し、`xcodebuild` ログへ構造化イベントを書き出す。
 
 ## テスト運用詳細
 
@@ -334,5 +338,7 @@ xcodebuild test \
 - 画面が描画されたことを示す marker と、主要要素が見えることの両方を待つ。
 - 性能しきい値は simulator の揺れを考慮して設定する。
 - `scripts/collect_metrics.sh` は `xcodebuild build-for-testing` と `test-without-building` を分離して時間を採取し、UI テストが書き出した起動性能 JSON を `metrics-latest.md` へ集約する。
+- `scripts/collect_test_metrics.sh` は unit test と UI test を分けて実行し、各テストケースの開始時刻、終了時刻、所要時間を `test-metrics.md` へ集約する。
+- `test-metrics.md` には、`logic` / `ui` の大分類に加えて、`Parsing` や `Home` のような領域分類、テスト ID、概要、時刻、所要時間を出力する。
 - `scripts/health_barometer.sh` は、実装健康度の警告点を定量確認するための軽量点検コマンドとして扱う。
 - 同スクリプトは Xcode の Scheme post-action や Run Script からも呼び出せるよう、CLI だけで完結する前提で設計する。

@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class YouTubeChannelResolverTests: XCTestCase {
+final class YouTubeChannelResolverTests: LoggedTestCase {
     func testDirectChannelIDReturnsAsIs() {
         XCTAssertEqual(
             YouTubeChannelInput.directChannelID(from: "UCabcdefghijklmnopqrstuv"),

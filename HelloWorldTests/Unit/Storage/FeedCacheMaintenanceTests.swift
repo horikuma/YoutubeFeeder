@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class FeedCacheMaintenanceTests: XCTestCase {
+final class FeedCacheMaintenanceTests: LoggedTestCase {
     func testRemoveChannelIDDeletesRegisteredChannel() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class ChannelVideosAutoRefreshPolicyTests: XCTestCase {
+final class ChannelVideosAutoRefreshPolicyTests: LoggedTestCase {
     func testRequiresRefreshWhenChannelHasNoCachedVideosYet() {
         XCTAssertTrue(
             ChannelVideosAutoRefreshPolicy.shouldRefresh(

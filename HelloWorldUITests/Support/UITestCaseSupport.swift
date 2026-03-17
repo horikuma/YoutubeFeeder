@@ -2,6 +2,11 @@ import XCTest
 import Foundation
 
 class UITestCaseSupport: XCTestCase {
+    override class func setUp() {
+        super.setUp()
+        UITestMetricsBootstrap.registerIfNeeded()
+    }
+
     override func setUpWithError() throws {
         continueAfterFailure = false
     }

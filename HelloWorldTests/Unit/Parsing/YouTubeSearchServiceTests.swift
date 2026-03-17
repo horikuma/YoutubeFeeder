@@ -1,7 +1,7 @@
 import XCTest
 @testable import HelloWorld
 
-final class YouTubeSearchServiceTests: XCTestCase {
+final class YouTubeSearchServiceTests: LoggedTestCase {
     func testVideoDetailsPartIncludesStatistics() {
         XCTAssertEqual(
             YouTubeSearchService.videoDetailsPartParameter,
