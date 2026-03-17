@@ -1,7 +1,3 @@
-# HelloWorld Decisions Log
-
-当日分の設計判断は `decisions-latest.md` へ記録し、日付が変わった時点で本ファイル先頭へ移す。
-
 ## 2026/03/16
 - YouTube検索結果の `iPad 横向き` は、チャンネル一覧と同じく `NavigationSplitView` で左に検索結果、右にチャンネル動画を出す方針にした。
   - `iPad 縦向き = iPhone 同等` という既存仕様を崩さず、広い横幅だけで比較導線を強める方が整合的なため。先行試行では縦向き UI test が split 条件に合わず詰まったので、仕様とテスト条件を一致させた。
