@@ -49,7 +49,7 @@
   - `NavigationStack` と `MaintenanceRoute` を束ねる。
   - app layer で dependency graph を組み立て、view model へ注入する。
 - [HelloWorld/App/AppLayout.swift](HelloWorld/App/AppLayout.swift)
-  - size class を基準に `iPhone` と `iPad` のレイアウト差分を吸収する。
+  - size class と表示幅条件を基準に、単独画面と分割レイアウトの差分を吸収する。
 - [HelloWorld/App/AppFormatting.swift](HelloWorld/App/AppFormatting.swift)
   - 日付などの共通 formatter。
 - [HelloWorld/App/Support/AppTestSupport.swift](HelloWorld/App/Support/AppTestSupport.swift)
@@ -82,8 +82,8 @@
   - 一覧系画面への遷移定義。
   - チャンネル一覧には並び順 descriptor を渡す。
 - [HelloWorld/Features/Browse/ChannelBrowseViews.swift](HelloWorld/Features/Browse/ChannelBrowseViews.swift)
-  - チャンネル一覧、全動画一覧、iPad 横向けの分割チャンネル閲覧。
-  - iPad 横向きのチャンネル閲覧は `NavigationSplitView` を使う。
+  - チャンネル一覧、全動画一覧、分割チャンネル閲覧。
+  - 分割チャンネル閲覧は `NavigationSplitView` を使う。
   - 選択された並び順 descriptor を一覧サブタイトルと並び順へ反映する。
   - チャンネル一覧の先頭には、非操作の `Tips` タイルを共通表示し、件数、並び順、基本操作を要約する。
   - 長押しメニューからチャンネル削除導線を出す。
@@ -92,7 +92,7 @@
   - 固定キーワード検索結果画面では、一時的な件数チップを下部へ重ねて表示する。
   - 下部チップは自動タイマーでは閉じず、ユーザー操作が始まるまで表示を維持する。
   - YouTube 検索結果は 20 件ずつの段階表示と下端到達での追加読込を行う。
-  - `iPad 横向き` の YouTube 検索結果は `NavigationSplitView` で左に検索結果、右に選択中チャンネルの動画一覧を出す。
+  - 分割レイアウトの YouTube 検索結果は `NavigationSplitView` で左に検索結果、右に選択中チャンネルの動画一覧を出す。
   - YouTube 検索結果からチャンネル画面へ入る時は、チャンネル名と選択動画 ID を route context として引き継ぐ。
   - 再生数は `videos.list` の `statistics.viewCount` を使ってタイル右下へ表示する。
 - [HelloWorld/Features/Browse/BrowseViews.swift](HelloWorld/Features/Browse/BrowseViews.swift)
@@ -216,9 +216,8 @@
 
 ## UI 実装方針
 
-- `iPhone` の見た目と操作感を基準とし、`iPad` は広い画面に合わせて余白と readable width を調整する。
-- 機能ロジックは共通化し、端末差は `AppLayout` で吸収する。
-- `iPad 縦向き` は原則として `iPhone` と同じ操作モデルを維持する。
+- `iPhone` と `iPad` は同一機能を提供し、差分は Adaptive UI に沿ったレイアウト表現へ閉じ込める。
+- 機能ロジックは共通化し、レイアウト差は `AppLayout` で吸収する。
 - 1 列リストは複数列化せず、Apple の `readableContentGuide` 相当の考え方で本文幅だけを制限する。
 - 一覧画面の振る舞いは `InteractiveListScreen` に集約し、画面ごとの差異を作らない。
 - 動画系一覧の番号表示は 0 始まりとし、右下の情報バッジへ統合する。

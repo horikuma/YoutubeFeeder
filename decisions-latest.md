@@ -1,4 +1,6 @@
 ## 2026/03/17
+- `iPad 縦向き` と `iPad 横向き` を要求文書で直接規定するのをやめ、`単独画面` と `Adaptive UI による分割レイアウト` へ表現を寄せる方針にした。
+  - `iPad` と `iPhone` の両対応は維持しつつ、縦横の振る舞いそのものを要求へ固定すると OS 側の adaptive behavior と競合しやすいため。要求では機能と体験を記述し、向き依存の細部は UI 基盤と実装側の責務へ戻す。
 - YouTube 検索結果画面の chip 表示状態、段階表示件数、split 初期選択は `RemoteSearchPresentationState` として pure logic へ切り出し、UI テストはユーザー導線だけを残す方針にした。
   - `sleep` や `iPad` 専用の adaptive layout 確認を UI テストへ残し続けると、計測コストが高い割に OS 側責務まで再検証しやすいため。`AppLayout` と presentation state を unit test で固定し、UI では refresh、遷移、ユーザー操作による chip dismissal のような画面契約だけを観測する。
 - テスト時間計測は、各テスト本体を変更せず、`XCTestObservation` で開始・終了イベントをログへ流し、`scripts/collect_test_metrics.sh` で `test-metrics.md` へ集約する方針にした。
