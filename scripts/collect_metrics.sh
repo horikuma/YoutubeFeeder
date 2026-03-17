@@ -146,7 +146,6 @@ startup_metrics = startup_payload.get("startup_metrics", {})
 
 entry_lines = [
     f"### {label}",
-    "",
     f"- 種別: {change_kind}",
     f"- 実行環境: `{destination}`",
 ]
@@ -182,11 +181,11 @@ if heading in content:
     parts = content.split(heading, 1)
     prefix, rest = parts[0], parts[1]
     rest = rest.lstrip("\n")
-    updated = f"{prefix}{heading}\n\n{entry}\n\n{rest}"
+    updated = f"{prefix}{heading}\n{entry}\n\n{rest}"
 else:
     if content.endswith("\n"):
         content = content.rstrip("\n")
-    updated = f"{content}\n\n{heading}\n\n{entry}\n"
+    updated = f"{content}\n\n{heading}\n{entry}\n"
 
 metrics_doc.write_text(updated)
 PY

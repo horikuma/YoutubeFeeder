@@ -1,5 +1,4 @@
 import XCTest
-import UIKit
 
 final class BrowseScreenUITests: UITestCaseSupport {
     func testAllVideosScreenScrollsWithMockData() throws {
@@ -67,7 +66,7 @@ final class BrowseScreenUITests: UITestCaseSupport {
         XCTAssertTrue(element("video.tile.remote-refresh-001", in: app).waitForExistence(timeout: 3))
     }
 
-    func testRemoteSearchChipStaysVisibleUntilUserInteraction() throws {
+    func testRemoteSearchChipDismissesOnUserInteraction() throws {
         let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
 
         let refreshTrigger = element("test.remoteSearch.refresh", in: app)
@@ -76,9 +75,6 @@ final class BrowseScreenUITests: UITestCaseSupport {
 
         let chip = element("search.resultChip", in: app)
         XCTAssertTrue(chip.waitForExistence(timeout: 3))
-        sleep(5)
-        XCTAssertTrue(chip.exists)
-
         app.scrollViews.firstMatch.swipeUp()
         XCTAssertTrue(eventually(timeout: 3) {
             !chip.exists
@@ -105,31 +101,5 @@ final class BrowseScreenUITests: UITestCaseSupport {
         XCTAssertTrue(eventually(timeout: 3) {
             refreshMarker.label == "UC_REMOTE_REFRESH"
         })
-    }
-
-    func testRemoteSearchUsesSplitPaneOnIPadAndShowsChannelVideos() throws {
-        guard UIDevice.current.userInterfaceIdiom == .pad else {
-            throw XCTSkip("iPad 専用の split view テスト")
-        }
-
-        XCUIDevice.shared.orientation = .landscapeLeft
-        defer { XCUIDevice.shared.orientation = .portrait }
-
-        let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
-
-        let refreshTrigger = element("test.remoteSearch.refresh", in: app)
-        XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
-        refreshTrigger.tap()
-
-        let remoteTile = element("video.tile.remote-refresh-001", in: app)
-        XCTAssertTrue(remoteTile.waitForExistence(timeout: 3))
-        remoteTile.tap()
-
-        let splitTitle = element("screen.remoteSearchSplitTitle", in: app)
-        XCTAssertTrue(splitTitle.waitForExistence(timeout: 5))
-        XCTAssertEqual(splitTitle.label, "Refresh Channel")
-
-        let loadedMarker = element("screen.channelVideos.loaded", in: app)
-        XCTAssertTrue(loadedMarker.waitForExistence(timeout: 5))
     }
 }

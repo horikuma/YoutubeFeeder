@@ -127,8 +127,11 @@ struct RemoteKeywordSearchResultsView: View {
     let layout: AppLayout
 
     @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
-    @State private var isChipVisible = true
-    @State private var visibleCount = 20
+    @State private var presentationState = RemoteSearchPresentationState(
+        visibleCount: 20,
+        isChipVisible: true,
+        splitContext: nil
+    )
     @State private var splitContext: ChannelVideosRouteContext?
     @State private var splitVideos: [CachedVideo] = []
 
@@ -142,7 +145,7 @@ struct RemoteKeywordSearchResultsView: View {
                     path: $path,
                     layout: layout,
                     result: result,
-                    visibleCount: visibleCount,
+                    visibleCount: presentationState.visibleCount,
                     splitContext: $splitContext,
                     splitVideos: $splitVideos,
                     onRefresh: { await reloadResults(forceRefresh: true) },
@@ -162,7 +165,7 @@ struct RemoteKeywordSearchResultsView: View {
                     }
                 ) {
                     remoteSearchListContent(
-                        videos: Array(result.videos.prefix(visibleCount)),
+                        videos: Array(result.videos.prefix(presentationState.visibleCount)),
                         useNavigation: true
                     )
                 }
@@ -196,7 +199,7 @@ struct RemoteKeywordSearchResultsView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if isChipVisible, result.fetchedAt != nil {
+            if presentationState.isChipVisible, result.fetchedAt != nil {
                 SearchResultCountChip(totalCount: result.totalCount, sourceLabel: result.source.label, fetchedAt: result.fetchedAt)
                     .padding(.bottom, 10)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -218,56 +221,61 @@ struct RemoteKeywordSearchResultsView: View {
 
     private func loadSnapshot() async {
         result = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
-        visibleCount = min(20, max(result.videos.count, 20))
-        isChipVisible = result.fetchedAt != nil
-        if layout.usesSplitChannelBrowser {
-            applyDefaultSplitSelectionIfNeeded()
-        }
+        applyPresentationState()
     }
 
     private func reloadResults(forceRefresh: Bool) async {
         result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: forceRefresh)
-        visibleCount = min(20, max(result.videos.count, 20))
-        isChipVisible = result.fetchedAt != nil
+        applyPresentationState()
+    }
+
+    private func dismissChip() {
+        guard presentationState.isChipVisible else { return }
+        withAnimation(.easeOut(duration: 0.2)) {
+            presentationState.dismissChip()
+        }
+    }
+
+    private func loadMoreIfNeeded() {
+        presentationState.loadMoreIfNeeded(totalVideoCount: result.videos.count)
+    }
+
+    private func applyPresentationState() {
+        presentationState = RemoteSearchPresentationState.build(
+            result: result,
+            usesSplitChannelBrowser: layout.usesSplitChannelBrowser,
+            previousSplitContext: splitContext
+        )
         if layout.usesSplitChannelBrowser {
             applyDefaultSplitSelectionIfNeeded()
         }
     }
 
-    private func dismissChip() {
-        guard isChipVisible else { return }
-        withAnimation(.easeOut(duration: 0.2)) {
-            isChipVisible = false
-        }
-    }
-
-    private func loadMoreIfNeeded() {
-        guard visibleCount < result.videos.count else { return }
-        visibleCount = min(visibleCount + 20, result.videos.count)
-    }
-
     private func applyDefaultSplitSelectionIfNeeded() {
         guard layout.usesSplitChannelBrowser else { return }
-        if let splitContext, result.videos.contains(where: { $0.channelID == splitContext.channelID }) {
-            return
-        }
-        guard let firstVideo = result.videos.first else {
+        guard let context = presentationState.splitContext else {
             splitContext = nil
             splitVideos = []
             return
         }
+        if splitContext == context { return }
         Task {
-            await selectSplitVideo(firstVideo)
+            await selectSplitContext(context)
         }
     }
 
     private func selectSplitVideo(_ video: CachedVideo) async {
-        let context = ChannelVideosRouteContext(
-            channelID: video.channelID,
-            preferredChannelTitle: normalizedChannelTitle(for: video),
-            selectedVideoID: video.id,
-            prefersAutomaticRefresh: true
+        await selectSplitContext(
+            ChannelVideosRouteContext(
+                channelID: video.channelID,
+                preferredChannelTitle: normalizedChannelTitle(for: video),
+                selectedVideoID: video.id,
+                prefersAutomaticRefresh: true
+            )
         )
+    }
+
+    private func selectSplitContext(_ context: ChannelVideosRouteContext) async {
         splitContext = context
         splitVideos = await coordinator.openChannelVideos(context)
     }

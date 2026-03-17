@@ -85,6 +85,60 @@ struct ChannelBrowseTipsSummary: Hashable {
     }
 }
 
+struct RemoteSearchPresentationState: Hashable {
+    var visibleCount: Int
+    var isChipVisible: Bool
+    var splitContext: ChannelVideosRouteContext?
+
+    static func build(
+        result: VideoSearchResult,
+        usesSplitChannelBrowser: Bool,
+        previousSplitContext: ChannelVideosRouteContext?
+    ) -> Self {
+        RemoteSearchPresentationState(
+            visibleCount: min(20, max(result.videos.count, 20)),
+            isChipVisible: result.fetchedAt != nil,
+            splitContext: defaultSplitContext(
+                result: result,
+                usesSplitChannelBrowser: usesSplitChannelBrowser,
+                previousSplitContext: previousSplitContext
+            )
+        )
+    }
+
+    mutating func dismissChip() {
+        isChipVisible = false
+    }
+
+    mutating func loadMoreIfNeeded(totalVideoCount: Int) {
+        guard visibleCount < totalVideoCount else { return }
+        visibleCount = min(visibleCount + 20, totalVideoCount)
+    }
+
+    private static func defaultSplitContext(
+        result: VideoSearchResult,
+        usesSplitChannelBrowser: Bool,
+        previousSplitContext: ChannelVideosRouteContext?
+    ) -> ChannelVideosRouteContext? {
+        guard usesSplitChannelBrowser else { return nil }
+        if let previousSplitContext,
+           result.videos.contains(where: { $0.channelID == previousSplitContext.channelID }) {
+            return previousSplitContext
+        }
+        guard let firstVideo = result.videos.first else { return nil }
+        return ChannelVideosRouteContext(
+            channelID: firstVideo.channelID,
+            preferredChannelTitle: normalizedChannelTitle(for: firstVideo),
+            selectedVideoID: firstVideo.id,
+            prefersAutomaticRefresh: true
+        )
+    }
+
+    private static func normalizedChannelTitle(for video: CachedVideo) -> String? {
+        video.channelTitle.isEmpty ? nil : video.channelTitle
+    }
+}
+
 enum FeedOrdering {
     static func prioritizedChannelIDs(channels: [String], states: [String: CachedChannelState]) -> [String] {
         channels.sorted { lhs, rhs in

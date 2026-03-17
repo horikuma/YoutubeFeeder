@@ -266,6 +266,7 @@
   - YouTube 検索 API 呼び出しを担う。
 - [HelloWorld/Shared/AppLogic.swift](HelloWorld/Shared/AppLogic.swift)
   - スワイプ判定、長押し判定、一覧並び順、鮮度判定などの pure logic を担う。
+  - `RemoteSearchPresentationState` で YouTube 検索結果画面の chip 可視状態、段階表示件数、split 初期選択を UI から切り離して扱う。
 
 ## テスト構造
 
@@ -306,6 +307,8 @@ xcodebuild test \
   - 優先順、鮮度判定。
 - [HelloWorldTests/Unit/Layout/AppLayoutTests.swift](HelloWorldTests/Unit/Layout/AppLayoutTests.swift)
   - size class に応じたレイアウト切替。
+- [HelloWorldTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift](HelloWorldTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift)
+  - `Tips` サマリー文言と、YouTube 検索結果画面の presentation state。
 - [HelloWorldTests/Support/TestMetricsObserver.swift](HelloWorldTests/Support/TestMetricsObserver.swift)
   - unit test の開始時刻、終了時刻、所要時間を観測し、`xcodebuild` ログへ構造化イベントを書き出す。
 
@@ -321,6 +324,8 @@ xcodebuild test \
   - 全動画一覧遷移
   - 一覧の縦スクロール
   - チャンネル別動画一覧の pull-to-refresh が選択中チャンネルだけを更新すること
+  - YouTube 検索結果で refresh 後に chip がユーザー操作で閉じること
+  - YouTube 検索結果からチャンネル画面へ入り、自動 refresh が走ること
 - [HelloWorldUITests/Support/UITestCaseSupport.swift](HelloWorldUITests/Support/UITestCaseSupport.swift)
   - app 起動、timeline 解析、共通 wait。
 - [HelloWorldUITests/Support/UITestMetricsObserver.swift](HelloWorldUITests/Support/UITestMetricsObserver.swift)
@@ -333,6 +338,7 @@ xcodebuild test \
 - UI テストでは実ネットワークを使わない。
 - hidden button の直接タップより、起動環境変数や marker による観測を優先する。
 - スワイプ系 UI テストでは、必要に応じて `UITestAsyncActionTrigger` のような専用 trigger で同等イベントを発火してよい。
+- `AppLayout` や `RemoteSearchPresentationState` のように pure logic へ切り出せる判定は unit test で固定し、UI テストでは OS 任せの adaptive layout そのものを過剰に再検証しない。
 - 実機の再現調査では `scripts/stream_device_runtime_logs.sh` を使い、物理 `iPhone 12 mini` の foreground 起動とコンソール接続を同時に行う。
 - UI テスト用 identifier は tappable な本体要素に付ける。
 - 画面が描画されたことを示す marker と、主要要素が見えることの両方を待つ。

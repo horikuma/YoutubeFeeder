@@ -1,4 +1,6 @@
 ## 2026/03/17
+- YouTube 検索結果画面の chip 表示状態、段階表示件数、split 初期選択は `RemoteSearchPresentationState` として pure logic へ切り出し、UI テストはユーザー導線だけを残す方針にした。
+  - `sleep` や `iPad` 専用の adaptive layout 確認を UI テストへ残し続けると、計測コストが高い割に OS 側責務まで再検証しやすいため。`AppLayout` と presentation state を unit test で固定し、UI では refresh、遷移、ユーザー操作による chip dismissal のような画面契約だけを観測する。
 - テスト時間計測は、各テスト本体を変更せず、`XCTestObservation` で開始・終了イベントをログへ流し、`scripts/collect_test_metrics.sh` で `test-metrics.md` へ集約する方針にした。
   - テストコード自体へ個別の計測処理を埋め込むと、本来の検証内容まで触ってしまい保守が重くなるため。共通観測層でテスト ID と時刻だけを取り、後段スクリプトで `logic` / `ui` や領域別に整形する方が、変更の影響範囲を小さく保てる。
 - metrics と decisions の当日文書は、同じ日付見出しの中でも新しい項目ほど上へ積み増す方針を明記することにした。
