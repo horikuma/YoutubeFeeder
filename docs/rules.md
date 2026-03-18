@@ -118,6 +118,9 @@
 - GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [human-view/gui-reference.md](human-view/gui-reference.md) を見直す。
 - 人間向けの設計図や依存関係の見え方が変わる変更では [human-view/engineering-design.md](human-view/engineering-design.md) を見直す。
 - 上位方針や変更判断の基準を変更したら `rules.md` を見直す。
+- `human-view/gui-reference.md` の `画面遷移` では、全ノードが画面であることを前提に、図中ラベルの `〜画面` は省略して短く保つ。一方で `画面一覧` の `画面名` は、指示に使う正式名として `〜画面` を含めた表記を維持する。
+- `human-view/engineering-design.md` の Adaptive UI 表現では、`CompactView` / `RegularView` の個別クラスを図へ並べず、親となる機能 View クラスへ `<<Adaptive UI>>` を注記して、表現差分を内包する設計であることだけを示す。
+- `docs/human-view/` 配下の資料は、人間の参照性を優先して複雑さを抑えてよいが、簡略化によって正本との関係が読めなくならないよう、どの正本の翻訳かを明示したまま運用する。
 - 履歴を継続的に蓄積する文書は `history/metrics-log.md`、`history/decisions-log.md`、`history/chat-log.md` とし、当日作業中の追記先は `history/metrics-latest.md`、`history/decisions-latest.md`、`history/chat-latest.md` とする。
 - 当日中の更新は原則として対応する `*-latest.md` に対して行い、履歴文書 `*-log.md` へその場で追記しない。
 - 日付が変わった後で最初に対象文書を更新する時は、前日までの `*-latest.md` の内容を対応する `*-log.md` の先頭へ挿入してから `*-latest.md` を空にし、その当日分の運用を開始する。

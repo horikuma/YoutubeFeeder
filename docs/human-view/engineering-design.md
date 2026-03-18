@@ -29,14 +29,10 @@ classDiagram
     class AppLayout
     class FeedCacheCoordinator
     class ChannelBrowseListView
-    class ChannelBrowseListCompactView
-    class ChannelBrowseListRegularView
     class ChannelVideosView
     class AllVideosView
     class KeywordSearchResultsView
     class RemoteKeywordSearchResultsView
-    class RemoteKeywordSearchResultsCompactView
-    class RemoteKeywordSearchResultsRegularView
     class InteractiveListScreen
     class ChannelTile
     class ChannelSelectionTile
@@ -49,6 +45,9 @@ classDiagram
     class YouTubeSearchService
     class RemoteSearchPresentationState
 
+    <<Adaptive UI>> ChannelBrowseListView
+    <<Adaptive UI>> RemoteKeywordSearchResultsView
+
     ContentView --> AppLayout : computes
     ContentView --> FeedCacheCoordinator : owns
     ContentView --> ChannelBrowseListView
@@ -56,28 +55,22 @@ classDiagram
     ContentView --> KeywordSearchResultsView
     ContentView --> RemoteKeywordSearchResultsView
 
-    ChannelBrowseListView --> ChannelBrowseListCompactView : compact
-    ChannelBrowseListView --> ChannelBrowseListRegularView : regular
-    RemoteKeywordSearchResultsView --> RemoteKeywordSearchResultsCompactView : compact
-    RemoteKeywordSearchResultsView --> RemoteKeywordSearchResultsRegularView : regular
-
     ChannelBrowseListView --> FeedCacheCoordinator
     ChannelVideosView --> FeedCacheCoordinator
     AllVideosView --> FeedCacheCoordinator
     KeywordSearchResultsView --> FeedCacheCoordinator
     RemoteKeywordSearchResultsView --> FeedCacheCoordinator
 
-    ChannelBrowseListCompactView --> InteractiveListScreen
-    RemoteKeywordSearchResultsCompactView --> InteractiveListScreen
+    ChannelBrowseListView --> InteractiveListScreen
+    RemoteKeywordSearchResultsView --> InteractiveListScreen
     AllVideosView --> InteractiveListScreen
     KeywordSearchResultsView --> InteractiveListScreen
     ChannelVideosView --> VideoTile
     AllVideosView --> VideoTile
     KeywordSearchResultsView --> VideoTile
-    RemoteKeywordSearchResultsCompactView --> VideoTile
-    RemoteKeywordSearchResultsRegularView --> VideoTile
-    ChannelBrowseListCompactView --> ChannelTile
-    ChannelBrowseListRegularView --> ChannelSelectionTile
+    RemoteKeywordSearchResultsView --> VideoTile
+    ChannelBrowseListView --> ChannelTile
+    ChannelBrowseListView --> ChannelSelectionTile
 
     FeedCacheCoordinator --> FeedCacheStore
     FeedCacheCoordinator --> ChannelRegistryMaintenanceService
@@ -159,6 +152,6 @@ sequenceDiagram
 
 - `View` は I/O を直接持たず、`FeedCacheCoordinator` 経由で状態と操作を受ける。
 - `AppLayout` は adaptive 判定を持つが、機能差分は持たない。
-- `CompactView` / `RegularView` は同一機能の表現差分であり、別機能画面ではない。
+- `<<Adaptive UI>>` を付けた View は、内部に `CompactView` / `RegularView` の表現差分を持つが、資料上は 1 つの機能 View として扱う。
 - `RemoteSearchPresentationState` は YouTube 検索結果の UI 状態を pure logic として切り出す。
 - 正本を更新した時は、本書のクラス図、遷移図、シーケンス図も同じ変更セットで同期する。

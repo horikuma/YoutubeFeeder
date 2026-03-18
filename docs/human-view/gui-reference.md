@@ -6,13 +6,13 @@
 
 ```mermaid
 flowchart TD
-    A["起動画面\nLaunchScreenView"] --> B["ホーム画面\nHomeScreenView"]
-    B --> C["チャンネル登録画面\nChannelRegistrationView"]
-    B --> D["チャンネル一覧画面\nChannelBrowseListView"]
-    B --> E["動画一覧画面\nAllVideosView"]
-    B --> F["固定キーワード検索結果画面\nKeywordSearchResultsView"]
-    B --> G["YouTube検索結果画面\nRemoteKeywordSearchResultsView"]
-    D --> H["チャンネル別動画一覧画面\nChannelVideosView"]
+    A["起動\nLaunchScreenView"] --> B["ホーム\nHomeScreenView"]
+    B --> C["チャンネル登録\nChannelRegistrationView"]
+    B --> D["チャンネル一覧\nChannelBrowseListView"]
+    B --> E["動画一覧\nAllVideosView"]
+    B --> F["固定キーワード検索結果\nKeywordSearchResultsView"]
+    B --> G["YouTube検索結果\nRemoteKeywordSearchResultsView"]
+    D --> H["チャンネル別動画一覧\nChannelVideosView"]
     E --> H
     F --> H
     G --> H
