@@ -4,10 +4,10 @@
 
 ## 読み方
 
-- 機能要件の正本: [spec.md[docs/spec.md]](../spec.md)
-- 上位方針の正本: [rules.md[docs/rules.md]](../rules.md)
-- 実装責務の正本: [architecture.md[docs/architecture.md]](../architecture.md)
-- GUI の人間向け参照: [gui-reference.md[docs/human-view/gui-reference.md]](./gui-reference.md)
+- 機能要件の正本: [spec.md](../spec.md)
+- 上位方針の正本: [rules.md](../rules.md)
+- 実装責務の正本: [architecture.md](../architecture.md)
+- GUI の人間向け参照: [gui-reference.md](./gui-reference.md)
 
 ## レイヤ構成
 

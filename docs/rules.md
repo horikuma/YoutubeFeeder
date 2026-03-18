@@ -1,14 +1,14 @@
 # HelloWorld Rules
 
-この文書は、HelloWorld プロジェクトの上位方針を定める正本です。ここでは、実装や現行機能の詳細ではなく、長期に維持したい判断基準、開発プロセス、文書運用ルールを扱います。機能仕様は [spec.md[docs/spec.md]](./spec.md)、実装構造と責務分担は [architecture.md[docs/architecture.md]](./architecture.md) を参照してください。`docs/human-view/` 配下の資料は、人間向けに読みやすく翻訳した参照資料であり正本ではありませんが、人間の開発入口として常時同期対象にします。
+この文書は、HelloWorld プロジェクトの上位方針を定める正本です。ここでは、実装や現行機能の詳細ではなく、長期に維持したい判断基準、開発プロセス、文書運用ルールを扱います。機能仕様は [spec.md](./spec.md)、実装構造と責務分担は [architecture.md](./architecture.md) を参照してください。`docs/human-view/` 配下の資料は、人間向けに読みやすく翻訳した参照資料であり正本ではありませんが、人間の開発入口として常時同期対象にします。
 
 ## 文書の境界
 
 - `rules.md` には、根幹普遍の方針、開発中の判断基準、開発プロセス、文書運用を記述する。
-- [spec.md[docs/spec.md]](./spec.md) には、ユーザー向け機能、画面遷移、操作、表示要件を記述する。
-- [architecture.md[docs/architecture.md]](./architecture.md) には、実装構造、責務分担、データフロー、テスト配置、現在の採用方式を記述する。
-- [gui-reference.md[docs/human-view/gui-reference.md]](./human-view/gui-reference.md) には、画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
-- [engineering-design.md[docs/human-view/engineering-design.md]](./human-view/engineering-design.md) には、クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
+- [spec.md](./spec.md) には、ユーザー向け機能、画面遷移、操作、表示要件を記述する。
+- [architecture.md](./architecture.md) には、実装構造、責務分担、データフロー、テスト配置、現在の採用方式を記述する。
+- [gui-reference.md](./human-view/gui-reference.md) には、画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
+- [engineering-design.md](./human-view/engineering-design.md) には、クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
 - `rules.md` へ実装詳細や画面単位の仕様を集約してはならない。
 - 文書の内容が詳細化しすぎた場合は、上位方針を残して詳細を `architecture.md` または `spec.md` へ移す。
 - `docs/human-view/` 配下の文書は正本ではないため、仕様や責務の最終判断根拠にしてはならない。ただし、人間の開発者にとっての第一入口として、関連する正本変更と同じ変更セットで必ず同期する。
@@ -36,6 +36,8 @@
 
 ## 開発プロセス
 
+- `開発シーケンス` は、1 件のユーザー指示を起点に開始し、必要な確認、実装、検証、文書同期を経て、最後のコミットで完了する一連の流れとして扱う。
+- `開発セッション` は、その日の最初の処理開始から始まり、日付が変わった後の最初の処理で前日分の `*-latest.md` を `*-log.md` へ移して当日運用へ切り替えた時点で、前日分が完了する日次の運用単位として扱う。
 - 1 周の開発は、`ユーザー指示の理解`、`先行テストで期待固定`、`実装と健康度点検`、`検証`、`文書同期`、`コミット` の順で進める。
 - 着手時は、ユーザー指示を読み取り、関連コードと関連文書を確認し、変更対象と影響範囲を把握する。
 - 新規開発セッションを開始する時は、まず `docs/rules.md` を読み直して現在の運用を確認し、日付が変わっている場合は `history/chat-latest.md`、`history/decisions-latest.md`、`history/metrics-latest.md` の前日分を対応する `*-log.md` の先頭へ移してから、当日分の `*-latest.md` を新しい日付見出しで開始する。
@@ -48,8 +50,9 @@
 - 最終の全体テストでは、`scripts/collect_metrics.sh` を使って build 時間、全体 test 時間、起動性能、`docs/test-metrics.md` を同じ 1 回の全体実行から取得し、同じ全体テストを別スクリプトで重複実行してはならない。
 - 文書同期では、変更内容に対応する `spec.md`、`architecture.md`、`rules.md`、`history/metrics-latest.md`、`history/decisions-latest.md`、`history/chat-latest.md` を更新し、日次履歴の正本は `history/*-log.md` 側で保持する。
 - ソースコード変更を含む場合は、ユーザーから明示的に止められていない限り、テスト、文書更新、計測記録を含めて最後にコミットまで実施する。
+- ドキュメントのみを変更した場合も、ユーザーから明示的に止められていない限り、その開発シーケンスに必要な文書更新と当日ログ更新を行い、最後にコミットまで実施する。
+- 細かいコミットが積み上がること自体は許容し、未確定の複数シーケンスを 1 つの大きなコミットへまとめることより、各開発シーケンスをコミットで確定することを優先する。
 - コミット対象は、その時点で完了条件を満たした変更セット全体とし、コミットメッセージは日本語で記述する。
-- ドキュメントのみを変更した場合は、必要な文書更新と当日ログ更新まで行い、その後のコミット有無はユーザーの明示指示に従う。
 
 ## 開発中の判断基準
 
@@ -102,7 +105,6 @@
 - ビルド確認では `error` だけでなく `warning` も 0 件であることを確認し、警告を残したまま完了扱いにしてはならない。
 - 機能追加、不具合修正、機能削除のいずれでも、先に追加したテストや既存テストを変更後の仕様へ合わせて更新し、古い仕様を表すテストを放置してはならない。
 - ソースコードを変更した場合は、変更内容に応じたテストを実行し、通過を確認してからコミットする。
-- ドキュメントのみを変更した場合は、試行錯誤の途中段階を含みやすいため、自動ではコミットせず指示を待つ。
 - ソースコードを含むコミットでは、検証前後に取得できる build 時間、test 時間、再試行回数、起動性能の観測値を当日分の `history/metrics-latest.md` へ記録する。
 - `history/metrics-latest.md` へ記録する再試行回数には、仕様固定のために意図的に追加した failing test を最初に通すまでの `赤 -> 緑` は含めない。
 - ソースコードを修正していない場合は、metrics の実測も記録も行わず、`history/metrics-latest.md` や `history/metrics-log.md` へ docs-only の項目を残さない。
@@ -113,15 +115,16 @@
 
 - `rules.md` は追記メモ置き場として扱わず、章ごとの役割が読んで辿れる構造を維持する。
 - `rules.md` を更新する時は、関連する既存節へ統合し、重複、矛盾、末尾だけの場当たり的な追記を避ける。
-- 機能を変更したら [spec.md[docs/spec.md]](./spec.md) を見直す。
-- 実装構造、責務分担、採用アーキテクチャ、テスト配置を変更したら [architecture.md[docs/architecture.md]](./architecture.md) を見直す。
-- GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui-reference.md[docs/human-view/gui-reference.md]](./human-view/gui-reference.md) を見直す。
-- 人間向けの設計図や依存関係の見え方が変わる変更では [engineering-design.md[docs/human-view/engineering-design.md]](./human-view/engineering-design.md) を見直す。
+- 機能を変更したら [spec.md](./spec.md) を見直す。
+- 実装構造、責務分担、採用アーキテクチャ、テスト配置を変更したら [architecture.md](./architecture.md) を見直す。
+- GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui-reference.md](./human-view/gui-reference.md) を見直す。
+- 人間向けの設計図や依存関係の見え方が変わる変更では [engineering-design.md](./human-view/engineering-design.md) を見直す。
 - 上位方針や変更判断の基準を変更したら `rules.md` を見直す。
 - `human-view/gui-reference.md` の `画面遷移` では、全ノードが画面であることを前提に、図中ラベルの `〜画面` は省略して短く保つ。一方で `画面一覧` の `画面名` は、指示に使う正式名として `〜画面` を含めた表記を維持する。
 - `human-view/engineering-design.md` の Adaptive UI 表現では、`CompactView` / `RegularView` の個別クラスを図へ並べず、親となる機能 View クラスに対する `note for ... "<<Adaptive UI>>"` の注記で、表現差分を内包する設計であることだけを示す。
 - `docs/human-view/` 配下の資料は、人間の参照性を優先して複雑さを抑えてよいが、簡略化によって正本との関係が読めなくならないよう、どの正本の翻訳かを明示したまま運用する。
 - Markdown に `mermaid` または `plantuml` を含める場合は、コミット前に構文エラーなく描画できることを確認してから反映する。
+- Markdown のファイルリンクは、表示テキストをファイル名のみとし、表示上にパスを含めない。一方でリンク先自体は、各文書位置から実体ファイルへ辿れる相対パスで維持する。
 - 履歴を継続的に蓄積する文書は `history/metrics-log.md`、`history/decisions-log.md`、`history/chat-log.md` とし、当日作業中の追記先は `history/metrics-latest.md`、`history/decisions-latest.md`、`history/chat-latest.md` とする。
 - 当日中の更新は原則として対応する `*-latest.md` に対して行い、履歴文書 `*-log.md` へその場で追記しない。
 - 日付が変わった後で最初に対象文書を更新する時は、前日までの `*-latest.md` の内容を対応する `*-log.md` の先頭へ挿入してから `*-latest.md` を空にし、その当日分の運用を開始する。
@@ -185,8 +188,8 @@
 ## 変更内容と文書更新
 
 - アプリ機能を変更する場合は、`機能仕様に関わる文書`、`影響を受ける実装`、`必要なテスト`、`必要な計測記録` を同じ変更セットで更新する。
-- 機能変更では [spec.md[docs/spec.md]](./spec.md) を更新する。
-- 実装構造や責務変更では [architecture.md[docs/architecture.md]](./architecture.md) を更新する。
+- 機能変更では [spec.md](./spec.md) を更新する。
+- 実装構造や責務変更では [architecture.md](./architecture.md) を更新する。
 - 上位方針や運用変更では `rules.md` を更新する。
-- 人間向けの参照性に影響する変更では [gui-reference.md[docs/human-view/gui-reference.md]](./human-view/gui-reference.md) と [engineering-design.md[docs/human-view/engineering-design.md]](./human-view/engineering-design.md) を更新する。
-- 検証コストや性能観測の更新では [metrics-latest.md[docs/history/metrics-latest.md]](./history/metrics-latest.md) を更新し、日次履歴は [metrics-log.md[docs/history/metrics-log.md]](./history/metrics-log.md) で保持する。
+- 人間向けの参照性に影響する変更では [gui-reference.md](./human-view/gui-reference.md) と [engineering-design.md](./human-view/engineering-design.md) を更新する。
+- 検証コストや性能観測の更新では [metrics-latest.md](./history/metrics-latest.md) を更新し、日次履歴は [metrics-log.md](./history/metrics-log.md) で保持する。

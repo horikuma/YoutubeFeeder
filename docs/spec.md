@@ -2,7 +2,7 @@
 
 この文書は、HelloWorld アプリの機能仕様書兼実装仕様書です。人間および LLM が、このアプリが何をしなければならないか、どのように振る舞わなければならないか、何を壊してはいけないかを同じ基準で理解するための正本とします。
 
-`spec.md` はアプリの振る舞いを定める文書、`rules.md` は上位方針と変更管理を定める文書、`architecture.md` は実装構造と責務分担を定める文書です。[gui-reference.md[docs/human-view/gui-reference.md]](./human-view/gui-reference.md) と [engineering-design.md[docs/human-view/engineering-design.md]](./human-view/engineering-design.md) は、それらの正本を人間向けに読みやすく翻訳した参照資料です。機能を変える場合は、必要に応じてこれらの文書に矛盾が出ないよう更新してください。
+`spec.md` はアプリの振る舞いを定める文書、`rules.md` は上位方針と変更管理を定める文書、`architecture.md` は実装構造と責務分担を定める文書です。[gui-reference.md](./human-view/gui-reference.md) と [engineering-design.md](./human-view/engineering-design.md) は、それらの正本を人間向けに読みやすく翻訳した参照資料です。機能を変える場合は、必要に応じてこれらの文書に矛盾が出ないよう更新してください。
 
 ## 1. 目的
 
@@ -416,5 +416,5 @@
 ## 8. 仕様とルールの境界
 
 - この文書には、ユーザーから見える振る舞い、キャッシュ更新の挙動、画面要件、非機能要件を記載する
-- 実装責務、ファイル責務、テスト運用、変更管理、文書更新手順は [rules.md[docs/rules.md]](./rules.md) に記載する
+- 実装責務、ファイル責務、テスト運用、変更管理、文書更新手順は [rules.md](./rules.md) に記載する
 - 仕様変更時は、この文書と `rules.md` の両方を確認し、振る舞いと開発ルールの間に矛盾を残してはならない
