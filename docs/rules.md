@@ -35,13 +35,15 @@
 
 - 1 周の開発は、`ユーザー指示の理解`、`先行テストで期待固定`、`実装と健康度点検`、`検証`、`文書同期`、`コミット` の順で進める。
 - 着手時は、ユーザー指示を読み取り、関連コードと関連文書を確認し、変更対象と影響範囲を把握する。
+- 新規開発セッションを開始する時は、まず `docs/rules.md` を読み直して現在の運用を確認し、日付が変わっている場合は `history/chat-latest.md`、`history/decisions-latest.md`、`history/metrics-latest.md` の前日分を対応する `*-log.md` の先頭へ移してから、当日分の `*-latest.md` を新しい日付見出しで開始する。
+- 新規開発セッション開始時の準備を文書更新として実施した場合は、その開始指示を `history/chat-latest.md` に反映し、必要に応じて `history/metrics-latest.md` へ docs 種別の記録を残してから当日の開発へ入る。
 - 機能追加では、実装前に期待する振る舞いを表すテストを先に追加し、そのテストで失敗を確認してから実装へ進む。
 - 不具合対応では、想定原因候補ごとに再現または非再現を担保するテストを先に追加し、そのテストで失敗を確認してから修正へ進む。
 - 実装中は、責務境界、複雑度、リソースの作用域、MVVM の健全性を同時に点検し、悪化する変更を放置しない。
 - 検証では、変更内容に応じたテストと build 確認を行い、`error 0` かつ `warning 0` を確認する。
 - 検証が最初の 1 回で通らなかった場合は、修正ループ中の再確認を関連テストと影響が及ぶはずのテストへ限定し、それらが通った後で最後に全体テストを実行する。
-- 最終の全体テストでは、`scripts/collect_metrics.sh` を使って build 時間、全体 test 時間、起動性能、`test-metrics.md` を同じ 1 回の全体実行から取得し、同じ全体テストを別スクリプトで重複実行してはならない。
-- 文書同期では、変更内容に対応する `spec.md`、`architecture.md`、`rules.md`、`metrics-latest.md`、`decisions-latest.md`、`chat-latest.md` を更新し、日次履歴の正本は `*-log.md` 側で保持する。
+- 最終の全体テストでは、`scripts/collect_metrics.sh` を使って build 時間、全体 test 時間、起動性能、`docs/test-metrics.md` を同じ 1 回の全体実行から取得し、同じ全体テストを別スクリプトで重複実行してはならない。
+- 文書同期では、変更内容に対応する `spec.md`、`architecture.md`、`rules.md`、`history/metrics-latest.md`、`history/decisions-latest.md`、`history/chat-latest.md` を更新し、日次履歴の正本は `history/*-log.md` 側で保持する。
 - ソースコード変更を含む場合は、ユーザーから明示的に止められていない限り、テスト、文書更新、計測記録を含めて最後にコミットまで実施する。
 - コミット対象は、その時点で完了条件を満たした変更セット全体とし、コミットメッセージは日本語で記述する。
 - ドキュメントのみを変更した場合は、必要な文書更新と当日ログ更新まで行い、その後のコミット有無はユーザーの明示指示に従う。
@@ -98,9 +100,9 @@
 - 機能追加、不具合修正、機能削除のいずれでも、先に追加したテストや既存テストを変更後の仕様へ合わせて更新し、古い仕様を表すテストを放置してはならない。
 - ソースコードを変更した場合は、変更内容に応じたテストを実行し、通過を確認してからコミットする。
 - ドキュメントのみを変更した場合は、試行錯誤の途中段階を含みやすいため、自動ではコミットせず指示を待つ。
-- ソースコードを含むコミットでは、検証前後に取得できる build 時間、test 時間、再試行回数、起動性能の観測値を当日分の `metrics-latest.md` へ記録する。
-- `metrics-latest.md` へ記録する再試行回数には、仕様固定のために意図的に追加した failing test を最初に通すまでの `赤 -> 緑` は含めない。
-- ソースコードを修正していない場合は、metrics の実測は不要とし、必要なら docs 種別の記録だけを `metrics-latest.md` へ残す。
+- ソースコードを含むコミットでは、検証前後に取得できる build 時間、test 時間、再試行回数、起動性能の観測値を当日分の `history/metrics-latest.md` へ記録する。
+- `history/metrics-latest.md` へ記録する再試行回数には、仕様固定のために意図的に追加した failing test を最初に通すまでの `赤 -> 緑` は含めない。
+- ソースコードを修正していない場合は、metrics の実測は不要とし、必要なら docs 種別の記録だけを `history/metrics-latest.md` へ残す。
 - 起動性能は、少なくとも `起動からスプラッシュ表示まで`、`スプラッシュ表示からホーム表示まで`、`起動からホーム表示まで` を継続観測できる状態を保つ。
 - 計測を手作業へ寄せすぎず、`xcodebuild` や UI テストから取得可能な値はコマンドで再取得できる形を優先する。
 - ソースコード変更をコミットした直後は、ユーザーのヒューマンテストへつなげられるよう、アプリを起動済みの状態に整える。
@@ -114,23 +116,23 @@
 - 機能を変更したら [spec.md](spec.md) を見直す。
 - 実装構造、責務分担、採用アーキテクチャ、テスト配置を変更したら [architecture.md](architecture.md) を見直す。
 - 上位方針や変更判断の基準を変更したら `rules.md` を見直す。
-- 履歴を継続的に蓄積する文書は `metrics-log.md`、`decisions-log.md`、`chat-log.md` とし、当日作業中の追記先は `metrics-latest.md`、`decisions-latest.md`、`chat-latest.md` とする。
+- 履歴を継続的に蓄積する文書は `history/metrics-log.md`、`history/decisions-log.md`、`history/chat-log.md` とし、当日作業中の追記先は `history/metrics-latest.md`、`history/decisions-latest.md`、`history/chat-latest.md` とする。
 - 当日中の更新は原則として対応する `*-latest.md` に対して行い、履歴文書 `*-log.md` へその場で追記しない。
 - 日付が変わった後で最初に対象文書を更新する時は、前日までの `*-latest.md` の内容を対応する `*-log.md` の先頭へ挿入してから `*-latest.md` を空にし、その当日分の運用を開始する。
 - `*-latest.md` はトークン消費を抑えるための当日分バッファとして扱い、履歴の正本は `*-log.md` とする。
-- `chat-log.md`、`chat-latest.md`、`metrics-log.md`、`metrics-latest.md`、`decisions-log.md`、`decisions-latest.md` は、先頭行を日付見出しから始め、先頭の説明文を置かない。
-- 意識的な設計変更や、標準案と代替案の間で判断した内容は当日分の `decisions-latest.md` に記録し、日次ローテーション後の履歴は `decisions-log.md` に残す。
-- 検証コストや起動性能の観測値を取得したら当日分の `metrics-latest.md` に記録し、日次ローテーション後の履歴は `metrics-log.md` に残す。
+- `history/chat-log.md`、`history/chat-latest.md`、`history/metrics-log.md`、`history/metrics-latest.md`、`history/decisions-log.md`、`history/decisions-latest.md` は、先頭行を日付見出しから始め、先頭の説明文を置かない。
+- 意識的な設計変更や、標準案と代替案の間で判断した内容は当日分の `history/decisions-latest.md` に記録し、日次ローテーション後の履歴は `history/decisions-log.md` に残す。
+- 検証コストや起動性能の観測値を取得したら当日分の `history/metrics-latest.md` に記録し、日次ローテーション後の履歴は `history/metrics-log.md` に残す。
 - 実装と文書にずれが出た場合は、どちらが正しいか確認してから揃える。
 - 一時的な事情や現状の実装詳細を、恒久ルールとして `rules.md` に固定しない。
 - 通常のプロジェクト文書ファイル名は `lowercase-kebab-case.md` または `lowercase.md` に統一する。
 - `README.md` や `CONTRIBUTING.md` のような広く定着した慣例名だけは例外として大文字を許容する。
 
-## chat-log.md / chat-latest.md 運用ルール
+## history/chat-log.md / history/chat-latest.md 運用ルール
 
-- `chat-latest.md` は当日作業中の追記先とし、ユーザー発言が追加されたら都度反映する。
-- `chat-log.md` は日次ローテーション後の履歴保持先とする。
-- 日付が変わっている場合は、まず前日までの `chat-latest.md` を `chat-log.md` の先頭へ挿入し、その後 `chat-latest.md` 側で新しい日付見出しから当日運用を始める。
+- `history/chat-latest.md` は当日作業中の追記先とし、ユーザー発言が追加されたら都度反映する。
+- `history/chat-log.md` は日次ローテーション後の履歴保持先とする。
+- 日付が変わっている場合は、まず前日までの `history/chat-latest.md` を `history/chat-log.md` の先頭へ挿入し、その後 `history/chat-latest.md` 側で新しい日付見出しから当日運用を始める。
 - ファイル先頭は日付見出しから始め、説明文を置かない。
 - 新しい日付見出しを追加する場合は、直前の日付見出しとの間に 1 行だけ空行を入れる。
 - 見出しと直後の列挙の間には空行を入れない。
@@ -140,38 +142,38 @@
 - 所要時間は厳密一致を要求しないが、現在の作業規模と明らかにずれた粒度や古い値を流用してはならない。
 - 基本的にはユーザー発言をそのまま記録する。
 - ただし、明らかな変換ミスや誤字は、意味を変えない範囲で修正してよい。
-- `chatlog.md` や `Chatlog.md` のような旧名や揺れを受け取った場合でも、現在の運用名である `chat-log.md` または `chat-latest.md` に読み替えて扱う。
-- 個人情報が混ざっている場合は、`chat-latest.md` または `chat-log.md` へ書く前に除去し、その対応をチャットウィンドウ上でも明示する。
+- `chatlog.md` や `Chatlog.md` のような旧名や揺れを受け取った場合でも、現在の運用名である `history/chat-log.md` または `history/chat-latest.md` に読み替えて扱う。
+- 個人情報が混ざっている場合は、`history/chat-latest.md` または `history/chat-log.md` へ書く前に除去し、その対応をチャットウィンドウ上でも明示する。
 - API キーやトークンなどの秘密情報は、個人情報に準ずる情報として扱い、そのまま記録しない。
 - 絶対パスやホームディレクトリを含む文字列は、個人情報に準ずる情報として扱い、`<workspace>/...` や相対パスへマスクして記録する。
-- `chat-log.md` は、LLM や Codex をどのように使って構築したかを後から振り返るための履歴として扱う。
+- `history/chat-log.md` は、LLM や Codex をどのように使って構築したかを後から振り返るための履歴として扱う。
 
-## metrics-log.md / metrics-latest.md 運用ルール
+## history/metrics-log.md / history/metrics-latest.md 運用ルール
 
-- 計測値の当日更新は `metrics-latest.md` に対して行う。
-- `metrics-log.md` は日次ローテーション後の履歴保持先とする。
-- 日付が変わっている場合は、前日までの `metrics-latest.md` を `metrics-log.md` の先頭へ挿入してから当日運用へ移る。
+- 計測値の当日更新は `history/metrics-latest.md` に対して行う。
+- `history/metrics-log.md` は日次ローテーション後の履歴保持先とする。
+- 日付が変わっている場合は、前日までの `history/metrics-latest.md` を `history/metrics-log.md` の先頭へ挿入してから当日運用へ移る。
 - ファイル先頭は日付見出しから始め、説明文を置かない。
 - 見出しと直後の列挙の間には空行を入れない。
 - 同じ日付見出しの中では、新しいエントリほど上、古いエントリほど下になるように追加する。
 - 1 つの metrics ブロックと次の見出しの間には、1 行だけ空行を入れる。
 - 各エントリはコミットやドキュメント更新の単位で追加し、計測値、再試行回数、実測不要理由または実測省略理由を一貫した形式で残す。
 - ソースコードを修正していない場合は、build や test の実測を必須とせず、docs 種別の記録だけでよい。
-- `scripts/collect_metrics.sh` の既定出力先は `metrics-latest.md` とし、日中の追記が履歴ファイルへ直接流れ込まないようにする。
-- 最終の全体検証では `scripts/collect_metrics.sh` を正本とし、同スクリプトが `test-metrics.md` も同時更新する前提で運用する。
+- `scripts/collect_metrics.sh` の既定出力先は `history/metrics-latest.md` とし、日中の追記が履歴ファイルへ直接流れ込まないようにする。
+- 最終の全体検証では `scripts/collect_metrics.sh` を正本とし、同スクリプトが `docs/test-metrics.md` も同時更新する前提で運用する。
 - `scripts/collect_test_metrics.sh` は、修正ループ中の logic 1 件 / UI 1 件のような限定確認や、部分集合の計測確認にだけ使う。
-- `metrics-log.md` は、検証コストや起動性能の履歴を後から参照するための正本として扱う。
+- `history/metrics-log.md` は、検証コストや起動性能の履歴を後から参照するための正本として扱う。
 
-## decisions-log.md / decisions-latest.md 運用ルール
+## history/decisions-log.md / history/decisions-latest.md 運用ルール
 
-- 意識的な設計変更が行われた際は、当日分の `decisions-latest.md` を更新する。
+- 意識的な設計変更が行われた際は、当日分の `history/decisions-latest.md` を更新する。
 - 日付見出しの下へ、新しい決定ほど上に追加する。
 - 新しい日付見出しを追加する場合は、直前の日付見出しとの間に 1 行だけ空行を入れる。
 - ファイル先頭は日付見出しから始め、説明文を置かない。
 - 見出しと直後の列挙の間には空行を入れない。
 - 各決定は箇条書きで記述し、その直下の 1 段下げた行に理由を書く。
-- 日付が変わっている場合は、前日までの `decisions-latest.md` を `decisions-log.md` の先頭へ挿入してから当日運用へ移る。
-- `decisions-log.md` は、なぜその設計判断を選んだかを後から振り返るための履歴として扱う。
+- 日付が変わっている場合は、前日までの `history/decisions-latest.md` を `history/decisions-log.md` の先頭へ挿入してから当日運用へ移る。
+- `history/decisions-log.md` は、なぜその設計判断を選んだかを後から振り返るための履歴として扱う。
 
 ## 変更内容と文書更新
 
@@ -179,4 +181,4 @@
 - 機能変更では [spec.md](spec.md) を更新する。
 - 実装構造や責務変更では [architecture.md](architecture.md) を更新する。
 - 上位方針や運用変更では `rules.md` を更新する。
-- 検証コストや性能観測の更新では [metrics-latest.md](metrics-latest.md) を更新し、日次履歴は [metrics-log.md](metrics-log.md) で保持する。
+- 検証コストや性能観測の更新では [history/metrics-latest.md](history/metrics-latest.md) を更新し、日次履歴は [history/metrics-log.md](history/metrics-log.md) で保持する。

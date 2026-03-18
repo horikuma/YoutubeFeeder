@@ -16,7 +16,7 @@ from pathlib import Path
 print(Path(tempfile.gettempdir()) / "HelloWorldTestMetrics")
 PY
 )"
-OUTPUT_DOC="$REPO_ROOT/test-metrics.md"
+OUTPUT_DOC="$REPO_ROOT/docs/test-metrics.md"
 typeset -a LOGIC_ONLY_TESTING=()
 typeset -a UI_ONLY_TESTING=()
 

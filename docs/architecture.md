@@ -318,7 +318,7 @@ xcodebuild test \
   - `チャンネル` / `動画` 導線
   - モック refresh 経路
   - 起動タイムライン
-  - `metrics-latest.md` 更新用の起動性能 JSON 書き出し
+  - `history/metrics-latest.md` 更新用の起動性能 JSON 書き出し
 - [HelloWorldUITests/Browse/BrowseScreenUITests.swift](HelloWorldUITests/Browse/BrowseScreenUITests.swift)
   - 全動画一覧遷移
   - 一覧の縦スクロール
@@ -342,8 +342,8 @@ xcodebuild test \
 - UI テスト用 identifier は tappable な本体要素に付ける。
 - 画面が描画されたことを示す marker と、主要要素が見えることの両方を待つ。
 - 性能しきい値は simulator の揺れを考慮して設定する。
-- `scripts/collect_metrics.sh` は `xcodebuild build-for-testing` と `test-without-building` を分離して時間を採取し、UI テストが書き出した起動性能 JSON を `metrics-latest.md` へ集約すると同時に、同じ全体 test ログから `test-metrics.md` も更新する。
+- `scripts/collect_metrics.sh` は `xcodebuild build-for-testing` と `test-without-building` を分離して時間を採取し、UI テストが書き出した起動性能 JSON を `history/metrics-latest.md` へ集約すると同時に、同じ全体 test ログから `docs/test-metrics.md` も更新する。
 - `scripts/collect_test_metrics.sh` は unit test と UI test を分けて実行し、修正ループ中の部分集合確認や、logic / UI の代表ケース計測確認に使う。
-- `test-metrics.md` には、`logic` / `ui` の大分類に加えて、`Parsing` や `Home` のような領域分類、テスト ID、概要、時刻、所要時間を出力する。
+- `docs/test-metrics.md` には、`logic` / `ui` の大分類に加えて、`Parsing` や `Home` のような領域分類、テスト ID、概要、時刻、所要時間を出力する。
 - `scripts/health_barometer.sh` は、実装健康度の警告点を定量確認するための軽量点検コマンドとして扱う。
 - 同スクリプトは Xcode の Scheme post-action や Run Script からも呼び出せるよう、CLI だけで完結する前提で設計する。
