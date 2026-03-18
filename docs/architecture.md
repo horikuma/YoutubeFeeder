@@ -220,6 +220,7 @@
 
 - `iPhone` と `iPad` は同一機能を提供し、差分は Adaptive UI に沿ったレイアウト表現へ閉じ込める。
 - 機能ロジックは共通化し、レイアウト差は `AppLayout` で吸収する。
+- 機能画面の配下に compact / regular の表現差分を置く場合は、親が機能名、子が `CompactView` / `RegularView` と読める命名を優先し、split 専用画面のような名前を表へ出しすぎない。
 - 1 列リストは複数列化せず、Apple の `readableContentGuide` 相当の考え方で本文幅だけを制限する。
 - 一覧画面の振る舞いは `InteractiveListScreen` に集約し、画面ごとの差異を作らない。
 - 動画系一覧の番号表示は 1 始まりとし、チャンネル一覧と同じ書式の右上バッジで表示する。

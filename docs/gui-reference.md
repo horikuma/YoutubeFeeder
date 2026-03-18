@@ -16,10 +16,6 @@ flowchart TD
     E --> H
     F --> H
     G --> H
-    D -. "分割レイアウト" .-> I["分割チャンネル閲覧\nSplitChannelBrowseView"]
-    G -. "分割レイアウト" .-> J["分割YouTube検索\nSplitRemoteKeywordSearchResultsView"]
-    I --> H
-    J --> H
 ```
 
 ## 画面一覧
@@ -81,9 +77,7 @@ flowchart TD
 ### 4. チャンネル一覧画面
 
 - 画面名: `チャンネル一覧画面`
-- 実装:
-  - 単独画面 `ChannelBrowseListView`
-  - 分割画面 `SplitChannelBrowseView`
+- 実装: `ChannelBrowseListView`
 - 主な GUI パーツ:
 
 | 指示用の呼び名 | 実装/識別子 | 役割 |
@@ -99,7 +93,7 @@ flowchart TD
 - 操作と遷移:
   - タップで `チャンネル別動画一覧画面`
   - 長押しメニューで `チャンネルを削除`
-  - 分割画面では左ペイン選択で右ペインだけ更新
+  - regular 幅では左ペイン選択で右ペインだけ更新
 - 長押しメニュー:
   - チャンネルタイル: `チャンネルを削除`
   - 左ペインチャンネルタイル: `チャンネルを削除`
@@ -170,9 +164,7 @@ flowchart TD
 ### 8. YouTube検索結果画面
 
 - 画面名: `YouTube検索結果画面`
-- 実装:
-  - 単独画面 `RemoteKeywordSearchResultsView`
-  - 分割画面 `SplitRemoteKeywordSearchResultsView`
+- 実装: `RemoteKeywordSearchResultsView`
 - 主な GUI パーツ:
 
 | 指示用の呼び名 | 実装/識別子 | 役割 |
@@ -190,7 +182,7 @@ flowchart TD
   - 画面表示だけでは検索しない
   - pull-to-refresh で YouTube API 検索
   - 動画タイルの通常タップで `チャンネル別動画一覧画面`
-  - 分割画面では左ペインのタップで右ペインだけ更新
+  - regular 幅では左ペインのタップで右ペインだけ更新
   - 最後の動画タイル表示で段階読込を進める
 - 長押しメニュー:
   - 動画タイル: `未定義`
@@ -203,4 +195,4 @@ flowchart TD
 - 同じ役割のパーツは画面をまたいでも同じ名前を使う。たとえば `動画タイル`、`空状態タイル`、`タイトル`、`サブタイトル` は画面ごとに言い換えない。
 - その画面内で重複しない場合は、`チャンネル別動画一覧画面のタイトル` のように短い名前を優先する。
 - 実装箇所まで指定したい時は、`実装名` を併記して `ホーム画面のYouTube検索タイル（MetricTile / nav.remoteSearch）` のように書く。
-- 分割レイアウト固有の指示は `左ペイン`、`右ペイン` を明示して、必要なら `SplitChannelBrowseView` または `SplitRemoteKeywordSearchResultsView` を添える。
+- 分割レイアウト固有の指示は `左ペイン`、`右ペイン` を明示し、必要なら親の機能画面名を添える。

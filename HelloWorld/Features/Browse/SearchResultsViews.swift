@@ -138,7 +138,7 @@ struct RemoteKeywordSearchResultsView: View {
     var body: some View {
         Group {
             if layout.usesSplitChannelBrowser {
-                SplitRemoteKeywordSearchResultsView(
+                RemoteKeywordSearchResultsRegularView(
                     keyword: keyword,
                     coordinator: coordinator,
                     openVideo: openVideo,
@@ -154,21 +154,18 @@ struct RemoteKeywordSearchResultsView: View {
                     normalizedChannelTitle: normalizedChannelTitle(for:)
                 )
             } else {
-                InteractiveListScreen(
-                    title: "YouTube検索",
-                    subtitle: "下に引っ張ると「\(keyword)」を YouTube で検索し、履歴を順次マージして表示",
+                RemoteKeywordSearchResultsCompactView(
                     coordinator: coordinator,
-                    path: $path,
                     layout: layout,
-                    onRefresh: {
-                        await reloadResults(forceRefresh: true)
-                    }
-                ) {
-                    remoteSearchListContent(
-                        videos: Array(result.videos.prefix(presentationState.visibleCount)),
-                        useNavigation: true
-                    )
-                }
+                    path: $path,
+                    keyword: keyword,
+                    result: result,
+                    visibleCount: presentationState.visibleCount,
+                    onRefresh: { await reloadResults(forceRefresh: true) },
+                    onDismissChip: dismissChip,
+                    onLoadMore: loadMoreIfNeeded,
+                    normalizedChannelTitle: normalizedChannelTitle(for:)
+                )
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -280,61 +277,79 @@ struct RemoteKeywordSearchResultsView: View {
         splitVideos = await coordinator.openChannelVideos(context)
     }
 
-    @ViewBuilder
-    private func remoteSearchListContent(videos: [CachedVideo], useNavigation: Bool) -> some View {
-        if result.fetchedAt == nil, result.videos.isEmpty, result.errorMessage == nil {
-            MetricTile(
-                title: "YouTube検索",
-                value: "未取得",
-                detail: "この画面で下に引っ張ると検索します。結果はキャッシュされ、次回はその内容を表示します"
-            )
-        } else if let errorMessage = result.errorMessage, result.videos.isEmpty {
-            MetricTile(title: "YouTube検索", value: "取得できません", detail: errorMessage)
-        } else if result.videos.isEmpty {
-            MetricTile(title: "YouTube検索", value: "0件", detail: "一致する動画が見つかりませんでした")
-        } else {
-            LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                ForEach(Array(videos.enumerated()), id: \.element.id) { offset, video in
-                    VideoTile(
-                        video: video,
-                        tapAction: {
-                            dismissChip()
-                            if useNavigation {
-                                path.append(
-                                    MaintenanceRoute.channelVideos(
-                                        ChannelVideosRouteContext(
-                                            channelID: video.channelID,
-                                            preferredChannelTitle: normalizedChannelTitle(for: video),
-                                            selectedVideoID: video.id,
-                                            prefersAutomaticRefresh: true
-                                        )
-                                    )
-                                )
-                            } else {
-                                Task {
-                                    await selectSplitVideo(video)
-                                }
-                            }
-                        },
-                        openVideoAction: nil,
-                        removeChannel: nil,
-                        index: offset + 1
-                    )
-                    .onAppear {
-                        guard offset >= videos.count - 1 else { return }
-                        loadMoreIfNeeded()
-                    }
-                }
-            }
-        }
-    }
-
     private func normalizedChannelTitle(for video: CachedVideo) -> String? {
         video.channelTitle.isEmpty ? nil : video.channelTitle
     }
 }
 
-private struct SplitRemoteKeywordSearchResultsView: View {
+private struct RemoteKeywordSearchResultsCompactView: View {
+    let coordinator: FeedCacheCoordinator
+    let layout: AppLayout
+    @Binding var path: NavigationPath
+    let keyword: String
+    let result: VideoSearchResult
+    let visibleCount: Int
+    let onRefresh: () async -> Void
+    let onDismissChip: () -> Void
+    let onLoadMore: () -> Void
+    let normalizedChannelTitle: (CachedVideo) -> String?
+
+    var body: some View {
+        InteractiveListScreen(
+            title: "YouTube検索",
+            subtitle: "下に引っ張ると「\(keyword)」を YouTube で検索し、履歴を順次マージして表示",
+            coordinator: coordinator,
+            path: $path,
+            layout: layout,
+            onRefresh: {
+                await onRefresh()
+            }
+        ) {
+            if result.fetchedAt == nil, result.videos.isEmpty, result.errorMessage == nil {
+                MetricTile(
+                    title: "YouTube検索",
+                    value: "未取得",
+                    detail: "この画面で下に引っ張ると検索します。結果はキャッシュされ、次回はその内容を表示します"
+                )
+            } else if let errorMessage = result.errorMessage, result.videos.isEmpty {
+                MetricTile(title: "YouTube検索", value: "取得できません", detail: errorMessage)
+            } else if result.videos.isEmpty {
+                MetricTile(title: "YouTube検索", value: "0件", detail: "一致する動画が見つかりませんでした")
+            } else {
+                let visibleVideos = Array(result.videos.prefix(visibleCount))
+                LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
+                    ForEach(Array(visibleVideos.enumerated()), id: \.element.id) { offset, video in
+                        VideoTile(
+                            video: video,
+                            tapAction: {
+                                onDismissChip()
+                                path.append(
+                                    MaintenanceRoute.channelVideos(
+                                        ChannelVideosRouteContext(
+                                            channelID: video.channelID,
+                                            preferredChannelTitle: normalizedChannelTitle(video),
+                                            selectedVideoID: video.id,
+                                            prefersAutomaticRefresh: true
+                                        )
+                                    )
+                                )
+                            },
+                            openVideoAction: nil,
+                            removeChannel: nil,
+                            index: offset + 1
+                        )
+                        .onAppear {
+                            guard offset >= visibleVideos.count - 1 else { return }
+                            onLoadMore()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct RemoteKeywordSearchResultsRegularView: View {
     let keyword: String
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void

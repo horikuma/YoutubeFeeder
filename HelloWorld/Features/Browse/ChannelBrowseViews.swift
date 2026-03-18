@@ -22,7 +22,7 @@ struct ChannelBrowseListView: View {
     var body: some View {
         Group {
             if layout.usesSplitChannelBrowser {
-                SplitChannelBrowseView(
+                ChannelBrowseListRegularView(
                     coordinator: coordinator,
                     openVideo: openVideo,
                     path: $path,
@@ -32,44 +32,15 @@ struct ChannelBrowseListView: View {
                     onRequestRemoval: requestRemoval
                 )
             } else {
-                InteractiveListScreen(
-                    title: "チャンネル一覧",
-                    subtitle: sortDescriptor.listSubtitle,
+                ChannelBrowseListCompactView(
                     coordinator: coordinator,
-                    path: $path,
                     layout: layout,
-                    onRefresh: nil
-                ) {
-                    ChannelBrowseTipsTile(summary: tipsSummary)
-
-                    if items.isEmpty {
-                        MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
-                    } else {
-                        LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                            ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
-                                NavigationLink(
-                                    value: MaintenanceRoute.channelVideos(
-                                        ChannelVideosRouteContext(
-                                            channelID: item.channelID,
-                                            preferredChannelTitle: item.channelTitle
-                                        )
-                                    )
-                                ) {
-                                    ChannelTile(item: item, index: offset + 1)
-                                }
-                                .buttonStyle(.plain)
-                                .tileActionMenu(
-                                    actions: [
-                                        TileMenuAction(title: "チャンネルを削除", role: .destructive) {
-                                            requestRemoval(item)
-                                        }
-                                    ]
-                                )
-                                .accessibilityIdentifier("channel.tile.\(item.channelID)")
-                            }
-                        }
-                    }
-                }
+                    path: $path,
+                    sortDescriptor: sortDescriptor,
+                    items: items,
+                    tipsSummary: tipsSummary,
+                    onRequestRemoval: requestRemoval
+                )
             }
         }
         .task {
@@ -141,7 +112,58 @@ struct ChannelBrowseListView: View {
     }
 }
 
-struct SplitChannelBrowseView: View {
+private struct ChannelBrowseListCompactView: View {
+    let coordinator: FeedCacheCoordinator
+    let layout: AppLayout
+    @Binding var path: NavigationPath
+    let sortDescriptor: ChannelBrowseSortDescriptor
+    let items: [ChannelBrowseItem]
+    let tipsSummary: ChannelBrowseTipsSummary
+    let onRequestRemoval: (ChannelBrowseItem) -> Void
+
+    var body: some View {
+        InteractiveListScreen(
+            title: "チャンネル一覧",
+            subtitle: sortDescriptor.listSubtitle,
+            coordinator: coordinator,
+            path: $path,
+            layout: layout,
+            onRefresh: nil
+        ) {
+            ChannelBrowseTipsTile(summary: tipsSummary)
+
+            if items.isEmpty {
+                MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
+            } else {
+                LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
+                        NavigationLink(
+                            value: MaintenanceRoute.channelVideos(
+                                ChannelVideosRouteContext(
+                                    channelID: item.channelID,
+                                    preferredChannelTitle: item.channelTitle
+                                )
+                            )
+                        ) {
+                            ChannelTile(item: item, index: offset + 1)
+                        }
+                        .buttonStyle(.plain)
+                        .tileActionMenu(
+                            actions: [
+                                TileMenuAction(title: "チャンネルを削除", role: .destructive) {
+                                    onRequestRemoval(item)
+                                }
+                            ]
+                        )
+                        .accessibilityIdentifier("channel.tile.\(item.channelID)")
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct ChannelBrowseListRegularView: View {
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
