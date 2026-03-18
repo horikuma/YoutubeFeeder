@@ -1,6 +1,6 @@
 # HelloWorld GUI Reference
 
-この文書は、人間の開発者が画面への変更指示をしやすくするための GUI 設計資料です。機能要件の正本は [../spec.md](../spec.md)、上位方針の正本は [../rules.md](../rules.md)、実装責務の正本は [../architecture.md](../architecture.md) とし、本書はそれらを人間が読みやすい形へ翻訳した `human-view` 文書として継続管理します。正本ではありませんが、人間にとっては最初に参照する入口であるため、関連変更のたびに必ず同期します。
+この文書は、人間の開発者が画面への変更指示をしやすくするための GUI 設計資料です。機能要件の正本は [spec.md[docs/spec.md]](../spec.md)、上位方針の正本は [rules.md[docs/rules.md]](../rules.md)、実装責務の正本は [architecture.md[docs/architecture.md]](../architecture.md) とし、本書はそれらを人間が読みやすい形へ翻訳した `human-view` 文書として継続管理します。正本ではありませんが、人間にとっては最初に参照する入口であるため、関連変更のたびに必ず同期します。
 
 ## 画面遷移
 

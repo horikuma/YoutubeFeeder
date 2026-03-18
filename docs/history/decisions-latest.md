@@ -1,4 +1,8 @@
 ## 2026/03/19
+- `human-view/engineering-design.md` の Adaptive UI 注記は、GitHub の Mermaid でも安定して描画できる `note for ... "<<Adaptive UI>>"` 形式を使う方針に改めた。
+  - 直前の separate-line annotation は GitHub 上で parse error になり、参照資料として成立しなかったため。人間向けの簡略化方針は維持しつつ、描画互換性を優先する。
+- Markdown 内のファイルリンク表示は、リンク先の相対関係に引きずられず、`ファイル名[リポジトリ相対パス]` で統一する方針にした。
+  - `../` や深いサブディレクトリ表記がそのまま見えると、閲覧時に実際の配置と表示上の経路が混ざって読みづらいため。表示は常に repo 基準へそろえ、リンク自体の解決だけを各文書位置に任せた方が分かりやすい。
 - `human-view/engineering-design.md` の Adaptive UI 図示は、`CompactView` / `RegularView` の個別クラスを並べず、機能 View に `<<Adaptive UI>>` を注記して簡略化する方針にした。
   - 人間向けの設計資料では、表現差分クラスをすべて展開すると図の複雑性が上がり、機能責務の把握よりレイアウト差分の追跡に意識が引かれやすいため。Adaptive UI の存在は残しつつ、正本との対応関係を保ったまま読解コストを下げる。
 - `human-view/gui-reference.md` の `画面遷移` は図中ラベルから `〜画面` を省略し、`画面一覧` の正式な `画面名` は維持する方針にした。

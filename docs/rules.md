@@ -1,14 +1,14 @@
 # HelloWorld Rules
 
-この文書は、HelloWorld プロジェクトの上位方針を定める正本です。ここでは、実装や現行機能の詳細ではなく、長期に維持したい判断基準、開発プロセス、文書運用ルールを扱います。機能仕様は [spec.md](spec.md)、実装構造と責務分担は [architecture.md](architecture.md) を参照してください。`docs/human-view/` 配下の資料は、人間向けに読みやすく翻訳した参照資料であり正本ではありませんが、人間の開発入口として常時同期対象にします。
+この文書は、HelloWorld プロジェクトの上位方針を定める正本です。ここでは、実装や現行機能の詳細ではなく、長期に維持したい判断基準、開発プロセス、文書運用ルールを扱います。機能仕様は [spec.md[docs/spec.md]](./spec.md)、実装構造と責務分担は [architecture.md[docs/architecture.md]](./architecture.md) を参照してください。`docs/human-view/` 配下の資料は、人間向けに読みやすく翻訳した参照資料であり正本ではありませんが、人間の開発入口として常時同期対象にします。
 
 ## 文書の境界
 
 - `rules.md` には、根幹普遍の方針、開発中の判断基準、開発プロセス、文書運用を記述する。
-- [spec.md](spec.md) には、ユーザー向け機能、画面遷移、操作、表示要件を記述する。
-- [architecture.md](architecture.md) には、実装構造、責務分担、データフロー、テスト配置、現在の採用方式を記述する。
-- [human-view/gui-reference.md](human-view/gui-reference.md) には、画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
-- [human-view/engineering-design.md](human-view/engineering-design.md) には、クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
+- [spec.md[docs/spec.md]](./spec.md) には、ユーザー向け機能、画面遷移、操作、表示要件を記述する。
+- [architecture.md[docs/architecture.md]](./architecture.md) には、実装構造、責務分担、データフロー、テスト配置、現在の採用方式を記述する。
+- [gui-reference.md[docs/human-view/gui-reference.md]](./human-view/gui-reference.md) には、画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
+- [engineering-design.md[docs/human-view/engineering-design.md]](./human-view/engineering-design.md) には、クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
 - `rules.md` へ実装詳細や画面単位の仕様を集約してはならない。
 - 文書の内容が詳細化しすぎた場合は、上位方針を残して詳細を `architecture.md` または `spec.md` へ移す。
 - `docs/human-view/` 配下の文書は正本ではないため、仕様や責務の最終判断根拠にしてはならない。ただし、人間の開発者にとっての第一入口として、関連する正本変更と同じ変更セットで必ず同期する。
@@ -113,14 +113,15 @@
 
 - `rules.md` は追記メモ置き場として扱わず、章ごとの役割が読んで辿れる構造を維持する。
 - `rules.md` を更新する時は、関連する既存節へ統合し、重複、矛盾、末尾だけの場当たり的な追記を避ける。
-- 機能を変更したら [spec.md](spec.md) を見直す。
-- 実装構造、責務分担、採用アーキテクチャ、テスト配置を変更したら [architecture.md](architecture.md) を見直す。
-- GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [human-view/gui-reference.md](human-view/gui-reference.md) を見直す。
-- 人間向けの設計図や依存関係の見え方が変わる変更では [human-view/engineering-design.md](human-view/engineering-design.md) を見直す。
+- 機能を変更したら [spec.md[docs/spec.md]](./spec.md) を見直す。
+- 実装構造、責務分担、採用アーキテクチャ、テスト配置を変更したら [architecture.md[docs/architecture.md]](./architecture.md) を見直す。
+- GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui-reference.md[docs/human-view/gui-reference.md]](./human-view/gui-reference.md) を見直す。
+- 人間向けの設計図や依存関係の見え方が変わる変更では [engineering-design.md[docs/human-view/engineering-design.md]](./human-view/engineering-design.md) を見直す。
 - 上位方針や変更判断の基準を変更したら `rules.md` を見直す。
 - `human-view/gui-reference.md` の `画面遷移` では、全ノードが画面であることを前提に、図中ラベルの `〜画面` は省略して短く保つ。一方で `画面一覧` の `画面名` は、指示に使う正式名として `〜画面` を含めた表記を維持する。
-- `human-view/engineering-design.md` の Adaptive UI 表現では、`CompactView` / `RegularView` の個別クラスを図へ並べず、親となる機能 View クラスへ `<<Adaptive UI>>` を注記して、表現差分を内包する設計であることだけを示す。
+- `human-view/engineering-design.md` の Adaptive UI 表現では、`CompactView` / `RegularView` の個別クラスを図へ並べず、親となる機能 View クラスに対する `note for ... "<<Adaptive UI>>"` の注記で、表現差分を内包する設計であることだけを示す。
 - `docs/human-view/` 配下の資料は、人間の参照性を優先して複雑さを抑えてよいが、簡略化によって正本との関係が読めなくならないよう、どの正本の翻訳かを明示したまま運用する。
+- Markdown に `mermaid` または `plantuml` を含める場合は、コミット前に構文エラーなく描画できることを確認してから反映する。
 - 履歴を継続的に蓄積する文書は `history/metrics-log.md`、`history/decisions-log.md`、`history/chat-log.md` とし、当日作業中の追記先は `history/metrics-latest.md`、`history/decisions-latest.md`、`history/chat-latest.md` とする。
 - 当日中の更新は原則として対応する `*-latest.md` に対して行い、履歴文書 `*-log.md` へその場で追記しない。
 - 日付が変わった後で最初に対象文書を更新する時は、前日までの `*-latest.md` の内容を対応する `*-log.md` の先頭へ挿入してから `*-latest.md` を空にし、その当日分の運用を開始する。
@@ -184,8 +185,8 @@
 ## 変更内容と文書更新
 
 - アプリ機能を変更する場合は、`機能仕様に関わる文書`、`影響を受ける実装`、`必要なテスト`、`必要な計測記録` を同じ変更セットで更新する。
-- 機能変更では [spec.md](spec.md) を更新する。
-- 実装構造や責務変更では [architecture.md](architecture.md) を更新する。
+- 機能変更では [spec.md[docs/spec.md]](./spec.md) を更新する。
+- 実装構造や責務変更では [architecture.md[docs/architecture.md]](./architecture.md) を更新する。
 - 上位方針や運用変更では `rules.md` を更新する。
-- 人間向けの参照性に影響する変更では [human-view/gui-reference.md](human-view/gui-reference.md) と [human-view/engineering-design.md](human-view/engineering-design.md) を更新する。
-- 検証コストや性能観測の更新では [history/metrics-latest.md](history/metrics-latest.md) を更新し、日次履歴は [history/metrics-log.md](history/metrics-log.md) で保持する。
+- 人間向けの参照性に影響する変更では [gui-reference.md[docs/human-view/gui-reference.md]](./human-view/gui-reference.md) と [engineering-design.md[docs/human-view/engineering-design.md]](./human-view/engineering-design.md) を更新する。
+- 検証コストや性能観測の更新では [metrics-latest.md[docs/history/metrics-latest.md]](./history/metrics-latest.md) を更新し、日次履歴は [metrics-log.md[docs/history/metrics-log.md]](./history/metrics-log.md) で保持する。

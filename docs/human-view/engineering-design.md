@@ -4,10 +4,10 @@
 
 ## 読み方
 
-- 機能要件の正本: [../spec.md](../spec.md)
-- 上位方針の正本: [../rules.md](../rules.md)
-- 実装責務の正本: [../architecture.md](../architecture.md)
-- GUI の人間向け参照: [gui-reference.md](gui-reference.md)
+- 機能要件の正本: [spec.md[docs/spec.md]](../spec.md)
+- 上位方針の正本: [rules.md[docs/rules.md]](../rules.md)
+- 実装責務の正本: [architecture.md[docs/architecture.md]](../architecture.md)
+- GUI の人間向け参照: [gui-reference.md[docs/human-view/gui-reference.md]](./gui-reference.md)
 
 ## レイヤ構成
 
@@ -45,8 +45,8 @@ classDiagram
     class YouTubeSearchService
     class RemoteSearchPresentationState
 
-    <<Adaptive UI>> ChannelBrowseListView
-    <<Adaptive UI>> RemoteKeywordSearchResultsView
+    note for ChannelBrowseListView "<<Adaptive UI>>"
+    note for RemoteKeywordSearchResultsView "<<Adaptive UI>>"
 
     ContentView --> AppLayout : computes
     ContentView --> FeedCacheCoordinator : owns
@@ -80,22 +80,6 @@ classDiagram
     FeedCacheCoordinator --> YouTubeFeed
 
     RemoteKeywordSearchResultsView --> RemoteSearchPresentationState : uses
-```
-
-## 画面遷移図
-
-```mermaid
-flowchart TD
-    Launch["起動画面"] --> Home["ホーム画面"]
-    Home --> Register["チャンネル登録画面"]
-    Home --> Channels["チャンネル一覧画面"]
-    Home --> Videos["動画一覧画面"]
-    Home --> CacheSearch["固定キーワード検索結果画面"]
-    Home --> RemoteSearch["YouTube検索結果画面"]
-    Channels --> ChannelVideos["チャンネル別動画一覧画面"]
-    Videos --> ChannelVideos
-    CacheSearch --> ChannelVideos
-    RemoteSearch --> ChannelVideos
 ```
 
 ## 主要シーケンス
@@ -152,6 +136,6 @@ sequenceDiagram
 
 - `View` は I/O を直接持たず、`FeedCacheCoordinator` 経由で状態と操作を受ける。
 - `AppLayout` は adaptive 判定を持つが、機能差分は持たない。
-- `<<Adaptive UI>>` を付けた View は、内部に `CompactView` / `RegularView` の表現差分を持つが、資料上は 1 つの機能 View として扱う。
+- `note for ... "<<Adaptive UI>>"` を付けた View は、内部に `CompactView` / `RegularView` の表現差分を持つが、資料上は 1 つの機能 View として扱う。
 - `RemoteSearchPresentationState` は YouTube 検索結果の UI 状態を pure logic として切り出す。
-- 正本を更新した時は、本書のクラス図、遷移図、シーケンス図も同じ変更セットで同期する。
+- 正本を更新した時は、本書のクラス図、シーケンス図も同じ変更セットで同期する。
