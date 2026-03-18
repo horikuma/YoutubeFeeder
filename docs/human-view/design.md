@@ -7,7 +7,7 @@
 - 機能要件の正本: [spec.md](../spec.md)
 - 上位方針の正本: [rules.md](../rules.md)
 - 実装責務の正本: [architecture.md](../architecture.md)
-- GUI の人間向け参照: [gui-reference.md](./gui-reference.md)
+- GUI の人間向け参照: [gui.md](./gui.md)
 
 ## レイヤ構成
 
@@ -28,11 +28,11 @@ classDiagram
     class ContentView
     class AppLayout
     class FeedCacheCoordinator
-    class ChannelBrowseListView
+    class ChannelBrowseListView["ChannelBrowseListView<br/>[Adaptive UI]"]
     class ChannelVideosView
     class AllVideosView
     class KeywordSearchResultsView
-    class RemoteKeywordSearchResultsView
+    class RemoteKeywordSearchResultsView["RemoteKeywordSearchResultsView<br/>[Adaptive UI]"]
     class InteractiveListScreen
     class ChannelTile
     class ChannelSelectionTile
@@ -44,9 +44,6 @@ classDiagram
     class YouTubeFeed
     class YouTubeSearchService
     class RemoteSearchPresentationState
-
-    note for ChannelBrowseListView "<<Adaptive UI>>"
-    note for RemoteKeywordSearchResultsView "<<Adaptive UI>>"
 
     ContentView --> AppLayout : computes
     ContentView --> FeedCacheCoordinator : owns
@@ -136,6 +133,6 @@ sequenceDiagram
 
 - `View` は I/O を直接持たず、`FeedCacheCoordinator` 経由で状態と操作を受ける。
 - `AppLayout` は adaptive 判定を持つが、機能差分は持たない。
-- `note for ... "<<Adaptive UI>>"` を付けた View は、内部に `CompactView` / `RegularView` の表現差分を持つが、資料上は 1 つの機能 View として扱う。
+- クラス枠内に `[Adaptive UI]` を付けた View は、内部に `CompactView` / `RegularView` の表現差分を持つが、資料上は 1 つの機能 View として扱う。
 - `RemoteSearchPresentationState` は YouTube 検索結果の UI 状態を pure logic として切り出す。
 - 正本を更新した時は、本書のクラス図、シーケンス図も同じ変更セットで同期する。

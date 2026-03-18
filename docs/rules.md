@@ -7,8 +7,8 @@
 - `rules.md` には、根幹普遍の方針、開発中の判断基準、開発プロセス、文書運用を記述する。
 - [spec.md](./spec.md) には、ユーザー向け機能、画面遷移、操作、表示要件を記述する。
 - [architecture.md](./architecture.md) には、実装構造、責務分担、データフロー、テスト配置、現在の採用方式を記述する。
-- [gui-reference.md](./human-view/gui-reference.md) には、画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
-- [engineering-design.md](./human-view/engineering-design.md) には、クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
+- [gui.md](./human-view/gui.md) には、画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
+- [design.md](./human-view/design.md) には、クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
 - `rules.md` へ実装詳細や画面単位の仕様を集約してはならない。
 - 文書の内容が詳細化しすぎた場合は、上位方針を残して詳細を `architecture.md` または `spec.md` へ移す。
 - `docs/human-view/` 配下の文書は正本ではないため、仕様や責務の最終判断根拠にしてはならない。ただし、人間の開発者にとっての第一入口として、関連する正本変更と同じ変更セットで必ず同期する。
@@ -117,11 +117,11 @@
 - `rules.md` を更新する時は、関連する既存節へ統合し、重複、矛盾、末尾だけの場当たり的な追記を避ける。
 - 機能を変更したら [spec.md](./spec.md) を見直す。
 - 実装構造、責務分担、採用アーキテクチャ、テスト配置を変更したら [architecture.md](./architecture.md) を見直す。
-- GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui-reference.md](./human-view/gui-reference.md) を見直す。
-- 人間向けの設計図や依存関係の見え方が変わる変更では [engineering-design.md](./human-view/engineering-design.md) を見直す。
+- GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui.md](./human-view/gui.md) を見直す。
+- 人間向けの設計図や依存関係の見え方が変わる変更では [design.md](./human-view/design.md) を見直す。
 - 上位方針や変更判断の基準を変更したら `rules.md` を見直す。
-- `human-view/gui-reference.md` の `画面遷移` では、全ノードが画面であることを前提に、図中ラベルの `〜画面` は省略して短く保つ。一方で `画面一覧` の `画面名` は、指示に使う正式名として `〜画面` を含めた表記を維持する。
-- `human-view/engineering-design.md` の Adaptive UI 表現では、`CompactView` / `RegularView` の個別クラスを図へ並べず、親となる機能 View クラスに対する `note for ... "<<Adaptive UI>>"` の注記で、表現差分を内包する設計であることだけを示す。
+- `human-view/gui.md` の `画面遷移` では、全ノードが画面であることを前提に、図中ラベルの `〜画面` は省略して短く保つ。一方で `画面一覧` の `画面名` は、指示に使う正式名として `〜画面` を含めた表記を維持する。
+- `human-view/design.md` の Adaptive UI 表現では、`CompactView` / `RegularView` の個別クラスを図へ並べず、親となる機能 View クラスの枠内へ改行付きの注記を入れて、表現差分を内包する設計であることを示す。
 - `docs/human-view/` 配下の資料は、人間の参照性を優先して複雑さを抑えてよいが、簡略化によって正本との関係が読めなくならないよう、どの正本の翻訳かを明示したまま運用する。
 - Markdown に `mermaid` または `plantuml` を含める場合は、コミット前に構文エラーなく描画できることを確認してから反映する。
 - Markdown のファイルリンクは、表示テキストをファイル名のみとし、表示上にパスを含めない。一方でリンク先自体は、各文書位置から実体ファイルへ辿れる相対パスで維持する。
@@ -191,5 +191,5 @@
 - 機能変更では [spec.md](./spec.md) を更新する。
 - 実装構造や責務変更では [architecture.md](./architecture.md) を更新する。
 - 上位方針や運用変更では `rules.md` を更新する。
-- 人間向けの参照性に影響する変更では [gui-reference.md](./human-view/gui-reference.md) と [engineering-design.md](./human-view/engineering-design.md) を更新する。
+- 人間向けの参照性に影響する変更では [gui.md](./human-view/gui.md) と [design.md](./human-view/design.md) を更新する。
 - 検証コストや性能観測の更新では [metrics-latest.md](./history/metrics-latest.md) を更新し、日次履歴は [metrics-log.md](./history/metrics-log.md) で保持する。
