@@ -1,15 +1,17 @@
 # HelloWorld Rules
 
-この文書は、HelloWorld プロジェクトの上位方針を定める正本です。ここでは、実装や現行機能の詳細ではなく、長期に維持したい判断基準、開発プロセス、文書運用ルールを扱います。機能仕様は [spec.md](spec.md)、実装構造と責務分担は [architecture.md](architecture.md) を参照してください。
+この文書は、HelloWorld プロジェクトの上位方針を定める正本です。ここでは、実装や現行機能の詳細ではなく、長期に維持したい判断基準、開発プロセス、文書運用ルールを扱います。機能仕様は [spec.md](spec.md)、実装構造と責務分担は [architecture.md](architecture.md) を参照してください。`docs/human-view/` 配下の資料は、人間向けに読みやすく翻訳した参照資料であり正本ではありませんが、人間の開発入口として常時同期対象にします。
 
 ## 文書の境界
 
 - `rules.md` には、根幹普遍の方針、開発中の判断基準、開発プロセス、文書運用を記述する。
 - [spec.md](spec.md) には、ユーザー向け機能、画面遷移、操作、表示要件を記述する。
 - [architecture.md](architecture.md) には、実装構造、責務分担、データフロー、テスト配置、現在の採用方式を記述する。
-- [gui-reference.md](gui-reference.md) には、画面名、GUI パーツ名、画面遷移、指示に使う呼び名を整理して記述する。
+- [human-view/gui-reference.md](human-view/gui-reference.md) には、画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
+- [human-view/engineering-design.md](human-view/engineering-design.md) には、クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
 - `rules.md` へ実装詳細や画面単位の仕様を集約してはならない。
 - 文書の内容が詳細化しすぎた場合は、上位方針を残して詳細を `architecture.md` または `spec.md` へ移す。
+- `docs/human-view/` 配下の文書は正本ではないため、仕様や責務の最終判断根拠にしてはならない。ただし、人間の開発者にとっての第一入口として、関連する正本変更と同じ変更セットで必ず同期する。
 
 ## 目的
 
@@ -113,7 +115,8 @@
 - `rules.md` を更新する時は、関連する既存節へ統合し、重複、矛盾、末尾だけの場当たり的な追記を避ける。
 - 機能を変更したら [spec.md](spec.md) を見直す。
 - 実装構造、責務分担、採用アーキテクチャ、テスト配置を変更したら [architecture.md](architecture.md) を見直す。
-- GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui-reference.md](gui-reference.md) を見直す。
+- GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [human-view/gui-reference.md](human-view/gui-reference.md) を見直す。
+- 人間向けの設計図や依存関係の見え方が変わる変更では [human-view/engineering-design.md](human-view/engineering-design.md) を見直す。
 - 上位方針や変更判断の基準を変更したら `rules.md` を見直す。
 - 履歴を継続的に蓄積する文書は `history/metrics-log.md`、`history/decisions-log.md`、`history/chat-log.md` とし、当日作業中の追記先は `history/metrics-latest.md`、`history/decisions-latest.md`、`history/chat-latest.md` とする。
 - 当日中の更新は原則として対応する `*-latest.md` に対して行い、履歴文書 `*-log.md` へその場で追記しない。
@@ -126,6 +129,7 @@
 - 一時的な事情や現状の実装詳細を、恒久ルールとして `rules.md` に固定しない。
 - 通常のプロジェクト文書ファイル名は `lowercase-kebab-case.md` または `lowercase.md` に統一する。
 - `README.md` や `CONTRIBUTING.md` のような広く定着した慣例名だけは例外として大文字を許容する。
+- `docs/human-view/` 配下は、人間向けの翻訳資料と図表資料を置く領域とし、配置だけで正本と区別できる状態を維持する。
 
 ## history/chat-log.md / history/chat-latest.md 運用ルール
 
@@ -180,4 +184,5 @@
 - 機能変更では [spec.md](spec.md) を更新する。
 - 実装構造や責務変更では [architecture.md](architecture.md) を更新する。
 - 上位方針や運用変更では `rules.md` を更新する。
+- 人間向けの参照性に影響する変更では [human-view/gui-reference.md](human-view/gui-reference.md) と [human-view/engineering-design.md](human-view/engineering-design.md) を更新する。
 - 検証コストや性能観測の更新では [history/metrics-latest.md](history/metrics-latest.md) を更新し、日次履歴は [history/metrics-log.md](history/metrics-log.md) で保持する。

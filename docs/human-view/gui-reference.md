@@ -1,6 +1,6 @@
 # HelloWorld GUI Reference
 
-この文書は、画面への変更指示をしやすくするための GUI 設計資料です。機能要件の正本は [spec.md](spec.md)、上位方針の正本は [rules.md](rules.md)、実装責務の正本は [architecture.md](architecture.md) とし、本書はそれらを画面名、GUI パーツ名、画面遷移の観点で整理した参照資料として継続管理します。
+この文書は、人間の開発者が画面への変更指示をしやすくするための GUI 設計資料です。機能要件の正本は [../spec.md](../spec.md)、上位方針の正本は [../rules.md](../rules.md)、実装責務の正本は [../architecture.md](../architecture.md) とし、本書はそれらを人間が読みやすい形へ翻訳した `human-view` 文書として継続管理します。正本ではありませんが、人間にとっては最初に参照する入口であるため、関連変更のたびに必ず同期します。
 
 ## 画面遷移
 
@@ -86,7 +86,7 @@ flowchart TD
 | サブタイトル | `sortDescriptor.listSubtitle` | 現在の並び順説明 |
 | Tips タイル | `ChannelBrowseTipsTile` | 件数、並び順、基本操作 |
 | チャンネルタイル | `ChannelTile` / `channel.tile.<channelID>` | 単独画面のチャンネル一覧項目 |
-| 左ペインチャンネルタイル | `ChannelSelectionTile` / `channel.tile.<channelID>` | 分割画面左ペインの選択項目 |
+| 左ペインチャンネルタイル | `ChannelSelectionTile` / `channel.tile.<channelID>` | regular 幅の左ペイン選択項目 |
 | 削除確認ダイアログ | `confirmationDialog` | `チャンネルを削除` を確認 |
 | 削除結果アラート | `alert` | 削除結果を表示 |
 
@@ -175,7 +175,7 @@ flowchart TD
 | 下部結果チップ | `SearchResultCountChip` / `search.resultChip` | 件数、更新時刻、検索元表示 |
 | 履歴クリアボタン | `ToolbarItem` の `Button("クリア")` | 検索履歴をクリア |
 | 空状態タイル | `MetricTile` | 未取得、0件、エラー時の案内 |
-| 右ペインタイトル | `screen.remoteSearchSplitTitle` | 分割画面右ペインのチャンネル名 |
+| 右ペインタイトル | `screen.remoteSearchSplitTitle` | regular 幅の右ペインのチャンネル名 |
 | テスト用再検索トリガ | `UITestAsyncActionTrigger` / `test.remoteSearch.refresh` | UI テスト用 |
 
 - 操作と遷移:
@@ -195,4 +195,4 @@ flowchart TD
 - 同じ役割のパーツは画面をまたいでも同じ名前を使う。たとえば `動画タイル`、`空状態タイル`、`タイトル`、`サブタイトル` は画面ごとに言い換えない。
 - その画面内で重複しない場合は、`チャンネル別動画一覧画面のタイトル` のように短い名前を優先する。
 - 実装箇所まで指定したい時は、`実装名` を併記して `ホーム画面のYouTube検索タイル（MetricTile / nav.remoteSearch）` のように書く。
-- 分割レイアウト固有の指示は `左ペイン`、`右ペイン` を明示し、必要なら親の機能画面名を添える。
+- regular 幅固有の指示は `左ペイン`、`右ペイン` を明示し、必要なら親の機能画面名を添える。

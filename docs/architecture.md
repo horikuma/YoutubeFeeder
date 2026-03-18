@@ -8,8 +8,10 @@
   - 根幹普遍の方針、変更判断、文書運用、変更管理を定める。
 - [spec.md](spec.md)
   - ユーザー向け機能と画面の振る舞いを定める。
-- [gui-reference.md](gui-reference.md)
-  - 画面名、GUI パーツ名、画面遷移を、変更指示しやすい形で整理する。
+- [human-view/gui-reference.md](human-view/gui-reference.md)
+  - 画面名、GUI パーツ名、画面遷移を、人間向けに変更指示しやすい形で整理する翻訳資料。
+- [human-view/engineering-design.md](human-view/engineering-design.md)
+  - レイヤ図、クラス図、遷移図を、人間向けに俯瞰しやすい形で整理する翻訳資料。
 - `architecture.md`
   - 現在の実装構造、責務境界、データフロー、テスト配置を定める。
 

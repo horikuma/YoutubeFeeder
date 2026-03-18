@@ -2,7 +2,7 @@
 
 この文書は、HelloWorld アプリの機能仕様書兼実装仕様書です。人間および LLM が、このアプリが何をしなければならないか、どのように振る舞わなければならないか、何を壊してはいけないかを同じ基準で理解するための正本とします。
 
-`spec.md` はアプリの振る舞いを定める文書、`rules.md` は上位方針と変更管理を定める文書、`architecture.md` は実装構造と責務分担を定める文書、`gui-reference.md` は画面名・GUI パーツ名・遷移を整理した GUI 設計資料です。機能を変える場合は、必要に応じてこれらの文書に矛盾が出ないよう更新してください。
+`spec.md` はアプリの振る舞いを定める文書、`rules.md` は上位方針と変更管理を定める文書、`architecture.md` は実装構造と責務分担を定める文書です。[human-view/gui-reference.md](human-view/gui-reference.md) と [human-view/engineering-design.md](human-view/engineering-design.md) は、それらの正本を人間向けに読みやすく翻訳した参照資料です。機能を変える場合は、必要に応じてこれらの文書に矛盾が出ないよう更新してください。
 
 ## 1. 目的
 
