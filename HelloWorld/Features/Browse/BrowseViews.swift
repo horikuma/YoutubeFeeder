@@ -55,7 +55,7 @@ struct ChannelVideosView: View {
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(Array(videos.enumerated()), id: \.element.id) { offset, video in
-                        LongPressVideoTile(
+                        VideoTile(
                             video: video,
                             tapAction: nil,
                             openVideoAction: {
@@ -67,7 +67,7 @@ struct ChannelVideosView: View {
                                     channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
                                 )
                             },
-                            index: offset
+                            index: offset + 1
                         )
                     }
                 }

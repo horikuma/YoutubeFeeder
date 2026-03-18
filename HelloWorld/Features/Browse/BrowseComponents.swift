@@ -43,7 +43,46 @@ struct InteractiveListScreen<Content: View>: View {
     }
 }
 
-struct LongPressVideoTile: View {
+struct TileMenuAction {
+    let title: String
+    let role: ButtonRole?
+    let action: () -> Void
+}
+
+private struct TileActionMenuModifier: ViewModifier {
+    let actions: [TileMenuAction]
+    @State private var isShowingMenu = false
+
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.5)
+                    .onEnded { _ in
+                        isShowingMenu = true
+                    }
+            )
+            .confirmationDialog("", isPresented: $isShowingMenu, titleVisibility: .hidden) {
+                if actions.isEmpty {
+                    Button("未定義") {}
+                } else {
+                    ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
+                        Button(action.title, role: action.role) {
+                            action.action()
+                        }
+                    }
+                }
+                Button("キャンセル", role: .cancel) {}
+            }
+    }
+}
+
+extension View {
+    func tileActionMenu(actions: [TileMenuAction]) -> some View {
+        modifier(TileActionMenuModifier(actions: actions))
+    }
+}
+
+struct VideoTile: View {
     let video: CachedVideo
     let tapAction: (() -> Void)?
     let openVideoAction: (() -> Void)?
@@ -51,25 +90,10 @@ struct LongPressVideoTile: View {
     let index: Int?
 
     var body: some View {
+        let menuActions = buildMenuActions()
         let tile = VideoHeroTile(video: video, index: index)
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .contextMenu {
-                if let openVideoAction {
-                    Button {
-                        openVideoAction()
-                    } label: {
-                        Label("YouTubeで開く", systemImage: "play.rectangle")
-                    }
-                }
-
-                if let removeChannel {
-                    Button(role: .destructive) {
-                        removeChannel()
-                    } label: {
-                        Label("チャンネルを削除", systemImage: "trash")
-                    }
-                }
-            }
+            .tileActionMenu(actions: menuActions)
             .accessibilityAddTraits(.isButton)
             .accessibilityHint("長押しでメニューを開きます")
             .accessibilityIdentifier("video.tile.\(video.id)")
@@ -83,9 +107,31 @@ struct LongPressVideoTile: View {
             tile
         }
     }
+
+    private func buildMenuActions() -> [TileMenuAction] {
+        var actions: [TileMenuAction] = []
+
+        if let openVideoAction {
+            actions.append(
+                TileMenuAction(title: "YouTubeで開く", role: nil) {
+                    openVideoAction()
+                }
+            )
+        }
+
+        if let removeChannel {
+            actions.append(
+                TileMenuAction(title: "チャンネルを削除", role: .destructive) {
+                    removeChannel()
+                }
+            )
+        }
+
+        return actions
+    }
 }
 
-struct ChannelHeroTile: View {
+struct ChannelTile: View {
     let item: ChannelBrowseItem
     let index: Int?
 
@@ -227,8 +273,14 @@ struct VideoHeroTile: View {
                 .padding(16)
             }
             .overlay(alignment: .bottomTrailing) {
-                VideoDebugBadge(video: video, index: index)
+                VideoMetadataBadge(video: video)
                     .padding(14)
+            }
+            .overlay(alignment: .topTrailing) {
+                if let index {
+                    TileIndexBadge(index: index)
+                        .padding(12)
+                }
             }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
@@ -252,12 +304,11 @@ private struct TileIndexBadge: View {
     }
 }
 
-private struct VideoDebugBadge: View {
+private struct VideoMetadataBadge: View {
     let video: CachedVideo
-    let index: Int?
 
     var body: some View {
-        Text(AppFormatting.videoTileBadgeText(index: index, durationSeconds: video.durationSeconds, viewCount: video.viewCount))
+        Text(AppFormatting.videoTileBadgeText(durationSeconds: video.durationSeconds, viewCount: video.viewCount))
             .font(.caption2.monospacedDigit().weight(.bold))
             .foregroundStyle(.white)
             .padding(.horizontal, 8)

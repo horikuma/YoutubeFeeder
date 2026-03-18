@@ -26,7 +26,7 @@ struct KeywordSearchResultsView: View {
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(Array(result.videos.enumerated()), id: \.element.id) { offset, video in
-                        LongPressVideoTile(
+                        VideoTile(
                             video: video,
                             tapAction: {
                                 dismissChip()
@@ -295,7 +295,7 @@ struct RemoteKeywordSearchResultsView: View {
         } else {
             LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                 ForEach(Array(videos.enumerated()), id: \.element.id) { offset, video in
-                    LongPressVideoTile(
+                    VideoTile(
                         video: video,
                         tapAction: {
                             dismissChip()
@@ -318,7 +318,7 @@ struct RemoteKeywordSearchResultsView: View {
                         },
                         openVideoAction: nil,
                         removeChannel: nil,
-                        index: offset
+                        index: offset + 1
                     )
                     .onAppear {
                         guard offset >= videos.count - 1 else { return }
@@ -375,7 +375,7 @@ private struct SplitRemoteKeywordSearchResultsView: View {
                     let visibleVideos = Array(result.videos.prefix(visibleCount))
                     LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                         ForEach(Array(visibleVideos.enumerated()), id: \.element.id) { offset, video in
-                            LongPressVideoTile(
+                            VideoTile(
                                 video: video,
                                 tapAction: {
                                     onDismissChip()
@@ -397,7 +397,7 @@ private struct SplitRemoteKeywordSearchResultsView: View {
                                 },
                                 openVideoAction: nil,
                                 removeChannel: nil,
-                                index: offset
+                                index: offset + 1
                             )
                             .onAppear {
                                 guard offset >= visibleVideos.count - 1 else { return }
@@ -436,14 +436,14 @@ private struct SplitRemoteKeywordSearchResultsView: View {
                     } else {
                         LazyVGrid(columns: layout.listColumns, spacing: 20) {
                             ForEach(Array(splitVideos.enumerated()), id: \.element.id) { offset, video in
-                                LongPressVideoTile(
+                                VideoTile(
                                     video: video,
                                     tapAction: nil,
                                     openVideoAction: {
                                         openVideo(video)
                                     },
                                     removeChannel: nil,
-                                    index: offset
+                                    index: offset + 1
                                 )
                             }
                         }

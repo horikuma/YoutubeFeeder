@@ -55,16 +55,16 @@ struct ChannelBrowseListView: View {
                                         )
                                     )
                                 ) {
-                                    ChannelHeroTile(item: item, index: offset + 1)
+                                    ChannelTile(item: item, index: offset + 1)
                                 }
                                 .buttonStyle(.plain)
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        requestRemoval(item)
-                                    } label: {
-                                        Label("チャンネルを削除", systemImage: "trash")
-                                    }
-                                }
+                                .tileActionMenu(
+                                    actions: [
+                                        TileMenuAction(title: "チャンネルを削除", role: .destructive) {
+                                            requestRemoval(item)
+                                        }
+                                    ]
+                                )
                                 .accessibilityIdentifier("channel.tile.\(item.channelID)")
                             }
                         }
@@ -193,13 +193,13 @@ struct SplitChannelBrowseView: View {
                             .onTapGesture {
                                 selectChannel(item.channelID)
                             }
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    onRequestRemoval(item)
-                                } label: {
-                                    Label("チャンネルを削除", systemImage: "trash")
-                                }
-                            }
+                            .tileActionMenu(
+                                actions: [
+                                    TileMenuAction(title: "チャンネルを削除", role: .destructive) {
+                                        onRequestRemoval(item)
+                                    }
+                                ]
+                            )
                             .accessibilityIdentifier("channel.tile.\(item.channelID)")
                         }
                     }
@@ -239,7 +239,7 @@ struct SplitChannelBrowseView: View {
                     } else {
                         LazyVGrid(columns: layout.listColumns, spacing: 20) {
                             ForEach(Array(videosForSelectedChannel.enumerated()), id: \.element.id) { offset, video in
-                                LongPressVideoTile(
+                                VideoTile(
                                     video: video,
                                     tapAction: nil,
                                     openVideoAction: {
@@ -258,7 +258,7 @@ struct SplitChannelBrowseView: View {
                                             )
                                         )
                                     },
-                                    index: offset
+                                    index: offset + 1
                                 )
                             }
                         }
@@ -371,7 +371,7 @@ struct AllVideosView: View {
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(Array(coordinator.videos.enumerated()), id: \.element.id) { offset, video in
-                        LongPressVideoTile(
+                        VideoTile(
                             video: video,
                             tapAction: {
                                 path.append(
@@ -391,7 +391,7 @@ struct AllVideosView: View {
                                     channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
                                 )
                             },
-                            index: offset
+                            index: offset + 1
                         )
                     }
                 }

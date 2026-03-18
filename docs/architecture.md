@@ -106,8 +106,8 @@
   - 実機調査時は、チャンネル別動画一覧の更新ジェスチャーと一覧再読込の完了をランタイムログへ流す。
 - [HelloWorld/Features/Browse/BrowseComponents.swift](HelloWorld/Features/Browse/BrowseComponents.swift)
   - 一覧系共通コンテナ `InteractiveListScreen`。
-  - タイル部品、サムネイル表示、戻るスワイプ modifier など、一覧画面から共有される表示部品を担う。
-  - 動画タイル右下の `No : 再生時間 再生数 (M/L)` バッジを担い、動画番号を右上へ重複表示しない。
+  - `ChannelTile`、`ChannelSelectionTile`、`VideoTile`、サムネイル表示、戻るスワイプ modifier など、一覧画面から共有される表示部品を担う。
+  - `VideoTile` は 0.5 秒長押しメニューを持ち、動画番号は右上バッジ、再生時間と再生数は右下バッジで表示する。
 - [HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift](HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - ホーム画面 bootstrap、手動更新、一覧用データ読込、更新状態の管理。
@@ -222,7 +222,7 @@
 - 機能ロジックは共通化し、レイアウト差は `AppLayout` で吸収する。
 - 1 列リストは複数列化せず、Apple の `readableContentGuide` 相当の考え方で本文幅だけを制限する。
 - 一覧画面の振る舞いは `InteractiveListScreen` に集約し、画面ごとの差異を作らない。
-- 動画系一覧の番号表示は 0 始まりとし、右下の情報バッジへ統合する。
+- 動画系一覧の番号表示は 1 始まりとし、チャンネル一覧と同じ書式の右上バッジで表示する。
 - 戻るスワイプの判定は `BackSwipePolicy` を使う。
 - 動画を開く判定は `VideoOpenPolicy` を使う。
 - チャンネル一覧の分割表示は SwiftUI の適応的コンテナを優先し、現在は `NavigationSplitView` を採用する。

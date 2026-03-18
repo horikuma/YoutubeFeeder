@@ -91,7 +91,7 @@ flowchart TD
 | タイトル | `InteractiveListScreen` の `title` | `チャンネル一覧` |
 | サブタイトル | `sortDescriptor.listSubtitle` | 現在の並び順説明 |
 | Tips タイル | `ChannelBrowseTipsTile` | 件数、並び順、基本操作 |
-| チャンネルタイル | `ChannelHeroTile` / `channel.tile.<channelID>` | 単独画面のチャンネル一覧項目 |
+| チャンネルタイル | `ChannelTile` / `channel.tile.<channelID>` | 単独画面のチャンネル一覧項目 |
 | 左ペインチャンネルタイル | `ChannelSelectionTile` / `channel.tile.<channelID>` | 分割画面左ペインの選択項目 |
 | 削除確認ダイアログ | `confirmationDialog` | `チャンネルを削除` を確認 |
 | 削除結果アラート | `alert` | 削除結果を表示 |
@@ -100,6 +100,9 @@ flowchart TD
   - タップで `チャンネル別動画一覧画面`
   - 長押しメニューで `チャンネルを削除`
   - 分割画面では左ペイン選択で右ペインだけ更新
+- 長押しメニュー:
+  - チャンネルタイル: `チャンネルを削除`
+  - 左ペインチャンネルタイル: `チャンネルを削除`
 
 ### 5. チャンネル別動画一覧画面
 
@@ -110,7 +113,7 @@ flowchart TD
 | 指示用の呼び名 | 実装/識別子 | 役割 |
 | --- | --- | --- |
 | タイトル | `channelTitle` | チャンネル名を表示 |
-| 動画タイル | `LongPressVideoTile` / `video.tile.<videoID>` | 動画一覧項目 |
+| 動画タイル | `VideoTile` / `video.tile.<videoID>` | 動画一覧項目 |
 | 空状態タイル | `MetricTile` | 動画が無い時の案内 |
 | 削除確認ダイアログ | `confirmationDialog` | チャンネル削除の確認 |
 | 削除結果アラート | `alert` | 削除後に一覧から戻ることがある |
@@ -119,6 +122,8 @@ flowchart TD
 - 操作と遷移:
   - pull-to-refresh で選択中チャンネルだけ強制更新
   - 動画タイル長押しで `YouTubeで開く` または `チャンネルを削除`
+- 長押しメニュー:
+  - 動画タイル: `YouTubeで開く`、`チャンネルを削除`
 
 ### 6. 動画一覧画面
 
@@ -130,7 +135,7 @@ flowchart TD
 | --- | --- | --- |
 | タイトル | `InteractiveListScreen` の `title` | `動画一覧` |
 | サブタイトル | `InteractiveListScreen` の `subtitle` | 一覧の説明文 |
-| 動画タイル | `LongPressVideoTile` | 全動画一覧項目 |
+| 動画タイル | `VideoTile` | 全動画一覧項目 |
 | 空状態タイル | `MetricTile` | 動画が無い時の案内 |
 | 削除確認ダイアログ | `confirmationDialog` | チャンネル削除の確認 |
 | 削除結果アラート | `alert` | 削除結果を表示 |
@@ -138,6 +143,8 @@ flowchart TD
 - 操作と遷移:
   - 動画タイルの通常タップで `チャンネル別動画一覧画面`
   - 動画タイル長押しで `チャンネルを削除`
+- 長押しメニュー:
+  - 動画タイル: `チャンネルを削除`
 
 ### 7. 固定キーワード検索結果画面
 
@@ -149,7 +156,7 @@ flowchart TD
 | --- | --- | --- |
 | タイトル | `InteractiveListScreen` の `title` | `検索結果` |
 | サブタイトル | `InteractiveListScreen` の `subtitle` | 一覧の説明文 |
-| 動画タイル | `LongPressVideoTile` | 検索ヒットした動画 |
+| 動画タイル | `VideoTile` | 検索ヒットした動画 |
 | 下部結果チップ | `SearchResultCountChip` / `search.resultChip` | 件数、更新時刻、検索元表示 |
 | 空状態タイル | `MetricTile` | 動画が無い時の案内 |
 
@@ -157,6 +164,8 @@ flowchart TD
   - pull-to-refresh でキャッシュ検索再読込
   - 動画タイルの通常タップで `チャンネル別動画一覧画面`
   - スクロールやドラッグ開始で下部結果チップを閉じる
+- 長押しメニュー:
+  - 動画タイル: `未定義`
 
 ### 8. YouTube検索結果画面
 
@@ -170,7 +179,7 @@ flowchart TD
 | --- | --- | --- |
 | タイトル | `InteractiveListScreen` の `title` | `YouTube検索` |
 | サブタイトル | `InteractiveListScreen` の `subtitle` | 一覧の説明文 |
-| 動画タイル | `LongPressVideoTile` | API/キャッシュ検索結果 |
+| 動画タイル | `VideoTile` | API/キャッシュ検索結果 |
 | 下部結果チップ | `SearchResultCountChip` / `search.resultChip` | 件数、更新時刻、検索元表示 |
 | 履歴クリアボタン | `ToolbarItem` の `Button("クリア")` | 検索履歴をクリア |
 | 空状態タイル | `MetricTile` | 未取得、0件、エラー時の案内 |
@@ -183,6 +192,9 @@ flowchart TD
   - 動画タイルの通常タップで `チャンネル別動画一覧画面`
   - 分割画面では左ペインのタップで右ペインだけ更新
   - 最後の動画タイル表示で段階読込を進める
+- 長押しメニュー:
+  - 動画タイル: `未定義`
+  - 右ペインの動画タイル: `YouTubeで開く`
 
 ## 指示に使う命名ルール
 

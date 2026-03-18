@@ -2,17 +2,17 @@ import XCTest
 @testable import HelloWorld
 
 final class AppFormattingTests: LoggedTestCase {
-    func testVideoTileBadgeTextIncludesIndexDurationViewCountAndBucket() {
+    func testVideoTileBadgeTextRoundsDurationToMinutesAndFormatsViewCount() {
         XCTAssertEqual(
-            AppFormatting.videoTileBadgeText(index: 0, durationSeconds: 83, viewCount: 45),
-            "0 : 1m23s 45回 (M)"
+            AppFormatting.videoTileBadgeText(durationSeconds: 83, viewCount: 45),
+            "1分 45回"
         )
     }
 
     func testVideoTileBadgeTextHandlesMissingDurationAndViewCount() {
         XCTAssertEqual(
-            AppFormatting.videoTileBadgeText(index: 7, durationSeconds: nil, viewCount: nil),
-            "7 : --s --回 (--)"
+            AppFormatting.videoTileBadgeText(durationSeconds: nil, viewCount: nil),
+            "--分 --回"
         )
     }
 }
