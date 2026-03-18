@@ -7,6 +7,7 @@
 - `rules.md` には、根幹普遍の方針、開発中の判断基準、開発プロセス、文書運用を記述する。
 - [spec.md](spec.md) には、ユーザー向け機能、画面遷移、操作、表示要件を記述する。
 - [architecture.md](architecture.md) には、実装構造、責務分担、データフロー、テスト配置、現在の採用方式を記述する。
+- [gui-reference.md](gui-reference.md) には、画面名、GUI パーツ名、画面遷移、指示に使う呼び名を整理して記述する。
 - `rules.md` へ実装詳細や画面単位の仕様を集約してはならない。
 - 文書の内容が詳細化しすぎた場合は、上位方針を残して詳細を `architecture.md` または `spec.md` へ移す。
 
@@ -105,9 +106,6 @@
 - ソースコードを修正していない場合は、metrics の実測も記録も行わず、`history/metrics-latest.md` や `history/metrics-log.md` へ docs-only の項目を残さない。
 - 起動性能は、少なくとも `起動からスプラッシュ表示まで`、`スプラッシュ表示からホーム表示まで`、`起動からホーム表示まで` を継続観測できる状態を保つ。
 - 計測を手作業へ寄せすぎず、`xcodebuild` や UI テストから取得可能な値はコマンドで再取得できる形を優先する。
-- ソースコード変更をコミットした直後は、ユーザーのヒューマンテストへつなげられるよう、アプリを起動済みの状態に整える。
-- ヒューマンテストの既定デバイスは物理 `iPhone 12 mini` とする。
-- `iPad` でのヒューマンテストへ切り替えるのは、ユーザーから明示的な指示があった場合に限る。
 
 ## 文書運用ルール
 
@@ -115,6 +113,7 @@
 - `rules.md` を更新する時は、関連する既存節へ統合し、重複、矛盾、末尾だけの場当たり的な追記を避ける。
 - 機能を変更したら [spec.md](spec.md) を見直す。
 - 実装構造、責務分担、採用アーキテクチャ、テスト配置を変更したら [architecture.md](architecture.md) を見直す。
+- GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui-reference.md](gui-reference.md) を見直す。
 - 上位方針や変更判断の基準を変更したら `rules.md` を見直す。
 - 履歴を継続的に蓄積する文書は `history/metrics-log.md`、`history/decisions-log.md`、`history/chat-log.md` とし、当日作業中の追記先は `history/metrics-latest.md`、`history/decisions-latest.md`、`history/chat-latest.md` とする。
 - 当日中の更新は原則として対応する `*-latest.md` に対して行い、履歴文書 `*-log.md` へその場で追記しない。
