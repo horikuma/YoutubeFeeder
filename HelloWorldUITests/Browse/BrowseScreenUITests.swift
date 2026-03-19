@@ -49,28 +49,28 @@ final class BrowseScreenUITests: UITestCaseSupport {
         XCTAssertFalse(app.buttons["channel.tipsTile"].exists)
     }
 
-    func testRemoteSearchRefreshUpdatesResultsWithDummyTrigger() throws {
+    func testRemoteSearchRefreshUpdatesResultsAndChipState() throws {
         let app = launchApp(extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
 
         let firstVideoMarker = element("test.remoteSearch.firstVideoID", in: app)
         XCTAssertTrue(firstVideoMarker.waitForExistence(timeout: 5))
         XCTAssertNotEqual(firstVideoMarker.label, "remote-refresh-001")
 
-        let chipState = element("search.resultChip.state", in: app)
-        XCTAssertTrue(chipState.waitForExistence(timeout: 5))
+        let refreshPhase = element("search.refreshPhase", in: app)
+        XCTAssertTrue(refreshPhase.waitForExistence(timeout: 5))
 
         let refreshTrigger = element("test.remoteSearch.refresh", in: app)
         XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
         refreshTrigger.tap()
 
         XCTAssertTrue(eventually(timeout: 3) {
-            chipState.label == "refreshing"
+            refreshPhase.label == "refreshing"
         })
         XCTAssertTrue(eventually(timeout: 5) {
             firstVideoMarker.label == "remote-refresh-001"
         })
         XCTAssertTrue(eventually(timeout: 5) {
-            chipState.label == "summary"
+            refreshPhase.label == "summary"
         })
         XCTAssertTrue(element("video.tile.remote-refresh-001", in: app).waitForExistence(timeout: 3))
     }

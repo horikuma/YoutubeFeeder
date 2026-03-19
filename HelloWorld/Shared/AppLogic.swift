@@ -85,10 +85,24 @@ struct ChannelBrowseTipsSummary: Hashable {
     }
 }
 
+enum RemoteSearchChipMode: String, Hashable {
+    case hidden
+    case summary
+    case refreshing
+}
+
 struct RemoteSearchPresentationState: Hashable {
     var visibleCount: Int
-    var isChipVisible: Bool
+    var chipMode: RemoteSearchChipMode
     var splitContext: ChannelVideosRouteContext?
+
+    var isChipVisible: Bool {
+        chipMode != .hidden
+    }
+
+    var isRefreshingChip: Bool {
+        chipMode == .refreshing
+    }
 
     static func build(
         result: VideoSearchResult,
@@ -97,7 +111,7 @@ struct RemoteSearchPresentationState: Hashable {
     ) -> Self {
         RemoteSearchPresentationState(
             visibleCount: min(20, max(result.videos.count, 20)),
-            isChipVisible: result.fetchedAt != nil,
+            chipMode: result.fetchedAt != nil ? .summary : .hidden,
             splitContext: defaultSplitContext(
                 result: result,
                 usesSplitChannelBrowser: usesSplitChannelBrowser,
@@ -107,7 +121,11 @@ struct RemoteSearchPresentationState: Hashable {
     }
 
     mutating func dismissChip() {
-        isChipVisible = false
+        chipMode = .hidden
+    }
+
+    mutating func beginRefresh() {
+        chipMode = .refreshing
     }
 
     mutating func loadMoreIfNeeded(totalVideoCount: Int) {

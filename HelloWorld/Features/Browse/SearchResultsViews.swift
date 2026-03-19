@@ -57,8 +57,10 @@ struct KeywordSearchResultsView: View {
         }
         .simultaneousGesture(
             DragGesture(minimumDistance: 1)
-                .onChanged { _ in
-                    dismissChip()
+                .onChanged { value in
+                    if shouldDismissChip(for: value) {
+                        dismissChip()
+                    }
                 }
         )
         .task {
@@ -78,6 +80,10 @@ struct KeywordSearchResultsView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             isChipVisible = false
         }
+    }
+
+    private func shouldDismissChip(for value: DragGesture.Value) -> Bool {
+        value.translation.height < -8 || abs(value.translation.width) > 20
     }
 
     private func normalizedChannelTitle(for video: CachedVideo) -> String? {
@@ -147,6 +153,22 @@ private struct SearchResultCountChip: View {
     }()
 }
 
+private struct SearchRefreshStatusView: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+            Text("YouTube を再検索中")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier("search.refreshIndicator")
+    }
+}
+
 struct RemoteKeywordSearchResultsView: View {
     let keyword: String
     let coordinator: FeedCacheCoordinator
@@ -157,10 +179,9 @@ struct RemoteKeywordSearchResultsView: View {
     @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
     @State private var presentationState = RemoteSearchPresentationState(
         visibleCount: 20,
-        isChipVisible: true,
+        chipMode: .hidden,
         splitContext: nil
     )
-    @State private var isRefreshInProgress = false
     @State private var splitContext: ChannelVideosRouteContext?
     @State private var splitVideos: [CachedVideo] = []
 
@@ -197,12 +218,23 @@ struct RemoteKeywordSearchResultsView: View {
                 )
             }
         }
+        .overlay(alignment: .top) {
+            if presentationState.isRefreshingChip {
+                SearchRefreshStatusView()
+                    .padding(.horizontal, layout.horizontalPadding)
+                    .padding(.top, 12)
+            }
+        }
         .overlay(alignment: .topTrailing) {
             VStack(alignment: .trailing, spacing: 4) {
                 if AppLaunchMode.current.usesMockData {
                     UITestMarker(
                         identifier: "test.remoteSearch.firstVideoID",
                         value: result.videos.first?.id ?? "none"
+                    )
+                    UITestMarker(
+                        identifier: "search.refreshPhase",
+                        value: presentationState.chipMode.rawValue
                     )
                     UITestAsyncActionTrigger(identifier: "test.remoteSearch.refresh") {
                         await reloadResults(forceRefresh: true)
@@ -225,12 +257,12 @@ struct RemoteKeywordSearchResultsView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if isRefreshInProgress || (presentationState.isChipVisible && result.fetchedAt != nil) {
+            if presentationState.chipMode == .summary {
                 SearchResultCountChip(
                     totalCount: result.totalCount,
                     sourceLabel: result.source.label,
                     fetchedAt: result.fetchedAt,
-                    isRefreshing: isRefreshInProgress
+                    isRefreshing: presentationState.isRefreshingChip
                 )
                     .padding(.bottom, 10)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -238,8 +270,10 @@ struct RemoteKeywordSearchResultsView: View {
         }
         .simultaneousGesture(
             DragGesture(minimumDistance: 1)
-                .onChanged { _ in
-                    dismissChip()
+                .onChanged { value in
+                    if shouldDismissChip(for: value) {
+                        dismissChip()
+                    }
                 }
         )
         .task {
@@ -257,19 +291,23 @@ struct RemoteKeywordSearchResultsView: View {
 
     private func reloadResults(forceRefresh: Bool) async {
         if forceRefresh {
-            isRefreshInProgress = true
-            presentationState.isChipVisible = true
+            presentationState.beginRefresh()
+            await Task.yield()
         }
         result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: forceRefresh)
-        isRefreshInProgress = false
         applyPresentationState()
     }
 
     private func dismissChip() {
         guard presentationState.isChipVisible else { return }
+        guard presentationState.chipMode != .refreshing else { return }
         withAnimation(.easeOut(duration: 0.2)) {
             presentationState.dismissChip()
         }
+    }
+
+    private func shouldDismissChip(for value: DragGesture.Value) -> Bool {
+        value.translation.height < -8 || abs(value.translation.width) > 20
     }
 
     private func loadMoreIfNeeded() {

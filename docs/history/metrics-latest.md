@@ -1,4 +1,18 @@
 ## 2026/03/19
+### 検索再取得の責務をdomainへ戻す
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `5.324s`
+- test-without-building: `117.382s`
+- 検証合計時間: `122.706s`
+- 手修正後の再試行回数: `8`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `420ms`
+- スプラッシュ表示からホーム表示まで: `123ms`
+- 起動からホーム表示まで: `543ms`
+- 起動から bootstrap 読込完了まで: `486ms`
+- 起動からホーム遷移開始まで: `582ms`
+
 ### YouTube検索チップ表示とGUI参照を整理
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

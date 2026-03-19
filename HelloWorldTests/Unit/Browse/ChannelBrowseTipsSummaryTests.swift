@@ -47,6 +47,7 @@ final class ChannelBrowseTipsSummaryTests: LoggedTestCase {
 
         XCTAssertEqual(state.visibleCount, 20)
         XCTAssertTrue(state.isChipVisible)
+        XCTAssertEqual(state.chipMode, .summary)
         XCTAssertNil(state.splitContext)
     }
 
@@ -130,7 +131,29 @@ final class ChannelBrowseTipsSummaryTests: LoggedTestCase {
         state.loadMoreIfNeeded(totalVideoCount: result.videos.count)
 
         XCTAssertFalse(state.isChipVisible)
+        XCTAssertEqual(state.chipMode, .hidden)
         XCTAssertEqual(state.visibleCount, 21)
+    }
+
+    func testRemoteSearchPresentationBeginRefreshShowsRefreshingChip() {
+        let result = VideoSearchResult(
+            keyword: "swift",
+            videos: [],
+            totalCount: 0,
+            source: .remoteCache,
+            fetchedAt: Date(timeIntervalSince1970: 1_742_000_000)
+        )
+        var state = RemoteSearchPresentationState.build(
+            result: result,
+            usesSplitChannelBrowser: false,
+            previousSplitContext: nil
+        )
+
+        state.beginRefresh()
+
+        XCTAssertTrue(state.isChipVisible)
+        XCTAssertTrue(state.isRefreshingChip)
+        XCTAssertEqual(state.chipMode, .refreshing)
     }
 
     private func makeItem(channelID: String, title: String) -> ChannelBrowseItem {

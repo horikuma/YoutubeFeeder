@@ -95,7 +95,7 @@
   - 固定キーワード検索結果一覧、YouTube 検索結果一覧。
   - 固定キーワード検索結果画面では、一時的な件数チップを下部へ重ねて表示する。
   - 下部チップは自動タイマーでは閉じず、ユーザー操作が始まるまで表示を維持する。
-  - YouTube 検索結果画面では、再検索中だけチップを `再検索中` 表示へ切り替え、前回サマリーを一時的に隠す。
+  - YouTube 検索結果画面では、再検索中だけ上部へ進行表示を出し、下部チップの前回サマリーを一時的に隠す。
   - YouTube 検索結果は 20 件ずつの段階表示と下端到達での追加読込を行う。
   - 分割レイアウトの YouTube 検索結果は `NavigationSplitView` で左に検索結果、右に選択中チャンネルの動画一覧を出す。
   - YouTube 検索結果からチャンネル画面へ入る時は、チャンネル名と選択動画 ID を route context として引き継ぐ。
@@ -172,6 +172,7 @@
   - `VideoOpenPolicy`
   - `FeedOrdering`
   - `ChannelBrowseSortDescriptor`
+  - `RemoteSearchPresentationState`
   - 画面から切り離せる pure logic を集約する。
 
 ### Resources
@@ -247,7 +248,7 @@
 - [ChannelBrowseViews.swift](../HelloWorld/Features/Browse/ChannelBrowseViews.swift)
   - チャンネル一覧、全動画一覧、チャンネル削除導線を担う。
 - [SearchResultsViews.swift](../HelloWorld/Features/Browse/SearchResultsViews.swift)
-  - キャッシュ検索と YouTube 検索結果画面、および件数チップを担う。
+  - キャッシュ検索と YouTube 検索結果画面、および検索結果の進行表示と件数チップの UI 写像を担う。
 - [BrowseViews.swift](../HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧を担う。
 - [BrowseComponents.swift](../HelloWorld/Features/Browse/BrowseComponents.swift)
@@ -315,6 +316,8 @@ xcodebuild test \
   - size class に応じたレイアウト切替。
 - [ChannelBrowseTipsSummaryTests.swift](../HelloWorldTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift)
   - `Tips` サマリー文言と、YouTube 検索結果画面の presentation state。
+- [FeedCacheCoordinatorRemoteSearchTests.swift](../HelloWorldTests/Unit/Storage/FeedCacheCoordinatorRemoteSearchTests.swift)
+  - YouTube 検索の強制再取得がキャッシュへ保存され、次回読込へ反映されること。
 - [TestMetricsObserver.swift](../HelloWorldTests/Support/TestMetricsObserver.swift)
   - unit test の開始時刻、終了時刻、所要時間を観測し、`xcodebuild` ログへ構造化イベントを書き出す。
 
@@ -330,6 +333,7 @@ xcodebuild test \
   - 全動画一覧遷移
   - 一覧の縦スクロール
   - チャンネル別動画一覧の pull-to-refresh が選択中チャンネルだけを更新すること
+  - YouTube 検索結果で refresh state と結果一覧が同期して切り替わること
   - YouTube 検索結果で refresh 後に chip がユーザー操作で閉じること
   - YouTube 検索結果からチャンネル画面へ入り、自動 refresh が走ること
 - [UITestCaseSupport.swift](../HelloWorldUITests/Support/UITestCaseSupport.swift)
