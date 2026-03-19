@@ -2,7 +2,7 @@
 
 この文書は、HelloWorld アプリの要求仕様と機能仕様を記述する正本である。人間および LLM が、このアプリが何をしなければならないか、どのように振る舞わなければならないか、何を壊してはいけないかを同じ基準で理解するために用いる。
 
-`spec.md` は要求仕様と機能仕様を定める文書、`rules.md` はこのプロダクト固有の上位方針と変更管理を定める文書、`principles.md` は再利用可能な開発原則を定める文書、`architecture.md` は採用アーキテクチャと責務境界を定める文書、`design.md` は詳細設計を定める文書である。[gui.md](./human-view/gui.md) と [design-overview.md](./human-view/design-overview.md) は、それらの正本を人間向けに読みやすく翻訳した参照資料である。機能を変える場合は、必要に応じてこれらの文書に矛盾が出ないよう更新する。
+文書群全体での役割分担は [document-roles.md](./document-roles.md)、文書運用ルールは [document-operations.md](./document-operations.md) を参照する。機能を変える場合は、関連する正本と人間向け参照資料に矛盾が出ないよう更新する。
 
 ## 1. 目的
 

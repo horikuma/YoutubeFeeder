@@ -1,19 +1,8 @@
 # Development Principles
 
-この文書は、HelloWorld に閉じない開発原則と知識ベースを記述する正本である。ここでは、言語やプロジェクトが変わっても再利用しやすい責務分離、テスト戦略、評価観点、文書設計の原則を扱う。HelloWorld 固有の意思決定ルールや運用は [rules.md](./rules.md) を参照する。
+この文書は、HelloWorld に閉じない開発原則と知識ベースを記述する正本である。ここでは、言語やプロジェクトが変わっても再利用しやすい責務分離、テスト戦略、評価観点、文書設計の原則を扱う。
 
-## 文書の役割
-
-- [principles.md](./principles.md)
-  - プロジェクト横断で再利用できる開発原則、テスト原則、評価観点を定める。
-- [rules.md](./rules.md)
-  - このプロダクト固有の意思決定ルール、優先順位、開発プロセス、文書運用を定める。
-- [spec.md](./spec.md)
-  - ユーザー向け機能、画面遷移、操作、表示要件を定める。
-- [architecture.md](./architecture.md)
-  - プロダクトに依存する採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を定める。
-- [design.md](./design.md)
-  - ファイル単位、型単位、テスト単位の責務や構成など、詳細設計を定める。
+文書群全体での役割分担は [document-roles.md](./document-roles.md)、文書運用ルールは [document-operations.md](./document-operations.md) を参照する。HelloWorld 固有の意思決定ルールや運用は [rules.md](./rules.md) を参照する。
 
 ## 使い分け
 

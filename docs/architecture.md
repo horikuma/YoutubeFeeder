@@ -1,23 +1,8 @@
 # HelloWorld Architecture
 
-この文書は、HelloWorld の採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を定める設計文書である。`rules.md` がこのプロダクト固有の上位方針、`principles.md` が再利用可能な開発原則、`spec.md` が要求仕様と機能仕様、`design.md` が詳細設計を担い、本書はその中間として「このプロダクトでどう設計するか」を扱う。
+この文書は、HelloWorld の採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を定める設計文書である。本書は「このプロダクトでどう設計するか」を扱う。
 
-## 文書の役割
-
-- [rules.md](./rules.md)
-  - このプロダクト固有の上位方針、変更判断、文書運用、開発プロセスを定める。
-- [principles.md](./principles.md)
-  - プロジェクト横断で再利用できる開発原則、テスト原則、評価観点を定める。
-- [spec.md](./spec.md)
-  - ユーザーに見える要求仕様と機能仕様を定める。
-- [architecture.md](./architecture.md)
-  - 採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を定める。
-- [design.md](./design.md)
-  - ファイル単位、型単位、テスト単位の責務や構成など、詳細設計を定める。
-- [gui.md](./human-view/gui.md)
-  - GUI を人間向けに参照しやすく整理した資料。
-- [design-overview.md](./human-view/design-overview.md)
-  - 設計全体を人間向けに俯瞰しやすく整理した資料。
+文書群全体での役割分担は [document-roles.md](./document-roles.md)、文書運用ルールは [document-operations.md](./document-operations.md) を参照する。上位方針は [rules.md](./rules.md)、再利用可能な原則は [principles.md](./principles.md)、要求仕様は [spec.md](./spec.md)、詳細設計は [design.md](./design.md) を参照する。
 
 ## プロダクト前提
 
