@@ -2,7 +2,13 @@
 
 この文書は、HelloWorld の文書運用ルールを定める正本である。文書構成、更新判断、履歴管理、Markdown 記述の共通ルールを扱う。
 
-文書群全体の役割分担は [document-roles.md](./document-roles.md) を参照する。
+文書群の役割分担と文書の切り分け基準は [document-rules.md](./document-rules.md) を参照する。
+
+## 開発着手時の文書運用
+
+- 新規開発セッションを開始する時は、まず [rules.md](./rules.md) と [document-rules.md](./document-rules.md) を読み直して現在の運用を確認する。
+- 日付が変わっている場合は、`history/chat-latest.md`、`history/decisions-latest.md`、`history/metrics-latest.md` の前日分を対応する `*-log.md` の先頭へ移してから、当日分の `*-latest.md` を新しい日付見出しで開始する。
+- 新規開発セッション開始時の準備を文書更新として実施した場合は、その開始指示を `history/chat-latest.md` に反映してから当日の開発へ入る。
 
 ## 共通原則
 

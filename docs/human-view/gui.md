@@ -2,7 +2,7 @@
 
 この文書は、人間の開発者が画面への変更指示をしやすくするための GUI 設計資料である。正本ではなく、関連する正本文書を人間が読みやすい形へ翻訳した `human-view` 文書として継続管理する。
 
-文書群全体での役割分担は [document-roles.md](../document-roles.md)、文書運用ルールは [document-operations.md](../document-operations.md) を参照する。機能要件の正本は [spec.md](../spec.md)、上位方針の正本は [rules.md](../rules.md)、採用アーキテクチャの正本は [architecture.md](../architecture.md)、詳細設計の正本は [design.md](../design.md) である。
+文書群の役割分担と文書の切り分け基準は [document-rules.md](../document-rules.md)、文書運用ルールは [document-operations.md](../document-operations.md) を参照する。
 
 ## 画面遷移
 
