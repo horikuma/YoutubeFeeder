@@ -1,6 +1,6 @@
 # HelloWorld Design Overview
 
-この文書は、人間のエンジニア向けに `rules.md`、`spec.md`、`architecture.md`、`design.md` の内容を UML 風に読み替えた設計資料です。正本ではありません。正本との差分を作らないため、機能変更や責務変更のたびに本書も同期します。
+この文書は、人間のエンジニア向けに `rules.md`、`spec.md`、`architecture.md`、`design.md` の内容を UML 風に読み替えた設計資料である。正本ではない。正本との差分を作らないため、機能変更や責務変更のたびに本書も同期する。
 
 ## 読み方
 

@@ -1,6 +1,6 @@
 # HelloWorld Design
 
-この文書は、HelloWorld の詳細設計を記述する正本です。`rules.md` が上位方針、`spec.md` が要求仕様と機能仕様、`architecture.md` が採用アーキテクチャを扱い、本書はその下でファイル単位、型単位、テスト単位の責務を扱います。
+この文書は、HelloWorld の詳細設計を記述する正本である。`rules.md` が上位方針、`spec.md` が要求仕様と機能仕様、`architecture.md` が採用アーキテクチャを扱い、本書はその下でファイル単位、型単位、テスト単位の責務を扱う。
 
 ## 文書の役割
 
