@@ -107,6 +107,7 @@ flowchart TD
 | 指示用の呼び名 | 実装/識別子 | 役割 |
 | --- | --- | --- |
 | タイトル | `channelTitle` | チャンネル名を表示 |
+| 自動読込スピナー | `ProgressView` / `channel.autoRefreshIndicator` | 検索結果経由の自動 feed 更新中を表示 |
 | 動画タイル | `VideoTile` / `video.tile.<videoID>` | 動画一覧項目 |
 | 空状態タイル | `MetricTile` | 動画が無い時の案内 |
 | 削除確認ダイアログ | `confirmationDialog` | チャンネル削除の確認 |
@@ -115,6 +116,7 @@ flowchart TD
 
 - 操作と遷移:
   - pull-to-refresh で選択中チャンネルだけ強制更新
+  - 検索結果経由の自動読込中は、画面上部に読込スピナーを表示
   - 動画タイル長押しで `YouTubeで開く` または `チャンネルを削除`
 - 長押しメニュー:
   - 動画タイル: `YouTubeで開く`、`チャンネルを削除`

@@ -96,6 +96,9 @@ final class BrowseScreenUITests: UITestCaseSupport {
         XCTAssertTrue(title.waitForExistence(timeout: 3))
         XCTAssertEqual(title.label, "Refresh Channel")
 
+        let autoRefreshState = element("channel.autoRefreshState", in: app)
+        XCTAssertTrue(autoRefreshState.waitForExistence(timeout: 3))
+
         let refreshMarker = element("test.channelRefreshTarget", in: app)
         XCTAssertTrue(refreshMarker.waitForExistence(timeout: 3))
         XCTAssertTrue(eventually(timeout: 3) {

@@ -227,11 +227,7 @@ final class FeedCacheCoordinator: ObservableObject {
             return mergedVideos
         }
 
-        let cachedVideos = await loadCachedVideosForChannel(channelID)
-        let shouldRefresh = ChannelVideosAutoRefreshPolicy.shouldRefresh(
-            cachedChannelVideos: cachedVideos,
-            selectedVideoID: context.selectedVideoID
-        )
+        let shouldRefresh = await shouldAutomaticallyRefreshChannelVideos(context)
         guard shouldRefresh else {
             return mergedVideos
         }
@@ -239,6 +235,18 @@ final class FeedCacheCoordinator: ObservableObject {
         await refreshChannelManually(channelID)
         mergedVideos = await loadVideosForChannel(channelID)
         return mergedVideos
+    }
+
+    func shouldAutomaticallyRefreshChannelVideos(_ context: ChannelVideosRouteContext) async -> Bool {
+        let channelID = context.channelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !channelID.isEmpty else { return false }
+        guard context.prefersAutomaticRefresh else { return false }
+
+        let cachedVideos = await loadCachedVideosForChannel(channelID)
+        return ChannelVideosAutoRefreshPolicy.shouldRefresh(
+            cachedChannelVideos: cachedVideos,
+            selectedVideoID: context.selectedVideoID
+        )
     }
 
     func searchVideos(keyword: String, limit: Int = 20) async -> VideoSearchResult {
@@ -450,6 +458,8 @@ final class FeedCacheCoordinator: ObservableObject {
             lastError: progress.lastError,
             allowsSuspendedStateUpdate: true
         )
+        // Keep the mock refresh visible long enough for UI tests to observe the same spinner affordance as a real refresh.
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
         refreshProgress = .idle
     }
 

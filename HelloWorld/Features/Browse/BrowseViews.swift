@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct ChannelVideosView: View {
+    private static let automaticRefreshIndicatorMinimumDuration: Duration = .milliseconds(400)
+    private static let automaticRefreshIndicatorMockDuration: Duration = .seconds(2)
+
     let context: ChannelVideosRouteContext
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
@@ -8,6 +11,7 @@ struct ChannelVideosView: View {
     let layout: AppLayout
 
     @State private var videos: [CachedVideo] = []
+    @State private var isAutomaticRefreshInProgress = false
     @State private var pendingChannelRemoval: PendingChannelRemoval?
     @State private var removalFeedback: ChannelRemovalFeedback?
 
@@ -48,6 +52,10 @@ struct ChannelVideosView: View {
                     identifier: "test.channelRefreshTarget",
                     value: coordinator.lastManualChannelRefreshID ?? "none"
                 )
+                UITestMarker(
+                    identifier: "channel.autoRefreshState",
+                    value: isAutomaticRefreshInProgress ? "loading" : "idle"
+                )
             }
 
             if videos.isEmpty {
@@ -75,6 +83,15 @@ struct ChannelVideosView: View {
         }
         .task {
             await reloadVideos()
+        }
+        .overlay(alignment: .top) {
+            if isAutomaticRefreshInProgress {
+                VStack(spacing: 0) {
+                    ProgressView()
+                        .accessibilityIdentifier("channel.autoRefreshIndicator")
+                        .padding(.top, 8)
+                }
+            }
         }
         .confirmationDialog(
             pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
@@ -113,6 +130,9 @@ struct ChannelVideosView: View {
             )
         }
         .onAppear {
+            if context.prefersAutomaticRefresh {
+                isAutomaticRefreshInProgress = true
+            }
             StartupDiagnostics.shared.mark("channelVideosShown")
         }
     }
@@ -126,7 +146,20 @@ struct ChannelVideosView: View {
 
     private func reloadVideos() async {
         if context.prefersAutomaticRefresh {
+            let clock = ContinuousClock()
+            let start = clock.now
+            isAutomaticRefreshInProgress = true
+
             videos = await coordinator.openChannelVideos(context)
+
+            let minimumDuration = AppLaunchMode.current.usesMockData
+                ? Self.automaticRefreshIndicatorMockDuration
+                : Self.automaticRefreshIndicatorMinimumDuration
+            let elapsed = start.duration(to: clock.now)
+            if elapsed < minimumDuration {
+                try? await Task.sleep(for: minimumDuration - elapsed)
+            }
+            isAutomaticRefreshInProgress = false
         } else {
             videos = await coordinator.loadVideosForChannel(context.channelID)
         }
