@@ -1,12 +1,13 @@
-# HelloWorld Engineering Design
+# HelloWorld Design Overview
 
-この文書は、人間のエンジニア向けに `rules.md`、`spec.md`、`architecture.md` の内容を UML 風に読み替えた設計資料です。正本ではありません。正本との差分を作らないため、機能変更や責務変更のたびに本書も同期します。
+この文書は、人間のエンジニア向けに `rules.md`、`spec.md`、`architecture.md`、`design.md` の内容を UML 風に読み替えた設計資料です。正本ではありません。正本との差分を作らないため、機能変更や責務変更のたびに本書も同期します。
 
 ## 読み方
 
 - 機能要件の正本: [spec.md](../spec.md)
 - 上位方針の正本: [rules.md](../rules.md)
-- 実装責務の正本: [architecture.md](../architecture.md)
+- 採用アーキテクチャの正本: [architecture.md](../architecture.md)
+- 詳細設計の正本: [design.md](../design.md)
 - GUI の人間向け参照: [gui.md](./gui.md)
 
 ## レイヤ構成
