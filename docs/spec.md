@@ -2,7 +2,7 @@
 
 この文書は、HelloWorld アプリの要求仕様と機能仕様を記述する正本である。人間および LLM が、このアプリが何をしなければならないか、どのように振る舞わなければならないか、何を壊してはいけないかを同じ基準で理解するために用いる。
 
-文書群全体での役割分担は [document-roles.md](./document-roles.md)、文書運用ルールは [document-operations.md](./document-operations.md) を参照する。機能を変える場合は、関連する正本と人間向け参照資料に矛盾が出ないよう更新する。
+文書群全体での役割分担は [document-roles.md](./document-roles.md)、文書運用ルールは [document-operations.md](./document-operations.md) を参照する。上位方針と開発原則は [rules.md](./rules.md) を参照する。機能を変える場合は、関連する正本と人間向け参照資料に矛盾が出ないよう更新する。
 
 ## 1. 目的
 
