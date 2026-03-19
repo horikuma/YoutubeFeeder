@@ -6,13 +6,13 @@
 
 ```mermaid
 flowchart TD
-    A["起動\nLaunchScreenView"] --> B["ホーム\nHomeScreenView"]
-    B --> C["チャンネル登録\nChannelRegistrationView"]
-    B --> D["チャンネル一覧\nChannelBrowseListView"]
-    B --> E["動画一覧\nAllVideosView"]
-    B --> F["固定キーワード検索結果\nKeywordSearchResultsView"]
-    B --> G["YouTube検索結果\nRemoteKeywordSearchResultsView"]
-    D --> H["チャンネル別動画一覧\nChannelVideosView"]
+    A["A 起動\nLaunchScreenView"] --> B["B ホーム\nHomeScreenView"]
+    B --> C["C チャンネル登録\nChannelRegistrationView"]
+    B --> D["D チャンネル一覧\nChannelBrowseListView"]
+    B --> E["E 動画一覧\nAllVideosView"]
+    B --> F["F 固定キーワード検索結果\nKeywordSearchResultsView"]
+    B --> G["G YouTube検索結果\nRemoteKeywordSearchResultsView"]
+    D --> H["H チャンネル別動画一覧\nChannelVideosView"]
     E --> H
     F --> H
     G --> H
@@ -20,7 +20,19 @@ flowchart TD
 
 ## 画面一覧
 
-### 1. 起動画面
+### 目次
+
+- [画面A. 起動画面](#screen-a)
+- [画面B. ホーム画面](#screen-b)
+- [画面C. チャンネル登録画面](#screen-c)
+- [画面D. チャンネル一覧画面](#screen-d)
+- [画面E. 動画一覧画面](#screen-e)
+- [画面F. 固定キーワード検索結果画面](#screen-f)
+- [画面G. YouTube検索結果画面](#screen-g)
+- [画面H. チャンネル別動画一覧画面](#screen-h)
+
+<a id="screen-a"></a>
+### 画面A. 起動画面
 
 - 画面名: `起動画面`
 - 実装: `LaunchScreenView`
@@ -30,7 +42,8 @@ flowchart TD
 - 遷移:
   - 軽量キャッシュ読込完了後に `ホーム画面` へ進む
 
-### 2. ホーム画面
+<a id="screen-b"></a>
+### 画面B. ホーム画面
 
 - 画面名: `ホーム画面`
 - 実装: `HomeScreenView`
@@ -58,7 +71,8 @@ flowchart TD
   - `チャンネル` と `バックアップ` は `Menu`
   - `全設定リセット` は確認ダイアログ経由
 
-### 3. チャンネル登録画面
+<a id="screen-c"></a>
+### 画面C. チャンネル登録画面
 
 - 画面名: `チャンネル登録画面`
 - 実装: `ChannelRegistrationView`
@@ -74,7 +88,8 @@ flowchart TD
 - 遷移:
   - 登録完了後も同画面に留まり、結果カードでフィードバックする
 
-### 4. チャンネル一覧画面
+<a id="screen-d"></a>
+### 画面D. チャンネル一覧画面
 
 - 画面名: `チャンネル一覧画面`
 - 実装: `ChannelBrowseListView`
@@ -98,7 +113,8 @@ flowchart TD
   - チャンネルタイル: `チャンネルを削除`
   - 左ペインチャンネルタイル: `チャンネルを削除`
 
-### 5. チャンネル別動画一覧画面
+<a id="screen-h"></a>
+### 画面H. チャンネル別動画一覧画面
 
 - 画面名: `チャンネル別動画一覧画面`
 - 実装: `ChannelVideosView`
@@ -121,7 +137,8 @@ flowchart TD
 - 長押しメニュー:
   - 動画タイル: `YouTubeで開く`、`チャンネルを削除`
 
-### 6. 動画一覧画面
+<a id="screen-e"></a>
+### 画面E. 動画一覧画面
 
 - 画面名: `動画一覧画面`
 - 実装: `AllVideosView`
@@ -142,7 +159,8 @@ flowchart TD
 - 長押しメニュー:
   - 動画タイル: `チャンネルを削除`
 
-### 7. 固定キーワード検索結果画面
+<a id="screen-f"></a>
+### 画面F. 固定キーワード検索結果画面
 
 - 画面名: `固定キーワード検索結果画面`
 - 実装: `KeywordSearchResultsView`
@@ -153,17 +171,18 @@ flowchart TD
 | タイトル | `InteractiveListScreen` の `title` | `検索結果` |
 | サブタイトル | `InteractiveListScreen` の `subtitle` | 一覧の説明文 |
 | 動画タイル | `VideoTile` | 検索ヒットした動画 |
-| 下部結果チップ | `SearchResultCountChip` / `search.resultChip` | 件数、更新時刻、検索元表示 |
+| チップ | `SearchResultCountChip` / `search.resultChip` | 件数、更新時刻、検索元表示 |
 | 空状態タイル | `MetricTile` | 動画が無い時の案内 |
 
 - 操作と遷移:
   - pull-to-refresh でキャッシュ検索再読込
   - 動画タイルの通常タップで `チャンネル別動画一覧画面`
-  - スクロールやドラッグ開始で下部結果チップを閉じる
+  - スクロールやドラッグ開始でチップを閉じる
 - 長押しメニュー:
   - 動画タイル: `未定義`
 
-### 8. YouTube検索結果画面
+<a id="screen-g"></a>
+### 画面G. YouTube検索結果画面
 
 - 画面名: `YouTube検索結果画面`
 - 実装: `RemoteKeywordSearchResultsView`
@@ -174,7 +193,7 @@ flowchart TD
 | タイトル | `InteractiveListScreen` の `title` | `YouTube検索` |
 | サブタイトル | `InteractiveListScreen` の `subtitle` | 一覧の説明文 |
 | 動画タイル | `VideoTile` | API/キャッシュ検索結果 |
-| 下部結果チップ | `SearchResultCountChip` / `search.resultChip` | 件数、更新時刻、検索元表示 |
+| チップ | `SearchResultCountChip` / `search.resultChip` | 件数、更新時刻、検索元表示 |
 | 履歴クリアボタン | `ToolbarItem` の `Button("クリア")` | 検索履歴をクリア |
 | 空状態タイル | `MetricTile` | 未取得、0件、エラー時の案内 |
 | 右ペインタイトル | `screen.remoteSearchSplitTitle` | regular 幅の右ペインのチャンネル名 |
@@ -183,6 +202,7 @@ flowchart TD
 - 操作と遷移:
   - 画面表示だけでは検索しない
   - pull-to-refresh で YouTube API 検索
+  - 再検索中はチップを `再検索中` 表示へ切り替え、前回結果の要約を一時的に隠す
   - 動画タイルの通常タップで `チャンネル別動画一覧画面`
   - regular 幅では左ペインのタップで右ペインだけ更新
   - 最後の動画タイル表示で段階読込を進める
@@ -192,9 +212,10 @@ flowchart TD
 
 ## 指示に使う命名ルール
 
-- 画面を指す時は `ホーム画面`、`チャンネル一覧画面` のような日本語名を使う。
-- パーツを指す時は `ホーム画面のYouTube検索タイル`、`チャンネル一覧画面のTipsタイル`、`YouTube検索結果画面の下部結果チップ` のように、`画面名 + パーツ名` で呼ぶ。
+- 画面を指す時は `ホーム画面`、`チャンネル一覧画面` のような日本語名に加え、`画面A`、`画面G` のようなアルファベット付き短縮名も使える。
+- パーツを指す時は `ホーム画面のYouTube検索タイル`、`チャンネル一覧画面のTipsタイル`、`YouTube検索結果画面のチップ` のように、`画面名 + パーツ名` で呼ぶ。
 - 同じ役割のパーツは画面をまたいでも同じ名前を使う。たとえば `動画タイル`、`空状態タイル`、`タイトル`、`サブタイトル` は画面ごとに言い換えない。
 - その画面内で重複しない場合は、`チャンネル別動画一覧画面のタイトル` のように短い名前を優先する。
+- 画面識別を短くしたい場合は、`画面Gのチップ`、`画面DのTipsタイル` のように `画面アルファベット + パーツ名` で指定してよい。
 - 実装箇所まで指定したい時は、`実装名` を併記して `ホーム画面のYouTube検索タイル（MetricTile / nav.remoteSearch）` のように書く。
 - regular 幅固有の指示は `左ペイン`、`右ペイン` を明示し、必要なら親の機能画面名を添える。

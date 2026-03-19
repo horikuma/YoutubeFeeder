@@ -41,6 +41,7 @@ struct YouTubeSearchService {
 
     func searchVideos(keyword: String, limit: Int = 100) async throws -> YouTubeSearchResponse {
         if AppLaunchMode.current.usesMockData {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
             return mockSearchResponse(keyword: keyword, limit: limit)
         }
 

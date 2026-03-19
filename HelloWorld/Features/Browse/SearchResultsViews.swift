@@ -89,15 +89,29 @@ private struct SearchResultCountChip: View {
     let totalCount: Int
     let sourceLabel: String
     let fetchedAt: Date?
+    let isRefreshing: Bool
+
+    init(totalCount: Int, sourceLabel: String, fetchedAt: Date?, isRefreshing: Bool = false) {
+        self.totalCount = totalCount
+        self.sourceLabel = sourceLabel
+        self.fetchedAt = fetchedAt
+        self.isRefreshing = isRefreshing
+    }
 
     var body: some View {
         HStack(spacing: 8) {
-            if let fetchedAt {
-                Text("最終更新 \(Self.timestampFormatter.string(from: fetchedAt))")
+            if isRefreshing {
+                ProgressView()
+                    .controlSize(.small)
+                Text("再検索中")
+            } else {
+                if let fetchedAt {
+                    Text("最終更新 \(Self.timestampFormatter.string(from: fetchedAt))")
+                }
+                Text("\(totalCount) 件")
+                Text(sourceLabel)
+                    .foregroundStyle(.secondary)
             }
-            Text("\(totalCount) 件")
-            Text(sourceLabel)
-                .foregroundStyle(.secondary)
         }
         .font(.footnote.weight(.semibold))
         .padding(.horizontal, 16)
@@ -109,6 +123,20 @@ private struct SearchResultCountChip: View {
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
         .accessibilityIdentifier("search.resultChip")
+        .accessibilityLabel(isRefreshing ? "再検索中" : accessibilitySummary)
+        .overlay {
+            if AppLaunchMode.current.usesMockData {
+                UITestMarker(
+                    identifier: "search.resultChip.state",
+                    value: isRefreshing ? "refreshing" : "summary"
+                )
+            }
+        }
+    }
+
+    private var accessibilitySummary: String {
+        let updatedText = fetchedAt.map { "最終更新 \(Self.timestampFormatter.string(from: $0))" } ?? "更新時刻なし"
+        return "\(updatedText) \(totalCount) 件 \(sourceLabel)"
     }
 
     private static let timestampFormatter: DateFormatter = {
@@ -132,6 +160,7 @@ struct RemoteKeywordSearchResultsView: View {
         isChipVisible: true,
         splitContext: nil
     )
+    @State private var isRefreshInProgress = false
     @State private var splitContext: ChannelVideosRouteContext?
     @State private var splitVideos: [CachedVideo] = []
 
@@ -196,8 +225,13 @@ struct RemoteKeywordSearchResultsView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if presentationState.isChipVisible, result.fetchedAt != nil {
-                SearchResultCountChip(totalCount: result.totalCount, sourceLabel: result.source.label, fetchedAt: result.fetchedAt)
+            if isRefreshInProgress || (presentationState.isChipVisible && result.fetchedAt != nil) {
+                SearchResultCountChip(
+                    totalCount: result.totalCount,
+                    sourceLabel: result.source.label,
+                    fetchedAt: result.fetchedAt,
+                    isRefreshing: isRefreshInProgress
+                )
                     .padding(.bottom, 10)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -222,7 +256,12 @@ struct RemoteKeywordSearchResultsView: View {
     }
 
     private func reloadResults(forceRefresh: Bool) async {
+        if forceRefresh {
+            isRefreshInProgress = true
+            presentationState.isChipVisible = true
+        }
         result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: forceRefresh)
+        isRefreshInProgress = false
         applyPresentationState()
     }
 
