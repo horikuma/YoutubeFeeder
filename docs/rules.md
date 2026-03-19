@@ -26,11 +26,6 @@
 - ルールは UI から切り離し、再利用可能な pure logic として扱う。
 - UI に見える機能であっても、その連鎖の中に UI と無関係に成立すべき判定、状態遷移、キャッシュ更新、外部通信結果の統合が含まれる場合は、それらを domain / logic 側へ置き、UI はその状態の写像として組み立てる。
 - 永続化や外部通信は、UI から直接触らず、中間層を介して扱う。
-- View は一時的な UI 状態、アニメーション状態、選択状態、ダイアログ状態を持ってよく、MVVM を理由にそれらを機械的に ViewModel へ押し上げてはならない。
-- ViewModel または coordinator は `1 画面` もしくは `1 機能の orchestration` に責務を寄せ、画面描画専用の細かな値変換や単純な表示状態まで過剰に抱え込まない。
-- 依存方向は `View -> ViewModel/coordinator -> service/use case -> Store or Infrastructure` を原則とし、内側の層が外側の UI 都合へ依存してはならない。
-- MVVM を守るためだけの protocol 分割、値の受け渡しラッパー、薄い中継層は増やさず、代わりに `pure logic`、`store`、`external service` へ意味のある単位で分割する。
-- 固定パス、永続ファイル、検索キャッシュ、秘密情報解決のような `スコープの広いリソース` は、専用の `Paths` / `Store` / `Service` 型へ閉じ込め、View や汎用 model ファイルへ散らしてはならない。
 
 ### テスト原則
 
