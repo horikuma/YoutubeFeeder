@@ -1,7 +1,13 @@
 # HelloWorld
 
 LLM ドリブンな iOS アプリ開発そのものを目的にした実験プロジェクトです。
-開発ルールと正本文書は [AGENTS.md](./AGENTS.md) と [rules.md](./docs/rules.md) を参照してください。
-人間向けの入口資料は [gui.md](./docs/human-view/gui.md) と [design.md](./docs/human-view/design.md) にあります。
-このアプリは公開を目指すものではなく、LLM と人が協調して設計、実装、検証、文書更新を回せるかを試しています。
+
+## Overview
+
+このアプリは公開を目指すものではなく、LLM と人が協調して設計、実装、検証、文書更新を回せるかを試しています。  
 機能としては、YouTube チャンネルの登録、動画一覧の閲覧、検索結果の確認、ローカルキャッシュ運用、簡易バックアップを備えた iOS アプリです。
+
+## Documents
+
+- 開発ルールと正本文書: [AGENTS.md](./AGENTS.md), [rules.md](./docs/rules.md)
+- 人間向けの入口資料: [gui.md](./docs/human-view/gui.md), [design.md](./docs/human-view/design.md)
