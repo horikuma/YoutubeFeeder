@@ -1,4 +1,8 @@
 ## 2026/03/20
+- 実機自動再現のため、UI Test は `HELLOWORLD_UI_TEST_MODE=1` を維持したまま、`HELLOWORLD_UI_TEST_USE_MOCK=0` で live 経路へ入れる方針にした。
+  - 既存 UI Test は初期導線や hidden marker に依存していたため、単純に `UI_TEST_MODE` を切ると自動遷移も失われ、実機で同じ手順を機械的に再現しにくい。UI test 用の起動経路は残しつつ、データだけ live に切り替えられる方が、実機再現と既存 UI test の両立がしやすい。
+- `DecodingError` は `localizedDescription` ではなく `keyNotFound` / `valueNotFound` / `typeMismatch` と `codingPath` を要約してログへ出す方針にした。
+  - 実機での `videos.list` 失敗は HTTP 200 のあとに decode で落ちており、単に "missing" とだけ出ても、どのフィールドを optional 化すべきか判断しづらいため。`codingPath` が見えれば、レスポンスのどの item のどの field が欠けたかをモデル定義に直接つなげて確認できる。
 - `pull-to-refresh` は YouTube検索の実処理を直接抱えず、`FeedCacheCoordinator` が持つ managed task を trigger するだけの構成に改めた。
   - `refreshable` の async 処理は View のライフサイクルに従って cancel されうるため、通信処理そのものをその task にぶら下げると、画面再構成や離脱で `URLSession` まで中断されやすい。UI task は開始契機だけを担い、検索本体は coordinator 側の unstructured task で所有する方が、PullToRefresh の使い方としても自然で、途中中断に引きずられにくい。
 - YouTube検索の managed task は、同一 `keyword + limit` の再実行時に再利用し、通常運用では一時的な task 診断ログを残さない方針にした。

@@ -80,6 +80,10 @@ struct AppConsoleLogger {
     }
 
     static func errorSummary(_ error: Error, limit: Int = 120) -> String {
+        if let decodingError = error as? DecodingError {
+            return decodingErrorSummary(decodingError, limit: limit)
+        }
+
         let normalized = error.localizedDescription
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -89,5 +93,37 @@ struct AppConsoleLogger {
 
     static func elapsedMilliseconds(since startedAt: Date) -> String {
         String(Int(Date().timeIntervalSince(startedAt) * 1000))
+    }
+
+    private static func decodingErrorSummary(_ error: DecodingError, limit: Int) -> String {
+        let detail: String
+        switch error {
+        case let .keyNotFound(key, context):
+            detail = "keyNotFound path=\(codingPath(context.codingPath + [key]))"
+        case let .valueNotFound(type, context):
+            detail = "valueNotFound type=\(type) path=\(codingPath(context.codingPath))"
+        case let .typeMismatch(type, context):
+            detail = "typeMismatch type=\(type) path=\(codingPath(context.codingPath))"
+        case let .dataCorrupted(context):
+            detail = "dataCorrupted path=\(codingPath(context.codingPath)) description=\(context.debugDescription)"
+        @unknown default:
+            detail = error.localizedDescription
+        }
+
+        let normalized = detail
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalized.count > limit else { return normalized }
+        return String(normalized.prefix(max(limit - 3, 0))) + "..."
+    }
+
+    private static func codingPath(_ path: [CodingKey]) -> String {
+        let rendered = path.map { key -> String in
+            if let intValue = key.intValue {
+                return "[\(intValue)]"
+            }
+            return key.stringValue
+        }
+        return rendered.joined(separator: ".")
     }
 }

@@ -114,4 +114,33 @@ final class BrowseScreenUITests: UITestCaseSupport {
             refreshMarker.label == "UC_REMOTE_REFRESH"
         })
     }
+
+    func testRemoteSearchLiveRefreshCompletesOnDevice() throws {
+        let app = launchApp(
+            extraEnvironment: ["HELLOWORLD_UI_TEST_INITIAL_ROUTE": "channelSearchResults"],
+            useMockData: false
+        )
+
+        XCTAssertTrue(element("screen.title", in: app).waitForExistence(timeout: 8))
+
+        let scrollView = app.scrollViews.firstMatch
+        XCTAssertTrue(scrollView.waitForExistence(timeout: 5))
+
+        let start = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+        let end = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
+        start.press(forDuration: 0.05, thenDragTo: end)
+
+        let failureTile = app.staticTexts["取得できません"]
+        let anyVideoTile = app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "video.tile.")
+        ).firstMatch
+
+        XCTAssertTrue(
+            eventually(timeout: 20, pollInterval: 0.5) {
+                failureTile.exists || anyVideoTile.exists
+            }
+        )
+        XCTAssertFalse(failureTile.exists)
+        XCTAssertTrue(anyVideoTile.exists)
+    }
 }

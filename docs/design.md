@@ -28,6 +28,7 @@
 - [AppTestSupport.swift](../HelloWorld/App/Support/AppTestSupport.swift)
   - launch mode、fixture seed、timeline、test marker。
   - UI テスト用初期遷移指定。
+  - mock / live を切り替える UI テスト launch mode。
   - 実機調査用 diagnostics。
 
 ### Features/Home
@@ -137,7 +138,7 @@
 - [AppLayoutTests.swift](../HelloWorldTests/Unit/Layout/AppLayoutTests.swift)
   - Adaptive UI のレイアウト切替。
 - [AppConsoleLoggerTests.swift](../HelloWorldTests/Unit/Formatting/AppConsoleLoggerTests.swift)
-  - キーワード短縮とレスポンス preview の整形。
+  - キーワード短縮、レスポンス preview、decoding error 要約の整形。
 - [RemoteSearchErrorPolicyTests.swift](../HelloWorldTests/Unit/Policies/RemoteSearchErrorPolicyTests.swift)
   - キャンセル判定とユーザー向け文言抑制。
 - [ChannelBrowseTipsSummaryTests.swift](../HelloWorldTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift)
@@ -149,6 +150,7 @@
   - ホーム画面表示、導線、モック refresh、起動タイムライン。
 - [BrowseScreenUITests.swift](../HelloWorldUITests/Browse/BrowseScreenUITests.swift)
   - 一覧導線、チャンネル別動画一覧更新、YouTube 検索結果 refresh state、検索結果からのチャンネル遷移。
+  - 実機向け live YouTube 検索 refresh の再現導線。
 - [UITestCaseSupport.swift](../HelloWorldUITests/Support/UITestCaseSupport.swift)
   - app 起動、timeline 解析、共通 wait。
 

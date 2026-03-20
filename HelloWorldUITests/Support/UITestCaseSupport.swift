@@ -11,9 +11,10 @@ class UITestCaseSupport: XCTestCase {
         continueAfterFailure = false
     }
 
-    func launchApp(extraEnvironment: [String: String] = [:]) -> XCUIApplication {
+    func launchApp(extraEnvironment: [String: String] = [:], useMockData: Bool = true) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["HELLOWORLD_UI_TEST_MODE"] = "1"
+        app.launchEnvironment["HELLOWORLD_UI_TEST_USE_MOCK"] = useMockData ? "1" : "0"
         for (key, value) in extraEnvironment {
             app.launchEnvironment[key] = value
         }

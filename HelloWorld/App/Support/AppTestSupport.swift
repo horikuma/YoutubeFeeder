@@ -5,13 +5,22 @@ import Combine
 enum AppLaunchMode {
     case normal
     case uiTestMock
+    case uiTestLive
 
     static var current: AppLaunchMode {
-        ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_MODE"] == "1" ? .uiTestMock : .normal
+        guard ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_MODE"] == "1" else {
+            return .normal
+        }
+        let usesMockData = ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_USE_MOCK"] != "0"
+        return usesMockData ? .uiTestMock : .uiTestLive
     }
 
     var usesMockData: Bool {
         self == .uiTestMock
+    }
+
+    var isUITest: Bool {
+        self != .normal
     }
 
     var allowsBackgroundRefresh: Bool {
@@ -23,7 +32,7 @@ enum AppLaunchMode {
     }
 
     var initialUITestRoute: UITestInitialRoute? {
-        guard usesMockData else { return nil }
+        guard isUITest else { return nil }
         return UITestInitialRoute(rawValue: ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_INITIAL_ROUTE"] ?? "")
     }
 
@@ -171,7 +180,7 @@ private struct DiagnosticsProbe: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            if AppLaunchMode.current.usesMockData {
+            if AppLaunchMode.current.isUITest {
                 Text("diagnostics")
                     .font(.caption2)
                     .foregroundStyle(.clear)
