@@ -184,6 +184,7 @@ struct RemoteKeywordSearchResultsView: View {
         splitContext: nil
     )
     @State private var splitContext: ChannelVideosRouteContext?
+    @State private var selectedSplitVideoID: String?
     @State private var splitVideos: [CachedVideo] = []
     @State private var splitLoadTask: Task<Void, Never>?
     @State private var isSplitLoading = false
@@ -191,22 +192,41 @@ struct RemoteKeywordSearchResultsView: View {
     var body: some View {
         Group {
             if layout.usesSplitChannelBrowser {
-                RemoteKeywordSearchResultsRegularView(
-                    keyword: keyword,
-                    coordinator: coordinator,
-                    openVideo: openVideo,
-                    path: $path,
-                    layout: layout,
-                    result: result,
-                    visibleCount: presentationState.visibleCount,
-                    splitContext: $splitContext,
-                    splitVideos: $splitVideos,
-                    isSplitLoading: isSplitLoading,
-                    onRefresh: { await reloadResults(forceRefresh: true) },
-                    onDismissChip: dismissChip,
-                    onLoadMore: loadMoreIfNeeded,
-                    normalizedChannelTitle: normalizedChannelTitle(for:)
-                )
+                if performanceProbeMode.usesStandardRemoteSearchSplitUI {
+                    RemoteKeywordSearchResultsStandardRegularView(
+                        keyword: keyword,
+                        coordinator: coordinator,
+                        openVideo: openVideo,
+                        path: $path,
+                        layout: layout,
+                        result: result,
+                        visibleCount: presentationState.visibleCount,
+                        selectedSplitVideoID: $selectedSplitVideoID,
+                        splitContext: $splitContext,
+                        splitVideos: $splitVideos,
+                        isSplitLoading: isSplitLoading,
+                        onRefresh: { await reloadResults(forceRefresh: true) },
+                        onSelectVideo: selectSplitVideo,
+                        onLoadMore: loadMoreIfNeeded
+                    )
+                } else {
+                    RemoteKeywordSearchResultsRegularView(
+                        keyword: keyword,
+                        coordinator: coordinator,
+                        openVideo: openVideo,
+                        path: $path,
+                        layout: layout,
+                        result: result,
+                        visibleCount: presentationState.visibleCount,
+                        splitContext: $splitContext,
+                        splitVideos: $splitVideos,
+                        isSplitLoading: isSplitLoading,
+                        onRefresh: { await reloadResults(forceRefresh: true) },
+                        onDismissChip: dismissChip,
+                        onLoadMore: loadMoreIfNeeded,
+                        normalizedChannelTitle: normalizedChannelTitle(for:)
+                    )
+                }
             } else {
                 RemoteKeywordSearchResultsCompactView(
                     coordinator: coordinator,
@@ -406,6 +426,7 @@ struct RemoteKeywordSearchResultsView: View {
         guard performanceProbeMode.allowsAutomaticInitialSplitLoad else {
             splitLoadTask?.cancel()
             isSplitLoading = false
+            selectedSplitVideoID = presentationState.splitContext?.selectedVideoID
             AppConsoleLogger.appLifecycle.info(
                 "remote_search_split_load_skipped",
                 metadata: [
@@ -418,11 +439,15 @@ struct RemoteKeywordSearchResultsView: View {
         guard let context = presentationState.splitContext else {
             splitLoadTask?.cancel()
             splitContext = nil
+            selectedSplitVideoID = nil
             splitVideos = []
             isSplitLoading = false
             return
         }
-        if splitContext == context { return }
+        if splitContext == context {
+            selectedSplitVideoID = context.selectedVideoID
+            return
+        }
         scheduleDeferredSplitSelection(context)
     }
 
@@ -441,6 +466,7 @@ struct RemoteKeywordSearchResultsView: View {
         splitLoadTask?.cancel()
         isSplitLoading = true
         splitContext = context
+        selectedSplitVideoID = context.selectedVideoID
         let startedAt = Date()
         AppConsoleLogger.appLifecycle.info(
             "remote_search_split_load_started",
@@ -485,6 +511,7 @@ struct RemoteKeywordSearchResultsView: View {
     private func scheduleDeferredSplitSelection(_ context: ChannelVideosRouteContext) {
         splitLoadTask?.cancel()
         splitContext = context
+        selectedSplitVideoID = context.selectedVideoID
         splitVideos = []
         isSplitLoading = true
         AppConsoleLogger.appLifecycle.debug(
@@ -710,67 +737,201 @@ private struct RemoteKeywordSearchResultsRegularView: View {
                 }
             }
         } detail: {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(splitTitle)
-                        .font(.system(size: 34, weight: .black, design: .rounded))
-                        .accessibilityIdentifier("screen.remoteSearchSplitTitle")
-
-                    Text("このチャンネルの動画を新しい順に最大50件表示")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    if AppLaunchMode.current.usesMockData {
-                        UITestMarker(
-                            identifier: "test.remoteSearch.splitChannelID",
-                            value: splitContext?.channelID ?? "none"
-                        )
-                        UITestMarker(
-                            identifier: "screen.channelVideos.loaded",
-                            value: splitVideos.first?.id ?? "none"
-                        )
-                    }
-
-                    if splitContext == nil {
-                        MetricTile(title: "チャンネル動画", value: "未選択", detail: "左側の動画をタップするとこのチャンネルの動画一覧を表示します")
-                    } else if isSplitLoading {
-                        MetricTile(title: "動画一覧", value: "読み込み中", detail: "右側のチャンネル動画を準備しています")
-                    } else if splitVideos.isEmpty {
-                        MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
-                    } else {
-                        LazyVGrid(columns: layout.listColumns, spacing: 20) {
-                            ForEach(Array(splitVideos.enumerated()), id: \.element.id) { offset, video in
-                                VideoTile(
-                                    video: video,
-                                    tapAction: nil,
-                                    openVideoAction: {
-                                        openVideo(video)
-                                    },
-                                    removeChannel: nil,
-                                    index: offset + 1
-                                )
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: layout.readableContentWidth ?? layout.contentWidth ?? .infinity, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, layout.horizontalPadding)
-                .padding(.vertical, 20)
-            }
-            .background(Color(.systemGroupedBackground))
-            .refreshable {
-                guard let splitContext else { return }
-                await coordinator.refreshChannelManually(splitContext.channelID)
-                splitVideos = await coordinator.openChannelVideos(splitContext)
-            }
+            RemoteKeywordSearchResultsSplitDetailPane(
+                coordinator: coordinator,
+                openVideo: openVideo,
+                layout: layout,
+                splitContext: $splitContext,
+                splitVideos: $splitVideos,
+                isSplitLoading: isSplitLoading
+            )
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar(.hidden, for: .navigationBar)
         .modifier(BackSwipePopModifier(path: $path))
     }
+}
+
+private struct RemoteKeywordSearchResultsStandardRegularView: View {
+    let keyword: String
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+    @Binding var path: NavigationPath
+    let layout: AppLayout
+    let result: VideoSearchResult
+    let visibleCount: Int
+    @Binding var selectedSplitVideoID: String?
+    @Binding var splitContext: ChannelVideosRouteContext?
+    @Binding var splitVideos: [CachedVideo]
+    let isSplitLoading: Bool
+    let onRefresh: () async -> Void
+    let onSelectVideo: (CachedVideo) async -> Void
+    let onLoadMore: () -> Void
+
+    private var visibleVideos: [CachedVideo] {
+        Array(result.videos.prefix(visibleCount))
+    }
+
+    var body: some View {
+        NavigationSplitView {
+            List(selection: $selectedSplitVideoID) {
+                Section {
+                    if result.fetchedAt == nil, result.videos.isEmpty, result.errorMessage == nil {
+                        MetricTile(
+                            title: "YouTube検索",
+                            value: "未取得",
+                            detail: "この画面で下に引っ張ると検索します。結果はキャッシュされ、次回はその内容を表示します"
+                        )
+                        .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                    } else if let errorMessage = result.errorMessage, result.videos.isEmpty {
+                        MetricTile(title: "YouTube検索", value: "取得できません", detail: errorMessage)
+                            .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                    } else if result.videos.isEmpty {
+                        MetricTile(title: "YouTube検索", value: "0件", detail: "一致する動画が見つかりませんでした")
+                            .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                    } else {
+                        ForEach(Array(visibleVideos.enumerated()), id: \.element.id) { offset, video in
+                            RemoteSearchVideoListRow(video: video)
+                                .tag(Optional(video.id))
+                                .onAppear {
+                                    guard offset >= visibleVideos.count - 1 else { return }
+                                    onLoadMore()
+                                }
+                        }
+                    }
+                } header: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("YouTube検索")
+                        Text("下に引っ張ると「\(keyword)」を YouTube で検索し、履歴を順次マージして表示")
+                            .textCase(nil)
+                    }
+                    .font(.footnote)
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("YouTube検索")
+            .refreshable {
+                await onRefresh()
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .modifier(BackSwipePopModifier(path: $path))
+            .onAppear {
+                coordinator.suspendLiveUpdates()
+            }
+            .onDisappear {
+                coordinator.resumeLiveUpdates()
+            }
+            .onChange(of: selectedSplitVideoID) { _, newValue in
+                guard let newValue else { return }
+                guard newValue != splitContext?.selectedVideoID else { return }
+                guard let video = visibleVideos.first(where: { $0.id == newValue }) else { return }
+                Task {
+                    await onSelectVideo(video)
+                }
+            }
+        } detail: {
+            RemoteKeywordSearchResultsSplitDetailPane(
+                coordinator: coordinator,
+                openVideo: openVideo,
+                layout: layout,
+                splitContext: $splitContext,
+                splitVideos: $splitVideos,
+                isSplitLoading: isSplitLoading
+            )
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+}
+
+private struct RemoteKeywordSearchResultsSplitDetailPane: View {
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+    let layout: AppLayout
+    @Binding var splitContext: ChannelVideosRouteContext?
+    @Binding var splitVideos: [CachedVideo]
+    let isSplitLoading: Bool
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(splitTitle)
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .accessibilityIdentifier("screen.remoteSearchSplitTitle")
+
+                Text("このチャンネルの動画を新しい順に最大50件表示")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if AppLaunchMode.current.usesMockData {
+                    UITestMarker(
+                        identifier: "test.remoteSearch.splitChannelID",
+                        value: splitContext?.channelID ?? "none"
+                    )
+                    UITestMarker(
+                        identifier: "screen.channelVideos.loaded",
+                        value: splitVideos.first?.id ?? "none"
+                    )
+                }
+
+                if splitContext == nil {
+                    MetricTile(title: "チャンネル動画", value: "未選択", detail: "左側の動画をタップするとこのチャンネルの動画一覧を表示します")
+                } else if isSplitLoading {
+                    MetricTile(title: "動画一覧", value: "読み込み中", detail: "右側のチャンネル動画を準備しています")
+                } else if splitVideos.isEmpty {
+                    MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
+                } else {
+                    LazyVGrid(columns: layout.listColumns, spacing: 20) {
+                        ForEach(Array(splitVideos.enumerated()), id: \.element.id) { offset, video in
+                            VideoTile(
+                                video: video,
+                                tapAction: nil,
+                                openVideoAction: {
+                                    openVideo(video)
+                                },
+                                removeChannel: nil,
+                                index: offset + 1
+                            )
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: layout.readableContentWidth ?? layout.contentWidth ?? .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, layout.horizontalPadding)
+            .padding(.vertical, 20)
+        }
+        .background(Color(.systemGroupedBackground))
+        .refreshable {
+            guard let splitContext else { return }
+            await coordinator.refreshChannelManually(splitContext.channelID)
+            splitVideos = await coordinator.openChannelVideos(splitContext)
+        }
+    }
 
     private var splitTitle: String {
         splitContext?.preferredChannelTitle ?? splitVideos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle ?? splitContext?.channelID ?? "チャンネル未選択"
+    }
+}
+
+private struct RemoteSearchVideoListRow: View {
+    let video: CachedVideo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(video.title)
+                .font(.headline)
+                .lineLimit(2)
+
+            Text(video.channelTitle.isEmpty ? video.channelID : video.channelTitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Text(video.publishedAt.map(AppFormatting.dateTimeFormatter.string(from:)) ?? "投稿日なし")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 6)
+        .accessibilityIdentifier("video.tile.\(video.id)")
     }
 }

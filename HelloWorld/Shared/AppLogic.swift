@@ -96,6 +96,7 @@ enum PerformanceProbeMode: String, CaseIterable, Hashable, Identifiable {
     case modeB = "B"
     case modeC = "C"
     case modeD = "D"
+    case modeE = "E"
 
     static let storageKey = "performance.probeMode"
 
@@ -119,12 +120,14 @@ enum PerformanceProbeMode: String, CaseIterable, Hashable, Identifiable {
             return "初回検索表示件数を20件に制限"
         case .modeD:
             return "初回は右ペイン自動読込なし"
+        case .modeE:
+            return "List(selection:) ベースの標準 split で比較"
         }
     }
 
     var splitLoadDelayMilliseconds: Int {
         switch self {
-        case .modeA, .modeC, .modeD:
+        case .modeA, .modeC, .modeD, .modeE:
             return 150
         case .modeB:
             return 0
@@ -135,13 +138,17 @@ enum PerformanceProbeMode: String, CaseIterable, Hashable, Identifiable {
         switch self {
         case .modeC:
             return 20
-        case .modeA, .modeB, .modeD:
+        case .modeA, .modeB, .modeD, .modeE:
             return 100
         }
     }
 
     var allowsAutomaticInitialSplitLoad: Bool {
         self != .modeD
+    }
+
+    var usesStandardRemoteSearchSplitUI: Bool {
+        self == .modeE
     }
 
     static var current: PerformanceProbeMode {

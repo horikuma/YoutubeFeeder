@@ -82,11 +82,22 @@ final class HomeScreenUITests: UITestCaseSupport {
         try measureRemoteSearchHomeNavigationMetrics(fixtureVariant: "heavy")
     }
 
-    private func measureRemoteSearchHomeNavigationMetrics(fixtureVariant: String) throws {
+    func testRemoteSearchHomeNavigationSplitMetricsStandardProbe() throws {
+        try measureRemoteSearchHomeNavigationMetrics(
+            fixtureVariant: "baseline",
+            probeMode: "E"
+        )
+    }
+
+    private func measureRemoteSearchHomeNavigationMetrics(
+        fixtureVariant: String,
+        probeMode: String = "A"
+    ) throws {
         let app = launchApp(
             extraEnvironment: [
                 "HELLOWORLD_RUNTIME_LOGGING": "1",
                 "HELLOWORLD_UI_TEST_REMOTE_SEARCH_FIXTURE": fixtureVariant,
+                "HELLOWORLD_UI_TEST_PROBE_MODE": probeMode,
             ]
         )
 
@@ -116,6 +127,7 @@ final class HomeScreenUITests: UITestCaseSupport {
 
         let metrics: [String: Any] = [
             "fixture": fixtureVariant,
+            "probe_mode": probeMode,
             "app_launch_to_splash_ms": startup["app_launch_to_splash_ms"] ?? 0,
             "app_launch_to_home_ms": startup["app_launch_to_home_ms"] ?? 0,
             "app_launch_to_maintenance_enter_ms": startup["app_launch_to_maintenance_enter_ms"] ?? 0,
@@ -134,6 +146,7 @@ final class HomeScreenUITests: UITestCaseSupport {
         }
 
         XCTAssertEqual(completedEntry.metadata["trigger"], "initial")
+        XCTAssertEqual(screenEntry.metadata["probe_mode"], probeMode)
         XCTAssertGreaterThan(Int(completedEntry.metadata["videos"] ?? "0") ?? 0, 0)
         XCTAssertGreaterThanOrEqual(metrics["home_tap_to_screen_ms"] as? Int ?? -1, 0)
         XCTAssertGreaterThanOrEqual(metrics["split_load_ms"] as? Int ?? -1, 0)

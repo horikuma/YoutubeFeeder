@@ -125,6 +125,7 @@
 
 - `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面局所の UI 状態は `SearchResultsViews.swift` と `RemoteSearchPresentationState` に閉じ込める。
 - `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択を pure logic として持つ。
+- `PerformanceProbeMode.E` は iPad の YouTube 検索だけを比較用に `NavigationSplitView + List(selection:)` ベースへ切り替え、標準寄せ UI の体感差を計測できるようにする。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListScreen` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
 

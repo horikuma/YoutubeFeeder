@@ -1,4 +1,6 @@
 ## 2026/03/20
+- iPad の YouTube検索 split 遷移では、Apple の標準パスに寄せた比較用として `PerformanceProbeMode.E` を追加し、左ペインを `NavigationSplitView + List(selection:)` ベースへ切り替えられるようにした。
+  - 右ペイン読込や件数制限を変えても体感差が乏しく、現行の `ScrollView + LazyVGrid + 手動選択` が `NavigationSplitView` の得意経路から外れている可能性を切り分けたかったため。標準寄せを probe mode に閉じ込めれば、普段の UI を維持したまま同一ログ系と UI test で比較できる。
 - 性能調査用に、ホーム画面から切り替える `PerformanceProbeMode` を設け、`A/B/C/D` のラベルをそのまま runtime log と console log へ残す方針にした。
   - 実機ではビルド差し替えよりホームから即座に条件を変えられる方が比較しやすく、後からログを見返した時にもどの条件で採取したかを迷わないため。`A=標準`, `B=右ペイン遅延なし`, `C=初回検索表示件数20件`, `D=初回右ペイン自動読込なし` とし、各イベントへ `probe_mode` を添える。
 - YouTube検索の遷移調査では、検索専用ログに加えて `[YoutubeFeeder] app.lifecycle.*` を追加し、起動から G 画面到達までを同じ系列で追う方針にした。

@@ -14,5 +14,7 @@ final class PerformanceProbeModeTests: XCTestCase {
         XCTAssertEqual(PerformanceProbeMode.modeB.splitLoadDelayMilliseconds, 0)
         XCTAssertEqual(PerformanceProbeMode.modeC.initialRemoteSearchSnapshotLimit, 20)
         XCTAssertFalse(PerformanceProbeMode.modeD.allowsAutomaticInitialSplitLoad)
+        XCTAssertTrue(PerformanceProbeMode.modeE.usesStandardRemoteSearchSplitUI)
+        XCTAssertEqual(PerformanceProbeMode.modeE.initialRemoteSearchSnapshotLimit, 100)
     }
 }
