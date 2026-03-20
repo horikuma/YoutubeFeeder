@@ -75,6 +75,11 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func bootstrapMaintenance() async {
+        let startedAt = Date()
+        AppConsoleLogger.appLifecycle.debug(
+            "bootstrap_coordinator_start",
+            metadata: ["main_thread": AppConsoleLogger.mainThreadFlag()]
+        )
         channels = ChannelRegistryStore.loadAllChannelIDs()
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
@@ -82,6 +87,15 @@ final class FeedCacheCoordinator: ObservableObject {
         progress = bootstrap.progress
         maintenanceItems = bootstrap.maintenanceItems
         await refreshHomeSystemStatus()
+        AppConsoleLogger.appLifecycle.notice(
+            "bootstrap_coordinator_complete",
+            metadata: [
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+                "channels": String(channels.count),
+                "maintenance_items": String(maintenanceItems.count),
+            ]
+        )
     }
 
     func suspendLiveUpdates() {
@@ -199,10 +213,18 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func loadVideosForChannel(_ channelID: String) async -> [CachedVideo] {
+        let startedAt = Date()
+        AppConsoleLogger.appLifecycle.debug(
+            "channel_videos_merge_start",
+            metadata: [
+                "channelID": channelID,
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
         let cachedVideos = await loadCachedVideosForChannel(channelID)
         let remoteVideos = await remoteSearchService.allVideos(channelID: channelID)
         let mergedByID = Dictionary(uniqueKeysWithValues: (cachedVideos + remoteVideos).map { ($0.id, $0) })
-        return mergedByID.values
+        let mergedVideos = mergedByID.values
             .sorted { lhs, rhs in
                 switch (lhs.publishedAt, rhs.publishedAt) {
                 case let (left?, right?) where left != right:
@@ -217,24 +239,86 @@ final class FeedCacheCoordinator: ObservableObject {
             }
             .prefix(200)
             .map { $0 }
+        AppConsoleLogger.appLifecycle.notice(
+            "channel_videos_merge_complete",
+            metadata: [
+                "channelID": channelID,
+                "cached_videos": String(cachedVideos.count),
+                "remote_videos": String(remoteVideos.count),
+                "merged_videos": String(mergedVideos.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
+        return mergedVideos
     }
 
     func openChannelVideos(_ context: ChannelVideosRouteContext) async -> [CachedVideo] {
         let channelID = context.channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !channelID.isEmpty else { return [] }
 
+        let startedAt = Date()
+        AppConsoleLogger.appLifecycle.debug(
+            "channel_videos_open_start",
+            metadata: [
+                "channelID": channelID,
+                "selected_video": context.selectedVideoID ?? "none",
+                "auto_refresh": context.prefersAutomaticRefresh ? "true" : "false",
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
+
         var mergedVideos = await loadVideosForChannel(channelID)
         guard context.prefersAutomaticRefresh else {
+            AppConsoleLogger.appLifecycle.notice(
+                "channel_videos_open_complete",
+                metadata: [
+                    "channelID": channelID,
+                    "videos": String(mergedVideos.count),
+                    "refreshed": "false",
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "main_thread": AppConsoleLogger.mainThreadFlag(),
+                ]
+            )
             return mergedVideos
         }
 
         let shouldRefresh = await shouldAutomaticallyRefreshChannelVideos(context)
+        AppConsoleLogger.appLifecycle.debug(
+            "channel_videos_auto_refresh_resolved",
+            metadata: [
+                "channelID": channelID,
+                "should_refresh": shouldRefresh ? "true" : "false",
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
         guard shouldRefresh else {
+            AppConsoleLogger.appLifecycle.notice(
+                "channel_videos_open_complete",
+                metadata: [
+                    "channelID": channelID,
+                    "videos": String(mergedVideos.count),
+                    "refreshed": "false",
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "main_thread": AppConsoleLogger.mainThreadFlag(),
+                ]
+            )
             return mergedVideos
         }
 
         await refreshChannelManually(channelID)
         mergedVideos = await loadVideosForChannel(channelID)
+        AppConsoleLogger.appLifecycle.notice(
+            "channel_videos_open_complete",
+            metadata: [
+                "channelID": channelID,
+                "videos": String(mergedVideos.count),
+                "refreshed": "true",
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
         return mergedVideos
     }
 
@@ -265,12 +349,31 @@ final class FeedCacheCoordinator: ObservableObject {
         }
 
         let logger = AppConsoleLogger.youtubeSearch
+        let startedAt = Date()
+        logger.debug(
+            "snapshot_coordinator_enter",
+            metadata: [
+                "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
+                "limit": String(limit),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
 
         if AppLaunchMode.current.usesMockData {
             if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
                 logger.info(
                     "snapshot_hit",
                     metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "source": cached.source.label, "videos": String(cached.videos.count)]
+                )
+                logger.debug(
+                    "snapshot_coordinator_exit",
+                    metadata: [
+                        "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
+                        "source": cached.source.label,
+                        "videos": String(cached.videos.count),
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                        "main_thread": AppConsoleLogger.mainThreadFlag(),
+                    ]
                 )
                 return cached
             }
@@ -279,7 +382,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 "snapshot_mock_local",
                 metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "videos": String(local.videos.count)]
             )
-            return VideoSearchResult(
+            let result = VideoSearchResult(
                 keyword: normalizedKeyword,
                 videos: local.videos,
                 totalCount: local.totalCount,
@@ -287,12 +390,33 @@ final class FeedCacheCoordinator: ObservableObject {
                 fetchedAt: .now,
                 expiresAt: Date().addingTimeInterval(remoteSearchCacheLifetime)
             )
+            logger.debug(
+                "snapshot_coordinator_exit",
+                metadata: [
+                    "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
+                    "source": result.source.label,
+                    "videos": String(result.videos.count),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "main_thread": AppConsoleLogger.mainThreadFlag(),
+                ]
+            )
+            return result
         }
 
         if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
             logger.info(
                 "snapshot_hit",
                 metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "source": cached.source.label, "videos": String(cached.videos.count)]
+            )
+            logger.debug(
+                "snapshot_coordinator_exit",
+                metadata: [
+                    "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
+                    "source": cached.source.label,
+                    "videos": String(cached.videos.count),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "main_thread": AppConsoleLogger.mainThreadFlag(),
+                ]
             )
             return cached
         }
@@ -301,7 +425,18 @@ final class FeedCacheCoordinator: ObservableObject {
             "snapshot_miss",
             metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "limit": String(limit)]
         )
-        return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
+        let result = VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
+        logger.debug(
+            "snapshot_coordinator_exit",
+            metadata: [
+                "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
+                "source": result.source.label,
+                "videos": String(result.videos.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
+        return result
     }
 
     func searchRemoteVideos(keyword: String, limit: Int = 100, forceRefresh: Bool = false) async -> VideoSearchResult {
@@ -681,7 +816,18 @@ final class FeedCacheCoordinator: ObservableObject {
         includesVideos: Bool = true,
         allowsSuspendedStateUpdate: Bool = false
     ) async {
+        let startedAt = Date()
+        AppConsoleLogger.appLifecycle.debug(
+            "refresh_ui_start",
+            metadata: [
+                "current_channel": currentChannelID ?? "none",
+                "includes_videos": includesVideos ? "true" : "false",
+                "allows_suspended": allowsSuspendedStateUpdate ? "true" : "false",
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
         let snapshot = await store.loadSnapshot()
+        let snapshotLoadedAt = Date()
         let cachedChannels = snapshot.channels.filter { $0.lastSuccessAt != nil }.count
         let cachedThumbnails = snapshot.videos.filter { $0.thumbnailLocalFilename != nil }.count
         let prioritizedChannels = prioritizedChannelIDs(states: Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) }))
@@ -727,12 +873,27 @@ final class FeedCacheCoordinator: ObservableObject {
             ]
         )
         await refreshHomeSystemStatus(snapshot: snapshot, currentProgress: nextProgress)
+        let homeStatusUpdatedAt = Date()
 
         await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
+        let persistedAt = Date()
 
         if includesVideos {
             videos = await store.loadVideos(query: videoQuery)
         }
+        AppConsoleLogger.appLifecycle.notice(
+            "refresh_ui_complete",
+            metadata: [
+                "current_channel": currentChannelID ?? "none",
+                "includes_videos": includesVideos ? "true" : "false",
+                "snapshot_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: snapshotLoadedAt),
+                "home_status_ms": AppConsoleLogger.elapsedMilliseconds(from: snapshotLoadedAt, to: homeStatusUpdatedAt),
+                "persist_ms": AppConsoleLogger.elapsedMilliseconds(from: homeStatusUpdatedAt, to: persistedAt),
+                "videos_ms": includesVideos ? AppConsoleLogger.elapsedMilliseconds(from: persistedAt, to: Date()) : "0",
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
     }
 
     private func buildMaintenanceItems(from snapshot: FeedCacheSnapshot) -> [ChannelMaintenanceItem] {

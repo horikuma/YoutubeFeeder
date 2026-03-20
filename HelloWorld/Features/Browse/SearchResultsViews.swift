@@ -339,18 +339,22 @@ struct RemoteKeywordSearchResultsView: View {
     private func loadSnapshot() async {
         let logger = AppConsoleLogger.youtubeSearch
         let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
+        let startedAt = Date()
         logger.debug(
             "screen_snapshot_load_start",
             metadata: [
                 "keyword": keywordPreview,
                 "probe_mode": performanceProbeMode.shortLabel,
                 "limit": String(performanceProbeMode.initialRemoteSearchSnapshotLimit),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
             ]
         )
+        let coordinatorStartedAt = Date()
         result = await coordinator.loadRemoteSearchSnapshot(
             keyword: keyword,
             limit: performanceProbeMode.initialRemoteSearchSnapshotLimit
         )
+        let coordinatorCompletedAt = Date()
         logger.debug(
             "screen_snapshot_load_complete",
             metadata: [
@@ -359,6 +363,9 @@ struct RemoteKeywordSearchResultsView: View {
                 "videos": String(result.videos.count),
                 "error": result.errorMessage == nil ? "none" : "present",
                 "probe_mode": performanceProbeMode.shortLabel,
+                "coordinator_ms": AppConsoleLogger.elapsedMilliseconds(from: coordinatorStartedAt, to: coordinatorCompletedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
             ]
         )
         applyPresentationState()
@@ -411,6 +418,15 @@ struct RemoteKeywordSearchResultsView: View {
     }
 
     private func applyPresentationState() {
+        let startedAt = Date()
+        AppConsoleLogger.appLifecycle.debug(
+            "remote_search_presentation_apply_start",
+            metadata: [
+                "videos": String(result.videos.count),
+                "probe_mode": performanceProbeMode.shortLabel,
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
         presentationState = RemoteSearchPresentationState.build(
             result: result,
             usesSplitChannelBrowser: layout.usesSplitChannelBrowser,
@@ -419,6 +435,16 @@ struct RemoteKeywordSearchResultsView: View {
         if layout.usesSplitChannelBrowser {
             applyDefaultSplitSelectionIfNeeded()
         }
+        AppConsoleLogger.appLifecycle.debug(
+            "remote_search_presentation_apply_complete",
+            metadata: [
+                "visible_count": String(presentationState.visibleCount),
+                "split_context": presentationState.splitContext?.channelID ?? "none",
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "probe_mode": performanceProbeMode.shortLabel,
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
     }
 
     private func applyDefaultSplitSelectionIfNeeded() {
@@ -514,12 +540,14 @@ struct RemoteKeywordSearchResultsView: View {
         selectedSplitVideoID = context.selectedVideoID
         splitVideos = []
         isSplitLoading = true
+        let scheduledAt = Date()
         AppConsoleLogger.appLifecycle.debug(
             "remote_search_split_load_scheduled",
             metadata: [
                 "channelID": context.channelID,
                 "delay_ms": String(performanceProbeMode.splitLoadDelayMilliseconds),
                 "probe_mode": performanceProbeMode.shortLabel,
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -545,6 +573,8 @@ struct RemoteKeywordSearchResultsView: View {
                     "channelID": context.channelID,
                     "trigger": "initial",
                     "probe_mode": performanceProbeMode.shortLabel,
+                    "scheduled_wait_ms": AppConsoleLogger.elapsedMilliseconds(from: scheduledAt, to: startedAt),
+                    "main_thread": AppConsoleLogger.mainThreadFlag(),
                 ]
             )
             RuntimeDiagnostics.shared.record(
@@ -558,6 +588,7 @@ struct RemoteKeywordSearchResultsView: View {
             let loadedVideos = await coordinator.openChannelVideos(context)
             guard !Task.isCancelled else { return }
 
+            let publishStartedAt = Date()
             await MainActor.run {
                 guard splitContext == context else { return }
                 splitVideos = loadedVideos
@@ -570,7 +601,9 @@ struct RemoteKeywordSearchResultsView: View {
                     "trigger": "initial",
                     "videos": String(loadedVideos.count),
                     "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "publish_ms": AppConsoleLogger.elapsedMilliseconds(from: publishStartedAt, to: Date()),
                     "probe_mode": performanceProbeMode.shortLabel,
+                    "main_thread": AppConsoleLogger.mainThreadFlag(),
                 ]
             )
             RuntimeDiagnostics.shared.record(

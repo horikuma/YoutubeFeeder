@@ -1,4 +1,6 @@
 ## 2026/03/20
+- YouTube検索の iPad 遷移調査では、`FeedCacheCoordinator` と `SearchResultsViews` の MainActor 区間に広めの境界ログを追加し、snapshot 読込、presentation 適用、split 予約、channel 動画統合、`refreshUI` の各区間を ms 単位で観測する方針にした。
+  - `FeedCacheCoordinator` 自体が `@MainActor` であり、右ペイン読込が速い一方で開始前に待たされるケースが見えていたため、通信やデータ量ではなく MainActor 側の待機を疑う材料が揃ってきた。まずは actor 境界を崩す前に、どの区間が MainActor 上で長いかをコンソールだけで読めるようにし、変更の当たりを付けやすくする。
 - iPad の YouTube検索 split 遷移では、Apple の標準パスに寄せた比較用として `PerformanceProbeMode.E` を追加し、左ペインを `NavigationSplitView + List(selection:)` ベースへ切り替えられるようにした。
   - 右ペイン読込や件数制限を変えても体感差が乏しく、現行の `ScrollView + LazyVGrid + 手動選択` が `NavigationSplitView` の得意経路から外れている可能性を切り分けたかったため。標準寄せを probe mode に閉じ込めれば、普段の UI を維持したまま同一ログ系と UI test で比較できる。
 - 性能調査用に、ホーム画面から切り替える `PerformanceProbeMode` を設け、`A/B/C/D` のラベルをそのまま runtime log と console log へ残す方針にした。

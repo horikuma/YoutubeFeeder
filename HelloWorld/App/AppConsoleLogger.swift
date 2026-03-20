@@ -96,6 +96,14 @@ struct AppConsoleLogger {
         String(Int(Date().timeIntervalSince(startedAt) * 1000))
     }
 
+    static func elapsedMilliseconds(from startedAt: Date, to endedAt: Date) -> String {
+        String(Int(endedAt.timeIntervalSince(startedAt) * 1000))
+    }
+
+    static func mainThreadFlag() -> String {
+        Thread.isMainThread ? "true" : "false"
+    }
+
     private static func decodingErrorSummary(_ error: DecodingError, limit: Int) -> String {
         let detail: String
         switch error {
