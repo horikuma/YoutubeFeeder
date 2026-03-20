@@ -4,8 +4,9 @@ actor RemoteVideoSearchCacheStore {
     private let fileManager = FileManager.default
     private let encoder = FeedCachePersistenceCoders.makeEncoder()
     private let decoder = FeedCachePersistenceCoders.makeDecoder()
-    private let summaryEncoder = FeedCachePersistenceCoders.makeEncoder()
-    private let summaryDecoder = FeedCachePersistenceCoders.makeDecoder()
+    private let summaryEncoder = FeedCachePersistenceCoders.makeSummaryEncoder()
+    private let summaryDecoder = FeedCachePersistenceCoders.makeSummaryDecoder()
+    private let legacySummaryDecoder = FeedCachePersistenceCoders.makeDecoder()
 
     func load(keyword: String) -> RemoteVideoSearchCacheEntry? {
         let fileURL = FeedCachePaths.remoteSearchCacheURL(keyword: keyword, fileManager: fileManager)
@@ -96,34 +97,41 @@ actor RemoteVideoSearchCacheStore {
         )
 
         let summaryURL = FeedCachePaths.remoteSearchCacheSummaryURL(keyword: keyword, fileManager: fileManager)
-        if let summaryData = try? Data(contentsOf: summaryURL),
-           let summary = try? summaryDecoder.decode(RemoteVideoSearchCacheSummary.self, from: summaryData) {
-            let completedAt = Date()
-            let expiresAt = summary.fetchedAt.addingTimeInterval(ttl)
-            let status = RemoteSearchCacheStatus(
-                keyword: keyword,
-                isFresh: expiresAt > now,
-                totalCount: summary.totalCount,
-                fetchedAt: summary.fetchedAt,
-                expiresAt: expiresAt,
-                exists: true
-            )
-            AppConsoleLogger.appLifecycle.notice(
-                "search_cache_status_store_complete",
-                metadata: [
-                    "keyword": keywordPreview,
-                    "exists": "true",
-                    "is_fresh": status.isFresh ? "true" : "false",
-                    "mode": "summary",
-                    "file_check_ms": "0",
-                    "read_ms": "0",
-                    "decode_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: completedAt),
-                    "ttl_ms": "0",
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: completedAt),
-                    "videos": String(summary.totalCount),
-                ]
-            )
-            return status
+        if let summaryData = try? Data(contentsOf: summaryURL) {
+            let summaryReadAt = Date()
+            let decodedSummary =
+                (try? summaryDecoder.decode(RemoteVideoSearchCacheSummary.self, from: summaryData))
+                ?? (try? legacySummaryDecoder.decode(RemoteVideoSearchCacheSummary.self, from: summaryData))
+
+            if let summary = decodedSummary {
+                let decodedAt = Date()
+                let expiresAt = summary.fetchedAt.addingTimeInterval(ttl)
+                let status = RemoteSearchCacheStatus(
+                    keyword: keyword,
+                    isFresh: expiresAt > now,
+                    totalCount: summary.totalCount,
+                    fetchedAt: summary.fetchedAt,
+                    expiresAt: expiresAt,
+                    exists: true
+                )
+                AppConsoleLogger.appLifecycle.notice(
+                    "search_cache_status_store_complete",
+                    metadata: [
+                        "keyword": keywordPreview,
+                        "exists": "true",
+                        "is_fresh": status.isFresh ? "true" : "false",
+                        "mode": "summary",
+                        "bytes": String(summaryData.count),
+                        "file_check_ms": "0",
+                        "read_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: summaryReadAt),
+                        "decode_ms": AppConsoleLogger.elapsedMilliseconds(from: summaryReadAt, to: decodedAt),
+                        "ttl_ms": "0",
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: decodedAt),
+                        "videos": String(summary.totalCount),
+                    ]
+                )
+                return status
+            }
         }
 
         let fileExists = fileManager.fileExists(atPath: fileURL.path)

@@ -90,6 +90,7 @@
 - [RemoteVideoSearchCacheStore.swift](../HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - YouTube 検索結果キャッシュの保存、鮮度判定、履歴クリア。
   - `remote-search-*-summary.json` を併設し、ホームの検索キャッシュ鮮度表示は軽量 summary から返す。
+  - summary 正本は binary property list とし、旧 JSON summary は fallback 互換で読む。
 - [RemoteVideoSearchService.swift](../HelloWorld/Features/FeedCache/RemoteVideoSearchService.swift)
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。
   - 検索キャッシュ反映完了と remote refresh cancellation のログ。
@@ -100,6 +101,7 @@
   - bootstrap、cache、cache summary、registry、search cache、search cache summary、thumbnail の固定パス集約。
 - [FeedCachePersistenceCoders.swift](../HelloWorld/Features/FeedCache/FeedCachePersistenceCoders.swift)
   - cache 永続化用の compact encoder / legacy-compatible decoder。
+  - summary 永続化用の binary property list encoder / decoder。
 - [FeedBootstrapStore.swift](../HelloWorld/Features/FeedCache/FeedBootstrapStore.swift)
   - bootstrap の読込と整形。
 - [ChannelRegistryStore.swift](../HelloWorld/Features/FeedCache/ChannelRegistryStore.swift)

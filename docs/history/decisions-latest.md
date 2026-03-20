@@ -1,4 +1,6 @@
 ## 2026/03/20
+- summary の初回 decode をさらに落とすため、`cache-summary` と `remote-search-*-summary` の正本形式を JSON から binary property list へ切り替え、旧 JSON summary は fallback 読込だけ残す方針にした。
+  - summary sidecar 導入後も、実機では検索キャッシュ summary の decode がまだ 1.5 秒級で残っていたため。summary 自体を 100 byte 級の binary plist に落とし、`PropertyListDecoder` で読むことで、ホーム表示前の鮮度確認をほぼゼロコスト化する。
 - 起動性能対策は、ホーム表示に必要な件数・鮮度を summary sidecar で返しつつ、本体 cache も compact date 形式へ寄せる二段構えで進める方針にした。
   - 実機ログで起動遅延の主因が `cache.json` と `remote-search.json` の初回 JSON decode だと特定できたため。ホームが本体 decode を踏まないよう `cache-summary.json` と `remote-search-*-summary.json` を追加し、加えて本体も再保存時は軽い日付表現へ変えて、今後の full decode コストも下げる。
 - 起動時の通常キャッシュ `snapshot_ms` も最終段まで切り分けるため、`FeedCacheStore.loadSnapshot` に directory 準備、file existence、`Data(contentsOf:)`、JSON decode、返却件数の分解ログを追加する方針にした。

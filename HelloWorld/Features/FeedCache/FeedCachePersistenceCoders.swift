@@ -39,4 +39,14 @@ enum FeedCachePersistenceCoders {
         }
         return decoder
     }
+
+    static func makeSummaryEncoder() -> PropertyListEncoder {
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        return encoder
+    }
+
+    static func makeSummaryDecoder() -> PropertyListDecoder {
+        PropertyListDecoder()
+    }
 }

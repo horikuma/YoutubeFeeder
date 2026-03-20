@@ -4,8 +4,9 @@ actor FeedCacheStore {
     private let fileManager = FileManager.default
     private let encoder = FeedCachePersistenceCoders.makeEncoder()
     private let decoder = FeedCachePersistenceCoders.makeDecoder()
-    private let summaryEncoder = FeedCachePersistenceCoders.makeEncoder()
-    private let summaryDecoder = FeedCachePersistenceCoders.makeDecoder()
+    private let summaryEncoder = FeedCachePersistenceCoders.makeSummaryEncoder()
+    private let summaryDecoder = FeedCachePersistenceCoders.makeSummaryDecoder()
+    private let legacySummaryDecoder = FeedCachePersistenceCoders.makeDecoder()
 
     private let baseDirectory: URL
     private let cacheFileURL: URL
@@ -106,12 +107,19 @@ actor FeedCacheStore {
     func loadSummary() -> FeedCacheSummary? {
         try? createDirectories()
 
-        guard let data = try? Data(contentsOf: summaryFileURL),
-              let summary = try? summaryDecoder.decode(FeedCacheSummary.self, from: data) else {
+        guard let data = try? Data(contentsOf: summaryFileURL) else {
             return nil
         }
 
-        return summary
+        if let summary = try? summaryDecoder.decode(FeedCacheSummary.self, from: data) {
+            return summary
+        }
+
+        if let summary = try? legacySummaryDecoder.decode(FeedCacheSummary.self, from: data) {
+            return summary
+        }
+
+        return nil
     }
 
     func summary(for snapshot: FeedCacheSnapshot) -> FeedCacheSummary {
