@@ -120,3 +120,9 @@
 - 画面駆動の型だけを `@MainActor` とし、永続化モデルや parser、store は UI 文脈へ固定しない。
 - build 検証は `error 0` に加えて `warning 0` を成立条件とする。
 - 計測は `scripts/collect_metrics.sh` を正本とし、同一の全体実行から build、test、起動性能を取得する。
+
+## Observability
+
+- 実機調査で必要なランタイムログは、Xcode コンソールへ `[YoutubeFeeder]` を先頭に付けた 1 行ログとして出力する。
+- ログは `検索開始`、`キャッシュ hit / miss`、`外部 API 要求の開始 / 完了`、`キャッシュ反映`、`失敗時の fallback` のような境界イベントへ絞り、動画単位や item 単位の大量出力は避ける。
+- API キー、完全な request URL、巨大な response body は出力せず、失敗時も本文は短い preview に切り詰める。

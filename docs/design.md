@@ -20,6 +20,9 @@
 - [AppLayout.swift](../HelloWorld/App/AppLayout.swift)
   - `horizontalSizeClass` を主基準とする Adaptive UI 判定。
   - 単独画面と分割レイアウトの差分吸収。
+- [AppConsoleLogger.swift](../HelloWorld/App/AppConsoleLogger.swift)
+  - Xcode コンソール向けの 1 行ランタイムログ。
+  - `[YoutubeFeeder]` 接頭辞、キーワード短縮、レスポンス preview の整形。
 - [AppFormatting.swift](../HelloWorld/App/AppFormatting.swift)
   - 日付や数値の共通 formatter。
 - [AppTestSupport.swift](../HelloWorld/App/Support/AppTestSupport.swift)
@@ -60,6 +63,7 @@
 - [FeedCacheCoordinator.swift](../HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - bootstrap 読込、一覧データ読込、手動更新、単独チャンネル更新、検索結果読込。
+  - YouTube 検索の snapshot hit / miss、refresh failure fallback の境界ログ。
 - [FeedChannelSyncService.swift](../HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、更新判定、store 反映を束ねる更新実行サービス。
 - [ChannelRegistryMaintenanceService.swift](../HelloWorld/Features/FeedCache/ChannelRegistryMaintenanceService.swift)
@@ -70,6 +74,7 @@
   - YouTube 検索結果キャッシュの保存、鮮度判定、履歴クリア。
 - [RemoteVideoSearchService.swift](../HelloWorld/Features/FeedCache/RemoteVideoSearchService.swift)
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。
+  - 検索キャッシュ反映完了のログ。
 - [HomeSystemStatusService.swift](../HelloWorld/Features/FeedCache/HomeSystemStatusService.swift)
   - ホーム画面へ出すシステム状況の集約。
 - [FeedCachePaths.swift](../HelloWorld/Features/FeedCache/FeedCachePaths.swift)
@@ -88,6 +93,7 @@
 - [YouTubeSearchService.swift](../HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift)
   - YouTube Data API v3 search / videos.list 呼び出し。
   - API キー解決、レスポンス変換、詳細補完、ライブ除外。
+  - 検索開始、HTTP 応答、decode failure、完了件数のログ。
 
 ### Shared
 
@@ -126,6 +132,8 @@
   - 優先順、鮮度判定。
 - [AppLayoutTests.swift](../HelloWorldTests/Unit/Layout/AppLayoutTests.swift)
   - Adaptive UI のレイアウト切替。
+- [AppConsoleLoggerTests.swift](../HelloWorldTests/Unit/Formatting/AppConsoleLoggerTests.swift)
+  - キーワード短縮とレスポンス preview の整形。
 - [ChannelBrowseTipsSummaryTests.swift](../HelloWorldTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift)
   - `Tips` サマリー文言と YouTube 検索結果の presentation state。
 

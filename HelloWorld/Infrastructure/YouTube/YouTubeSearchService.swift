@@ -21,6 +21,7 @@ struct YouTubeSearchResponse: Hashable {
 enum YouTubeSearchError: LocalizedError {
     case apiKeyMissing
     case invalidResponse
+    case httpError(statusCode: Int)
 
     var errorDescription: String? {
         switch self {
@@ -28,6 +29,8 @@ enum YouTubeSearchError: LocalizedError {
             return "YouTube 検索 API キーが未設定です。"
         case .invalidResponse:
             return "YouTube 検索結果を読み取れませんでした。"
+        case let .httpError(statusCode):
+            return "YouTube 検索 API が失敗しました。(status: \(statusCode))"
         }
     }
 }
@@ -40,12 +43,35 @@ struct YouTubeSearchService {
     }
 
     func searchVideos(keyword: String, limit: Int = 100) async throws -> YouTubeSearchResponse {
+        let logger = AppConsoleLogger.youtubeSearch
+        let startedAt = Date()
+        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
+        logger.info(
+            "request_start",
+            metadata: ["keyword": keywordPreview, "limit": String(limit), "mode": AppLaunchMode.current.usesMockData ? "mock" : "live"]
+        )
+
         if AppLaunchMode.current.usesMockData {
             try? await Task.sleep(nanoseconds: 1_000_000_000)
-            return mockSearchResponse(keyword: keyword, limit: limit)
+            let response = mockSearchResponse(keyword: keyword, limit: limit)
+            logger.notice(
+                "request_complete",
+                metadata: [
+                    "keyword": keywordPreview,
+                    "videos": String(response.videos.count),
+                    "source": "mock",
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
+            return response
         }
 
         guard let apiKey = resolvedAPIKey else {
+            logger.error(
+                "config_missing",
+                message: YouTubeSearchError.apiKeyMissing.localizedDescription,
+                metadata: ["keyword": keywordPreview]
+            )
             throw YouTubeSearchError.apiKeyMissing
         }
         let mediumCandidates = try await searchCandidates(
@@ -65,7 +91,19 @@ struct YouTubeSearchService {
         let videoIDs = Array(mergedCandidates.map(\.id).prefix(limit))
         let detailedVideos = try await fetchVideoDetails(videoIDs: videoIDs, apiKey: apiKey)
         let videos = Self.mergeDetailedVideos(detailedVideos, preferredOrder: videoIDs)
-        return YouTubeSearchResponse(videos: videos, totalCount: videos.count, fetchedAt: .now)
+        let response = YouTubeSearchResponse(videos: videos, totalCount: videos.count, fetchedAt: .now)
+        logger.notice(
+            "request_complete",
+            metadata: [
+                "keyword": keywordPreview,
+                "medium_candidates": String(mediumCandidates.count),
+                "long_candidates": String(longCandidates.count),
+                "selected_ids": String(videoIDs.count),
+                "videos": String(videos.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            ]
+        )
+        return response
     }
 
     private var resolvedAPIKey: String? {
@@ -92,6 +130,8 @@ struct YouTubeSearchService {
         apiKey: String,
         maxResults: Int
     ) async throws -> [SearchCandidate] {
+        let logger = AppConsoleLogger.youtubeSearch
+        let startedAt = Date()
         var components = URLComponents(string: "https://www.googleapis.com/youtube/v3/search")
         components?.queryItems = [
             URLQueryItem(name: "part", value: "snippet"),
@@ -110,19 +150,44 @@ struct YouTubeSearchService {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
 
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let response = try JSONDecoder.youtubeAPI.decode(SearchListResponse.self, from: data)
-        return response.items.compactMap { item in
+        logger.debug(
+            "candidate_request_start",
+            metadata: ["duration": duration, "max_results": String(maxResults), "keyword": AppConsoleLogger.sanitizedKeyword(keyword)]
+        )
+
+        let data = try await loadData(
+            for: request,
+            endpoint: "search",
+            metadata: ["duration": duration, "max_results": String(maxResults)]
+        )
+        let response = try decodeResponse(SearchListResponse.self, from: data, endpoint: "search", metadata: ["duration": duration])
+        let candidates: [SearchCandidate] = response.items.compactMap { item in
             guard let videoID = item.id.videoID else { return nil }
             return SearchCandidate(id: videoID, publishedAt: item.snippet.publishedAt)
         }
+        logger.debug(
+            "candidate_request_complete",
+            metadata: [
+                "duration": duration,
+                "items": String(candidates.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            ]
+        )
+        return candidates
     }
 
     private func fetchVideoDetails(videoIDs: [String], apiKey: String) async throws -> [YouTubeSearchVideo] {
         guard !videoIDs.isEmpty else { return [] }
 
+        let logger = AppConsoleLogger.youtubeSearch
+        let startedAt = Date()
         var mergedVideos: [YouTubeSearchVideo] = []
-        for batch in videoIDs.chunked(into: 50) {
+        let batches = videoIDs.chunked(into: 50)
+        logger.debug(
+            "video_details_start",
+            metadata: ["video_ids": String(videoIDs.count), "batches": String(batches.count)]
+        )
+        for (index, batch) in batches.enumerated() {
             var components = URLComponents(string: "https://www.googleapis.com/youtube/v3/videos")
             components?.queryItems = [
                 URLQueryItem(name: "part", value: Self.videoDetailsPartParameter),
@@ -137,12 +202,100 @@ struct YouTubeSearchService {
             var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
             request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
 
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let response = try JSONDecoder.youtubeAPI.decode(VideoListResponse.self, from: data)
-            mergedVideos.append(contentsOf: Self.filterPlayableVideos(response.items))
+            let data = try await loadData(
+                for: request,
+                endpoint: "videos",
+                metadata: ["batch": "\(index + 1)/\(batches.count)", "ids": String(batch.count)]
+            )
+            let response = try decodeResponse(
+                VideoListResponse.self,
+                from: data,
+                endpoint: "videos",
+                metadata: ["batch": "\(index + 1)/\(batches.count)"]
+            )
+            let videos = Self.filterPlayableVideos(response.items)
+            mergedVideos.append(contentsOf: videos)
+            logger.debug(
+                "video_details_batch_complete",
+                metadata: ["batch": "\(index + 1)/\(batches.count)", "videos": String(videos.count)]
+            )
         }
 
+        logger.debug(
+            "video_details_complete",
+            metadata: ["videos": String(mergedVideos.count), "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+        )
         return mergedVideos
+    }
+
+    private func loadData(
+        for request: URLRequest,
+        endpoint: String,
+        metadata: [String: String]
+    ) async throws -> Data {
+        let startedAt = Date()
+        let logger = AppConsoleLogger.youtubeSearch
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            let invalidResponseMetadata = metadata.merging(
+                ["endpoint": endpoint, "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)],
+                uniquingKeysWith: { _, new in new }
+            )
+            logger.error(
+                "response_invalid",
+                message: "HTTP response を取得できませんでした。",
+                metadata: invalidResponseMetadata
+            )
+            throw YouTubeSearchError.invalidResponse
+        }
+
+        let responseMetadata = metadata.merging(
+            [
+                "endpoint": endpoint,
+                "status": String(httpResponse.statusCode),
+                "bytes": String(data.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            ]
+        ) { _, new in new }
+
+        guard (200 ..< 300).contains(httpResponse.statusCode) else {
+            let failureMetadata = responseMetadata.merging(
+                ["body_preview": AppConsoleLogger.responsePreview(data)],
+                uniquingKeysWith: { _, new in new }
+            )
+            logger.error(
+                "http_failure",
+                message: "YouTube API が失敗しました。",
+                metadata: failureMetadata
+            )
+            throw YouTubeSearchError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        logger.debug("http_success", metadata: responseMetadata)
+        return data
+    }
+
+    private func decodeResponse<Response: Decodable>(
+        _ type: Response.Type,
+        from data: Data,
+        endpoint: String,
+        metadata: [String: String]
+    ) throws -> Response {
+        do {
+            return try JSONDecoder.youtubeAPI.decode(type, from: data)
+        } catch {
+            let decodeMetadata = metadata.merging(
+                ["endpoint": endpoint, "body_preview": AppConsoleLogger.responsePreview(data)],
+                uniquingKeysWith: { _, new in new }
+            )
+            AppConsoleLogger.youtubeSearch.error(
+                "decode_failure",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: decodeMetadata
+            )
+            throw error
+        }
     }
 
     static func mergeCandidates(_ candidates: [SearchCandidate]) -> [SearchCandidate] {

@@ -263,11 +263,21 @@ final class FeedCacheCoordinator: ObservableObject {
             return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
         }
 
+        let logger = AppConsoleLogger.youtubeSearch
+
         if AppLaunchMode.current.usesMockData {
             if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+                logger.info(
+                    "snapshot_hit",
+                    metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "source": cached.source.label, "videos": String(cached.videos.count)]
+                )
                 return cached
             }
             let local = await searchVideos(keyword: normalizedKeyword, limit: limit)
+            logger.info(
+                "snapshot_mock_local",
+                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "videos": String(local.videos.count)]
+            )
             return VideoSearchResult(
                 keyword: normalizedKeyword,
                 videos: local.videos,
@@ -279,9 +289,17 @@ final class FeedCacheCoordinator: ObservableObject {
         }
 
         if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+            logger.info(
+                "snapshot_hit",
+                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "source": cached.source.label, "videos": String(cached.videos.count)]
+            )
             return cached
         }
 
+        logger.info(
+            "snapshot_miss",
+            metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "limit": String(limit)]
+        )
         return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
     }
 
@@ -291,6 +309,16 @@ final class FeedCacheCoordinator: ObservableObject {
             return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
         }
 
+        let logger = AppConsoleLogger.youtubeSearch
+        logger.info(
+            "coordinator_search_start",
+            metadata: [
+                "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
+                "limit": String(limit),
+                "force_refresh": forceRefresh ? "true" : "false",
+            ]
+        )
+
         if AppLaunchMode.current.usesMockData {
             if forceRefresh {
                 do {
@@ -298,6 +326,11 @@ final class FeedCacheCoordinator: ObservableObject {
                     await refreshHomeSystemStatus()
                     return freshResult
                 } catch {
+                    logger.error(
+                        "refresh_failed",
+                        message: AppConsoleLogger.errorSummary(error),
+                        metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "fallback": "snapshot"],
+                    )
                     return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
                 }
             }
@@ -314,6 +347,15 @@ final class FeedCacheCoordinator: ObservableObject {
             return freshResult
         } catch {
             if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+                logger.error(
+                    "refresh_failed",
+                    message: AppConsoleLogger.errorSummary(error),
+                    metadata: [
+                        "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
+                        "fallback": "stale_cache",
+                        "videos": String(cached.videos.count),
+                    ]
+                )
                 return VideoSearchResult(
                     keyword: cached.keyword,
                     videos: cached.videos,
@@ -324,6 +366,11 @@ final class FeedCacheCoordinator: ObservableObject {
                     errorMessage: error.localizedDescription
                 )
             }
+            logger.error(
+                "refresh_failed",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "fallback": "none"]
+            )
             return VideoSearchResult(
                 keyword: normalizedKeyword,
                 videos: [],

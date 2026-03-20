@@ -24,6 +24,12 @@ struct RemoteVideoSearchService {
     }
 
     func refresh(keyword: String, limit: Int) async throws -> VideoSearchResult {
+        let logger = AppConsoleLogger.youtubeSearch
+        let startedAt = Date()
+        logger.info(
+            "remote_refresh_start",
+            metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword), "limit": String(limit)]
+        )
         let response = try await searchService.searchVideos(keyword: keyword, limit: limit)
         let cachedVideos = response.videos.map { video in
             CachedVideo(
@@ -42,8 +48,12 @@ struct RemoteVideoSearchService {
             )
         }
         await cacheStore.merge(keyword: keyword, videos: cachedVideos, fetchedAt: response.fetchedAt)
+        logger.debug(
+            "remote_cache_merged",
+            metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword), "videos": String(cachedVideos.count)]
+        )
 
-        return await loadSnapshot(keyword: keyword, limit: limit, allowExpired: true)
+        let result = await loadSnapshot(keyword: keyword, limit: limit, allowExpired: true)
             ?? VideoSearchResult(
                 keyword: keyword,
                 videos: cachedVideos,
@@ -52,6 +62,16 @@ struct RemoteVideoSearchService {
                 fetchedAt: response.fetchedAt,
                 expiresAt: response.fetchedAt.addingTimeInterval(cacheLifetime)
             )
+        logger.notice(
+            "remote_refresh_complete",
+            metadata: [
+                "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
+                "videos": String(result.videos.count),
+                "source": result.source.label,
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            ]
+        )
+        return result
     }
 
     func clear(keyword: String) async {
