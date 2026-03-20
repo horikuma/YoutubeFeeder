@@ -5,6 +5,7 @@ struct HomeScreenView: View {
     let layout: AppLayout
     let diagnostics: StartupDiagnostics
     let navigationPath: Binding<NavigationPath>
+    @AppStorage(PerformanceProbeMode.storageKey) private var performanceProbeModeRawValue = PerformanceProbeMode.modeA.rawValue
     @State private var didRunAutoRefresh = false
     @State private var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
     @State private var transferFeedback: ChannelRegistryTransferFeedback?
@@ -29,6 +30,7 @@ struct HomeScreenView: View {
                     .accessibilityIdentifier("screen.home")
 
                 navigationSection
+                performanceProbeSection
                 SystemStatusTile(status: coordinator.homeSystemStatus)
 
                 if let transferFeedback {
@@ -61,6 +63,7 @@ struct HomeScreenView: View {
                     "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
                     "registered_channels": String(coordinator.homeSystemStatus.registeredChannelCount),
                     "cached_videos": String(coordinator.homeSystemStatus.cachedVideoCount),
+                    "probe_mode": performanceProbeMode.shortLabel,
                 ]
             )
         }
@@ -150,6 +153,7 @@ struct HomeScreenView: View {
                         metadata: [
                             "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
                             "keyword": FeedCacheCoordinator.homeSearchKeyword,
+                            "probe_mode": performanceProbeMode.shortLabel,
                         ]
                     )
                     RuntimeDiagnostics.shared.record(
@@ -158,6 +162,7 @@ struct HomeScreenView: View {
                         metadata: [
                             "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
                             "keyword": FeedCacheCoordinator.homeSearchKeyword,
+                            "probe_mode": performanceProbeMode.shortLabel,
                         ]
                     )
                 }
@@ -212,6 +217,47 @@ struct HomeScreenView: View {
             .tint(.red)
             .accessibilityIdentifier("nav.resetAllSettings")
         }
+    }
+
+    private var performanceProbeSection: some View {
+        Menu {
+            ForEach(PerformanceProbeMode.allCases) { mode in
+                Button {
+                    performanceProbeMode = mode
+                    AppConsoleLogger.appLifecycle.notice(
+                        "performance_probe_mode_changed",
+                        metadata: [
+                            "probe_mode": mode.shortLabel,
+                            "label": mode.label,
+                        ]
+                    )
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(mode.label)
+                            Text(mode.detail)
+                        }
+                        if mode == performanceProbeMode {
+                            Spacer()
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            MetricTile(
+                title: "性能測定",
+                value: performanceProbeMode.label,
+                detail: performanceProbeMode.detail
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .accessibilityIdentifier("nav.performanceProbe")
+    }
+
+    private var performanceProbeMode: PerformanceProbeMode {
+        get { PerformanceProbeMode(rawValue: performanceProbeModeRawValue) ?? .modeA }
+        nonmutating set { performanceProbeModeRawValue = newValue.rawValue }
     }
 
     private func exportRegistry() {

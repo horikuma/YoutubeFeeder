@@ -9,6 +9,7 @@ final class HomeScreenUITests: UITestCaseSupport {
         XCTAssertTrue(element("nav.videos", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.search", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.remoteSearch", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("nav.performanceProbe", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.channelRegistration", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.registryTransfer", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(element("nav.resetAllSettings", in: app).waitForExistence(timeout: 3))

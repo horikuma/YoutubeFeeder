@@ -91,6 +91,70 @@ enum RemoteSearchChipMode: String, Hashable {
     case refreshing
 }
 
+enum PerformanceProbeMode: String, CaseIterable, Hashable, Identifiable {
+    case modeA = "A"
+    case modeB = "B"
+    case modeC = "C"
+    case modeD = "D"
+
+    static let storageKey = "performance.probeMode"
+
+    var id: String { rawValue }
+
+    var label: String {
+        "パターン\(rawValue)"
+    }
+
+    var shortLabel: String {
+        rawValue
+    }
+
+    var detail: String {
+        switch self {
+        case .modeA:
+            return "標準。遅延付きで右ペインを初期読込"
+        case .modeB:
+            return "右ペインを遅延なしで初期読込"
+        case .modeC:
+            return "初回検索表示件数を20件に制限"
+        case .modeD:
+            return "初回は右ペイン自動読込なし"
+        }
+    }
+
+    var splitLoadDelayMilliseconds: Int {
+        switch self {
+        case .modeA, .modeC, .modeD:
+            return 150
+        case .modeB:
+            return 0
+        }
+    }
+
+    var initialRemoteSearchSnapshotLimit: Int {
+        switch self {
+        case .modeC:
+            return 20
+        case .modeA, .modeB, .modeD:
+            return 100
+        }
+    }
+
+    var allowsAutomaticInitialSplitLoad: Bool {
+        self != .modeD
+    }
+
+    static var current: PerformanceProbeMode {
+        guard
+            let stored = UserDefaults.standard.string(forKey: storageKey),
+            let mode = PerformanceProbeMode(rawValue: stored)
+        else {
+            return .modeA
+        }
+        return mode
+    }
+}
+
 struct RemoteSearchPresentationState: Hashable {
     var visibleCount: Int
     var chipMode: RemoteSearchChipMode

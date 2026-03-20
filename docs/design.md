@@ -42,6 +42,7 @@
   - 手動更新、検索導線、バックアップ、全設定リセット、システム状況表示。
   - YouTube検索タイル選択の runtime diagnostics 記録。
   - ホーム表示と YouTube検索タイル選択の lifecycle ログ。
+  - 性能測定モード `A/B/C/D` の切替 UI。
 - [ChannelRegistrationView.swift](../HelloWorld/Features/Home/ChannelRegistrationView.swift)
   - チャンネル登録画面。
   - 入力、解決、登録、結果表示。
@@ -63,6 +64,7 @@
   - `refreshable` は trigger のみを担い、検索本体は coordinator の managed task へ委譲する。
   - iPad split では初期右ペイン読込を短く遅延させ、遷移直後はプレースホルダを表示する。
   - iPad split の初期右ペイン読込について、予約・開始・完了を runtime diagnostics へ記録する。
+  - 性能測定モードに応じて snapshot limit、split 初期遅延、初期右ペイン自動読込を切り替える。
 - [BrowseViews.swift](../HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - 自動 feed 更新時の上部進行表示。
@@ -115,6 +117,7 @@
   - `VideoOpenPolicy`
   - `FeedOrdering`
   - `ChannelBrowseSortDescriptor`
+  - `PerformanceProbeMode`
   - `RemoteSearchPresentationState`
   - 画面非依存の pure logic。
 

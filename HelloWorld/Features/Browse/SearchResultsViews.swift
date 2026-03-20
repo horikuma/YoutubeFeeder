@@ -175,6 +175,7 @@ struct RemoteKeywordSearchResultsView: View {
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let layout: AppLayout
+    @AppStorage(PerformanceProbeMode.storageKey) private var performanceProbeModeRawValue = PerformanceProbeMode.modeA.rawValue
 
     @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
     @State private var presentationState = RemoteSearchPresentationState(
@@ -290,11 +291,15 @@ struct RemoteKeywordSearchResultsView: View {
                 metadata: [
                     "keyword": keyword,
                     "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                    "probe_mode": performanceProbeMode.shortLabel,
                 ]
             )
             AppConsoleLogger.youtubeSearch.info(
                 "screen_appear",
-                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword)]
+                metadata: [
+                    "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
+                    "probe_mode": performanceProbeMode.shortLabel,
+                ]
             )
         }
         .onDisappear {
@@ -302,19 +307,30 @@ struct RemoteKeywordSearchResultsView: View {
             AppConsoleLogger.youtubeSearch.info(
                 "screen_disappear",
                 metadata: [
-                    "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
-                    "videos": String(result.videos.count),
-                    "refreshing": presentationState.isRefreshingChip ? "true" : "false",
-                ]
-            )
-        }
+                "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
+                "videos": String(result.videos.count),
+                "refreshing": presentationState.isRefreshingChip ? "true" : "false",
+                "probe_mode": performanceProbeMode.shortLabel,
+            ]
+        )
+    }
     }
 
     private func loadSnapshot() async {
         let logger = AppConsoleLogger.youtubeSearch
         let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
-        logger.debug("screen_snapshot_load_start", metadata: ["keyword": keywordPreview])
-        result = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
+        logger.debug(
+            "screen_snapshot_load_start",
+            metadata: [
+                "keyword": keywordPreview,
+                "probe_mode": performanceProbeMode.shortLabel,
+                "limit": String(performanceProbeMode.initialRemoteSearchSnapshotLimit),
+            ]
+        )
+        result = await coordinator.loadRemoteSearchSnapshot(
+            keyword: keyword,
+            limit: performanceProbeMode.initialRemoteSearchSnapshotLimit
+        )
         logger.debug(
             "screen_snapshot_load_complete",
             metadata: [
@@ -322,6 +338,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "source": result.source.label,
                 "videos": String(result.videos.count),
                 "error": result.errorMessage == nil ? "none" : "present",
+                "probe_mode": performanceProbeMode.shortLabel,
             ]
         )
         applyPresentationState()
@@ -351,6 +368,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "videos": String(result.videos.count),
                 "fetched": result.fetchedAt == nil ? "false" : "true",
                 "error": result.errorMessage == nil ? "none" : "present",
+                "probe_mode": performanceProbeMode.shortLabel,
             ]
         )
         applyPresentationState()
@@ -385,6 +403,18 @@ struct RemoteKeywordSearchResultsView: View {
 
     private func applyDefaultSplitSelectionIfNeeded() {
         guard layout.usesSplitChannelBrowser else { return }
+        guard performanceProbeMode.allowsAutomaticInitialSplitLoad else {
+            splitLoadTask?.cancel()
+            isSplitLoading = false
+            AppConsoleLogger.appLifecycle.info(
+                "remote_search_split_load_skipped",
+                metadata: [
+                    "probe_mode": performanceProbeMode.shortLabel,
+                    "reason": "manual_initial_selection",
+                ]
+            )
+            return
+        }
         guard let context = presentationState.splitContext else {
             splitLoadTask?.cancel()
             splitContext = nil
@@ -417,6 +447,7 @@ struct RemoteKeywordSearchResultsView: View {
             metadata: [
                 "channelID": context.channelID,
                 "trigger": "explicit",
+                "probe_mode": performanceProbeMode.shortLabel,
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -436,6 +467,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "trigger": "explicit",
                 "videos": String(splitVideos.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "probe_mode": performanceProbeMode.shortLabel,
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -459,7 +491,8 @@ struct RemoteKeywordSearchResultsView: View {
             "remote_search_split_load_scheduled",
             metadata: [
                 "channelID": context.channelID,
-                "delay_ms": "150",
+                "delay_ms": String(performanceProbeMode.splitLoadDelayMilliseconds),
+                "probe_mode": performanceProbeMode.shortLabel,
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -472,7 +505,10 @@ struct RemoteKeywordSearchResultsView: View {
         )
 
         splitLoadTask = Task {
-            try? await Task.sleep(nanoseconds: 150_000_000)
+            let delayMilliseconds = performanceProbeMode.splitLoadDelayMilliseconds
+            if delayMilliseconds > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(delayMilliseconds) * 1_000_000)
+            }
             guard !Task.isCancelled else { return }
 
             let startedAt = Date()
@@ -481,6 +517,7 @@ struct RemoteKeywordSearchResultsView: View {
                 metadata: [
                     "channelID": context.channelID,
                     "trigger": "initial",
+                    "probe_mode": performanceProbeMode.shortLabel,
                 ]
             )
             RuntimeDiagnostics.shared.record(
@@ -506,6 +543,7 @@ struct RemoteKeywordSearchResultsView: View {
                     "trigger": "initial",
                     "videos": String(loadedVideos.count),
                     "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "probe_mode": performanceProbeMode.shortLabel,
                 ]
             )
             RuntimeDiagnostics.shared.record(
@@ -523,6 +561,10 @@ struct RemoteKeywordSearchResultsView: View {
 
     private func normalizedChannelTitle(for video: CachedVideo) -> String? {
         video.channelTitle.isEmpty ? nil : video.channelTitle
+    }
+
+    private var performanceProbeMode: PerformanceProbeMode {
+        PerformanceProbeMode(rawValue: performanceProbeModeRawValue) ?? .modeA
     }
 }
 
