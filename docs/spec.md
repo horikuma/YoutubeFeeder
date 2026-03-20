@@ -2,7 +2,7 @@
 
 この文書は、HelloWorld アプリの要求仕様と機能仕様を記述する正本である。人間および LLM が、このアプリが何をしなければならないか、どのように振る舞わなければならないか、何を壊してはいけないかを同じ基準で理解するために用いる。
 
-文書群の役割分担と文書の切り分け基準は [document-rules.md](./document-rules.md)、文書運用ルールは [document-operations.md](./document-operations.md) を参照する。
+文書群の役割分担と文書運用ルールは [rules-documents.md](./rules-documents.md) を参照する。
 
 ## 1. 目的
 
@@ -445,5 +445,5 @@
 ## 8. 仕様とルールの境界
 
 - この文書には、ユーザーから見える振る舞い、キャッシュ更新の挙動、画面要件、非機能要件を記載する
-- 実装責務、ファイル責務、テスト運用、変更管理は [rules.md](./rules.md)、文書更新手順は [document-operations.md](./document-operations.md) に記載する
+- 実装責務、ファイル責務、テスト運用、変更管理は [rules.md](./rules.md)、文書更新手順は [rules-documents.md](./rules-documents.md) に記載する
 - 仕様変更時は、この文書と `rules.md` の両方を確認し、振る舞いと開発ルールの間に矛盾を残してはならない

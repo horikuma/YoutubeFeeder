@@ -2,7 +2,7 @@
 
 この文書は、HelloWorld の採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を定める設計文書である。本書は「このプロダクトでどう設計するか」を扱う。
 
-文書群の役割分担と文書の切り分け基準は [document-rules.md](./document-rules.md)、文書運用ルールは [document-operations.md](./document-operations.md) を参照する。
+文書群の役割分担と文書運用ルールは [rules-documents.md](./rules-documents.md) を参照する。
 
 ## プロダクト前提
 

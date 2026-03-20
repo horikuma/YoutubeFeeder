@@ -1,16 +1,53 @@
-# HelloWorld Document Operations
+# HelloWorld Document Rules
 
-この文書は、HelloWorld の文書運用ルールを定める正本である。文書構成、更新判断、履歴管理、Markdown 記述の共通ルールを扱う。
+この文書は、HelloWorld の文書群に関する上位ルールを定める正本である。ここでは、文書体系、文書の切り分け基準、参照資料の位置付け、文書運用、履歴管理、Markdown 記述の共通ルールを扱う。
 
-文書群の役割分担と文書の切り分け基準は [document-rules.md](./document-rules.md) を参照する。
+## 文書体系
 
-## 開発着手時の文書運用
+### 正本
 
-- 新規開発セッションを開始する時は、まず [rules.md](./rules.md) と [document-rules.md](./document-rules.md) を読み直して現在の運用を確認する。
+- [rules.md](./rules.md)
+  - HelloWorld の最上位方針として、意思決定ルール、優先順位、開発プロセス、開発原則を記述する。
+- [spec.md](./spec.md)
+  - ユーザー向け機能、画面遷移、操作、表示要件を記述する。
+- [architecture.md](./architecture.md)
+  - 採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を記述する。
+- [design.md](./design.md)
+  - ファイル単位、型単位、テスト単位の責務や構成など、詳細設計を記述する。
+
+### 参照資料
+
+- [gui.md](./human-view/gui.md)
+  - 画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
+- [design-overview.md](./human-view/design-overview.md)
+  - クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
+- `docs/report/` 配下
+  - 個別の障害調査、性能探索、検証ログの整理結果を、将来の再調査に使う参照資料として記述する。
+
+## 文書の切り分け基準
+
+- `rules.md` へ実装詳細や画面単位の仕様を集約してはならない。
+- クラス名や型名が出る内容は、原則として `design.md` へ置く。
+- ユーザー操作や画面導線に依存する内容は、原則として `spec.md` へ置く。
+- 変更しても全体構造が変わらない運用詳細は、`rules.md` または `spec.md` へ置く。
+- レイヤ構造、依存方向、データフローの形、責務の原則を規定する内容は、`architecture.md` へ置く。
+- 文書の内容が詳細化しすぎた場合は、上位方針を残して詳細を `spec.md`、`architecture.md`、`design.md` へ移す。
+
+## 人間向け参照資料の位置付け
+
+- `docs/human-view/` 配下の文書は正本ではないため、仕様や責務の最終判断根拠にしてはならない。
+- `docs/human-view/` 配下の文書は、人間の開発者にとっての第一入口として、関連する正本変更と同じ変更セットで必ず同期する。
+- `docs/report/` 配下の文書は正本ではないため、個別調査の観測結果や仮説、比較結果を残す用途に限定し、方針や仕様の最終判断根拠にしてはならない。
+
+## 文書運用
+
+### 開発着手時の文書運用
+
+- 新規開発セッションを開始する時は、まず [rules.md](./rules.md) と [rules-documents.md](./rules-documents.md) を読み直して現在の運用を確認する。
 - 日付が変わっている場合は、`history/chat-latest.md`、`history/decisions-latest.md`、`history/metrics-latest.md` の前日分を対応する `*-log.md` の先頭へ移してから、当日分の `*-latest.md` を新しい日付見出しで開始する。
 - 新規開発セッション開始時の準備を文書更新として実施した場合は、その開始指示を `history/chat-latest.md` に反映してから当日の開発へ入る。
 
-## 共通原則
+### 共通原則
 
 - `rules.md` は追記メモ置き場として扱わず、章ごとの役割が読んで辿れる構造を維持する。
 - `rules.md` を更新する時は、関連する既存節へ統合し、重複、矛盾、末尾だけの場当たり的な追記を避ける。
@@ -21,7 +58,7 @@
 - `docs/human-view/` 配下は、人間向けの翻訳資料と図表資料を置く領域とし、配置だけで正本と区別できる状態を維持する。
 - `docs/report/` 配下は、障害調査や性能探索の報告書を置く領域とし、日々の履歴バッファとは混ぜず、1 件ごとに独立した Markdown として残す。
 
-## 変更時の更新対象
+### 変更時の更新対象
 
 - 機能を変更したら [spec.md](./spec.md) を見直す。
 - 採用アーキテクチャ、責務境界、データフロー、テスト方針を変更したら [architecture.md](./architecture.md) を見直す。
@@ -31,7 +68,7 @@
 - 上位方針や変更判断の基準を変更したら [rules.md](./rules.md) を見直す。
 - 検証コストや性能観測の更新では [metrics-latest.md](./history/metrics-latest.md) を更新し、日次履歴は [metrics-log.md](./history/metrics-log.md) で保持する。
 
-## 人間向け参照資料のルール
+### 人間向け参照資料のルール
 
 - [gui.md](./human-view/gui.md) の `画面遷移` では、全ノードが画面であることを前提に、図中ラベルの `〜画面` は省略して短く保つ。
 - [gui.md](./human-view/gui.md) の `画面一覧` の `画面名` は、指示に使う正式名として `〜画面` を含めた表記を維持する。
@@ -39,13 +76,15 @@
 - [design-overview.md](./human-view/design-overview.md) の Adaptive UI 表現では、`CompactView` / `RegularView` の個別クラスを図へ並べず、親となる機能 View クラスの枠内へ改行付きの注記を入れて、表現差分を内包する設計であることを示す。
 - `docs/human-view/` 配下の資料は、人間の参照性を優先して複雑さを抑えてよいが、簡略化によって正本との関係が読めなくならないよう、どの正本の翻訳かを明示したまま運用する。
 
-## Markdown ルール
+### Markdown ルール
 
 - Markdown に `mermaid` または `plantuml` を含める場合は、コミット前に構文エラーなく描画できることを確認してから反映する。
 - Markdown のファイルリンクは、表示テキストをファイル名のみとし、表示上にパスを含めない。
 - Markdown のリンク先自体は、各文書位置から実体ファイルへ辿れる相対パスで維持する。
 
-## 履歴文書の共通ルール
+## 履歴文書の運用
+
+### 共通ルール
 
 - 履歴を継続的に蓄積する文書は `history/chat-log.md`、`history/metrics-log.md`、`history/decisions-log.md` とし、当日作業中の追記先は対応する `*-latest.md` とする。
 - 当日中の更新は原則として対応する `*-latest.md` に対して行い、履歴文書 `*-log.md` へその場で追記しない。
@@ -55,15 +94,15 @@
 - 新しい日付見出しを追加する場合は、直前の日付見出しとの間に 1 行だけ空行を入れる。
 - 見出しと直後の列挙の間には空行を入れない。
 
-## history/chat-log.md / history/chat-latest.md
+### history/chat-log.md / history/chat-latest.md
 
-### 基本運用
+#### 基本運用
 
 - [chat-latest.md](./history/chat-latest.md) は当日作業中の追記先とし、ユーザー発言が追加されたら都度反映する。
 - [chat-log.md](./history/chat-log.md) は日次ローテーション後の履歴保持先とする。
 - 同じ日付の中では、新しい発言ほど上、古い発言ほど下になるように追記する。
 
-### 記録内容
+#### 記録内容
 
 - 各発言には、`ユーザー指示のタイムスタンプ` から `コミット直前またはドキュメント更新時のタイムスタンプ` までの経過時間を `（直前のLLM所要時間: 約11m52s）` のような形式で併記する。
 - 所要時間は、画面表示上の印象値ではなく、記録対象のユーザー発話時刻と文書更新時刻の差分を基準に算出する。
@@ -72,12 +111,12 @@
 - ただし、明らかな変換ミスや誤字は、意味を変えない範囲で修正してよい。
 - `chatlog.md` や `Chatlog.md` のような旧名や揺れを受け取った場合でも、現在の運用名である `history/chat-log.md` または `history/chat-latest.md` に読み替えて扱う。
 
-### 除外と保護
+#### 除外と保護
 
 - 個人情報、API キー、トークン、絶対パスやホームディレクトリを含む文字列は、記録前に除去またはマスクする。
 - [chat-log.md](./history/chat-log.md) は、LLM や Codex をどのように使って構築したかを後から振り返るための履歴として扱う。
 
-## history/metrics-log.md / history/metrics-latest.md
+### history/metrics-log.md / history/metrics-latest.md
 
 - 計測値の当日更新は [metrics-latest.md](./history/metrics-latest.md) に対して行う。
 - [metrics-log.md](./history/metrics-log.md) は日次ローテーション後の履歴保持先とする。
@@ -89,7 +128,7 @@
 - `scripts/collect_test_metrics.sh` は、修正ループ中の logic 1 件 / UI 1 件のような限定確認や、部分集合の計測確認にだけ使う。
 - [metrics-log.md](./history/metrics-log.md) は、検証コストや起動性能の履歴を後から参照するための正本として扱う。
 
-## history/decisions-log.md / history/decisions-latest.md
+### history/decisions-log.md / history/decisions-latest.md
 
 - 意識的な設計変更が行われた際は、当日分の [decisions-latest.md](./history/decisions-latest.md) を更新する。
 - 日付見出しの下へ、新しい決定ほど上に追加する。
