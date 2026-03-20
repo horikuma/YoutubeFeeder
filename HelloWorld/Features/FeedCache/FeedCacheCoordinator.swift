@@ -831,28 +831,11 @@ final class FeedCacheCoordinator: ObservableObject {
         fallbackOnFailure: String
     ) async -> VideoSearchResult {
         let key = RemoteSearchTaskKey(keyword: keyword, limit: limit)
-        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
 
         let task: Task<VideoSearchResult, Never>
         if let existingTask = remoteSearchTasks[key] {
-            logger.info(
-                "managed_task_reused",
-                metadata: [
-                    "keyword": keywordPreview,
-                    "limit": String(limit),
-                    "caller_cancelled": Task.isCancelled ? "true" : "false",
-                ]
-            )
             task = existingTask
         } else {
-            logger.info(
-                "managed_task_created",
-                metadata: [
-                    "keyword": keywordPreview,
-                    "limit": String(limit),
-                    "caller_cancelled": Task.isCancelled ? "true" : "false",
-                ]
-            )
             task = Task { [remoteSearchService] in
                 do {
                     return try await remoteSearchService.refresh(keyword: keyword, limit: limit)
@@ -870,26 +853,7 @@ final class FeedCacheCoordinator: ObservableObject {
             remoteSearchTasks[key] = task
         }
 
-        logger.debug(
-            "managed_task_await_start",
-            metadata: [
-                "keyword": keywordPreview,
-                "limit": String(limit),
-                "caller_cancelled": Task.isCancelled ? "true" : "false",
-            ]
-        )
         let result = await task.value
-        logger.notice(
-            "managed_task_await_complete",
-            metadata: [
-                "keyword": keywordPreview,
-                "limit": String(limit),
-                "caller_cancelled": Task.isCancelled ? "true" : "false",
-                "videos": String(result.videos.count),
-                "source": result.source.label,
-                "fetched": result.fetchedAt == nil ? "false" : "true",
-            ]
-        )
         remoteSearchTasks[key] = nil
         await refreshHomeSystemStatus()
         return result

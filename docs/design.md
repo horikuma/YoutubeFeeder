@@ -51,7 +51,7 @@
 - [SearchResultsViews.swift](../HelloWorld/Features/Browse/SearchResultsViews.swift)
   - 固定キーワード検索結果と YouTube 検索結果。
   - 下部チップ、上部進行表示、検索結果の UI 写像。
-  - 画面出入り、snapshot 読込、pull-to-refresh の開始完了ログ。
+  - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
   - `refreshable` は trigger のみを担い、検索本体は coordinator の managed task へ委譲する。
 - [BrowseViews.swift](../HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
@@ -66,7 +66,7 @@
   - UI と永続化の仲介。
   - bootstrap 読込、一覧データ読込、手動更新、単独チャンネル更新、検索結果読込。
   - YouTube 検索の snapshot hit / miss、refresh failure fallback、cancel fallback の境界ログ。
-  - YouTube 検索の managed task の生成、再利用、await 完了管理。
+  - YouTube 検索の managed task の生成、再利用管理。
 - [FeedChannelSyncService.swift](../HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、更新判定、store 反映を束ねる更新実行サービス。
 - [ChannelRegistryMaintenanceService.swift](../HelloWorld/Features/FeedCache/ChannelRegistryMaintenanceService.swift)

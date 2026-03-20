@@ -1,8 +1,8 @@
 ## 2026/03/20
 - `pull-to-refresh` は YouTube検索の実処理を直接抱えず、`FeedCacheCoordinator` が持つ managed task を trigger するだけの構成に改めた。
   - `refreshable` の async 処理は View のライフサイクルに従って cancel されうるため、通信処理そのものをその task にぶら下げると、画面再構成や離脱で `URLSession` まで中断されやすい。UI task は開始契機だけを担い、検索本体は coordinator 側の unstructured task で所有する方が、PullToRefresh の使い方としても自然で、途中中断に引きずられにくい。
-- YouTube検索の managed task は、同一 `keyword + limit` の再実行時に再利用し、`caller_cancelled` を含む await 開始・完了ログを出す方針にした。
-  - 実機調査では「誰が止めたか」だけでなく、「UI の task は cancel されたが検索本体は継続したか」を確認できる必要があるため。task の生成、再利用、await 完了をログ化しておくと、`refreshable` 側のキャンセルと実処理の継続を切り分けて追える。
+- YouTube検索の managed task は、同一 `keyword + limit` の再実行時に再利用し、通常運用では一時的な task 診断ログを残さない方針にした。
+  - トラブルシュート中は `caller_cancelled` 付きの詳細ログが有効だったが、常設すると流量が増え、日常の実機確認ではノイズになりやすいため。普段は開始・通信・失敗・完了の境界ログだけを残し、task 単位の詳細診断は必要時だけ再投入する方が運用しやすい。
 - YouTube検索では `cancelled` を通常失敗と分けて扱い、`screen`、`coordinator`、`service`、`transport` の各層で中断を観測した地点をログへ残す方針にした。
   - 既存ログでは `refresh_failed message="cancelled"` だけが見え、通信前に止まったのか、URLSession が中断されたのか、画面離脱に伴うキャンセルなのかを切り分けにくかったため。責務境界ごとにキャンセル専用イベントを出し、`reason` と `stage` を添えることで、実機コンソールだけでも中断地点を追えるようにした。
 - YouTube検索のキャンセルはユーザー向け `errorMessage` として表示せず、キャッシュが無い場合は `未取得`、キャッシュがあれば既存結果維持として扱う方針にした。
