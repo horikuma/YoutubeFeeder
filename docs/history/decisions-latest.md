@@ -1,4 +1,6 @@
 ## 2026/03/20
+- 今回の性能トラブル探索は、後から再利用できる叩き台として `docs/report/` 配下へ個別報告書として残し、文書体系上は `参照資料` として扱う方針にした。
+  - `chat-latest` や `decisions-latest` だけでは試行錯誤の全体像や外れ筋、実測値のまとまりが後から追いにくいため。正本の仕様や方針とは分離したまま、個別調査の過程と観測を体系化して保存できる置き場を明示する。
 - summary の初回 decode をさらに落とすため、`cache-summary` と `remote-search-*-summary` の正本形式を JSON から binary property list へ切り替え、旧 JSON summary は fallback 読込だけ残す方針にした。
   - summary sidecar 導入後も、実機では検索キャッシュ summary の decode がまだ 1.5 秒級で残っていたため。summary 自体を 100 byte 級の binary plist に落とし、`PropertyListDecoder` で読むことで、ホーム表示前の鮮度確認をほぼゼロコスト化する。
 - 起動性能対策は、ホーム表示に必要な件数・鮮度を summary sidecar で返しつつ、本体 cache も compact date 形式へ寄せる二段構えで進める方針にした。
