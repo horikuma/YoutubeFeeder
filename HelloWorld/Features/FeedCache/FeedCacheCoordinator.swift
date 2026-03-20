@@ -23,6 +23,7 @@ final class FeedCacheCoordinator: ObservableObject {
     private var videoQuery = VideoQuery()
     private var liveUpdateSuspendCount = 0
     private var needsRefreshWhenResumed = false
+    private var remoteSearchTasks: [RemoteSearchTaskKey: Task<VideoSearchResult, Never>] = [:]
     private let remoteSearchCacheLifetime: TimeInterval = 12 * 60 * 60
 
     static let homeSearchKeyword = "ゆっくり実況"
@@ -321,18 +322,13 @@ final class FeedCacheCoordinator: ObservableObject {
 
         if AppLaunchMode.current.usesMockData {
             if forceRefresh {
-                do {
-                    let freshResult = try await remoteSearchService.refresh(keyword: normalizedKeyword, limit: limit)
-                    await refreshHomeSystemStatus()
-                    return freshResult
-                } catch {
-                    logger.error(
-                        "refresh_failed",
-                        message: AppConsoleLogger.errorSummary(error),
-                        metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "fallback": "snapshot"],
-                    )
-                    return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
-                }
+                let result = await performManagedRemoteRefresh(
+                    keyword: normalizedKeyword,
+                    limit: limit,
+                    logger: logger,
+                    fallbackOnFailure: "snapshot"
+                )
+                return result
             }
             return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
         }
@@ -341,80 +337,12 @@ final class FeedCacheCoordinator: ObservableObject {
             return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
         }
 
-        do {
-            let freshResult = try await remoteSearchService.refresh(keyword: normalizedKeyword, limit: limit)
-            await refreshHomeSystemStatus()
-            return freshResult
-        } catch {
-            if RemoteSearchErrorPolicy.isCancellation(error) {
-                if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
-                    logger.notice(
-                        "refresh_cancelled",
-                        metadata: [
-                            "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
-                            "fallback": cached.source == .staleRemoteCache ? "stale_cache" : "cache",
-                            "videos": String(cached.videos.count),
-                            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
-                        ]
-                    )
-                    return VideoSearchResult(
-                        keyword: cached.keyword,
-                        videos: cached.videos,
-                        totalCount: cached.totalCount,
-                        source: cached.source,
-                        fetchedAt: cached.fetchedAt,
-                        expiresAt: cached.expiresAt
-                    )
-                }
-                logger.notice(
-                    "refresh_cancelled",
-                    metadata: [
-                        "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
-                        "fallback": "empty",
-                        "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
-                    ]
-                )
-                return VideoSearchResult(
-                    keyword: normalizedKeyword,
-                    videos: [],
-                    totalCount: 0,
-                    source: .remoteCache
-                )
-            }
-
-            if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
-                logger.error(
-                    "refresh_failed",
-                    message: AppConsoleLogger.errorSummary(error),
-                    metadata: [
-                        "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
-                        "fallback": "stale_cache",
-                        "videos": String(cached.videos.count),
-                    ]
-                )
-                return VideoSearchResult(
-                    keyword: cached.keyword,
-                    videos: cached.videos,
-                    totalCount: cached.totalCount,
-                    source: .staleRemoteCache,
-                    fetchedAt: cached.fetchedAt,
-                    expiresAt: cached.expiresAt,
-                    errorMessage: RemoteSearchErrorPolicy.userMessage(for: error)
-                )
-            }
-            logger.error(
-                "refresh_failed",
-                message: AppConsoleLogger.errorSummary(error),
-                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "fallback": "none"]
-            )
-            return VideoSearchResult(
-                keyword: normalizedKeyword,
-                videos: [],
-                totalCount: 0,
-                source: .remoteAPI,
-                errorMessage: RemoteSearchErrorPolicy.userMessage(for: error)
-            )
-        }
+        return await performManagedRemoteRefresh(
+            keyword: normalizedKeyword,
+            limit: limit,
+            logger: logger,
+            fallbackOnFailure: "none"
+        )
     }
 
     func addChannel(input: String) async throws -> ChannelRegistrationFeedback {
@@ -895,4 +823,160 @@ final class FeedCacheCoordinator: ObservableObject {
         await remoteSearchService.clear(keyword: keyword)
         await refreshHomeSystemStatus()
     }
+
+    private func performManagedRemoteRefresh(
+        keyword: String,
+        limit: Int,
+        logger: AppConsoleLogger,
+        fallbackOnFailure: String
+    ) async -> VideoSearchResult {
+        let key = RemoteSearchTaskKey(keyword: keyword, limit: limit)
+        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
+
+        let task: Task<VideoSearchResult, Never>
+        if let existingTask = remoteSearchTasks[key] {
+            logger.info(
+                "managed_task_reused",
+                metadata: [
+                    "keyword": keywordPreview,
+                    "limit": String(limit),
+                    "caller_cancelled": Task.isCancelled ? "true" : "false",
+                ]
+            )
+            task = existingTask
+        } else {
+            logger.info(
+                "managed_task_created",
+                metadata: [
+                    "keyword": keywordPreview,
+                    "limit": String(limit),
+                    "caller_cancelled": Task.isCancelled ? "true" : "false",
+                ]
+            )
+            task = Task { [remoteSearchService] in
+                do {
+                    return try await remoteSearchService.refresh(keyword: keyword, limit: limit)
+                } catch {
+                    return await Self.resolveRemoteRefreshFailure(
+                        error: error,
+                        keyword: keyword,
+                        limit: limit,
+                        logger: logger,
+                        remoteSearchService: remoteSearchService,
+                        fallbackOnFailure: fallbackOnFailure
+                    )
+                }
+            }
+            remoteSearchTasks[key] = task
+        }
+
+        logger.debug(
+            "managed_task_await_start",
+            metadata: [
+                "keyword": keywordPreview,
+                "limit": String(limit),
+                "caller_cancelled": Task.isCancelled ? "true" : "false",
+            ]
+        )
+        let result = await task.value
+        logger.notice(
+            "managed_task_await_complete",
+            metadata: [
+                "keyword": keywordPreview,
+                "limit": String(limit),
+                "caller_cancelled": Task.isCancelled ? "true" : "false",
+                "videos": String(result.videos.count),
+                "source": result.source.label,
+                "fetched": result.fetchedAt == nil ? "false" : "true",
+            ]
+        )
+        remoteSearchTasks[key] = nil
+        await refreshHomeSystemStatus()
+        return result
+    }
+
+    private nonisolated static func resolveRemoteRefreshFailure(
+        error: Error,
+        keyword: String,
+        limit: Int,
+        logger: AppConsoleLogger,
+        remoteSearchService: RemoteVideoSearchService,
+        fallbackOnFailure: String
+    ) async -> VideoSearchResult {
+        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
+        if RemoteSearchErrorPolicy.isCancellation(error) {
+            if let cached = await remoteSearchService.loadSnapshot(keyword: keyword, limit: limit, allowExpired: true) {
+                logger.notice(
+                    "refresh_cancelled",
+                    metadata: [
+                        "keyword": keywordPreview,
+                        "fallback": cached.source == .staleRemoteCache ? "stale_cache" : "cache",
+                        "videos": String(cached.videos.count),
+                        "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                    ]
+                )
+                return VideoSearchResult(
+                    keyword: cached.keyword,
+                    videos: cached.videos,
+                    totalCount: cached.totalCount,
+                    source: cached.source,
+                    fetchedAt: cached.fetchedAt,
+                    expiresAt: cached.expiresAt
+                )
+            }
+            logger.notice(
+                "refresh_cancelled",
+                metadata: [
+                    "keyword": keywordPreview,
+                    "fallback": "empty",
+                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                ]
+            )
+            return VideoSearchResult(
+                keyword: keyword,
+                videos: [],
+                totalCount: 0,
+                source: .remoteCache
+            )
+        }
+
+        if let cached = await remoteSearchService.loadSnapshot(keyword: keyword, limit: limit, allowExpired: true) {
+            logger.error(
+                "refresh_failed",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: [
+                    "keyword": keywordPreview,
+                    "fallback": "stale_cache",
+                    "videos": String(cached.videos.count),
+                ]
+            )
+            return VideoSearchResult(
+                keyword: cached.keyword,
+                videos: cached.videos,
+                totalCount: cached.totalCount,
+                source: .staleRemoteCache,
+                fetchedAt: cached.fetchedAt,
+                expiresAt: cached.expiresAt,
+                errorMessage: RemoteSearchErrorPolicy.userMessage(for: error)
+            )
+        }
+
+        logger.error(
+            "refresh_failed",
+            message: AppConsoleLogger.errorSummary(error),
+            metadata: ["keyword": keywordPreview, "fallback": fallbackOnFailure]
+        )
+        return VideoSearchResult(
+            keyword: keyword,
+            videos: [],
+            totalCount: 0,
+            source: .remoteAPI,
+            errorMessage: RemoteSearchErrorPolicy.userMessage(for: error)
+        )
+    }
+}
+
+private struct RemoteSearchTaskKey: Hashable {
+    let keyword: String
+    let limit: Int
 }

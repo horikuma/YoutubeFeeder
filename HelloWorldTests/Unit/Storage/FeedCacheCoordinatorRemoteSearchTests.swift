@@ -36,6 +36,46 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
         }
     }
 
+    func testForceRefreshPersistsEvenIfCallerTaskIsCancelled() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withEnvironment([
+            "HELLOWORLD_FEEDCACHE_BASE_DIR": temporaryRoot.appendingPathComponent("Cache", isDirectory: true).path,
+            "HELLOWORLD_UI_TEST_MODE": "1"
+        ]) {
+            let coordinator = FeedCacheCoordinator(
+                channels: [],
+                dependencies: FeedCacheDependencies.live()
+            )
+
+            let refreshTask = Task { @MainActor in
+                await coordinator.searchRemoteVideos(
+                    keyword: "ゆっくり実況",
+                    limit: 100,
+                    forceRefresh: true
+                )
+            }
+
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            refreshTask.cancel()
+            _ = await refreshTask.value
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+
+            let cachedSnapshot = await coordinator.loadRemoteSearchSnapshot(
+                keyword: "ゆっくり実況",
+                limit: 100
+            )
+
+            XCTAssertEqual(cachedSnapshot.videos.first?.id, "remote-refresh-001")
+            XCTAssertEqual(cachedSnapshot.totalCount, 2)
+            XCTAssertEqual(cachedSnapshot.source, .remoteCache)
+            XCTAssertNotNil(cachedSnapshot.fetchedAt)
+        }
+    }
+
     private func withEnvironment<T>(
         _ overrides: [String: String],
         operation: () async throws -> T

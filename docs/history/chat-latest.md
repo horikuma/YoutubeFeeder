@@ -1,4 +1,20 @@
 ## 2026/03/20
+- ふむ、すごく当然のようにあらゆるアプリでこの更新UI採用されてると思うんだが、随分と不安定というか、トラブりやすいというか、単に設計がおかしいのか？PullToRefreshのテンプレートから外れているか？まずは回答を。（直前のLLM所要時間: 約3m）
+- [YoutubeFeeder] 2026-03-20T08:59:17.233Z INFO youtube.search.screen_appear keyword="ゆっくり実況"
+  [YoutubeFeeder] 2026-03-20T08:59:17.291Z DEBUG youtube.search.screen_snapshot_load_start keyword="ゆっくり実況"
+  [YoutubeFeeder] 2026-03-20T08:59:17.292Z INFO youtube.search.snapshot_miss keyword="ゆっくり実況" limit="100"
+  [YoutubeFeeder] 2026-03-20T08:59:17.292Z DEBUG youtube.search.screen_snapshot_load_complete error="none" keyword="ゆっくり実況" source="検索キャッシュ" videos="0"
+  [YoutubeFeeder] 2026-03-20T08:59:19.540Z INFO youtube.search.screen_refresh_start current_videos="0" force_refresh="true" keyword="ゆっくり実況"
+  [YoutubeFeeder] 2026-03-20T08:59:19.549Z INFO youtube.search.coordinator_search_start force_refresh="true" keyword="ゆっくり実況" limit="100"
+  [YoutubeFeeder] 2026-03-20T08:59:19.549Z INFO youtube.search.remote_refresh_start keyword="ゆっくり実況" limit="100"
+  [YoutubeFeeder] 2026-03-20T08:59:19.549Z INFO youtube.search.request_start keyword="ゆっくり実況" limit="100" mode="live"
+  [YoutubeFeeder] 2026-03-20T08:59:19.550Z DEBUG youtube.search.candidate_request_start duration="medium" keyword="ゆっくり実況" max_results="50"
+  [YoutubeFeeder] 2026-03-20T08:59:19.584Z NOTICE youtube.search.http_cancelled duration="medium" elapsed_ms="32" endpoint="search" max_results="50" reason="urlsession_cancelled"
+  [YoutubeFeeder] 2026-03-20T08:59:19.584Z NOTICE youtube.search.request_cancelled elapsed_ms="35" keyword="ゆっくり実況" reason="urlsession_cancelled" stage="candidate_medium"
+  [YoutubeFeeder] 2026-03-20T08:59:19.584Z NOTICE youtube.search.remote_refresh_cancelled elapsed_ms="35" keyword="ゆっくり実況" limit="100" reason="urlsession_cancelled"
+  [YoutubeFeeder] 2026-03-20T08:59:19.585Z NOTICE youtube.search.refresh_cancelled fallback="empty" keyword="ゆっくり実況" reason="urlsession_cancelled"
+  [YoutubeFeeder] 2026-03-20T08:59:19.585Z NOTICE youtube.search.screen_refresh_complete error="none" fetched="false" keyword="ゆっくり実況" source="検索キャッシュ" videos="0"（直前のLLM所要時間: 約2m）
+- 本筋に向かって進めよ。ただし、解決するまではログも補強せよ。期待通りに動けばその後スリムにすれば良い。なおコミットまでに複数回、指示や問い合わせをした場合は、コミット時に順に全てchat-latestに追加せよ。では、コミットしプッシュせよ。（直前のLLM所要時間: 約18m）
 - キャッシュが空なら取得できませんCancelledというタイルが見えてる。原因を追求したのでログを詰めていこう。うまくいったら、全体的にログを強化するけど今はYoutube検索を重点的に。（直前のLLM所要時間: 約16m）
 - 実機だとYouTube検索に失敗しているようだ。しかしタイルが画面外にいってしまって不具合確認に手間取ってしまった。Xcodeのコンソールに出力するログを整備して、かっとんでいかない程度の流速で、しかし必要なポイントはしっかりわかるように、ログ方針を立て、設計し、ドキュメントを更新した上で、実装して。キーワードは[YoutubeFeeder]とする。コミットし、プッシュせよ。以後断りがない限り、コミットし、プッシュせよ。（直前のLLM所要時間: 約18m）
 - rules.mdの責務分離が、architecture.mdとの境界が滲んでいる。上から見て「永続化や外部通信は、UI から直接触らず、中間層を介して扱う。」まではrules.mdだが、そこから下は詳細すぎarchitectureの方が適切だろう。document-rulesに反映し、その上で内容を整理せよ。またdocument-rulesにこのプロダクト固有の、とか、プロダクトに依存する、とか、古い責務分担の言葉が残っているので、整理せよ。単に削除するのではなく、文書の位置付けを明確にすることを心がけよ。コミットし、プッシュせよ。（直前のLLM所要時間: 約13m）

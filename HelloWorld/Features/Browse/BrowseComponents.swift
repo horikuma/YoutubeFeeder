@@ -32,12 +32,33 @@ struct InteractiveListScreen<Content: View>: View {
         .modifier(BackSwipePopModifier(path: $path))
         .refreshable {
             guard let onRefresh else { return }
+            AppConsoleLogger.youtubeSearch.info(
+                "refreshable_invoked",
+                metadata: [
+                    "title": title,
+                    "cancelled": Task.isCancelled ? "true" : "false",
+                ]
+            )
             await onRefresh()
+            AppConsoleLogger.youtubeSearch.info(
+                "refreshable_completed",
+                metadata: [
+                    "title": title,
+                    "cancelled": Task.isCancelled ? "true" : "false",
+                ]
+            )
         }
         .onAppear {
             coordinator.suspendLiveUpdates()
         }
         .onDisappear {
+            AppConsoleLogger.youtubeSearch.info(
+                "interactive_screen_disappear",
+                metadata: [
+                    "title": title,
+                    "cancelled": Task.isCancelled ? "true" : "false",
+                ]
+            )
             coordinator.resumeLiveUpdates()
         }
     }

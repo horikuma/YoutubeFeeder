@@ -324,11 +324,19 @@ struct RemoteKeywordSearchResultsView: View {
                 "keyword": keywordPreview,
                 "force_refresh": forceRefresh ? "true" : "false",
                 "current_videos": String(result.videos.count),
+                "cancelled": Task.isCancelled ? "true" : "false",
             ]
         )
         if forceRefresh {
             presentationState.beginRefresh()
             await Task.yield()
+            logger.debug(
+                "screen_refresh_post_yield",
+                metadata: [
+                    "keyword": keywordPreview,
+                    "cancelled": Task.isCancelled ? "true" : "false",
+                ]
+            )
         }
         result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: forceRefresh)
         logger.notice(
@@ -339,6 +347,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "videos": String(result.videos.count),
                 "fetched": result.fetchedAt == nil ? "false" : "true",
                 "error": result.errorMessage == nil ? "none" : "present",
+                "cancelled": Task.isCancelled ? "true" : "false",
             ]
         )
         applyPresentationState()

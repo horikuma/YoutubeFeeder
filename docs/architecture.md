@@ -128,3 +128,4 @@
 - API キー、完全な request URL、巨大な response body は出力せず、失敗時も本文は短い preview に切り詰める。
 - キャンセルは通信失敗と分けて記録し、`画面`, `coordinator`, `service`, `transport` のどこで中断を観測したか追える形にする。
 - キャンセルはユーザー向け失敗文言へそのまま出さず、必要な情報は調査ログで追う。
+- `pull-to-refresh` は UI task そのものを検索処理の所有者にせず、実取得は内側の managed task へ委譲して View の再構成や離脱に引きずられにくくする。
