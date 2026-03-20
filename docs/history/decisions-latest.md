@@ -1,4 +1,6 @@
 ## 2026/03/20
+- 起動時の通常キャッシュ `snapshot_ms` も最終段まで切り分けるため、`FeedCacheStore.loadSnapshot` に directory 準備、file existence、`Data(contentsOf:)`、JSON decode、返却件数の分解ログを追加する方針にした。
+  - 直近の実機ログでは `snapshot_ms` が約 2.5 秒と `search_cache_ms` を上回っており、起動時ボトルネックの主犯候補として残っていたため。検索キャッシュ側と同じ粒度で `feed_snapshot_store_*` を出せば、通常キャッシュの重さが I/O か decode か、あるいはファイル規模かを同じ物差しで比較できる。
 - ホーム表示前の `search_cache_ms` をさらに割るため、`RemoteVideoSearchService.status` と `RemoteVideoSearchCacheStore.status` に、service 境界、file existence、`Data(contentsOf:)`、JSON decode、TTL 判定の各区間ログを追加する方針にした。
   - 直近の実機ログでは `home_status_load_complete` の約 3 秒の大半が検索キャッシュ状態取得に集中していた一方、snapshot や split 読込は十分速いことが見えていたため。ここで対策に入るより、まず `search_cache_ms` の塊を細かく割って、I/O・decode・actor hop のどれが支配的かを確信を持って特定することを優先する。
 - iPad の YouTube検索遷移調査では、bootstrap 完了までの内訳、ホームのナビゲーション部品描画、G 画面の最初の結果表示、右ペイン detail の初回表示までを同じ系列で観測できるよう、起動と描画の分解ログを追加する方針にした。
