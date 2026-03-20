@@ -36,6 +36,20 @@ struct FeedCacheSnapshot {
     nonisolated static let empty = FeedCacheSnapshot(savedAt: .distantPast, channels: [], videos: [])
 }
 
+struct FeedCacheSummary: Hashable {
+    let savedAt: Date?
+    let cachedChannelCount: Int
+    let cachedVideoCount: Int
+    let cachedThumbnailBytes: Int64
+
+    nonisolated static let empty = FeedCacheSummary(
+        savedAt: nil,
+        cachedChannelCount: 0,
+        cachedVideoCount: 0,
+        cachedThumbnailBytes: 0
+    )
+}
+
 struct CacheProgress {
     let totalChannels: Int
     let cachedChannels: Int
@@ -164,6 +178,12 @@ enum VideoSearchSource: String, Hashable {
 struct RemoteVideoSearchCacheEntry: Hashable {
     let keyword: String
     let videos: [CachedVideo]
+    let totalCount: Int
+    let fetchedAt: Date
+}
+
+struct RemoteVideoSearchCacheSummary: Hashable {
+    let keyword: String
     let totalCount: Int
     let fetchedAt: Date
 }
@@ -304,6 +324,8 @@ struct VideoQuery: Hashable {
 nonisolated extension CachedVideo: Codable {}
 nonisolated extension CachedChannelState: Codable {}
 nonisolated extension FeedCacheSnapshot: Codable {}
+nonisolated extension FeedCacheSummary: Codable {}
+nonisolated extension RemoteVideoSearchCacheSummary: Codable {}
 nonisolated extension CacheProgress: Codable {}
 nonisolated extension RefreshStageProgress: Codable {}
 nonisolated extension CacheRefreshProgress: Codable {}

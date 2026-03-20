@@ -11,26 +11,33 @@ struct HomeSystemStatusService {
             "home_status_load_start",
             metadata: ["main_thread": AppConsoleLogger.mainThreadFlag()]
         )
-        let resolvedSnapshot: FeedCacheSnapshot
+        let resolvedSummary: FeedCacheSummary
         let snapshotLoadedAt: Date
         if let snapshot {
-            resolvedSnapshot = snapshot
+            resolvedSummary = await store.summary(for: snapshot)
+            snapshotLoadedAt = Date()
+        } else if let summary = await store.loadSummary() {
+            resolvedSummary = summary
             snapshotLoadedAt = Date()
         } else {
-            resolvedSnapshot = await store.loadSnapshot()
+            let loadedSnapshot = await store.loadSnapshot()
+            if let summary = await store.loadSummary() {
+                resolvedSummary = summary
+            } else {
+                resolvedSummary = await store.summary(for: loadedSnapshot)
+            }
             snapshotLoadedAt = Date()
         }
         let cacheStatus = await remoteSearchService.status(keyword: homeSearchKeyword)
         let cacheStatusLoadedAt = Date()
         let registeredChannelCount = ChannelRegistryStore.loadAllChannels().count
         let registeredChannelsLoadedAt = Date()
-        let thumbnailBytes = await store.totalThumbnailBytes()
         let thumbnailBytesLoadedAt = Date()
         let status = HomeSystemStatus(
             registeredChannelCount: registeredChannelCount,
-            cachedVideoCount: resolvedSnapshot.videos.count,
-            cachedThumbnailBytes: thumbnailBytes,
-            cacheLastUpdatedAt: currentProgress?.lastUpdatedAt ?? (resolvedSnapshot.savedAt == .distantPast ? nil : resolvedSnapshot.savedAt),
+            cachedVideoCount: resolvedSummary.cachedVideoCount,
+            cachedThumbnailBytes: resolvedSummary.cachedThumbnailBytes,
+            cacheLastUpdatedAt: currentProgress?.lastUpdatedAt ?? resolvedSummary.savedAt,
             apiKeyConfigured: remoteSearchService.isConfigured,
             searchCacheStatus: cacheStatus
         )

@@ -28,6 +28,10 @@ enum FeedCachePaths {
         baseDirectory(fileManager: fileManager).appendingPathComponent("cache.json")
     }
 
+    nonisolated static func cacheSummaryURL(fileManager: FileManager = .default) -> URL {
+        baseDirectory(fileManager: fileManager).appendingPathComponent("cache-summary.json")
+    }
+
     nonisolated static func channelRegistryURL(fileManager: FileManager = .default) -> URL {
         baseDirectory(fileManager: fileManager).appendingPathComponent("channel-registry.json")
     }
@@ -39,6 +43,12 @@ enum FeedCachePaths {
             .replacingOccurrences(of: "[^0-9a-z]+", with: "-", options: .regularExpression)
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
         let filename = sanitizedKeyword.isEmpty ? "remote-search.json" : "remote-search-\(sanitizedKeyword).json"
+        return baseDirectory(fileManager: fileManager).appendingPathComponent(filename)
+    }
+
+    nonisolated static func remoteSearchCacheSummaryURL(keyword: String, fileManager: FileManager = .default) -> URL {
+        let cacheURL = remoteSearchCacheURL(keyword: keyword, fileManager: fileManager)
+        let filename = cacheURL.deletingPathExtension().lastPathComponent + "-summary.json"
         return baseDirectory(fileManager: fileManager).appendingPathComponent(filename)
     }
 }

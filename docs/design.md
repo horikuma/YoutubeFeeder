@@ -85,15 +85,21 @@
   - チャンネル登録、削除、バックアップ入出力、全設定リセット。
 - [FeedCacheStore.swift](../HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - cache、snapshot、thumbnail、整合性メンテナンス。
+  - `cache-summary.json` を併設し、ホーム表示に必要な件数・更新時刻・thumbnail 合計サイズを本体 snapshot decode なしで返す。
+  - 本体 JSON は compact date 形式で再保存し、旧 ISO8601 形式も互換 decode する。
 - [RemoteVideoSearchCacheStore.swift](../HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - YouTube 検索結果キャッシュの保存、鮮度判定、履歴クリア。
+  - `remote-search-*-summary.json` を併設し、ホームの検索キャッシュ鮮度表示は軽量 summary から返す。
 - [RemoteVideoSearchService.swift](../HelloWorld/Features/FeedCache/RemoteVideoSearchService.swift)
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。
   - 検索キャッシュ反映完了と remote refresh cancellation のログ。
 - [HomeSystemStatusService.swift](../HelloWorld/Features/FeedCache/HomeSystemStatusService.swift)
   - ホーム画面へ出すシステム状況の集約。
+  - summary があればそれを優先し、summary 不在時だけ本体 snapshot へ fallback する。
 - [FeedCachePaths.swift](../HelloWorld/Features/FeedCache/FeedCachePaths.swift)
-  - bootstrap、cache、registry、search cache、thumbnail の固定パス集約。
+  - bootstrap、cache、cache summary、registry、search cache、search cache summary、thumbnail の固定パス集約。
+- [FeedCachePersistenceCoders.swift](../HelloWorld/Features/FeedCache/FeedCachePersistenceCoders.swift)
+  - cache 永続化用の compact encoder / legacy-compatible decoder。
 - [FeedBootstrapStore.swift](../HelloWorld/Features/FeedCache/FeedBootstrapStore.swift)
   - bootstrap の読込と整形。
 - [ChannelRegistryStore.swift](../HelloWorld/Features/FeedCache/ChannelRegistryStore.swift)

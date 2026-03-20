@@ -2,20 +2,14 @@ import Foundation
 
 actor FeedCacheStore {
     private let fileManager = FileManager.default
-    private let encoder: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return encoder
-    }()
-    private let decoder: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }()
+    private let encoder = FeedCachePersistenceCoders.makeEncoder()
+    private let decoder = FeedCachePersistenceCoders.makeDecoder()
+    private let summaryEncoder = FeedCachePersistenceCoders.makeEncoder()
+    private let summaryDecoder = FeedCachePersistenceCoders.makeDecoder()
 
     private let baseDirectory: URL
     private let cacheFileURL: URL
+    private let summaryFileURL: URL
     private let bootstrapFileURL: URL
     private let thumbnailsDirectory: URL
     private var lastConsistencyMaintenanceAt: Date?
@@ -23,6 +17,7 @@ actor FeedCacheStore {
     init() {
         baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
         cacheFileURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+        summaryFileURL = FeedCachePaths.cacheSummaryURL(fileManager: fileManager)
         bootstrapFileURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
         thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
     }
@@ -103,7 +98,24 @@ actor FeedCacheStore {
             ]
         )
 
+        persistSummary(snapshot)
+
         return snapshot
+    }
+
+    func loadSummary() -> FeedCacheSummary? {
+        try? createDirectories()
+
+        guard let data = try? Data(contentsOf: summaryFileURL),
+              let summary = try? summaryDecoder.decode(FeedCacheSummary.self, from: data) else {
+            return nil
+        }
+
+        return summary
+    }
+
+    func summary(for snapshot: FeedCacheSnapshot) -> FeedCacheSummary {
+        buildSummary(from: snapshot)
     }
 
     func loadVideos(query: VideoQuery) -> [CachedVideo] {
@@ -375,6 +387,7 @@ actor FeedCacheStore {
         let removedThumbnailCount = Set(snapshot.videos.compactMap(\.thumbnailLocalFilename)).count
 
         try? fileManager.removeItem(at: cacheFileURL)
+        try? fileManager.removeItem(at: summaryFileURL)
         try? fileManager.removeItem(at: bootstrapFileURL)
         try? fileManager.removeItem(at: thumbnailsDirectory)
 
@@ -408,6 +421,28 @@ actor FeedCacheStore {
         try? createDirectories()
         guard let data = try? encoder.encode(snapshot) else { return }
         try? data.write(to: cacheFileURL, options: .atomic)
+        persistSummary(snapshot)
+    }
+
+    private func persistSummary(_ snapshot: FeedCacheSnapshot) {
+        let summary = buildSummary(from: snapshot)
+        guard let data = try? summaryEncoder.encode(summary) else { return }
+        try? data.write(to: summaryFileURL, options: .atomic)
+    }
+
+    private func buildSummary(from snapshot: FeedCacheSnapshot) -> FeedCacheSummary {
+        let filenames = Set(snapshot.videos.compactMap(\.thumbnailLocalFilename))
+        let cachedThumbnailBytes = filenames.reduce(into: Int64(0)) { total, filename in
+            let url = thumbnailsDirectory.appendingPathComponent(filename)
+            let size = (try? fileManager.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
+            total += size
+        }
+        return FeedCacheSummary(
+            savedAt: snapshot.savedAt == .distantPast ? nil : snapshot.savedAt,
+            cachedChannelCount: snapshot.channels.count,
+            cachedVideoCount: snapshot.videos.count,
+            cachedThumbnailBytes: cachedThumbnailBytes
+        )
     }
 
     private func createDirectories() throws {

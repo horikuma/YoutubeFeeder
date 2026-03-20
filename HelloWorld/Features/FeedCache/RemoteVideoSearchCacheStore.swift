@@ -2,22 +2,17 @@ import Foundation
 
 actor RemoteVideoSearchCacheStore {
     private let fileManager = FileManager.default
-    private let encoder: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return encoder
-    }()
-    private let decoder: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }()
+    private let encoder = FeedCachePersistenceCoders.makeEncoder()
+    private let decoder = FeedCachePersistenceCoders.makeDecoder()
+    private let summaryEncoder = FeedCachePersistenceCoders.makeEncoder()
+    private let summaryDecoder = FeedCachePersistenceCoders.makeDecoder()
 
     func load(keyword: String) -> RemoteVideoSearchCacheEntry? {
         let fileURL = FeedCachePaths.remoteSearchCacheURL(keyword: keyword, fileManager: fileManager)
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return try? decoder.decode(RemoteVideoSearchCacheEntry.self, from: data)
+        guard let entry = try? decoder.decode(RemoteVideoSearchCacheEntry.self, from: data) else { return nil }
+        persistSummary(for: entry)
+        return entry
     }
 
     func save(keyword: String, videos: [CachedVideo], totalCount: Int, fetchedAt: Date) {
@@ -34,6 +29,7 @@ actor RemoteVideoSearchCacheStore {
         guard let data = try? encoder.encode(entry) else { return }
         let fileURL = FeedCachePaths.remoteSearchCacheURL(keyword: keyword, fileManager: fileManager)
         try? data.write(to: fileURL, options: .atomic)
+        persistSummary(for: entry)
     }
 
     func merge(keyword: String, videos: [CachedVideo], fetchedAt: Date) {
@@ -66,17 +62,23 @@ actor RemoteVideoSearchCacheStore {
 
     func clear(keyword: String) {
         let fileURL = FeedCachePaths.remoteSearchCacheURL(keyword: keyword, fileManager: fileManager)
+        let summaryURL = FeedCachePaths.remoteSearchCacheSummaryURL(keyword: keyword, fileManager: fileManager)
         try? fileManager.removeItem(at: fileURL)
+        try? fileManager.removeItem(at: summaryURL)
     }
 
     func clearAll() -> Int {
         let baseURL = FeedCachePaths.baseDirectory(fileManager: fileManager)
         let filenames = (try? fileManager.contentsOfDirectory(atPath: baseURL.path)) ?? []
         let targets = filenames.filter {
-            ($0 == "remote-search.json" || $0.hasPrefix("remote-search-")) && $0.hasSuffix(".json")
+            (($0 == "remote-search.json" || $0.hasPrefix("remote-search-")) && $0.hasSuffix(".json")) && !$0.hasSuffix("-summary.json")
         }
         for filename in targets {
             try? fileManager.removeItem(at: baseURL.appendingPathComponent(filename))
+            if !filename.hasSuffix("-summary.json") {
+                let summaryFilename = filename.replacingOccurrences(of: ".json", with: "-summary.json")
+                try? fileManager.removeItem(at: baseURL.appendingPathComponent(summaryFilename))
+            }
         }
         return targets.count
     }
@@ -92,6 +94,37 @@ actor RemoteVideoSearchCacheStore {
                 "filename": fileURL.lastPathComponent,
             ]
         )
+
+        let summaryURL = FeedCachePaths.remoteSearchCacheSummaryURL(keyword: keyword, fileManager: fileManager)
+        if let summaryData = try? Data(contentsOf: summaryURL),
+           let summary = try? summaryDecoder.decode(RemoteVideoSearchCacheSummary.self, from: summaryData) {
+            let completedAt = Date()
+            let expiresAt = summary.fetchedAt.addingTimeInterval(ttl)
+            let status = RemoteSearchCacheStatus(
+                keyword: keyword,
+                isFresh: expiresAt > now,
+                totalCount: summary.totalCount,
+                fetchedAt: summary.fetchedAt,
+                expiresAt: expiresAt,
+                exists: true
+            )
+            AppConsoleLogger.appLifecycle.notice(
+                "search_cache_status_store_complete",
+                metadata: [
+                    "keyword": keywordPreview,
+                    "exists": "true",
+                    "is_fresh": status.isFresh ? "true" : "false",
+                    "mode": "summary",
+                    "file_check_ms": "0",
+                    "read_ms": "0",
+                    "decode_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: completedAt),
+                    "ttl_ms": "0",
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: completedAt),
+                    "videos": String(summary.totalCount),
+                ]
+            )
+            return status
+        }
 
         let fileExists = fileManager.fileExists(atPath: fileURL.path)
         let fileCheckedAt = Date()
@@ -144,6 +177,7 @@ actor RemoteVideoSearchCacheStore {
             return .empty(keyword: keyword)
         }
         let decodedAt = Date()
+        persistSummary(for: entry)
 
         let expiresAt = entry.fetchedAt.addingTimeInterval(ttl)
         let status = RemoteSearchCacheStatus(
@@ -163,6 +197,7 @@ actor RemoteVideoSearchCacheStore {
                 "videos": String(entry.videos.count),
                 "exists": "true",
                 "is_fresh": status.isFresh ? "true" : "false",
+                "mode": "full",
                 "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: fileCheckedAt),
                 "read_ms": AppConsoleLogger.elapsedMilliseconds(from: fileCheckedAt, to: dataLoadedAt),
                 "decode_ms": AppConsoleLogger.elapsedMilliseconds(from: dataLoadedAt, to: decodedAt),
@@ -171,6 +206,17 @@ actor RemoteVideoSearchCacheStore {
             ]
         )
         return status
+    }
+
+    private func persistSummary(for entry: RemoteVideoSearchCacheEntry) {
+        let summary = RemoteVideoSearchCacheSummary(
+            keyword: entry.keyword,
+            totalCount: entry.totalCount,
+            fetchedAt: entry.fetchedAt
+        )
+        guard let data = try? summaryEncoder.encode(summary) else { return }
+        let url = FeedCachePaths.remoteSearchCacheSummaryURL(keyword: entry.keyword, fileManager: fileManager)
+        try? data.write(to: url, options: .atomic)
     }
 
     func allVideos(channelID: String) -> [CachedVideo] {

@@ -107,8 +107,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
             XCTAssertEqual(result?.removedVideoCount, 1)
             XCTAssertEqual(result?.removedThumbnailCount, 2)
 
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
+            let decoder = FeedCachePersistenceCoders.makeDecoder()
             let savedSnapshot = try decoder.decode(FeedCacheSnapshot.self, from: Data(contentsOf: cacheURL))
             XCTAssertEqual(savedSnapshot.channels.map(\.channelID), ["UC111"])
             XCTAssertEqual(savedSnapshot.channels.first?.cachedVideoCount, 1)

@@ -135,6 +135,60 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
         }
     }
 
+    func testStatusReadsLegacyISO8601CacheFileAndCreatesSummary() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let cacheBaseURL = FeedCachePaths.baseDirectory(fileManager: fileManager)
+            try fileManager.createDirectory(at: cacheBaseURL, withIntermediateDirectories: true)
+
+            let fetchedAt = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let entry = RemoteVideoSearchCacheEntry(
+                keyword: "ゆっくり実況",
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "Channel One",
+                        title: "legacy",
+                        publishedAt: fetchedAt,
+                        videoURL: nil,
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: nil,
+                        fetchedAt: fetchedAt,
+                        searchableText: "legacy",
+                        durationSeconds: 60,
+                        viewCount: 1
+                    )
+                ],
+                totalCount: 1,
+                fetchedAt: fetchedAt
+            )
+
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try encoder.encode(entry).write(
+                to: FeedCachePaths.remoteSearchCacheURL(keyword: "ゆっくり実況", fileManager: fileManager),
+                options: .atomic
+            )
+
+            let store = RemoteVideoSearchCacheStore()
+            let status = await store.status(keyword: "ゆっくり実況", ttl: 60 * 60, now: fetchedAt)
+
+            XCTAssertTrue(status.exists)
+            XCTAssertEqual(status.totalCount, 1)
+            XCTAssertTrue(
+                fileManager.fileExists(
+                    atPath: FeedCachePaths.remoteSearchCacheSummaryURL(keyword: "ゆっくり実況", fileManager: fileManager).path
+                )
+            )
+        }
+    }
+
     private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () async throws -> T) async throws -> T {
         let key = "HELLOWORLD_FEEDCACHE_BASE_DIR"
         let previousValue = ProcessInfo.processInfo.environment[key]

@@ -37,6 +37,8 @@
 - `Service / Use Case` は UI 文脈から独立して成立する判定、状態遷移、マージ、更新フローを持つ。
 - `Store / Infrastructure` はデータの保存、読込、問い合わせ、外部接続の詳細を閉じ込める。
 - 固定パス、永続ファイル、検索キャッシュ、秘密情報解決のような `スコープの広いリソース` は、専用の `Paths` / `Store` / `Service` 型へ閉じ込め、View や汎用 model ファイルへ散らしてはならない。
+- ホームのように `件数` や `鮮度` だけが欲しい導線では、動画配列を含む本体 JSON を毎回 decode せず、summary 用の軽量永続物から先に読む。
+- 大きい永続 JSON は互換 decode を維持しつつ、今後保存する形式は `compact` を優先し、日付や補助情報は重い文字列表現や過剰な pretty print に依存しない。
 - `Shared` には画面から切り離せる pure logic を置き、複数画面から再利用できる状態を保つ。
 - 画面導線から起動される機能でも、UI と無関係に成立すべき判定や状態遷移は domain / logic 側へ置き、UI はその状態の写像として組み立てる。
 
@@ -119,6 +121,7 @@
 ## Concurrency と Build
 
 - 画面駆動の型だけを `@MainActor` とし、永続化モデルや parser、store は UI 文脈へ固定しない。
+- 起動直後の MainActor を長時間塞ぐ file decode は避け、ホームの初期表示に不要な大きい cache decode を挟まない。
 - build 検証は `error 0` に加えて `warning 0` を成立条件とする。
 - 計測は `scripts/collect_metrics.sh` を正本とし、同一の全体実行から build、test、起動性能を取得する。
 
