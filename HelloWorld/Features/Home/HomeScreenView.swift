@@ -5,7 +5,6 @@ struct HomeScreenView: View {
     let layout: AppLayout
     let diagnostics: StartupDiagnostics
     let navigationPath: Binding<NavigationPath>
-    @AppStorage(PerformanceProbeMode.storageKey) private var performanceProbeModeRawValue = PerformanceProbeMode.modeA.rawValue
     @State private var didRunAutoRefresh = false
     @State private var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
     @State private var transferFeedback: ChannelRegistryTransferFeedback?
@@ -14,8 +13,6 @@ struct HomeScreenView: View {
     @State private var isTransferringRegistry = false
     @State private var isResettingAllSettings = false
     @State private var shouldConfirmReset = false
-    @State private var hasLoggedNavigationSectionAppear = false
-    @State private var hasLoggedRemoteSearchTileAppear = false
 
     var body: some View {
         ScrollView {
@@ -32,7 +29,6 @@ struct HomeScreenView: View {
                     .accessibilityIdentifier("screen.home")
 
                 navigationSection
-                performanceProbeSection
                 SystemStatusTile(status: coordinator.homeSystemStatus)
 
                 if let transferFeedback {
@@ -65,7 +61,6 @@ struct HomeScreenView: View {
                     "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
                     "registered_channels": String(coordinator.homeSystemStatus.registeredChannelCount),
                     "cached_videos": String(coordinator.homeSystemStatus.cachedVideoCount),
-                    "probe_mode": performanceProbeMode.shortLabel,
                 ]
             )
         }
@@ -148,18 +143,6 @@ struct HomeScreenView: View {
                     detail: "開いた先で下に引っ張ると API 検索し、履歴を順次マージ"
                 )
             }
-            .onAppear {
-                guard !hasLoggedRemoteSearchTileAppear else { return }
-                hasLoggedRemoteSearchTileAppear = true
-                AppConsoleLogger.appLifecycle.debug(
-                    "remote_search_tile_appear",
-                    metadata: [
-                        "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
-                        "probe_mode": performanceProbeMode.shortLabel,
-                        "main_thread": AppConsoleLogger.mainThreadFlag(),
-                    ]
-                )
-            }
             .simultaneousGesture(
                 TapGesture().onEnded {
                     AppConsoleLogger.appLifecycle.info(
@@ -167,7 +150,6 @@ struct HomeScreenView: View {
                         metadata: [
                             "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
                             "keyword": FeedCacheCoordinator.homeSearchKeyword,
-                            "probe_mode": performanceProbeMode.shortLabel,
                         ]
                     )
                     RuntimeDiagnostics.shared.record(
@@ -176,7 +158,6 @@ struct HomeScreenView: View {
                         metadata: [
                             "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
                             "keyword": FeedCacheCoordinator.homeSearchKeyword,
-                            "probe_mode": performanceProbeMode.shortLabel,
                         ]
                     )
                 }
@@ -231,58 +212,6 @@ struct HomeScreenView: View {
             .tint(.red)
             .accessibilityIdentifier("nav.resetAllSettings")
         }
-        .onAppear {
-            guard !hasLoggedNavigationSectionAppear else { return }
-            hasLoggedNavigationSectionAppear = true
-            AppConsoleLogger.appLifecycle.debug(
-                "home_navigation_section_appear",
-                metadata: [
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
-                    "main_thread": AppConsoleLogger.mainThreadFlag(),
-                ]
-            )
-        }
-    }
-
-    private var performanceProbeSection: some View {
-        Menu {
-            ForEach(PerformanceProbeMode.allCases) { mode in
-                Button {
-                    performanceProbeMode = mode
-                    AppConsoleLogger.appLifecycle.notice(
-                        "performance_probe_mode_changed",
-                        metadata: [
-                            "probe_mode": mode.shortLabel,
-                            "label": mode.label,
-                        ]
-                    )
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(mode.label)
-                            Text(mode.detail)
-                        }
-                        if mode == performanceProbeMode {
-                            Spacer()
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            }
-        } label: {
-            MetricTile(
-                title: "性能測定",
-                value: performanceProbeMode.label,
-                detail: performanceProbeMode.detail
-            )
-        }
-        .menuStyle(.borderlessButton)
-        .accessibilityIdentifier("nav.performanceProbe")
-    }
-
-    private var performanceProbeMode: PerformanceProbeMode {
-        get { PerformanceProbeMode(rawValue: performanceProbeModeRawValue) ?? .modeA }
-        nonmutating set { performanceProbeModeRawValue = newValue.rawValue }
     }
 
     private func exportRegistry() {

@@ -59,16 +59,6 @@ enum UITestRemoteSearchFixtureVariant: String {
     }
 }
 
-enum UITestPerformanceProbeMode {
-    static var current: PerformanceProbeMode? {
-        guard AppLaunchMode.current.isUITest else { return nil }
-        guard let rawValue = ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_PROBE_MODE"] else {
-            return nil
-        }
-        return PerformanceProbeMode(rawValue: rawValue)
-    }
-}
-
 @MainActor
 final class StartupDiagnostics: ObservableObject {
     static let shared = StartupDiagnostics()
@@ -177,7 +167,6 @@ enum UITestFixtureSeeder {
     private static let remoteSearchKeyword = "ゆっくり実況"
 
     static func seedIfNeeded(bundle: Bundle = .main, fileManager: FileManager = .default) {
-        applyPerformanceProbeModeIfNeeded()
         guard AppLaunchMode.current.usesMockData else { return }
 
         let baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
@@ -226,11 +215,6 @@ enum UITestFixtureSeeder {
         case .heavy:
             seedHeavyRemoteSearchFixture(baseDirectory: baseDirectory, fileManager: fileManager)
         }
-    }
-
-    private static func applyPerformanceProbeModeIfNeeded() {
-        guard let probeMode = UITestPerformanceProbeMode.current else { return }
-        UserDefaults.standard.set(probeMode.rawValue, forKey: PerformanceProbeMode.storageKey)
     }
 
     private static func seedHeavyRemoteSearchFixture(baseDirectory: URL, fileManager: FileManager) {

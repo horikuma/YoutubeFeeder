@@ -6,7 +6,6 @@ actor FeedCacheStore {
     private let decoder = FeedCachePersistenceCoders.makeDecoder()
     private let summaryEncoder = FeedCachePersistenceCoders.makeSummaryEncoder()
     private let summaryDecoder = FeedCachePersistenceCoders.makeSummaryDecoder()
-    private let legacySummaryDecoder = FeedCachePersistenceCoders.makeDecoder()
 
     private let baseDirectory: URL
     private let cacheFileURL: URL
@@ -24,80 +23,22 @@ actor FeedCacheStore {
     }
 
     func loadSnapshot() -> FeedCacheSnapshot {
-        let startedAt = Date()
-        AppConsoleLogger.appLifecycle.debug(
-            "feed_snapshot_store_start",
-            metadata: [
-                "filename": cacheFileURL.lastPathComponent,
-            ]
-        )
-
         try? createDirectories()
-        let directoriesReadyAt = Date()
-
-        let fileExists = fileManager.fileExists(atPath: cacheFileURL.path)
-        let fileCheckedAt = Date()
-        guard fileExists else {
-            AppConsoleLogger.appLifecycle.notice(
-                "feed_snapshot_store_empty",
-                metadata: [
-                    "directories_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: directoriesReadyAt),
-                    "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: directoriesReadyAt, to: fileCheckedAt),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                ]
-            )
-            return .empty
-        }
+        guard fileManager.fileExists(atPath: cacheFileURL.path) else { return .empty }
 
         let data: Data
         do {
             data = try Data(contentsOf: cacheFileURL)
         } catch {
-            AppConsoleLogger.appLifecycle.error(
-                "feed_snapshot_store_read_failed",
-                message: AppConsoleLogger.errorSummary(error),
-                metadata: [
-                    "directories_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: directoriesReadyAt),
-                    "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: directoriesReadyAt, to: fileCheckedAt),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                ]
-            )
             return .empty
         }
-        let dataLoadedAt = Date()
 
         let snapshot: FeedCacheSnapshot
         do {
             snapshot = try decoder.decode(FeedCacheSnapshot.self, from: data)
         } catch {
-            AppConsoleLogger.appLifecycle.error(
-                "feed_snapshot_store_decode_failed",
-                message: AppConsoleLogger.errorSummary(error),
-                metadata: [
-                    "bytes": String(data.count),
-                    "directories_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: directoriesReadyAt),
-                    "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: directoriesReadyAt, to: fileCheckedAt),
-                    "read_ms": AppConsoleLogger.elapsedMilliseconds(from: fileCheckedAt, to: dataLoadedAt),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                ]
-            )
             return .empty
         }
-        let decodedAt = Date()
-
-        AppConsoleLogger.appLifecycle.notice(
-            "feed_snapshot_store_complete",
-            metadata: [
-                "bytes": String(data.count),
-                "videos": String(snapshot.videos.count),
-                "channels": String(snapshot.channels.count),
-                "directories_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: directoriesReadyAt),
-                "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: directoriesReadyAt, to: fileCheckedAt),
-                "read_ms": AppConsoleLogger.elapsedMilliseconds(from: fileCheckedAt, to: dataLoadedAt),
-                "decode_ms": AppConsoleLogger.elapsedMilliseconds(from: dataLoadedAt, to: decodedAt),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: decodedAt),
-            ]
-        )
 
         persistSummary(snapshot)
 
@@ -110,16 +51,7 @@ actor FeedCacheStore {
         guard let data = try? Data(contentsOf: summaryFileURL) else {
             return nil
         }
-
-        if let summary = try? summaryDecoder.decode(FeedCacheSummary.self, from: data) {
-            return summary
-        }
-
-        if let summary = try? legacySummaryDecoder.decode(FeedCacheSummary.self, from: data) {
-            return summary
-        }
-
-        return nil
+        return try? summaryDecoder.decode(FeedCacheSummary.self, from: data)
     }
 
     func summary(for snapshot: FeedCacheSnapshot) -> FeedCacheSummary {

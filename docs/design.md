@@ -42,7 +42,6 @@
   - 手動更新、検索導線、バックアップ、全設定リセット、システム状況表示。
   - YouTube検索タイル選択の runtime diagnostics 記録。
   - ホーム表示と YouTube検索タイル選択の lifecycle ログ。
-  - 性能測定モード `A/B/C/D` の切替 UI。
 - [ChannelRegistrationView.swift](../HelloWorld/Features/Home/ChannelRegistrationView.swift)
   - チャンネル登録画面。
   - 入力、解決、登録、結果表示。
@@ -64,7 +63,6 @@
   - `refreshable` は trigger のみを担い、検索本体は coordinator の managed task へ委譲する。
   - iPad split では初期右ペイン読込を短く遅延させ、遷移直後はプレースホルダを表示する。
   - iPad split の初期右ペイン読込について、予約・開始・完了を runtime diagnostics へ記録する。
-  - 性能測定モードに応じて snapshot limit、split 初期遅延、初期右ペイン自動読込を切り替える。
 - [BrowseViews.swift](../HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - 自動 feed 更新時の上部進行表示。
@@ -85,22 +83,22 @@
   - チャンネル登録、削除、バックアップ入出力、全設定リセット。
 - [FeedCacheStore.swift](../HelloWorld/Features/FeedCache/FeedCacheStore.swift)
   - cache、snapshot、thumbnail、整合性メンテナンス。
-  - `cache-summary.json` を併設し、ホーム表示に必要な件数・更新時刻・thumbnail 合計サイズを本体 snapshot decode なしで返す。
-  - 本体 JSON は compact date 形式で再保存し、旧 ISO8601 形式も互換 decode する。
+  - `cache-summary.plist` を併設し、ホーム表示に必要な件数・更新時刻・thumbnail 合計サイズを本体 snapshot decode なしで返す。
+  - 本体 JSON は compact date 形式で保存する。
 - [RemoteVideoSearchCacheStore.swift](../HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - YouTube 検索結果キャッシュの保存、鮮度判定、履歴クリア。
-  - `remote-search-*-summary.json` を併設し、ホームの検索キャッシュ鮮度表示は軽量 summary から返す。
-  - summary 正本は binary property list とし、旧 JSON summary は fallback 互換で読む。
+  - `remote-search-*-summary.plist` を併設し、ホームの検索キャッシュ鮮度表示は軽量 summary から返す。
+  - summary 正本は binary property list とする。
 - [RemoteVideoSearchService.swift](../HelloWorld/Features/FeedCache/RemoteVideoSearchService.swift)
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。
   - 検索キャッシュ反映完了と remote refresh cancellation のログ。
 - [HomeSystemStatusService.swift](../HelloWorld/Features/FeedCache/HomeSystemStatusService.swift)
   - ホーム画面へ出すシステム状況の集約。
-  - summary があればそれを優先し、summary 不在時だけ本体 snapshot へ fallback する。
+  - summary を優先し、必要時だけ本体 snapshot を読む。
 - [FeedCachePaths.swift](../HelloWorld/Features/FeedCache/FeedCachePaths.swift)
   - bootstrap、cache、cache summary、registry、search cache、search cache summary、thumbnail の固定パス集約。
 - [FeedCachePersistenceCoders.swift](../HelloWorld/Features/FeedCache/FeedCachePersistenceCoders.swift)
-  - cache 永続化用の compact encoder / legacy-compatible decoder。
+  - cache 永続化用の compact encoder / decoder。
   - summary 永続化用の binary property list encoder / decoder。
 - [FeedBootstrapStore.swift](../HelloWorld/Features/FeedCache/FeedBootstrapStore.swift)
   - bootstrap の読込と整形。
@@ -125,7 +123,6 @@
   - `VideoOpenPolicy`
   - `FeedOrdering`
   - `ChannelBrowseSortDescriptor`
-  - `PerformanceProbeMode`
   - `RemoteSearchPresentationState`
   - 画面非依存の pure logic。
 
@@ -133,7 +130,6 @@
 
 - `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面局所の UI 状態は `SearchResultsViews.swift` と `RemoteSearchPresentationState` に閉じ込める。
 - `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択を pure logic として持つ。
-- `PerformanceProbeMode.E` は iPad の YouTube 検索だけを比較用に `NavigationSplitView + List(selection:)` ベースへ切り替え、標準寄せ UI の体感差を計測できるようにする。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListScreen` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
 
@@ -169,8 +165,6 @@
 
 - [HomeScreenUITests.swift](../HelloWorldUITests/Home/HomeScreenUITests.swift)
   - ホーム画面表示、導線、モック refresh、起動タイムライン。
-  - iPad の YouTube検索遷移について、baseline / heavy fixture の split 計測。
-  - 起動区間と YouTube検索 split 区間をまとめた metrics JSON の出力。
 - [BrowseScreenUITests.swift](../HelloWorldUITests/Browse/BrowseScreenUITests.swift)
   - 一覧導線、チャンネル別動画一覧更新、YouTube 検索結果 refresh state、検索結果からのチャンネル遷移。
   - 実機向け live YouTube 検索 refresh の再現導線。

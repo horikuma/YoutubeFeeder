@@ -100,28 +100,7 @@ struct RemoteVideoSearchService {
     }
 
     func status(keyword: String) async -> RemoteSearchCacheStatus {
-        let startedAt = Date()
-        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
-        AppConsoleLogger.appLifecycle.debug(
-            "search_cache_status_service_start",
-            metadata: [
-                "keyword": keywordPreview,
-                "main_thread": AppConsoleLogger.mainThreadFlag(),
-            ]
-        )
-        let status = await cacheStore.status(keyword: keyword, ttl: cacheLifetime)
-        AppConsoleLogger.appLifecycle.notice(
-            "search_cache_status_service_complete",
-            metadata: [
-                "keyword": keywordPreview,
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "exists": status.exists ? "true" : "false",
-                "is_fresh": status.isFresh ? "true" : "false",
-                "total_count": String(status.totalCount),
-                "main_thread": AppConsoleLogger.mainThreadFlag(),
-            ]
-        )
-        return status
+        await cacheStore.status(keyword: keyword, ttl: cacheLifetime)
     }
 
     func allVideos(channelID: String) async -> [CachedVideo] {

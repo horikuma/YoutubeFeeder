@@ -1,14 +1,6 @@
 import Foundation
 
 enum FeedCachePersistenceCoders {
-    private static let iso8601Formatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-
-    private static let fallbackISO8601Formatter = ISO8601DateFormatter()
-
     static func makeEncoder(prettyPrinted: Bool = false) -> JSONEncoder {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .secondsSince1970
@@ -26,15 +18,9 @@ enum FeedCachePersistenceCoders {
             if let timestamp = try? container.decode(Int.self) {
                 return Date(timeIntervalSince1970: TimeInterval(timestamp))
             }
-
-            let value = try container.decode(String.self)
-            if let date = iso8601Formatter.date(from: value) ?? fallbackISO8601Formatter.date(from: value) {
-                return date
-            }
-
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: "Unsupported date value: \(value)"
+                debugDescription: "Unsupported date value"
             )
         }
         return decoder

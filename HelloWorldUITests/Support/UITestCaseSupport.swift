@@ -22,7 +22,6 @@ class UITestCaseSupport: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["HELLOWORLD_UI_TEST_MODE"] = "1"
         app.launchEnvironment["HELLOWORLD_UI_TEST_USE_MOCK"] = useMockData ? "1" : "0"
-        app.launchEnvironment["HELLOWORLD_UI_TEST_PROBE_MODE"] = extraEnvironment["HELLOWORLD_UI_TEST_PROBE_MODE"] ?? "A"
         for (key, value) in extraEnvironment {
             app.launchEnvironment[key] = value
         }

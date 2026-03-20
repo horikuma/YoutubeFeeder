@@ -29,7 +29,7 @@ enum FeedCachePaths {
     }
 
     nonisolated static func cacheSummaryURL(fileManager: FileManager = .default) -> URL {
-        baseDirectory(fileManager: fileManager).appendingPathComponent("cache-summary.json")
+        baseDirectory(fileManager: fileManager).appendingPathComponent("cache-summary.plist")
     }
 
     nonisolated static func channelRegistryURL(fileManager: FileManager = .default) -> URL {
@@ -48,7 +48,7 @@ enum FeedCachePaths {
 
     nonisolated static func remoteSearchCacheSummaryURL(keyword: String, fileManager: FileManager = .default) -> URL {
         let cacheURL = remoteSearchCacheURL(keyword: keyword, fileManager: fileManager)
-        let filename = cacheURL.deletingPathExtension().lastPathComponent + "-summary.json"
+        let filename = cacheURL.deletingPathExtension().lastPathComponent + "-summary.plist"
         return baseDirectory(fileManager: fileManager).appendingPathComponent(filename)
     }
 }

@@ -6,7 +6,6 @@ actor RemoteVideoSearchCacheStore {
     private let decoder = FeedCachePersistenceCoders.makeDecoder()
     private let summaryEncoder = FeedCachePersistenceCoders.makeSummaryEncoder()
     private let summaryDecoder = FeedCachePersistenceCoders.makeSummaryDecoder()
-    private let legacySummaryDecoder = FeedCachePersistenceCoders.makeDecoder()
 
     func load(keyword: String) -> RemoteVideoSearchCacheEntry? {
         let fileURL = FeedCachePaths.remoteSearchCacheURL(keyword: keyword, fileManager: fileManager)
@@ -72,12 +71,12 @@ actor RemoteVideoSearchCacheStore {
         let baseURL = FeedCachePaths.baseDirectory(fileManager: fileManager)
         let filenames = (try? fileManager.contentsOfDirectory(atPath: baseURL.path)) ?? []
         let targets = filenames.filter {
-            (($0 == "remote-search.json" || $0.hasPrefix("remote-search-")) && $0.hasSuffix(".json")) && !$0.hasSuffix("-summary.json")
+            (($0 == "remote-search.json" || $0.hasPrefix("remote-search-")) && $0.hasSuffix(".json")) && !$0.hasSuffix("-summary.plist")
         }
         for filename in targets {
             try? fileManager.removeItem(at: baseURL.appendingPathComponent(filename))
-            if !filename.hasSuffix("-summary.json") {
-                let summaryFilename = filename.replacingOccurrences(of: ".json", with: "-summary.json")
+            if !filename.hasSuffix("-summary.plist") {
+                let summaryFilename = filename.replacingOccurrences(of: ".json", with: "-summary.plist")
                 try? fileManager.removeItem(at: baseURL.appendingPathComponent(summaryFilename))
             }
         }
@@ -85,28 +84,13 @@ actor RemoteVideoSearchCacheStore {
     }
 
     func status(keyword: String, ttl: TimeInterval, now: Date = .now) -> RemoteSearchCacheStatus {
-        let startedAt = Date()
-        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
         let fileURL = FeedCachePaths.remoteSearchCacheURL(keyword: keyword, fileManager: fileManager)
-        AppConsoleLogger.appLifecycle.debug(
-            "search_cache_status_store_start",
-            metadata: [
-                "keyword": keywordPreview,
-                "filename": fileURL.lastPathComponent,
-            ]
-        )
 
         let summaryURL = FeedCachePaths.remoteSearchCacheSummaryURL(keyword: keyword, fileManager: fileManager)
         if let summaryData = try? Data(contentsOf: summaryURL) {
-            let summaryReadAt = Date()
-            let decodedSummary =
-                (try? summaryDecoder.decode(RemoteVideoSearchCacheSummary.self, from: summaryData))
-                ?? (try? legacySummaryDecoder.decode(RemoteVideoSearchCacheSummary.self, from: summaryData))
-
-            if let summary = decodedSummary {
-                let decodedAt = Date()
+            if let summary = try? summaryDecoder.decode(RemoteVideoSearchCacheSummary.self, from: summaryData) {
                 let expiresAt = summary.fetchedAt.addingTimeInterval(ttl)
-                let status = RemoteSearchCacheStatus(
+                return RemoteSearchCacheStatus(
                     keyword: keyword,
                     isFresh: expiresAt > now,
                     totalCount: summary.totalCount,
@@ -114,81 +98,28 @@ actor RemoteVideoSearchCacheStore {
                     expiresAt: expiresAt,
                     exists: true
                 )
-                AppConsoleLogger.appLifecycle.notice(
-                    "search_cache_status_store_complete",
-                    metadata: [
-                        "keyword": keywordPreview,
-                        "exists": "true",
-                        "is_fresh": status.isFresh ? "true" : "false",
-                        "mode": "summary",
-                        "bytes": String(summaryData.count),
-                        "file_check_ms": "0",
-                        "read_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: summaryReadAt),
-                        "decode_ms": AppConsoleLogger.elapsedMilliseconds(from: summaryReadAt, to: decodedAt),
-                        "ttl_ms": "0",
-                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: decodedAt),
-                        "videos": String(summary.totalCount),
-                    ]
-                )
-                return status
             }
         }
 
-        let fileExists = fileManager.fileExists(atPath: fileURL.path)
-        let fileCheckedAt = Date()
-        guard fileExists else {
-            AppConsoleLogger.appLifecycle.notice(
-                "search_cache_status_store_empty",
-                metadata: [
-                    "keyword": keywordPreview,
-                    "exists": "false",
-                    "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: fileCheckedAt),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                ]
-            )
-            return .empty(keyword: keyword)
-        }
+        guard fileManager.fileExists(atPath: fileURL.path) else { return .empty(keyword: keyword) }
 
         let data: Data
         do {
             data = try Data(contentsOf: fileURL)
         } catch {
-            AppConsoleLogger.appLifecycle.error(
-                "search_cache_status_store_read_failed",
-                message: AppConsoleLogger.errorSummary(error),
-                metadata: [
-                    "keyword": keywordPreview,
-                    "exists": "true",
-                    "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: fileCheckedAt),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                ]
-            )
             return .empty(keyword: keyword)
         }
-        let dataLoadedAt = Date()
 
         let entry: RemoteVideoSearchCacheEntry
         do {
             entry = try decoder.decode(RemoteVideoSearchCacheEntry.self, from: data)
         } catch {
-            AppConsoleLogger.appLifecycle.error(
-                "search_cache_status_store_decode_failed",
-                message: AppConsoleLogger.errorSummary(error),
-                metadata: [
-                    "keyword": keywordPreview,
-                    "bytes": String(data.count),
-                    "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: fileCheckedAt),
-                    "read_ms": AppConsoleLogger.elapsedMilliseconds(from: fileCheckedAt, to: dataLoadedAt),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                ]
-            )
             return .empty(keyword: keyword)
         }
-        let decodedAt = Date()
         persistSummary(for: entry)
 
         let expiresAt = entry.fetchedAt.addingTimeInterval(ttl)
-        let status = RemoteSearchCacheStatus(
+        return RemoteSearchCacheStatus(
             keyword: keyword,
             isFresh: expiresAt > now,
             totalCount: entry.totalCount,
@@ -196,24 +127,6 @@ actor RemoteVideoSearchCacheStore {
             expiresAt: expiresAt,
             exists: true
         )
-        let completedAt = Date()
-        AppConsoleLogger.appLifecycle.notice(
-            "search_cache_status_store_complete",
-            metadata: [
-                "keyword": keywordPreview,
-                "bytes": String(data.count),
-                "videos": String(entry.videos.count),
-                "exists": "true",
-                "is_fresh": status.isFresh ? "true" : "false",
-                "mode": "full",
-                "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: fileCheckedAt),
-                "read_ms": AppConsoleLogger.elapsedMilliseconds(from: fileCheckedAt, to: dataLoadedAt),
-                "decode_ms": AppConsoleLogger.elapsedMilliseconds(from: dataLoadedAt, to: decodedAt),
-                "ttl_ms": AppConsoleLogger.elapsedMilliseconds(from: decodedAt, to: completedAt),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: completedAt),
-            ]
-        )
-        return status
     }
 
     private func persistSummary(for entry: RemoteVideoSearchCacheEntry) {

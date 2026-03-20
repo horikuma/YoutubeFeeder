@@ -7,10 +7,6 @@ struct HomeSystemStatusService {
 
     func loadStatus(snapshot: FeedCacheSnapshot? = nil, currentProgress: CacheProgress? = nil) async -> HomeSystemStatus {
         let startedAt = Date()
-        AppConsoleLogger.appLifecycle.debug(
-            "home_status_load_start",
-            metadata: ["main_thread": AppConsoleLogger.mainThreadFlag()]
-        )
         let resolvedSummary: FeedCacheSummary
         let snapshotLoadedAt: Date
         if let snapshot {
@@ -51,7 +47,6 @@ struct HomeSystemStatusService {
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 "registered_channels": String(status.registeredChannelCount),
                 "cached_videos": String(status.cachedVideoCount),
-                "main_thread": AppConsoleLogger.mainThreadFlag(),
             ]
         )
         return status
