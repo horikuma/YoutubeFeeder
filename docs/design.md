@@ -54,6 +54,7 @@
   - 下部チップ、上部進行表示、検索結果の UI 写像。
   - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
   - `refreshable` は trigger のみを担い、検索本体は coordinator の managed task へ委譲する。
+  - iPad split では初期右ペイン読込を短く遅延させ、遷移直後はプレースホルダを表示する。
 - [BrowseViews.swift](../HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - 自動 feed 更新時の上部進行表示。

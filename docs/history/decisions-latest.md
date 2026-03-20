@@ -1,4 +1,6 @@
 ## 2026/03/20
+- iPad の YouTube検索画面では、左右 split の初期選択に伴う H 画面読込を遷移直後に同期させず、短い遅延付きで後続実行する方針にした。
+  - G 画面遷移と同時に右ペインの `openChannelVideos` まで走らせると、左ペイン表示の成立とチャンネル動画統合・自動 refresh の初期処理が競合し、遷移体感が重くなりやすいため。まずは G 画面を即表示し、H 画面はプレースホルダを挟んでから読む方が、iPad での split 初期表示が軽く見えやすい。
 - 実機自動再現のため、UI Test は `HELLOWORLD_UI_TEST_MODE=1` を維持したまま、`HELLOWORLD_UI_TEST_USE_MOCK=0` で live 経路へ入れる方針にした。
   - 既存 UI Test は初期導線や hidden marker に依存していたため、単純に `UI_TEST_MODE` を切ると自動遷移も失われ、実機で同じ手順を機械的に再現しにくい。UI test 用の起動経路は残しつつ、データだけ live に切り替えられる方が、実機再現と既存 UI test の両立がしやすい。
 - `DecodingError` は `localizedDescription` ではなく `keyNotFound` / `valueNotFound` / `typeMismatch` と `codingPath` を要約してログへ出す方針にした。

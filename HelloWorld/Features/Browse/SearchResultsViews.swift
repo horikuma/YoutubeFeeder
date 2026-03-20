@@ -184,6 +184,8 @@ struct RemoteKeywordSearchResultsView: View {
     )
     @State private var splitContext: ChannelVideosRouteContext?
     @State private var splitVideos: [CachedVideo] = []
+    @State private var splitLoadTask: Task<Void, Never>?
+    @State private var isSplitLoading = false
 
     var body: some View {
         Group {
@@ -198,6 +200,7 @@ struct RemoteKeywordSearchResultsView: View {
                     visibleCount: presentationState.visibleCount,
                     splitContext: $splitContext,
                     splitVideos: $splitVideos,
+                    isSplitLoading: isSplitLoading,
                     onRefresh: { await reloadResults(forceRefresh: true) },
                     onDismissChip: dismissChip,
                     onLoadMore: loadMoreIfNeeded,
@@ -287,6 +290,7 @@ struct RemoteKeywordSearchResultsView: View {
             )
         }
         .onDisappear {
+            splitLoadTask?.cancel()
             AppConsoleLogger.youtubeSearch.info(
                 "screen_disappear",
                 metadata: [
@@ -374,14 +378,14 @@ struct RemoteKeywordSearchResultsView: View {
     private func applyDefaultSplitSelectionIfNeeded() {
         guard layout.usesSplitChannelBrowser else { return }
         guard let context = presentationState.splitContext else {
+            splitLoadTask?.cancel()
             splitContext = nil
             splitVideos = []
+            isSplitLoading = false
             return
         }
         if splitContext == context { return }
-        Task {
-            await selectSplitContext(context)
-        }
+        scheduleDeferredSplitSelection(context)
     }
 
     private func selectSplitVideo(_ video: CachedVideo) async {
@@ -396,8 +400,32 @@ struct RemoteKeywordSearchResultsView: View {
     }
 
     private func selectSplitContext(_ context: ChannelVideosRouteContext) async {
+        splitLoadTask?.cancel()
+        isSplitLoading = true
         splitContext = context
         splitVideos = await coordinator.openChannelVideos(context)
+        isSplitLoading = false
+    }
+
+    private func scheduleDeferredSplitSelection(_ context: ChannelVideosRouteContext) {
+        splitLoadTask?.cancel()
+        splitContext = context
+        splitVideos = []
+        isSplitLoading = true
+
+        splitLoadTask = Task {
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            guard !Task.isCancelled else { return }
+
+            let loadedVideos = await coordinator.openChannelVideos(context)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                guard splitContext == context else { return }
+                splitVideos = loadedVideos
+                isSplitLoading = false
+            }
+        }
     }
 
     private func normalizedChannelTitle(for video: CachedVideo) -> String? {
@@ -482,6 +510,7 @@ private struct RemoteKeywordSearchResultsRegularView: View {
     let visibleCount: Int
     @Binding var splitContext: ChannelVideosRouteContext?
     @Binding var splitVideos: [CachedVideo]
+    let isSplitLoading: Bool
     let onRefresh: () async -> Void
     let onDismissChip: () -> Void
     let onLoadMore: () -> Void
@@ -569,6 +598,8 @@ private struct RemoteKeywordSearchResultsRegularView: View {
 
                     if splitContext == nil {
                         MetricTile(title: "チャンネル動画", value: "未選択", detail: "左側の動画をタップするとこのチャンネルの動画一覧を表示します")
+                    } else if isSplitLoading {
+                        MetricTile(title: "動画一覧", value: "読み込み中", detail: "右側のチャンネル動画を準備しています")
                     } else if splitVideos.isEmpty {
                         MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
                     } else {
