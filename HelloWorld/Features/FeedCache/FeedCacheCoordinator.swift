@@ -346,6 +346,42 @@ final class FeedCacheCoordinator: ObservableObject {
             await refreshHomeSystemStatus()
             return freshResult
         } catch {
+            if RemoteSearchErrorPolicy.isCancellation(error) {
+                if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+                    logger.notice(
+                        "refresh_cancelled",
+                        metadata: [
+                            "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
+                            "fallback": cached.source == .staleRemoteCache ? "stale_cache" : "cache",
+                            "videos": String(cached.videos.count),
+                            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                        ]
+                    )
+                    return VideoSearchResult(
+                        keyword: cached.keyword,
+                        videos: cached.videos,
+                        totalCount: cached.totalCount,
+                        source: cached.source,
+                        fetchedAt: cached.fetchedAt,
+                        expiresAt: cached.expiresAt
+                    )
+                }
+                logger.notice(
+                    "refresh_cancelled",
+                    metadata: [
+                        "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
+                        "fallback": "empty",
+                        "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                    ]
+                )
+                return VideoSearchResult(
+                    keyword: normalizedKeyword,
+                    videos: [],
+                    totalCount: 0,
+                    source: .remoteCache
+                )
+            }
+
             if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
                 logger.error(
                     "refresh_failed",
@@ -363,7 +399,7 @@ final class FeedCacheCoordinator: ObservableObject {
                     source: .staleRemoteCache,
                     fetchedAt: cached.fetchedAt,
                     expiresAt: cached.expiresAt,
-                    errorMessage: error.localizedDescription
+                    errorMessage: RemoteSearchErrorPolicy.userMessage(for: error)
                 )
             }
             logger.error(
@@ -376,7 +412,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 videos: [],
                 totalCount: 0,
                 source: .remoteAPI,
-                errorMessage: error.localizedDescription
+                errorMessage: RemoteSearchErrorPolicy.userMessage(for: error)
             )
         }
     }

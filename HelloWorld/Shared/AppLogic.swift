@@ -254,3 +254,38 @@ enum ChannelVideosAutoRefreshPolicy {
         return !cachedChannelVideos.contains { $0.id == selectedVideoID }
     }
 }
+
+enum RemoteSearchErrorPolicy {
+    static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorCancelled {
+            return true
+        }
+
+        return nsError.localizedDescription
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() == "cancelled"
+    }
+
+    static func userMessage(for error: Error) -> String? {
+        guard !isCancellation(error) else { return nil }
+        return error.localizedDescription
+    }
+
+    static func diagnosticReason(for error: Error) -> String {
+        if error is CancellationError {
+            return "task_cancellation"
+        }
+
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorCancelled {
+            return "urlsession_cancelled"
+        }
+
+        return String(describing: type(of: error))
+    }
+}

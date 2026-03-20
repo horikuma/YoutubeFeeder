@@ -26,11 +26,32 @@ struct RemoteVideoSearchService {
     func refresh(keyword: String, limit: Int) async throws -> VideoSearchResult {
         let logger = AppConsoleLogger.youtubeSearch
         let startedAt = Date()
+        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
         logger.info(
             "remote_refresh_start",
-            metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword), "limit": String(limit)]
+            metadata: ["keyword": keywordPreview, "limit": String(limit)]
         )
-        let response = try await searchService.searchVideos(keyword: keyword, limit: limit)
+        let response: YouTubeSearchResponse
+        do {
+            response = try await searchService.searchVideos(keyword: keyword, limit: limit)
+        } catch {
+            let metadata = [
+                "keyword": keywordPreview,
+                "limit": String(limit),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+            ]
+            if RemoteSearchErrorPolicy.isCancellation(error) {
+                logger.notice("remote_refresh_cancelled", metadata: metadata)
+            } else {
+                logger.error(
+                    "remote_refresh_failed",
+                    message: AppConsoleLogger.errorSummary(error),
+                    metadata: metadata
+                )
+            }
+            throw error
+        }
         let cachedVideos = response.videos.map { video in
             CachedVideo(
                 id: video.id,
@@ -50,7 +71,7 @@ struct RemoteVideoSearchService {
         await cacheStore.merge(keyword: keyword, videos: cachedVideos, fetchedAt: response.fetchedAt)
         logger.debug(
             "remote_cache_merged",
-            metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword), "videos": String(cachedVideos.count)]
+            metadata: ["keyword": keywordPreview, "videos": String(cachedVideos.count)]
         )
 
         let result = await loadSnapshot(keyword: keyword, limit: limit, allowExpired: true)
@@ -65,7 +86,7 @@ struct RemoteVideoSearchService {
         logger.notice(
             "remote_refresh_complete",
             metadata: [
-                "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
+                "keyword": keywordPreview,
                 "videos": String(result.videos.count),
                 "source": result.source.label,
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),

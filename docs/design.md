@@ -51,6 +51,7 @@
 - [SearchResultsViews.swift](../HelloWorld/Features/Browse/SearchResultsViews.swift)
   - 固定キーワード検索結果と YouTube 検索結果。
   - 下部チップ、上部進行表示、検索結果の UI 写像。
+  - 画面出入り、snapshot 読込、pull-to-refresh の開始完了ログ。
 - [BrowseViews.swift](../HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - 自動 feed 更新時の上部進行表示。
@@ -63,7 +64,7 @@
 - [FeedCacheCoordinator.swift](../HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - bootstrap 読込、一覧データ読込、手動更新、単独チャンネル更新、検索結果読込。
-  - YouTube 検索の snapshot hit / miss、refresh failure fallback の境界ログ。
+  - YouTube 検索の snapshot hit / miss、refresh failure fallback、cancel fallback の境界ログ。
 - [FeedChannelSyncService.swift](../HelloWorld/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、更新判定、store 反映を束ねる更新実行サービス。
 - [ChannelRegistryMaintenanceService.swift](../HelloWorld/Features/FeedCache/ChannelRegistryMaintenanceService.swift)
@@ -74,7 +75,7 @@
   - YouTube 検索結果キャッシュの保存、鮮度判定、履歴クリア。
 - [RemoteVideoSearchService.swift](../HelloWorld/Features/FeedCache/RemoteVideoSearchService.swift)
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。
-  - 検索キャッシュ反映完了のログ。
+  - 検索キャッシュ反映完了と remote refresh cancellation のログ。
 - [HomeSystemStatusService.swift](../HelloWorld/Features/FeedCache/HomeSystemStatusService.swift)
   - ホーム画面へ出すシステム状況の集約。
 - [FeedCachePaths.swift](../HelloWorld/Features/FeedCache/FeedCachePaths.swift)
@@ -93,7 +94,7 @@
 - [YouTubeSearchService.swift](../HelloWorld/Infrastructure/YouTube/YouTubeSearchService.swift)
   - YouTube Data API v3 search / videos.list 呼び出し。
   - API キー解決、レスポンス変換、詳細補完、ライブ除外。
-  - 検索開始、HTTP 応答、decode failure、完了件数のログ。
+  - 検索開始、HTTP 応答、transport cancellation、decode failure、完了件数のログ。
 
 ### Shared
 
@@ -134,6 +135,8 @@
   - Adaptive UI のレイアウト切替。
 - [AppConsoleLoggerTests.swift](../HelloWorldTests/Unit/Formatting/AppConsoleLoggerTests.swift)
   - キーワード短縮とレスポンス preview の整形。
+- [RemoteSearchErrorPolicyTests.swift](../HelloWorldTests/Unit/Policies/RemoteSearchErrorPolicyTests.swift)
+  - キャンセル判定とユーザー向け文言抑制。
 - [ChannelBrowseTipsSummaryTests.swift](../HelloWorldTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift)
   - `Tips` サマリー文言と YouTube 検索結果の presentation state。
 

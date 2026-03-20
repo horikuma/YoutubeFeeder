@@ -46,64 +46,91 @@ struct YouTubeSearchService {
         let logger = AppConsoleLogger.youtubeSearch
         let startedAt = Date()
         let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
+        var stage = "prepare"
         logger.info(
             "request_start",
             metadata: ["keyword": keywordPreview, "limit": String(limit), "mode": AppLaunchMode.current.usesMockData ? "mock" : "live"]
         )
 
-        if AppLaunchMode.current.usesMockData {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            let response = mockSearchResponse(keyword: keyword, limit: limit)
+        do {
+            if AppLaunchMode.current.usesMockData {
+                stage = "mock_delay"
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                stage = "mock_response"
+                let response = mockSearchResponse(keyword: keyword, limit: limit)
+                logger.notice(
+                    "request_complete",
+                    metadata: [
+                        "keyword": keywordPreview,
+                        "videos": String(response.videos.count),
+                        "source": "mock",
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    ]
+                )
+                return response
+            }
+
+            guard let apiKey = resolvedAPIKey else {
+                logger.error(
+                    "config_missing",
+                    message: YouTubeSearchError.apiKeyMissing.localizedDescription,
+                    metadata: ["keyword": keywordPreview]
+                )
+                throw YouTubeSearchError.apiKeyMissing
+            }
+            stage = "candidate_medium"
+            let mediumCandidates = try await searchCandidates(
+                keyword: keyword,
+                duration: "medium",
+                apiKey: apiKey,
+                maxResults: 50
+            )
+            stage = "candidate_long"
+            let longCandidates = try await searchCandidates(
+                keyword: keyword,
+                duration: "long",
+                apiKey: apiKey,
+                maxResults: 50
+            )
+
+            stage = "merge_candidates"
+            let mergedCandidates = Self.mergeCandidates(mediumCandidates + longCandidates)
+            let videoIDs = Array(mergedCandidates.map(\.id).prefix(limit))
+            stage = "video_details"
+            let detailedVideos = try await fetchVideoDetails(videoIDs: videoIDs, apiKey: apiKey)
+            stage = "merge_details"
+            let videos = Self.mergeDetailedVideos(detailedVideos, preferredOrder: videoIDs)
+            let response = YouTubeSearchResponse(videos: videos, totalCount: videos.count, fetchedAt: .now)
             logger.notice(
                 "request_complete",
                 metadata: [
                     "keyword": keywordPreview,
-                    "videos": String(response.videos.count),
-                    "source": "mock",
+                    "medium_candidates": String(mediumCandidates.count),
+                    "long_candidates": String(longCandidates.count),
+                    "selected_ids": String(videoIDs.count),
+                    "videos": String(videos.count),
                     "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 ]
             )
             return response
-        }
-
-        guard let apiKey = resolvedAPIKey else {
-            logger.error(
-                "config_missing",
-                message: YouTubeSearchError.apiKeyMissing.localizedDescription,
-                metadata: ["keyword": keywordPreview]
-            )
-            throw YouTubeSearchError.apiKeyMissing
-        }
-        let mediumCandidates = try await searchCandidates(
-            keyword: keyword,
-            duration: "medium",
-            apiKey: apiKey,
-            maxResults: 50
-        )
-        let longCandidates = try await searchCandidates(
-            keyword: keyword,
-            duration: "long",
-            apiKey: apiKey,
-            maxResults: 50
-        )
-
-        let mergedCandidates = Self.mergeCandidates(mediumCandidates + longCandidates)
-        let videoIDs = Array(mergedCandidates.map(\.id).prefix(limit))
-        let detailedVideos = try await fetchVideoDetails(videoIDs: videoIDs, apiKey: apiKey)
-        let videos = Self.mergeDetailedVideos(detailedVideos, preferredOrder: videoIDs)
-        let response = YouTubeSearchResponse(videos: videos, totalCount: videos.count, fetchedAt: .now)
-        logger.notice(
-            "request_complete",
-            metadata: [
+        } catch {
+            let metadata = [
                 "keyword": keywordPreview,
-                "medium_candidates": String(mediumCandidates.count),
-                "long_candidates": String(longCandidates.count),
-                "selected_ids": String(videoIDs.count),
-                "videos": String(videos.count),
+                "stage": stage,
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
             ]
-        )
-        return response
+            if RemoteSearchErrorPolicy.isCancellation(error) {
+                logger.notice("request_cancelled", metadata: metadata)
+            } else {
+                logger.error(
+                    "request_failed",
+                    message: AppConsoleLogger.errorSummary(error),
+                    metadata: metadata
+                )
+            }
+            throw error
+        }
     }
 
     private var resolvedAPIKey: String? {
@@ -235,7 +262,30 @@ struct YouTubeSearchService {
     ) async throws -> Data {
         let startedAt = Date()
         let logger = AppConsoleLogger.youtubeSearch
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            let transportMetadata = metadata.merging(
+                [
+                    "endpoint": endpoint,
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                ],
+                uniquingKeysWith: { _, new in new }
+            )
+            if RemoteSearchErrorPolicy.isCancellation(error) {
+                logger.notice("http_cancelled", metadata: transportMetadata)
+            } else {
+                logger.error(
+                    "http_transport_failure",
+                    message: AppConsoleLogger.errorSummary(error),
+                    metadata: transportMetadata
+                )
+            }
+            throw error
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             let invalidResponseMetadata = metadata.merging(

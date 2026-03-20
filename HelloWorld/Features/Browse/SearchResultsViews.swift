@@ -281,20 +281,66 @@ struct RemoteKeywordSearchResultsView: View {
         }
         .onAppear {
             StartupDiagnostics.shared.mark("keywordSearchShown")
+            AppConsoleLogger.youtubeSearch.info(
+                "screen_appear",
+                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword)]
+            )
+        }
+        .onDisappear {
+            AppConsoleLogger.youtubeSearch.info(
+                "screen_disappear",
+                metadata: [
+                    "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
+                    "videos": String(result.videos.count),
+                    "refreshing": presentationState.isRefreshingChip ? "true" : "false",
+                ]
+            )
         }
     }
 
     private func loadSnapshot() async {
+        let logger = AppConsoleLogger.youtubeSearch
+        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
+        logger.debug("screen_snapshot_load_start", metadata: ["keyword": keywordPreview])
         result = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
+        logger.debug(
+            "screen_snapshot_load_complete",
+            metadata: [
+                "keyword": keywordPreview,
+                "source": result.source.label,
+                "videos": String(result.videos.count),
+                "error": result.errorMessage == nil ? "none" : "present",
+            ]
+        )
         applyPresentationState()
     }
 
     private func reloadResults(forceRefresh: Bool) async {
+        let logger = AppConsoleLogger.youtubeSearch
+        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
+        logger.info(
+            "screen_refresh_start",
+            metadata: [
+                "keyword": keywordPreview,
+                "force_refresh": forceRefresh ? "true" : "false",
+                "current_videos": String(result.videos.count),
+            ]
+        )
         if forceRefresh {
             presentationState.beginRefresh()
             await Task.yield()
         }
         result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: forceRefresh)
+        logger.notice(
+            "screen_refresh_complete",
+            metadata: [
+                "keyword": keywordPreview,
+                "source": result.source.label,
+                "videos": String(result.videos.count),
+                "fetched": result.fetchedAt == nil ? "false" : "true",
+                "error": result.errorMessage == nil ? "none" : "present",
+            ]
+        )
         applyPresentationState()
     }
 
