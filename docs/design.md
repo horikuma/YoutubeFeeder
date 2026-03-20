@@ -30,12 +30,14 @@
   - UI テスト用初期遷移指定。
   - mock / live を切り替える UI テスト launch mode。
   - 実機調査用 diagnostics。
+  - YouTube検索 split 計測用 runtime diagnostics と `heavy` fixture seed。
 
 ### Features/Home
 
 - [HomeScreenView.swift](../HelloWorld/Features/Home/HomeScreenView.swift)
   - ホーム画面本体。
   - 手動更新、検索導線、バックアップ、全設定リセット、システム状況表示。
+  - YouTube検索タイル選択の runtime diagnostics 記録。
 - [ChannelRegistrationView.swift](../HelloWorld/Features/Home/ChannelRegistrationView.swift)
   - チャンネル登録画面。
   - 入力、解決、登録、結果表示。
@@ -55,6 +57,7 @@
   - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
   - `refreshable` は trigger のみを担い、検索本体は coordinator の managed task へ委譲する。
   - iPad split では初期右ペイン読込を短く遅延させ、遷移直後はプレースホルダを表示する。
+  - iPad split の初期右ペイン読込について、予約・開始・完了を runtime diagnostics へ記録する。
 - [BrowseViews.swift](../HelloWorld/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - 自動 feed 更新時の上部進行表示。
@@ -149,11 +152,13 @@
 
 - [HomeScreenUITests.swift](../HelloWorldUITests/Home/HomeScreenUITests.swift)
   - ホーム画面表示、導線、モック refresh、起動タイムライン。
+  - iPad の YouTube検索遷移について、baseline / heavy fixture の split 計測。
 - [BrowseScreenUITests.swift](../HelloWorldUITests/Browse/BrowseScreenUITests.swift)
   - 一覧導線、チャンネル別動画一覧更新、YouTube 検索結果 refresh state、検索結果からのチャンネル遷移。
   - 実機向け live YouTube 検索 refresh の再現導線。
 - [UITestCaseSupport.swift](../HelloWorldUITests/Support/UITestCaseSupport.swift)
   - app 起動、timeline 解析、共通 wait。
+  - runtime diagnostics の解析と区間 ms 変換。
 
 ## Test Support と Fixture
 
@@ -161,6 +166,8 @@
   - UI テスト用 bootstrap。
 - [UITest.cache.json](../HelloWorld/Resources/TestFixtures/UITest.cache.json)
   - UI テスト用 cache。
+- `HELLOWORLD_UI_TEST_REMOTE_SEARCH_FIXTURE`
+  - `baseline` / `heavy` を切り替え、YouTube検索 split 計測用の重め検索キャッシュを seed できる。
 - [stream_device_runtime_logs.sh](../scripts/stream_device_runtime_logs.sh)
   - 実機ランタイムログの取得。
 - [health_barometer.sh](../scripts/health_barometer.sh)

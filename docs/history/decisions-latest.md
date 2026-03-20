@@ -1,4 +1,8 @@
 ## 2026/03/20
+- iPad の YouTube検索遷移計測は、Xcode コンソールの目視だけに頼らず、UI test から読める hidden runtime diagnostics へ区間イベントを記録する方針にした。
+  - 実機前段のシミュレータ比較では、ホームタップ、G 画面表示、右ペイン初期読込の予約、開始、完了を ms で並べて見たいが、コンソールログだけだと機械比較しにくいため。runtime diagnostics にイベントを残せば、UI test から `home_tap_to_screen_ms` や `home_tap_to_split_loaded_ms` を JSON として取り出せ、実機テスト時にも同じ指標系へ合わせやすい。
+- iPad の YouTube検索性能確認では、通常 fixture に加えて `heavy` fixture を UI test launch env で生成し、検索キャッシュ 100 件・選択チャンネル動画 200 件の比較を取る方針にした。
+  - split 右ペインの初期読込がボトルネックかを切り分けるには、同じ導線でデータ量だけを増減させた相対比較が有効なため。静的 fixture を複数持つより、seed 時に重い検索キャッシュとチャンネル動画を合成する方が、保守しやすく比較条件も明示しやすい。
 - iPad の YouTube検索画面では、左右 split の初期選択に伴う H 画面読込を遷移直後に同期させず、短い遅延付きで後続実行する方針にした。
   - G 画面遷移と同時に右ペインの `openChannelVideos` まで走らせると、左ペイン表示の成立とチャンネル動画統合・自動 refresh の初期処理が競合し、遷移体感が重くなりやすいため。まずは G 画面を即表示し、H 画面はプレースホルダを挟んでから読む方が、iPad での split 初期表示が軽く見えやすい。
 - 実機自動再現のため、UI Test は `HELLOWORLD_UI_TEST_MODE=1` を維持したまま、`HELLOWORLD_UI_TEST_USE_MOCK=0` で live 経路へ入れる方針にした。

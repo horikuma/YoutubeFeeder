@@ -48,6 +48,17 @@ enum UITestInitialRoute: String {
     case channelList
 }
 
+enum UITestRemoteSearchFixtureVariant: String {
+    case baseline
+    case heavy
+
+    static var current: UITestRemoteSearchFixtureVariant {
+        UITestRemoteSearchFixtureVariant(
+            rawValue: ProcessInfo.processInfo.environment["HELLOWORLD_UI_TEST_REMOTE_SEARCH_FIXTURE"] ?? ""
+        ) ?? .baseline
+    }
+}
+
 @MainActor
 final class StartupDiagnostics: ObservableObject {
     static let shared = StartupDiagnostics()
@@ -55,7 +66,11 @@ final class StartupDiagnostics: ObservableObject {
     @Published private(set) var timelineValue = "{}"
 
     private var events: [String: Date] = [:]
-    private let formatter = ISO8601DateFormatter()
+    private let formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
     func mark(_ event: String, at date: Date = .now) {
         events[event] = date
@@ -97,7 +112,11 @@ final class RuntimeDiagnostics: ObservableObject {
 
     @Published private(set) var latestValue = "[]"
 
-    private let formatter = ISO8601DateFormatter()
+    private let formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
     private var entries: [RuntimeLogEntry] = []
 
     var isEnabled: Bool {
@@ -145,6 +164,8 @@ final class RuntimeDiagnostics: ObservableObject {
 }
 
 enum UITestFixtureSeeder {
+    private static let remoteSearchKeyword = "ゆっくり実況"
+
     static func seedIfNeeded(bundle: Bundle = .main, fileManager: FileManager = .default) {
         guard AppLaunchMode.current.usesMockData else { return }
 
@@ -155,7 +176,21 @@ enum UITestFixtureSeeder {
         copyFixture(named: "UITest.channel-registry", extension: "json", to: FeedCachePaths.channelRegistryURL(fileManager: fileManager), bundle: bundle)
         copyFixture(named: "UITest.bootstrap", extension: "json", to: FeedCachePaths.bootstrapURL(fileManager: fileManager), bundle: bundle)
         copyFixture(named: "UITest.cache", extension: "json", to: FeedCachePaths.cacheURL(fileManager: fileManager), bundle: bundle)
+        applyRemoteSearchFixtureVariantIfNeeded(baseDirectory: baseDirectory, fileManager: fileManager)
     }
+
+    private static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
+
+    private static let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return encoder
+    }()
 
     private static func copyFixture(named name: String, extension ext: String, to destination: URL, bundle: Bundle) {
         guard let source = bundle.url(forResource: name, withExtension: ext) else { return }
@@ -170,6 +205,144 @@ enum UITestFixtureSeeder {
         }
         for filename in targets {
             try? fileManager.removeItem(at: baseDirectory.appendingPathComponent(filename))
+        }
+    }
+
+    private static func applyRemoteSearchFixtureVariantIfNeeded(baseDirectory: URL, fileManager: FileManager) {
+        switch UITestRemoteSearchFixtureVariant.current {
+        case .baseline:
+            break
+        case .heavy:
+            seedHeavyRemoteSearchFixture(baseDirectory: baseDirectory, fileManager: fileManager)
+        }
+    }
+
+    private static func seedHeavyRemoteSearchFixture(baseDirectory: URL, fileManager: FileManager) {
+        let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+        let bootstrapURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
+        guard
+            let cacheData = try? Data(contentsOf: cacheURL),
+            var cacheSnapshot = try? decoder.decode(FeedCacheSnapshot.self, from: cacheData)
+        else {
+            return
+        }
+
+        let alphaChannelID = "UC_TEST_ALPHA"
+        let alphaTitle = "Alpha Channel"
+        let savedAt = cacheSnapshot.savedAt == .distantPast ? Date(timeIntervalSince1970: 1_773_399_605) : cacheSnapshot.savedAt
+        let heavyAlphaVideos = makeHeavyAlphaVideos(savedAt: savedAt, channelID: alphaChannelID, channelTitle: alphaTitle)
+        let remoteVideos = Array(heavyAlphaVideos.prefix(100))
+
+        var mergedVideos = Dictionary(uniqueKeysWithValues: cacheSnapshot.videos.map { ($0.id, $0) })
+        for video in heavyAlphaVideos {
+            mergedVideos[video.id] = video
+        }
+        cacheSnapshot.videos = mergedVideos.values.sorted(by: sortCachedVideosDescending)
+        cacheSnapshot.savedAt = savedAt
+        cacheSnapshot.channels = cacheSnapshot.channels.map { channel in
+            guard channel.channelID == alphaChannelID else { return channel }
+            var updated = channel
+            updated.cachedVideoCount = heavyAlphaVideos.count
+            updated.channelTitle = alphaTitle
+            updated.lastAttemptAt = savedAt
+            updated.lastCheckedAt = savedAt
+            updated.lastSuccessAt = savedAt
+            updated.latestPublishedAt = heavyAlphaVideos.first?.publishedAt
+            updated.lastError = nil
+            return updated
+        }
+
+        if let encodedCache = try? encoder.encode(cacheSnapshot) {
+            try? encodedCache.write(to: cacheURL, options: [.atomic])
+        }
+
+        if
+            let bootstrapData = try? Data(contentsOf: bootstrapURL),
+            var bootstrapSnapshot = try? decoder.decode(FeedBootstrapSnapshot.self, from: bootstrapData)
+        {
+            bootstrapSnapshot.progress = CacheProgress(
+                totalChannels: bootstrapSnapshot.progress.totalChannels,
+                cachedChannels: max(bootstrapSnapshot.progress.cachedChannels, 1),
+                cachedVideos: cacheSnapshot.videos.count,
+                cachedThumbnails: bootstrapSnapshot.progress.cachedThumbnails,
+                currentChannelID: bootstrapSnapshot.progress.currentChannelID,
+                currentChannelNumber: bootstrapSnapshot.progress.currentChannelNumber,
+                lastUpdatedAt: savedAt,
+                isRunning: false,
+                lastError: nil
+            )
+            bootstrapSnapshot.maintenanceItems = bootstrapSnapshot.maintenanceItems.map { item in
+                guard item.channelID == alphaChannelID else { return item }
+                return ChannelMaintenanceItem(
+                    id: item.id,
+                    channelID: item.channelID,
+                    channelTitle: alphaTitle,
+                    lastSuccessAt: savedAt,
+                    lastCheckedAt: savedAt,
+                    latestPublishedAt: heavyAlphaVideos.first?.publishedAt,
+                    cachedVideoCount: heavyAlphaVideos.count,
+                    lastError: nil,
+                    freshness: .fresh
+                )
+            }
+            if let encodedBootstrap = try? encoder.encode(bootstrapSnapshot) {
+                try? encodedBootstrap.write(to: bootstrapURL, options: [.atomic])
+            }
+        }
+
+        let remoteEntry = RemoteVideoSearchCacheEntry(
+            keyword: remoteSearchKeyword,
+            videos: remoteVideos,
+            totalCount: remoteVideos.count,
+            fetchedAt: savedAt
+        )
+        let remoteURL = FeedCachePaths.remoteSearchCacheURL(keyword: remoteSearchKeyword, fileManager: fileManager)
+        if let encodedRemote = try? encoder.encode(remoteEntry) {
+            try? encodedRemote.write(to: remoteURL, options: [.atomic])
+        }
+    }
+
+    private static func makeHeavyAlphaVideos(savedAt: Date, channelID: String, channelTitle: String) -> [CachedVideo] {
+        let calendar = Calendar(identifier: .gregorian)
+        return (0..<220).compactMap { index in
+            let publishedAt = calendar.date(byAdding: .minute, value: -(index * 5), to: savedAt)
+            let rank = 220 - index
+            let identifier = String(format: "alpha-heavy-%03d", rank)
+            let title = index < 100
+                ? "ゆっくり実況 Alpha Heavy \(rank)"
+                : "Alpha Archive \(rank)"
+            let searchableText = [
+                title.lowercased(),
+                channelTitle.lowercased(),
+                identifier,
+            ].joined(separator: "\n")
+            return CachedVideo(
+                id: identifier,
+                channelID: channelID,
+                channelTitle: channelTitle,
+                title: title,
+                publishedAt: publishedAt,
+                videoURL: URL(string: "https://www.youtube.com/watch?v=\(identifier)"),
+                thumbnailRemoteURL: nil,
+                thumbnailLocalFilename: nil,
+                fetchedAt: savedAt,
+                searchableText: searchableText,
+                durationSeconds: nil,
+                viewCount: nil
+            )
+        }
+    }
+
+    private static func sortCachedVideosDescending(lhs: CachedVideo, rhs: CachedVideo) -> Bool {
+        switch (lhs.publishedAt, rhs.publishedAt) {
+        case let (left?, right?) where left != right:
+            return left > right
+        case (_?, nil):
+            return true
+        case (nil, _?):
+            return false
+        default:
+            return lhs.fetchedAt > rhs.fetchedAt
         }
     }
 }
@@ -188,7 +361,7 @@ private struct DiagnosticsProbe: View {
                     .accessibilityValue(diagnostics.timelineValue)
             }
 
-            if runtimeDiagnostics.isEnabled {
+            if AppLaunchMode.current.isUITest {
                 Text("runtime")
                     .font(.caption2)
                     .foregroundStyle(.clear)

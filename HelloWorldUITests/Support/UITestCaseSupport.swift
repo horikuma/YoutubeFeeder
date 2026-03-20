@@ -1,6 +1,13 @@
 import XCTest
 import Foundation
 
+struct RuntimeDiagnosticsPayloadEntry: Decodable {
+    let timestamp: String
+    let event: String
+    let detail: String
+    let metadata: [String: String]
+}
+
 class UITestCaseSupport: XCTestCase {
     override class func setUp() {
         super.setUp()
@@ -43,6 +50,48 @@ class UITestCaseSupport: XCTestCase {
         }
 
         return try? JSONSerialization.jsonObject(with: rawValue) as? [String: [String: String]]
+    }
+
+    func runtimePayload(in app: XCUIApplication) throws -> [RuntimeDiagnosticsPayloadEntry] {
+        let marker = element("diagnostics.runtimeLog", in: app)
+        XCTAssertTrue(marker.waitForExistence(timeout: 5))
+
+        let rawValue = (marker.value as? String) ?? "[]"
+        let data = try XCTUnwrap(rawValue.data(using: .utf8))
+        return try JSONDecoder().decode([RuntimeDiagnosticsPayloadEntry].self, from: data)
+    }
+
+    func runtimePayloadIfAvailable(in app: XCUIApplication) -> [RuntimeDiagnosticsPayloadEntry]? {
+        let marker = element("diagnostics.runtimeLog", in: app)
+        guard marker.exists || marker.waitForExistence(timeout: 0.2) else {
+            return nil
+        }
+
+        guard let data = ((marker.value as? String) ?? "[]").data(using: .utf8) else {
+            return nil
+        }
+
+        return try? JSONDecoder().decode([RuntimeDiagnosticsPayloadEntry].self, from: data)
+    }
+
+    func firstRuntimeEntry(named event: String, in entries: [RuntimeDiagnosticsPayloadEntry]) -> RuntimeDiagnosticsPayloadEntry? {
+        entries.first(where: { $0.event == event })
+    }
+
+    func lastRuntimeEntry(named event: String, in entries: [RuntimeDiagnosticsPayloadEntry]) -> RuntimeDiagnosticsPayloadEntry? {
+        entries.last(where: { $0.event == event })
+    }
+
+    func millisecondsBetween(_ start: RuntimeDiagnosticsPayloadEntry, and end: RuntimeDiagnosticsPayloadEntry) throws -> Int {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let startDate = formatter.date(from: start.timestamp) ?? ISO8601DateFormatter().date(from: start.timestamp) else {
+            throw NSError(domain: "UITestCaseSupport", code: 1)
+        }
+        guard let endDate = formatter.date(from: end.timestamp) ?? ISO8601DateFormatter().date(from: end.timestamp) else {
+            throw NSError(domain: "UITestCaseSupport", code: 2)
+        }
+        return Int(endDate.timeIntervalSince(startDate) * 1000)
     }
 
     func offset(for key: String, in payload: [String: [String: String]]) throws -> Int {

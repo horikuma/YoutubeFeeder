@@ -135,6 +135,18 @@ struct HomeScreenView: View {
                     detail: "開いた先で下に引っ張ると API 検索し、履歴を順次マージ"
                 )
             }
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    RuntimeDiagnostics.shared.record(
+                        "remote_search_home_tapped",
+                        detail: "ホームから YouTube検索タイルを選択",
+                        metadata: [
+                            "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                            "keyword": FeedCacheCoordinator.homeSearchKeyword,
+                        ]
+                    )
+                }
+            )
             .buttonStyle(.plain)
             .accessibilityIdentifier("nav.remoteSearch")
 

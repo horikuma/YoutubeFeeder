@@ -72,4 +72,64 @@ final class HomeScreenUITests: UITestCaseSupport {
             return timeline["manualRefreshFinished"] != nil
         })
     }
+
+    func testRemoteSearchHomeNavigationSplitMetricsBaseline() throws {
+        try measureRemoteSearchHomeNavigationMetrics(fixtureVariant: "baseline")
+    }
+
+    func testRemoteSearchHomeNavigationSplitMetricsHeavyFixture() throws {
+        try measureRemoteSearchHomeNavigationMetrics(fixtureVariant: "heavy")
+    }
+
+    private func measureRemoteSearchHomeNavigationMetrics(fixtureVariant: String) throws {
+        let app = launchApp(
+            extraEnvironment: [
+                "HELLOWORLD_RUNTIME_LOGGING": "1",
+                "HELLOWORLD_UI_TEST_REMOTE_SEARCH_FIXTURE": fixtureVariant,
+            ]
+        )
+
+        waitForHomeScreen(in: app, timeout: 8)
+        XCTAssertTrue(element("nav.remoteSearch", in: app).waitForExistence(timeout: 3))
+
+        element("nav.remoteSearch", in: app).tap()
+
+        guard element("screen.remoteSearchSplitTitle", in: app).waitForExistence(timeout: 10) else {
+            throw XCTSkip("split metrics は iPad split layout 専用")
+        }
+        XCTAssertTrue(eventually(timeout: 10, pollInterval: 0.25) {
+            guard let payload = self.runtimePayloadIfAvailable(in: app) else {
+                return false
+            }
+            return self.firstRuntimeEntry(named: "remote_search_split_load_completed", in: payload) != nil
+        })
+
+        let payload = try runtimePayload(in: app)
+        let tapEntry = try XCTUnwrap(firstRuntimeEntry(named: "remote_search_home_tapped", in: payload))
+        let screenEntry = try XCTUnwrap(firstRuntimeEntry(named: "remote_search_screen_shown", in: payload))
+        let scheduledEntry = try XCTUnwrap(firstRuntimeEntry(named: "remote_search_split_load_scheduled", in: payload))
+        let startedEntry = try XCTUnwrap(firstRuntimeEntry(named: "remote_search_split_load_started", in: payload))
+        let completedEntry = try XCTUnwrap(firstRuntimeEntry(named: "remote_search_split_load_completed", in: payload))
+
+        let metrics: [String: Any] = [
+            "fixture": fixtureVariant,
+            "home_tap_to_screen_ms": try millisecondsBetween(tapEntry, and: screenEntry),
+            "screen_to_split_schedule_ms": try millisecondsBetween(screenEntry, and: scheduledEntry),
+            "screen_to_split_start_ms": try millisecondsBetween(screenEntry, and: startedEntry),
+            "split_load_ms": try millisecondsBetween(startedEntry, and: completedEntry),
+            "home_tap_to_split_loaded_ms": try millisecondsBetween(tapEntry, and: completedEntry),
+            "split_loaded_videos": completedEntry.metadata["videos"] ?? "0",
+            "split_trigger": completedEntry.metadata["trigger"] ?? "",
+        ]
+
+        if let data = try? JSONSerialization.data(withJSONObject: metrics, options: [.sortedKeys]),
+           let text = String(data: data, encoding: .utf8) {
+            print("HELLOWORLD_REMOTE_SEARCH_SPLIT_METRICS \(text)")
+        }
+
+        XCTAssertEqual(completedEntry.metadata["trigger"], "initial")
+        XCTAssertGreaterThan(Int(completedEntry.metadata["videos"] ?? "0") ?? 0, 0)
+        XCTAssertGreaterThanOrEqual(metrics["home_tap_to_screen_ms"] as? Int ?? -1, 0)
+        XCTAssertGreaterThanOrEqual(metrics["split_load_ms"] as? Int ?? -1, 0)
+    }
 }

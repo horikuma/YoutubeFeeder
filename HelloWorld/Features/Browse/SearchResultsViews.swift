@@ -284,6 +284,14 @@ struct RemoteKeywordSearchResultsView: View {
         }
         .onAppear {
             StartupDiagnostics.shared.mark("keywordSearchShown")
+            RuntimeDiagnostics.shared.record(
+                "remote_search_screen_shown",
+                detail: "YouTube検索画面を表示",
+                metadata: [
+                    "keyword": keyword,
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                ]
+            )
             AppConsoleLogger.youtubeSearch.info(
                 "screen_appear",
                 metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword)]
@@ -403,8 +411,27 @@ struct RemoteKeywordSearchResultsView: View {
         splitLoadTask?.cancel()
         isSplitLoading = true
         splitContext = context
+        let startedAt = Date()
+        RuntimeDiagnostics.shared.record(
+            "remote_search_split_load_started",
+            detail: "YouTube検索右ペインの読込を開始",
+            metadata: [
+                "channelID": context.channelID,
+                "trigger": "explicit",
+            ]
+        )
         splitVideos = await coordinator.openChannelVideos(context)
         isSplitLoading = false
+        RuntimeDiagnostics.shared.record(
+            "remote_search_split_load_completed",
+            detail: "YouTube検索右ペインの読込を完了",
+            metadata: [
+                "channelID": context.channelID,
+                "trigger": "explicit",
+                "videos": String(splitVideos.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            ]
+        )
     }
 
     private func scheduleDeferredSplitSelection(_ context: ChannelVideosRouteContext) {
@@ -412,11 +439,28 @@ struct RemoteKeywordSearchResultsView: View {
         splitContext = context
         splitVideos = []
         isSplitLoading = true
+        RuntimeDiagnostics.shared.record(
+            "remote_search_split_load_scheduled",
+            detail: "YouTube検索右ペインの初期読込を予約",
+            metadata: [
+                "channelID": context.channelID,
+                "delay_ms": "150",
+            ]
+        )
 
         splitLoadTask = Task {
             try? await Task.sleep(nanoseconds: 150_000_000)
             guard !Task.isCancelled else { return }
 
+            let startedAt = Date()
+            RuntimeDiagnostics.shared.record(
+                "remote_search_split_load_started",
+                detail: "YouTube検索右ペインの読込を開始",
+                metadata: [
+                    "channelID": context.channelID,
+                    "trigger": "initial",
+                ]
+            )
             let loadedVideos = await coordinator.openChannelVideos(context)
             guard !Task.isCancelled else { return }
 
@@ -425,6 +469,16 @@ struct RemoteKeywordSearchResultsView: View {
                 splitVideos = loadedVideos
                 isSplitLoading = false
             }
+            RuntimeDiagnostics.shared.record(
+                "remote_search_split_load_completed",
+                detail: "YouTube検索右ペインの読込を完了",
+                metadata: [
+                    "channelID": context.channelID,
+                    "trigger": "initial",
+                    "videos": String(loadedVideos.count),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
         }
     }
 
