@@ -125,9 +125,9 @@
 ## Observability
 
 - 実機調査で必要なランタイムログは、Xcode コンソールへ `[YoutubeFeeder]` を先頭に付けた 1 行ログとして出力する。
-- ログは `検索開始`、`キャッシュ hit / miss`、`外部 API 要求の開始 / 完了`、`キャッシュ反映`、`失敗時の fallback` のような境界イベントへ絞り、動画単位や item 単位の大量出力は避ける。
+- ログは `app launch`、`splash / home 表示`、`検索開始`、`キャッシュ hit / miss`、`外部 API 要求の開始 / 完了`、`キャッシュ反映`、`失敗時の fallback` のような境界イベントへ絞り、動画単位や item 単位の大量出力は避ける。
 - API キー、完全な request URL、巨大な response body は出力せず、失敗時も本文は短い preview に切り詰める。
 - キャンセルは通信失敗と分けて記録し、`画面`, `coordinator`, `service`, `transport` のどこで中断を観測したか追える形にする。
 - キャンセルはユーザー向け失敗文言へそのまま出さず、必要な情報は調査ログで追う。
 - `pull-to-refresh` は UI task そのものを検索処理の所有者にせず、実取得は内側の managed task へ委譲して View の再構成や離脱に引きずられにくくする。
-- iPad split のように複数ペインが同時に組み上がる導線では、ホーム操作、画面表示、詳細読込開始・完了の境界を runtime diagnostics に残し、コンソール目視と UI test の両方で同じ指標系を見られるようにする。
+- iPad split のように複数ペインが同時に組み上がる導線では、ホーム操作、画面表示、詳細読込開始・完了の境界を runtime diagnostics と console lifecycle log の両方に残し、コンソール目視と UI test の両方で同じ指標系を見られるようにする。

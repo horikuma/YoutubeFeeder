@@ -19,6 +19,7 @@ struct LaunchScreenView: View {
         }
         .onAppear {
             StartupDiagnostics.shared.mark("splashShown")
+            AppConsoleLogger.appLifecycle.info("splash_shown")
         }
     }
 }

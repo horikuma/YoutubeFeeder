@@ -55,6 +55,14 @@ struct HomeScreenView: View {
         }
         .onAppear {
             diagnostics.mark("maintenanceShown")
+            AppConsoleLogger.appLifecycle.info(
+                "home_shown",
+                metadata: [
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                    "registered_channels": String(coordinator.homeSystemStatus.registeredChannelCount),
+                    "cached_videos": String(coordinator.homeSystemStatus.cachedVideoCount),
+                ]
+            )
         }
         .task {
             guard AppLaunchMode.current.autoRefreshOnLaunch else { return }
@@ -137,6 +145,13 @@ struct HomeScreenView: View {
             }
             .simultaneousGesture(
                 TapGesture().onEnded {
+                    AppConsoleLogger.appLifecycle.info(
+                        "remote_search_tile_tapped",
+                        metadata: [
+                            "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                            "keyword": FeedCacheCoordinator.homeSearchKeyword,
+                        ]
+                    )
                     RuntimeDiagnostics.shared.record(
                         "remote_search_home_tapped",
                         detail: "ホームから YouTube検索タイルを選択",

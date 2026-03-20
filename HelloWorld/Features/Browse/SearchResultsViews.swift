@@ -412,6 +412,13 @@ struct RemoteKeywordSearchResultsView: View {
         isSplitLoading = true
         splitContext = context
         let startedAt = Date()
+        AppConsoleLogger.appLifecycle.info(
+            "remote_search_split_load_started",
+            metadata: [
+                "channelID": context.channelID,
+                "trigger": "explicit",
+            ]
+        )
         RuntimeDiagnostics.shared.record(
             "remote_search_split_load_started",
             detail: "YouTube検索右ペインの読込を開始",
@@ -422,6 +429,15 @@ struct RemoteKeywordSearchResultsView: View {
         )
         splitVideos = await coordinator.openChannelVideos(context)
         isSplitLoading = false
+        AppConsoleLogger.appLifecycle.notice(
+            "remote_search_split_load_completed",
+            metadata: [
+                "channelID": context.channelID,
+                "trigger": "explicit",
+                "videos": String(splitVideos.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            ]
+        )
         RuntimeDiagnostics.shared.record(
             "remote_search_split_load_completed",
             detail: "YouTube検索右ペインの読込を完了",
@@ -439,6 +455,13 @@ struct RemoteKeywordSearchResultsView: View {
         splitContext = context
         splitVideos = []
         isSplitLoading = true
+        AppConsoleLogger.appLifecycle.debug(
+            "remote_search_split_load_scheduled",
+            metadata: [
+                "channelID": context.channelID,
+                "delay_ms": "150",
+            ]
+        )
         RuntimeDiagnostics.shared.record(
             "remote_search_split_load_scheduled",
             detail: "YouTube検索右ペインの初期読込を予約",
@@ -453,6 +476,13 @@ struct RemoteKeywordSearchResultsView: View {
             guard !Task.isCancelled else { return }
 
             let startedAt = Date()
+            AppConsoleLogger.appLifecycle.info(
+                "remote_search_split_load_started",
+                metadata: [
+                    "channelID": context.channelID,
+                    "trigger": "initial",
+                ]
+            )
             RuntimeDiagnostics.shared.record(
                 "remote_search_split_load_started",
                 detail: "YouTube検索右ペインの読込を開始",
@@ -469,6 +499,15 @@ struct RemoteKeywordSearchResultsView: View {
                 splitVideos = loadedVideos
                 isSplitLoading = false
             }
+            AppConsoleLogger.appLifecycle.notice(
+                "remote_search_split_load_completed",
+                metadata: [
+                    "channelID": context.channelID,
+                    "trigger": "initial",
+                    "videos": String(loadedVideos.count),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
             RuntimeDiagnostics.shared.record(
                 "remote_search_split_load_completed",
                 detail: "YouTube検索右ペインの読込を完了",

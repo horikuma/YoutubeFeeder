@@ -10,6 +10,7 @@
 
 - [HelloWorldApp.swift](../HelloWorld/App/HelloWorldApp.swift)
   - アプリ起動入口。
+  - app launch の lifecycle ログ開始。
 - [AppDependencies.swift](../HelloWorld/App/AppDependencies.swift)
   - composition root。
   - live dependency の組み立て。
@@ -17,12 +18,14 @@
   - ルート画面。
   - `LaunchScreenView` からホーム画面への遷移。
   - `NavigationStack` と route の束ね。
+  - bootstrap 開始完了と maintenance enter の lifecycle ログ。
 - [AppLayout.swift](../HelloWorld/App/AppLayout.swift)
   - `horizontalSizeClass` を主基準とする Adaptive UI 判定。
   - 単独画面と分割レイアウトの差分吸収。
 - [AppConsoleLogger.swift](../HelloWorld/App/AppConsoleLogger.swift)
   - Xcode コンソール向けの 1 行ランタイムログ。
   - `[YoutubeFeeder]` 接頭辞、キーワード短縮、レスポンス preview の整形。
+  - `app.lifecycle` と `youtube.search` の境界ログを共通整形する。
 - [AppFormatting.swift](../HelloWorld/App/AppFormatting.swift)
   - 日付や数値の共通 formatter。
 - [AppTestSupport.swift](../HelloWorld/App/Support/AppTestSupport.swift)
@@ -38,11 +41,13 @@
   - ホーム画面本体。
   - 手動更新、検索導線、バックアップ、全設定リセット、システム状況表示。
   - YouTube検索タイル選択の runtime diagnostics 記録。
+  - ホーム表示と YouTube検索タイル選択の lifecycle ログ。
 - [ChannelRegistrationView.swift](../HelloWorld/Features/Home/ChannelRegistrationView.swift)
   - チャンネル登録画面。
   - 入力、解決、登録、結果表示。
 - [HomeUIComponents.swift](../HelloWorld/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
+  - splash 表示の lifecycle ログ。
 - [HomeRoutes.swift](../HelloWorld/Features/Home/HomeRoutes.swift)
   - 一覧系画面への遷移定義。
 
@@ -153,6 +158,7 @@
 - [HomeScreenUITests.swift](../HelloWorldUITests/Home/HomeScreenUITests.swift)
   - ホーム画面表示、導線、モック refresh、起動タイムライン。
   - iPad の YouTube検索遷移について、baseline / heavy fixture の split 計測。
+  - 起動区間と YouTube検索 split 区間をまとめた metrics JSON の出力。
 - [BrowseScreenUITests.swift](../HelloWorldUITests/Browse/BrowseScreenUITests.swift)
   - 一覧導線、チャンネル別動画一覧更新、YouTube 検索結果 refresh state、検索結果からのチャンネル遷移。
   - 実機向け live YouTube 検索 refresh の再現導線。

@@ -8,6 +8,7 @@ enum AppConsoleLogLevel: String {
 }
 
 struct AppConsoleLogger {
+    static let appLifecycle = AppConsoleLogger(scope: "app.lifecycle")
     static let youtubeSearch = AppConsoleLogger(scope: "youtube.search")
 
     let scope: String

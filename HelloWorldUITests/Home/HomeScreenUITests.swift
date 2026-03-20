@@ -90,6 +90,8 @@ final class HomeScreenUITests: UITestCaseSupport {
         )
 
         waitForHomeScreen(in: app, timeout: 8)
+        let timeline = try timelinePayload(in: app)
+        let startup = try startupMetrics(from: timeline)
         XCTAssertTrue(element("nav.remoteSearch", in: app).waitForExistence(timeout: 3))
 
         element("nav.remoteSearch", in: app).tap()
@@ -113,6 +115,9 @@ final class HomeScreenUITests: UITestCaseSupport {
 
         let metrics: [String: Any] = [
             "fixture": fixtureVariant,
+            "app_launch_to_splash_ms": startup["app_launch_to_splash_ms"] ?? 0,
+            "app_launch_to_home_ms": startup["app_launch_to_home_ms"] ?? 0,
+            "app_launch_to_maintenance_enter_ms": startup["app_launch_to_maintenance_enter_ms"] ?? 0,
             "home_tap_to_screen_ms": try millisecondsBetween(tapEntry, and: screenEntry),
             "screen_to_split_schedule_ms": try millisecondsBetween(screenEntry, and: scheduledEntry),
             "screen_to_split_start_ms": try millisecondsBetween(screenEntry, and: startedEntry),

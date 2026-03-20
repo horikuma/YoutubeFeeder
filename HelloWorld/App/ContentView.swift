@@ -71,8 +71,14 @@ struct ContentView: View {
         .task(priority: .userInitiated) {
             guard !hasPreparedMaintenance else { return }
             hasPreparedMaintenance = true
+            let startedAt = Date()
+            AppConsoleLogger.appLifecycle.info("bootstrap_start")
             await coordinator.bootstrapMaintenance()
             diagnostics.mark("bootstrapLoaded")
+            AppConsoleLogger.appLifecycle.notice(
+                "bootstrap_complete",
+                metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+            )
             withAnimation(.easeInOut(duration: 0.2)) {
                 hasEnteredMaintenance = true
             }
@@ -80,6 +86,7 @@ struct ContentView: View {
         .task(id: hasEnteredMaintenance) {
             guard hasEnteredMaintenance else { return }
             diagnostics.mark("maintenanceEntered")
+            AppConsoleLogger.appLifecycle.info("maintenance_entered")
 
             guard !hasAppliedInitialUITestRoute else { return }
             guard let initialRoute = AppLaunchMode.current.initialUITestRoute else { return }

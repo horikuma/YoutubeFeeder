@@ -1,4 +1,6 @@
 ## 2026/03/20
+- YouTube検索の遷移調査では、検索専用ログに加えて `[YoutubeFeeder] app.lifecycle.*` を追加し、起動から G 画面到達までを同じ系列で追う方針にした。
+  - G 画面以降のログだけでは、スプラッシュまで、ホームまで、ホームから G 画面までのどこが長いかを判別しにくかったため。`app_launch`、`splash_shown`、`bootstrap_start / complete`、`home_shown`、`remote_search_tile_tapped`、`split_load_*` を同じプレフィックスへ揃えることで、実機コンソールだけでも前段の詰まりを切り分けやすくする。
 - iPad の YouTube検索遷移計測は、Xcode コンソールの目視だけに頼らず、UI test から読める hidden runtime diagnostics へ区間イベントを記録する方針にした。
   - 実機前段のシミュレータ比較では、ホームタップ、G 画面表示、右ペイン初期読込の予約、開始、完了を ms で並べて見たいが、コンソールログだけだと機械比較しにくいため。runtime diagnostics にイベントを残せば、UI test から `home_tap_to_screen_ms` や `home_tap_to_split_loaded_ms` を JSON として取り出せ、実機テスト時にも同じ指標系へ合わせやすい。
 - iPad の YouTube検索性能確認では、通常 fixture に加えて `heavy` fixture を UI test launch env で生成し、検索キャッシュ 100 件・選択チャンネル動画 200 件の比較を取る方針にした。
