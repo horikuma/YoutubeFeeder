@@ -1,4 +1,6 @@
 ## 2026/03/20
+- iPad の YouTube検索遷移調査では、bootstrap 完了までの内訳、ホームのナビゲーション部品描画、G 画面の最初の結果表示、右ペイン detail の初回表示までを同じ系列で観測できるよう、起動と描画の分解ログを追加する方針にした。
+  - 既存ログで snapshot 読込や `openChannelVideos` 自体は十分速いことが見え、残るボトルネック候補が bootstrap と SwiftUI の初回描画へ絞られてきたため。`bootstrap_channels_loaded`、`home_status_load_complete`、`home_navigation_section_appear`、`remote_search_first_result_appear`、`remote_search_split_detail_appear` を足し、データ処理と描画待ちを同じ Xcode コンソールで切り分けられるようにする。
 - YouTube検索の iPad 遷移調査では、`FeedCacheCoordinator` と `SearchResultsViews` の MainActor 区間に広めの境界ログを追加し、snapshot 読込、presentation 適用、split 予約、channel 動画統合、`refreshUI` の各区間を ms 単位で観測する方針にした。
   - `FeedCacheCoordinator` 自体が `@MainActor` であり、右ペイン読込が速い一方で開始前に待たされるケースが見えていたため、通信やデータ量ではなく MainActor 側の待機を疑う材料が揃ってきた。まずは actor 境界を崩す前に、どの区間が MainActor 上で長いかをコンソールだけで読めるようにし、変更の当たりを付けやすくする。
 - iPad の YouTube検索 split 遷移では、Apple の標準パスに寄せた比較用として `PerformanceProbeMode.E` を追加し、左ペインを `NavigationSplitView + List(selection:)` ベースへ切り替えられるようにした。

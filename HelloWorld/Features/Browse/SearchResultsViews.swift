@@ -188,60 +188,11 @@ struct RemoteKeywordSearchResultsView: View {
     @State private var splitVideos: [CachedVideo] = []
     @State private var splitLoadTask: Task<Void, Never>?
     @State private var isSplitLoading = false
+    @State private var hasLoggedFirstResultAppear = false
+    @State private var hasLoggedSplitDetailAppear = false
 
     var body: some View {
-        Group {
-            if layout.usesSplitChannelBrowser {
-                if performanceProbeMode.usesStandardRemoteSearchSplitUI {
-                    RemoteKeywordSearchResultsStandardRegularView(
-                        keyword: keyword,
-                        coordinator: coordinator,
-                        openVideo: openVideo,
-                        path: $path,
-                        layout: layout,
-                        result: result,
-                        visibleCount: presentationState.visibleCount,
-                        selectedSplitVideoID: $selectedSplitVideoID,
-                        splitContext: $splitContext,
-                        splitVideos: $splitVideos,
-                        isSplitLoading: isSplitLoading,
-                        onRefresh: { await reloadResults(forceRefresh: true) },
-                        onSelectVideo: selectSplitVideo,
-                        onLoadMore: loadMoreIfNeeded
-                    )
-                } else {
-                    RemoteKeywordSearchResultsRegularView(
-                        keyword: keyword,
-                        coordinator: coordinator,
-                        openVideo: openVideo,
-                        path: $path,
-                        layout: layout,
-                        result: result,
-                        visibleCount: presentationState.visibleCount,
-                        splitContext: $splitContext,
-                        splitVideos: $splitVideos,
-                        isSplitLoading: isSplitLoading,
-                        onRefresh: { await reloadResults(forceRefresh: true) },
-                        onDismissChip: dismissChip,
-                        onLoadMore: loadMoreIfNeeded,
-                        normalizedChannelTitle: normalizedChannelTitle(for:)
-                    )
-                }
-            } else {
-                RemoteKeywordSearchResultsCompactView(
-                    coordinator: coordinator,
-                    layout: layout,
-                    path: $path,
-                    keyword: keyword,
-                    result: result,
-                    visibleCount: presentationState.visibleCount,
-                    onRefresh: { await reloadResults(forceRefresh: true) },
-                    onDismissChip: dismissChip,
-                    onLoadMore: loadMoreIfNeeded,
-                    normalizedChannelTitle: normalizedChannelTitle(for:)
-                )
-            }
-        }
+        content
         .overlay(alignment: .top) {
             if presentationState.isRefreshingChip {
                 SearchRefreshStatusView()
@@ -626,6 +577,90 @@ struct RemoteKeywordSearchResultsView: View {
     private var performanceProbeMode: PerformanceProbeMode {
         PerformanceProbeMode(rawValue: performanceProbeModeRawValue) ?? .modeA
     }
+
+    private func logFirstResultAppear(videoID: String) {
+        guard !hasLoggedFirstResultAppear else { return }
+        hasLoggedFirstResultAppear = true
+        AppConsoleLogger.appLifecycle.debug(
+            "remote_search_first_result_appear",
+            metadata: [
+                "videoID": videoID,
+                "probe_mode": performanceProbeMode.shortLabel,
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
+    }
+
+    private func logSplitDetailAppear(channelID: String?) {
+        guard !hasLoggedSplitDetailAppear else { return }
+        hasLoggedSplitDetailAppear = true
+        AppConsoleLogger.appLifecycle.debug(
+            "remote_search_split_detail_appear",
+            metadata: [
+                "channelID": channelID ?? "none",
+                "probe_mode": performanceProbeMode.shortLabel,
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if layout.usesSplitChannelBrowser {
+            if performanceProbeMode.usesStandardRemoteSearchSplitUI {
+                RemoteKeywordSearchResultsStandardRegularView(
+                    keyword: keyword,
+                    coordinator: coordinator,
+                    openVideo: openVideo,
+                    path: $path,
+                    layout: layout,
+                    result: result,
+                    visibleCount: presentationState.visibleCount,
+                    selectedSplitVideoID: $selectedSplitVideoID,
+                    splitContext: $splitContext,
+                    splitVideos: $splitVideos,
+                    isSplitLoading: isSplitLoading,
+                    onRefresh: { await reloadResults(forceRefresh: true) },
+                    onSelectVideo: selectSplitVideo,
+                    onLoadMore: loadMoreIfNeeded,
+                    onFirstResultAppear: logFirstResultAppear,
+                    onSplitDetailAppear: logSplitDetailAppear
+                )
+            } else {
+                RemoteKeywordSearchResultsRegularView(
+                    keyword: keyword,
+                    coordinator: coordinator,
+                    openVideo: openVideo,
+                    path: $path,
+                    layout: layout,
+                    result: result,
+                    visibleCount: presentationState.visibleCount,
+                    splitContext: $splitContext,
+                    splitVideos: $splitVideos,
+                    isSplitLoading: isSplitLoading,
+                    onRefresh: { await reloadResults(forceRefresh: true) },
+                    onDismissChip: dismissChip,
+                    onLoadMore: loadMoreIfNeeded,
+                    normalizedChannelTitle: normalizedChannelTitle(for:),
+                    onFirstResultAppear: logFirstResultAppear,
+                    onSplitDetailAppear: logSplitDetailAppear
+                )
+            }
+        } else {
+            RemoteKeywordSearchResultsCompactView(
+                coordinator: coordinator,
+                layout: layout,
+                path: $path,
+                keyword: keyword,
+                result: result,
+                visibleCount: presentationState.visibleCount,
+                onRefresh: { await reloadResults(forceRefresh: true) },
+                onDismissChip: dismissChip,
+                onLoadMore: loadMoreIfNeeded,
+                normalizedChannelTitle: normalizedChannelTitle(for:)
+            )
+        }
+    }
 }
 
 private struct RemoteKeywordSearchResultsCompactView: View {
@@ -710,6 +745,8 @@ private struct RemoteKeywordSearchResultsRegularView: View {
     let onDismissChip: () -> Void
     let onLoadMore: () -> Void
     let normalizedChannelTitle: (CachedVideo) -> String?
+    let onFirstResultAppear: (String) -> Void
+    let onSplitDetailAppear: (String?) -> Void
 
     var body: some View {
         NavigationSplitView {
@@ -762,6 +799,11 @@ private struct RemoteKeywordSearchResultsRegularView: View {
                                 index: offset + 1
                             )
                             .onAppear {
+                                if offset == 0 {
+                                    onFirstResultAppear(video.id)
+                                }
+                            }
+                            .onAppear {
                                 guard offset >= visibleVideos.count - 1 else { return }
                                 onLoadMore()
                             }
@@ -776,7 +818,8 @@ private struct RemoteKeywordSearchResultsRegularView: View {
                 layout: layout,
                 splitContext: $splitContext,
                 splitVideos: $splitVideos,
-                isSplitLoading: isSplitLoading
+                isSplitLoading: isSplitLoading,
+                onAppearOnce: onSplitDetailAppear
             )
         }
         .navigationSplitViewStyle(.balanced)
@@ -800,6 +843,8 @@ private struct RemoteKeywordSearchResultsStandardRegularView: View {
     let onRefresh: () async -> Void
     let onSelectVideo: (CachedVideo) async -> Void
     let onLoadMore: () -> Void
+    let onFirstResultAppear: (String) -> Void
+    let onSplitDetailAppear: (String?) -> Void
 
     private var visibleVideos: [CachedVideo] {
         Array(result.videos.prefix(visibleCount))
@@ -827,6 +872,9 @@ private struct RemoteKeywordSearchResultsStandardRegularView: View {
                             RemoteSearchVideoListRow(video: video)
                                 .tag(Optional(video.id))
                                 .onAppear {
+                                    if offset == 0 {
+                                        onFirstResultAppear(video.id)
+                                    }
                                     guard offset >= visibleVideos.count - 1 else { return }
                                     onLoadMore()
                                 }
@@ -869,7 +917,8 @@ private struct RemoteKeywordSearchResultsStandardRegularView: View {
                 layout: layout,
                 splitContext: $splitContext,
                 splitVideos: $splitVideos,
-                isSplitLoading: isSplitLoading
+                isSplitLoading: isSplitLoading,
+                onAppearOnce: onSplitDetailAppear
             )
         }
         .navigationSplitViewStyle(.balanced)
@@ -883,6 +932,7 @@ private struct RemoteKeywordSearchResultsSplitDetailPane: View {
     @Binding var splitContext: ChannelVideosRouteContext?
     @Binding var splitVideos: [CachedVideo]
     let isSplitLoading: Bool
+    let onAppearOnce: (String?) -> Void
 
     var body: some View {
         ScrollView {
@@ -934,6 +984,9 @@ private struct RemoteKeywordSearchResultsSplitDetailPane: View {
             .padding(.vertical, 20)
         }
         .background(Color(.systemGroupedBackground))
+        .onAppear {
+            onAppearOnce(splitContext?.channelID)
+        }
         .refreshable {
             guard let splitContext else { return }
             await coordinator.refreshChannelManually(splitContext.channelID)

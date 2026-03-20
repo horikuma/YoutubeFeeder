@@ -81,16 +81,46 @@ final class FeedCacheCoordinator: ObservableObject {
             metadata: ["main_thread": AppConsoleLogger.mainThreadFlag()]
         )
         channels = ChannelRegistryStore.loadAllChannelIDs()
+        let channelsLoadedAt = Date()
+        AppConsoleLogger.appLifecycle.debug(
+            "bootstrap_channels_loaded",
+            metadata: [
+                "channels": String(channels.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: channelsLoadedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
+        let consistencyCompletedAt = Date()
+        AppConsoleLogger.appLifecycle.debug(
+            "bootstrap_consistency_complete",
+            metadata: [
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: channelsLoadedAt, to: consistencyCompletedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
         let bootstrap = FeedBootstrapStore.load(channels: channels)
+        let bootstrapStoreLoadedAt = Date()
+        AppConsoleLogger.appLifecycle.debug(
+            "bootstrap_store_loaded",
+            metadata: [
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: consistencyCompletedAt, to: bootstrapStoreLoadedAt),
+                "main_thread": AppConsoleLogger.mainThreadFlag(),
+            ]
+        )
         progress = bootstrap.progress
         maintenanceItems = bootstrap.maintenanceItems
         await refreshHomeSystemStatus()
+        let homeStatusCompletedAt = Date()
         AppConsoleLogger.appLifecycle.notice(
             "bootstrap_coordinator_complete",
             metadata: [
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "channels_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: channelsLoadedAt),
+                "consistency_ms": AppConsoleLogger.elapsedMilliseconds(from: channelsLoadedAt, to: consistencyCompletedAt),
+                "bootstrap_store_ms": AppConsoleLogger.elapsedMilliseconds(from: consistencyCompletedAt, to: bootstrapStoreLoadedAt),
+                "home_status_ms": AppConsoleLogger.elapsedMilliseconds(from: bootstrapStoreLoadedAt, to: homeStatusCompletedAt),
                 "main_thread": AppConsoleLogger.mainThreadFlag(),
                 "channels": String(channels.count),
                 "maintenance_items": String(maintenanceItems.count),

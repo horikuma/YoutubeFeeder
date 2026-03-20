@@ -14,6 +14,8 @@ struct HomeScreenView: View {
     @State private var isTransferringRegistry = false
     @State private var isResettingAllSettings = false
     @State private var shouldConfirmReset = false
+    @State private var hasLoggedNavigationSectionAppear = false
+    @State private var hasLoggedRemoteSearchTileAppear = false
 
     var body: some View {
         ScrollView {
@@ -146,6 +148,18 @@ struct HomeScreenView: View {
                     detail: "開いた先で下に引っ張ると API 検索し、履歴を順次マージ"
                 )
             }
+            .onAppear {
+                guard !hasLoggedRemoteSearchTileAppear else { return }
+                hasLoggedRemoteSearchTileAppear = true
+                AppConsoleLogger.appLifecycle.debug(
+                    "remote_search_tile_appear",
+                    metadata: [
+                        "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                        "probe_mode": performanceProbeMode.shortLabel,
+                        "main_thread": AppConsoleLogger.mainThreadFlag(),
+                    ]
+                )
+            }
             .simultaneousGesture(
                 TapGesture().onEnded {
                     AppConsoleLogger.appLifecycle.info(
@@ -216,6 +230,17 @@ struct HomeScreenView: View {
             .disabled(isTransferringRegistry || isResettingAllSettings)
             .tint(.red)
             .accessibilityIdentifier("nav.resetAllSettings")
+        }
+        .onAppear {
+            guard !hasLoggedNavigationSectionAppear else { return }
+            hasLoggedNavigationSectionAppear = true
+            AppConsoleLogger.appLifecycle.debug(
+                "home_navigation_section_appear",
+                metadata: [
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                    "main_thread": AppConsoleLogger.mainThreadFlag(),
+                ]
+            )
         }
     }
 
