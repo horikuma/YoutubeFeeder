@@ -1,4 +1,6 @@
 ## 2026/03/20
+- ホーム表示前の `search_cache_ms` をさらに割るため、`RemoteVideoSearchService.status` と `RemoteVideoSearchCacheStore.status` に、service 境界、file existence、`Data(contentsOf:)`、JSON decode、TTL 判定の各区間ログを追加する方針にした。
+  - 直近の実機ログでは `home_status_load_complete` の約 3 秒の大半が検索キャッシュ状態取得に集中していた一方、snapshot や split 読込は十分速いことが見えていたため。ここで対策に入るより、まず `search_cache_ms` の塊を細かく割って、I/O・decode・actor hop のどれが支配的かを確信を持って特定することを優先する。
 - iPad の YouTube検索遷移調査では、bootstrap 完了までの内訳、ホームのナビゲーション部品描画、G 画面の最初の結果表示、右ペイン detail の初回表示までを同じ系列で観測できるよう、起動と描画の分解ログを追加する方針にした。
   - 既存ログで snapshot 読込や `openChannelVideos` 自体は十分速いことが見え、残るボトルネック候補が bootstrap と SwiftUI の初回描画へ絞られてきたため。`bootstrap_channels_loaded`、`home_status_load_complete`、`home_navigation_section_appear`、`remote_search_first_result_appear`、`remote_search_split_detail_appear` を足し、データ処理と描画待ちを同じ Xcode コンソールで切り分けられるようにする。
 - YouTube検索の iPad 遷移調査では、`FeedCacheCoordinator` と `SearchResultsViews` の MainActor 区間に広めの境界ログを追加し、snapshot 読込、presentation 適用、split 予約、channel 動画統合、`refreshUI` の各区間を ms 単位で観測する方針にした。

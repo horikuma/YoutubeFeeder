@@ -82,12 +82,71 @@ actor RemoteVideoSearchCacheStore {
     }
 
     func status(keyword: String, ttl: TimeInterval, now: Date = .now) -> RemoteSearchCacheStatus {
-        guard let entry = load(keyword: keyword) else {
+        let startedAt = Date()
+        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
+        let fileURL = FeedCachePaths.remoteSearchCacheURL(keyword: keyword, fileManager: fileManager)
+        AppConsoleLogger.appLifecycle.debug(
+            "search_cache_status_store_start",
+            metadata: [
+                "keyword": keywordPreview,
+                "filename": fileURL.lastPathComponent,
+            ]
+        )
+
+        let fileExists = fileManager.fileExists(atPath: fileURL.path)
+        let fileCheckedAt = Date()
+        guard fileExists else {
+            AppConsoleLogger.appLifecycle.notice(
+                "search_cache_status_store_empty",
+                metadata: [
+                    "keyword": keywordPreview,
+                    "exists": "false",
+                    "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: fileCheckedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
             return .empty(keyword: keyword)
         }
 
+        let data: Data
+        do {
+            data = try Data(contentsOf: fileURL)
+        } catch {
+            AppConsoleLogger.appLifecycle.error(
+                "search_cache_status_store_read_failed",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: [
+                    "keyword": keywordPreview,
+                    "exists": "true",
+                    "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: fileCheckedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
+            return .empty(keyword: keyword)
+        }
+        let dataLoadedAt = Date()
+
+        let entry: RemoteVideoSearchCacheEntry
+        do {
+            entry = try decoder.decode(RemoteVideoSearchCacheEntry.self, from: data)
+        } catch {
+            AppConsoleLogger.appLifecycle.error(
+                "search_cache_status_store_decode_failed",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: [
+                    "keyword": keywordPreview,
+                    "bytes": String(data.count),
+                    "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: fileCheckedAt),
+                    "read_ms": AppConsoleLogger.elapsedMilliseconds(from: fileCheckedAt, to: dataLoadedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
+            return .empty(keyword: keyword)
+        }
+        let decodedAt = Date()
+
         let expiresAt = entry.fetchedAt.addingTimeInterval(ttl)
-        return RemoteSearchCacheStatus(
+        let status = RemoteSearchCacheStatus(
             keyword: keyword,
             isFresh: expiresAt > now,
             totalCount: entry.totalCount,
@@ -95,6 +154,23 @@ actor RemoteVideoSearchCacheStore {
             expiresAt: expiresAt,
             exists: true
         )
+        let completedAt = Date()
+        AppConsoleLogger.appLifecycle.notice(
+            "search_cache_status_store_complete",
+            metadata: [
+                "keyword": keywordPreview,
+                "bytes": String(data.count),
+                "videos": String(entry.videos.count),
+                "exists": "true",
+                "is_fresh": status.isFresh ? "true" : "false",
+                "file_check_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: fileCheckedAt),
+                "read_ms": AppConsoleLogger.elapsedMilliseconds(from: fileCheckedAt, to: dataLoadedAt),
+                "decode_ms": AppConsoleLogger.elapsedMilliseconds(from: dataLoadedAt, to: decodedAt),
+                "ttl_ms": AppConsoleLogger.elapsedMilliseconds(from: decodedAt, to: completedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: completedAt),
+            ]
+        )
+        return status
     }
 
     func allVideos(channelID: String) -> [CachedVideo] {
