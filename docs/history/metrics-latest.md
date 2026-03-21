@@ -1,4 +1,18 @@
 ## 2026/03/21
+### スプラッシュのアプリ名を1行で収める
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `3.540s`
+- test-without-building: `132.783s`
+- 検証合計時間: `136.323s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `412ms`
+- スプラッシュ表示からホーム表示まで: `121ms`
+- 起動からホーム表示まで: `533ms`
+- 起動から bootstrap 読込完了まで: `477ms`
+- 起動からホーム遷移開始まで: `544ms`
+
 ### 動画タイルの長押し共有を全画面へ追加する
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

@@ -65,6 +65,7 @@
 - [HomeUIComponents.swift](../YoutubeFeeder/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
   - splash 表示の lifecycle ログ。
+  - splash のアプリ名は 1 行固定とし、狭い横幅では縮小して改行させない。
 - [HomeRoutes.swift](../YoutubeFeeder/Features/Home/HomeRoutes.swift)
   - 一覧系画面への遷移定義。
 

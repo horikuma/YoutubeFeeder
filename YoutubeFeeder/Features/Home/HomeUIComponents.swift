@@ -10,6 +10,9 @@ struct LaunchScreenView: View {
                 Text("YoutubeFeeder")
                     .font(.system(size: 42, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .allowsTightening(true)
 
                 Text("Launching...")
                     .font(.headline)
