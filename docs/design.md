@@ -2,7 +2,7 @@
 
 この文書は、YoutubeFeeder の詳細設計を記述する正本である。ここでは、ファイル単位、型単位、テスト単位の責務を扱う。
 
-文書群の役割分担と文書運用ルールは [rules-documents.md](./rules-documents.md) を参照する。
+文書群の役割分担と文書運用ルールは [rules-document.md](./rules-document.md) を参照する。
 
 ## 実装単位の責務
 

@@ -14,6 +14,8 @@
   - 採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を記述する。
 - [design.md](./design.md)
   - ファイル単位、型単位、テスト単位の責務や構成など、詳細設計を記述する。
+- [rules-design.md](./rules-design.md)
+  - 画面設計、余白、文字組み、色の使い方など、`iPhone` / `iPad` 向けの視覚設計ルールを記述する。
 
 ### 参照資料
 
@@ -30,6 +32,7 @@
 
 - `rules.md` へ実装詳細や画面単位の仕様を集約してはならない。
 - クラス名や型名が出る内容は、原則として `design.md` へ置く。
+- 画面の見た目や視覚的一貫性の基準は、仕様や詳細設計へ散らさず `rules-design.md` へ置く。
 - ユーザー操作や画面導線に依存する内容は、原則として `spec.md` へ置く。
 - 変更しても全体構造が変わらない運用詳細は、`rules.md` または `spec.md` へ置く。
 - レイヤ構造、依存方向、データフローの形、責務の原則を規定する内容は、`architecture.md` へ置く。
@@ -45,7 +48,7 @@
 
 ### 開発着手時の文書運用
 
-- 新規開発セッションを開始する時は、まず [rules.md](./rules.md) と [rules-documents.md](./rules-documents.md) を読み直して現在の運用を確認する。
+- 新規開発セッションを開始する時は、まず [rules.md](./rules.md) と [rules-document.md](./rules-document.md) を読み直して現在の運用を確認する。
 - 日付が変わっている場合は、`history/chat-latest.md`、`history/decisions-latest.md`、`history/metrics-latest.md` の前日分を対応する `*-log.md` の先頭へ移してから、当日分の `*-latest.md` を新しい日付見出しで開始する。
 - 新規開発セッション開始時の準備を文書更新として実施した場合は、その開始指示を `history/chat-latest.md` に反映してから当日の開発へ入る。
 
@@ -68,6 +71,7 @@
 - GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui.md](./human-view/gui.md) を見直す。
 - 人間向けの設計図や依存関係の見え方が変わる変更では [design-overview.md](./human-view/design-overview.md) を見直す。
 - 上位方針や変更判断の基準を変更したら [rules.md](./rules.md) を見直す。
+- 余白、文字組み、色の使い方、視覚的一貫性の基準を変更したら [rules-design.md](./rules-design.md) を見直す。
 - 検証コストや性能観測の更新では [metrics-latest.md](./history/metrics-latest.md) を更新し、日次履歴は [metrics-log.md](./history/metrics-log.md) で保持する。
 
 ### 人間向け参照資料のルール

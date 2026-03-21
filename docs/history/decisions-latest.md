@@ -1,4 +1,6 @@
 ## 2026/03/21
+- 文書体系では `rules-documents.md` を `rules-document.md` へ改名し、画面設計の共通基準は新しい正本 `rules-design.md` へ切り出す方針にした。
+  - 文書名の単数化で参照名を安定させつつ、視覚設計ルールを `rules.md` や `spec.md` へ分散させずに管理したいため。内容は `iPhone` / `iPad` 向けとして `8pt` グリッド、Dynamic Type、Adaptive UI 前提へ調整する。
 - health_barometer 整理後の文書同期では、`design.md` だけでなく `architecture.md` と `human-view/design-overview.md` も同じ責務分割単位へ合わせて更新する方針にした。
   - 詳細設計だけ更新すると、人間向けの俯瞰資料で古い構造が残り、次回の分割判断や指示出しがぶれやすいため。
 - health_barometer の長関数や広すぎるファイルは、責務境界が既にある単位から順に分割し、`FeedCacheCoordinator` のような巨大型でもアクセス修飾を広げる大手術は避ける方針にした。
