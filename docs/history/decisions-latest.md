@@ -1,4 +1,6 @@
 ## 2026/03/21
+- health_barometer の長関数や広すぎるファイルは、責務境界が既にある単位から順に分割し、`FeedCacheCoordinator` のような巨大型でもアクセス修飾を広げる大手術は避ける方針にした。
+  - 数値だけを下げるために無理な分割を行うと、かえって依存関係や可視性が悪化して自爆しやすいため。今回は Browse の remote search view 群、FeedCache の値型群、YouTubeSearch 周辺 DTO / 補助ロジックを自然な境界で分け、残る巨大型は今後の設計変更時に改めて扱う。
 - Mermaid を含む Markdown の検証は、外部 API ではなく Node.js `24.14.0` とローカル依存に固定した `mmdc` による SVG 描画で行う方針にした。
   - 文書変更の成否をネットワーク先の可用性へ委ねると再現性が落ちるため。版固定した Node.js と npm lock file を正本にすれば、同じリポジトリ状態から同じローカル検証結果を再現しやすい。
 - プロダクト名変更後に Xcode の build が崩れた場合は、project-local `.DerivedData*` と `xcuserstate` を旧名生成物ごと破棄して再生成する方針にした。

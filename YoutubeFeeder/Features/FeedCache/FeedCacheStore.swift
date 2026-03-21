@@ -157,33 +157,13 @@ actor FeedCacheStore {
         let fetchedAt = metadata.checkedAt
         let existingVideoIDs = Set(snapshot.videos.lazy.map(\.id))
         let uncachedVideos = videos.filter { !existingVideoIDs.contains($0.id) }
-        var cachedVideosByID = Dictionary(uniqueKeysWithValues: snapshot.videos.map { ($0.id, $0) })
-
-        for video in videos {
-            let channelTitle = video.channelTitle.isEmpty ? (cachedVideosByID[video.id]?.channelTitle ?? "") : video.channelTitle
-            cachedVideosByID[video.id] = CachedVideo(
-                id: video.id,
-                channelID: channelID,
-                channelTitle: channelTitle,
-                title: video.title,
-                publishedAt: video.publishedAt,
-                videoURL: video.videoURL,
-                thumbnailRemoteURL: video.thumbnailURL,
-                thumbnailLocalFilename: cachedVideosByID[video.id]?.thumbnailLocalFilename,
-                fetchedAt: fetchedAt,
-                searchableText: [video.title, channelTitle, video.id].joined(separator: "\n").lowercased(),
-                durationSeconds: video.durationSeconds ?? cachedVideosByID[video.id]?.durationSeconds,
-                viewCount: video.viewCount ?? cachedVideosByID[video.id]?.viewCount
-            )
-        }
-
-        snapshot.videos = cachedVideosByID.values.sorted {
-            switch ($0.publishedAt, $1.publishedAt) {
-            case let (left?, right?): return left > right
-            case (_?, nil): return true
-            default: return $0.fetchedAt > $1.fetchedAt
-            }
-        }
+        let updatedVideos = updateCachedVideos(
+            snapshot.videos,
+            with: videos,
+            channelID: channelID,
+            fetchedAt: fetchedAt
+        )
+        snapshot.videos = updatedVideos.sorted(by: sortCachedVideosForSnapshot)
 
         let resolvedChannelTitle = videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
         let latestPublishedAt = videos.compactMap(\.publishedAt).max()
@@ -215,6 +195,58 @@ actor FeedCacheStore {
         snapshot.savedAt = fetchedAt
         persist(snapshot)
         return uncachedVideos
+    }
+
+    private func updateCachedVideos(
+        _ existingVideos: [CachedVideo],
+        with fetchedVideos: [YouTubeVideo],
+        channelID: String,
+        fetchedAt: Date
+    ) -> [CachedVideo] {
+        var cachedVideosByID = Dictionary(uniqueKeysWithValues: existingVideos.map { ($0.id, $0) })
+        for video in fetchedVideos {
+            cachedVideosByID[video.id] = buildCachedVideo(
+                from: video,
+                channelID: channelID,
+                fetchedAt: fetchedAt,
+                existing: cachedVideosByID[video.id]
+            )
+        }
+        return Array(cachedVideosByID.values)
+    }
+
+    private func buildCachedVideo(
+        from video: YouTubeVideo,
+        channelID: String,
+        fetchedAt: Date,
+        existing: CachedVideo?
+    ) -> CachedVideo {
+        let channelTitle = video.channelTitle.isEmpty ? (existing?.channelTitle ?? "") : video.channelTitle
+        return CachedVideo(
+            id: video.id,
+            channelID: channelID,
+            channelTitle: channelTitle,
+            title: video.title,
+            publishedAt: video.publishedAt,
+            videoURL: video.videoURL,
+            thumbnailRemoteURL: video.thumbnailURL,
+            thumbnailLocalFilename: existing?.thumbnailLocalFilename,
+            fetchedAt: fetchedAt,
+            searchableText: [video.title, channelTitle, video.id].joined(separator: "\n").lowercased(),
+            durationSeconds: video.durationSeconds ?? existing?.durationSeconds,
+            viewCount: video.viewCount ?? existing?.viewCount
+        )
+    }
+
+    private func sortCachedVideosForSnapshot(lhs: CachedVideo, rhs: CachedVideo) -> Bool {
+        switch (lhs.publishedAt, rhs.publishedAt) {
+        case let (left?, right?):
+            return left > right
+        case (_?, nil):
+            return true
+        default:
+            return lhs.fetchedAt > rhs.fetchedAt
+        }
     }
 
     func persistBootstrap(progress: CacheProgress, maintenanceItems: [ChannelMaintenanceItem]) {
@@ -269,39 +301,10 @@ actor FeedCacheStore {
 
         snapshot.channels.removeAll { !activeChannelIDSet.contains($0.channelID) }
         snapshot.videos.removeAll { !activeChannelIDSet.contains($0.channelID) }
+        snapshot.channels = rebuildChannelStates(afterFiltering: snapshot.channels, videos: snapshot.videos)
 
-        let latestPublishedAtByChannelID = Dictionary(
-            grouping: snapshot.videos,
-            by: \.channelID
-        ).mapValues { videos in
-            videos.compactMap(\.publishedAt).max()
-        }
-        let cachedVideoCountByChannelID = Dictionary(
-            grouping: snapshot.videos,
-            by: \.channelID
-        ).mapValues(\.count)
-
-        snapshot.channels = snapshot.channels.map { channel in
-            CachedChannelState(
-                channelID: channel.channelID,
-                channelTitle: channel.channelTitle,
-                lastAttemptAt: channel.lastAttemptAt,
-                lastCheckedAt: channel.lastCheckedAt,
-                lastSuccessAt: channel.lastSuccessAt,
-                latestPublishedAt: latestPublishedAtByChannelID[channel.channelID] ?? nil,
-                cachedVideoCount: cachedVideoCountByChannelID[channel.channelID] ?? 0,
-                lastError: channel.lastError,
-                etag: channel.etag,
-                lastModified: channel.lastModified
-            )
-        }
-
-        let referencedThumbnailFilenames = Set(snapshot.videos.compactMap(\.thumbnailLocalFilename))
-        let existingThumbnailFilenames = Set((try? fileManager.contentsOfDirectory(atPath: thumbnailsDirectory.path)) ?? [])
-        let orphanThumbnailFilenames = existingThumbnailFilenames.subtracting(referencedThumbnailFilenames)
-        for filename in orphanThumbnailFilenames {
-            try? fileManager.removeItem(at: thumbnailsDirectory.appendingPathComponent(filename))
-        }
+        let orphanThumbnailFilenames = orphanThumbnailFilenames(for: snapshot.videos)
+        removeThumbnails(named: orphanThumbnailFilenames)
 
         let removedThumbnailCount = orphanThumbnailFilenames.count
         if removedVideoCount > 0 || removedThumbnailCount > 0 || force {
@@ -319,6 +322,43 @@ actor FeedCacheStore {
             removedVideoCount: removedVideoCount,
             removedThumbnailCount: removedThumbnailCount
         )
+    }
+
+    private func rebuildChannelStates(
+        afterFiltering channels: [CachedChannelState],
+        videos: [CachedVideo]
+    ) -> [CachedChannelState] {
+        let latestPublishedAtByChannelID = Dictionary(grouping: videos, by: \.channelID)
+            .mapValues { $0.compactMap(\.publishedAt).max() }
+        let cachedVideoCountByChannelID = Dictionary(grouping: videos, by: \.channelID)
+            .mapValues(\.count)
+
+        return channels.map { channel in
+            CachedChannelState(
+                channelID: channel.channelID,
+                channelTitle: channel.channelTitle,
+                lastAttemptAt: channel.lastAttemptAt,
+                lastCheckedAt: channel.lastCheckedAt,
+                lastSuccessAt: channel.lastSuccessAt,
+                latestPublishedAt: latestPublishedAtByChannelID[channel.channelID] ?? nil,
+                cachedVideoCount: cachedVideoCountByChannelID[channel.channelID] ?? 0,
+                lastError: channel.lastError,
+                etag: channel.etag,
+                lastModified: channel.lastModified
+            )
+        }
+    }
+
+    private func orphanThumbnailFilenames(for videos: [CachedVideo]) -> Set<String> {
+        let referencedThumbnailFilenames = Set(videos.compactMap(\.thumbnailLocalFilename))
+        let existingThumbnailFilenames = Set((try? fileManager.contentsOfDirectory(atPath: thumbnailsDirectory.path)) ?? [])
+        return existingThumbnailFilenames.subtracting(referencedThumbnailFilenames)
+    }
+
+    private func removeThumbnails(named orphanThumbnailFilenames: Set<String>) {
+        for filename in orphanThumbnailFilenames {
+            try? fileManager.removeItem(at: thumbnailsDirectory.appendingPathComponent(filename))
+        }
     }
 
     func resetAllStoredData() -> (removedVideoCount: Int, removedThumbnailCount: Int) {

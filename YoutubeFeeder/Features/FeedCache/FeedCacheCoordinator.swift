@@ -721,6 +721,59 @@ final class FeedCacheCoordinator: ObservableObject {
         allowsSuspendedStateUpdate: Bool = false
     ) async {
         let startedAt = Date()
+        logRefreshUIStart(
+            currentChannelID: currentChannelID,
+            includesVideos: includesVideos,
+            allowsSuspendedStateUpdate: allowsSuspendedStateUpdate
+        )
+        let snapshot = await store.loadSnapshot()
+        let snapshotLoadedAt = Date()
+        let nextProgress = buildCacheProgress(
+            from: snapshot,
+            currentChannelID: currentChannelID,
+            isRunning: isRunning,
+            lastError: lastError
+        )
+        let nextMaintenanceItems = buildMaintenanceItems(from: snapshot)
+
+        if shouldDeferRefreshUI(allowsSuspendedStateUpdate: allowsSuspendedStateUpdate) {
+            deferRefreshUI(currentChannelID: currentChannelID, maintenanceCount: nextMaintenanceItems.count)
+            return
+        }
+
+        applyRefreshUIState(
+            progress: nextProgress,
+            maintenanceItems: nextMaintenanceItems,
+            currentChannelID: currentChannelID,
+            includesVideos: includesVideos
+        )
+        await refreshHomeSystemStatus(snapshot: snapshot, currentProgress: nextProgress)
+        let homeStatusUpdatedAt = Date()
+
+        await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
+        let persistedAt = Date()
+
+        if includesVideos {
+            videos = await store.loadVideos(query: videoQuery)
+        }
+        AppConsoleLogger.appLifecycle.notice(
+            "refresh_ui_complete",
+            metadata: refreshUICompletionMetadata(
+                currentChannelID: currentChannelID,
+                includesVideos: includesVideos,
+                startedAt: startedAt,
+                snapshotLoadedAt: snapshotLoadedAt,
+                homeStatusUpdatedAt: homeStatusUpdatedAt,
+                persistedAt: persistedAt
+            )
+        )
+    }
+
+    private func logRefreshUIStart(
+        currentChannelID: String?,
+        includesVideos: Bool,
+        allowsSuspendedStateUpdate: Bool
+    ) {
         AppConsoleLogger.appLifecycle.debug(
             "refresh_ui_start",
             metadata: [
@@ -730,13 +783,19 @@ final class FeedCacheCoordinator: ObservableObject {
                 "main_thread": AppConsoleLogger.mainThreadFlag(),
             ]
         )
-        let snapshot = await store.loadSnapshot()
-        let snapshotLoadedAt = Date()
+    }
+
+    private func buildCacheProgress(
+        from snapshot: FeedCacheSnapshot,
+        currentChannelID: String?,
+        isRunning: Bool,
+        lastError: String?
+    ) -> CacheProgress {
         let cachedChannels = snapshot.channels.filter { $0.lastSuccessAt != nil }.count
         let cachedThumbnails = snapshot.videos.filter { $0.thumbnailLocalFilename != nil }.count
         let prioritizedChannels = prioritizedChannelIDs(states: Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) }))
         let currentChannelNumber = currentChannelID.flatMap { prioritizedChannels.firstIndex(of: $0) }.map { $0 + 1 }
-        let nextProgress = CacheProgress(
+        return CacheProgress(
             totalChannels: channels.count,
             cachedChannels: cachedChannels,
             cachedVideos: snapshot.videos.count,
@@ -747,22 +806,31 @@ final class FeedCacheCoordinator: ObservableObject {
             isRunning: isRunning,
             lastError: lastError
         )
-        let nextMaintenanceItems = buildMaintenanceItems(from: snapshot)
+    }
 
-        if liveUpdateSuspendCount > 0, !allowsSuspendedStateUpdate {
-            needsRefreshWhenResumed = true
-            RuntimeDiagnostics.shared.record(
-                "refresh_ui_deferred",
-                detail: "ライブ更新抑止中のため UI 反映を保留",
-                metadata: [
-                    "currentChannelID": currentChannelID ?? "",
-                    "suspendCount": String(liveUpdateSuspendCount),
-                    "maintenanceCount": String(nextMaintenanceItems.count)
-                ]
-            )
-            return
-        }
+    private func shouldDeferRefreshUI(allowsSuspendedStateUpdate: Bool) -> Bool {
+        liveUpdateSuspendCount > 0 && !allowsSuspendedStateUpdate
+    }
 
+    private func deferRefreshUI(currentChannelID: String?, maintenanceCount: Int) {
+        needsRefreshWhenResumed = true
+        RuntimeDiagnostics.shared.record(
+            "refresh_ui_deferred",
+            detail: "ライブ更新抑止中のため UI 反映を保留",
+            metadata: [
+                "currentChannelID": currentChannelID ?? "",
+                "suspendCount": String(liveUpdateSuspendCount),
+                "maintenanceCount": String(maintenanceCount)
+            ]
+        )
+    }
+
+    private func applyRefreshUIState(
+        progress nextProgress: CacheProgress,
+        maintenanceItems nextMaintenanceItems: [ChannelMaintenanceItem],
+        currentChannelID: String?,
+        includesVideos: Bool
+    ) {
         progress = nextProgress
         maintenanceItems = nextMaintenanceItems
         RuntimeDiagnostics.shared.record(
@@ -776,28 +844,26 @@ final class FeedCacheCoordinator: ObservableObject {
                 "includesVideos": includesVideos ? "true" : "false"
             ]
         )
-        await refreshHomeSystemStatus(snapshot: snapshot, currentProgress: nextProgress)
-        let homeStatusUpdatedAt = Date()
+    }
 
-        await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
-        let persistedAt = Date()
-
-        if includesVideos {
-            videos = await store.loadVideos(query: videoQuery)
-        }
-        AppConsoleLogger.appLifecycle.notice(
-            "refresh_ui_complete",
-            metadata: [
-                "current_channel": currentChannelID ?? "none",
-                "includes_videos": includesVideos ? "true" : "false",
-                "snapshot_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: snapshotLoadedAt),
-                "home_status_ms": AppConsoleLogger.elapsedMilliseconds(from: snapshotLoadedAt, to: homeStatusUpdatedAt),
-                "persist_ms": AppConsoleLogger.elapsedMilliseconds(from: homeStatusUpdatedAt, to: persistedAt),
-                "videos_ms": includesVideos ? AppConsoleLogger.elapsedMilliseconds(from: persistedAt, to: Date()) : "0",
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "main_thread": AppConsoleLogger.mainThreadFlag(),
-            ]
-        )
+    private func refreshUICompletionMetadata(
+        currentChannelID: String?,
+        includesVideos: Bool,
+        startedAt: Date,
+        snapshotLoadedAt: Date,
+        homeStatusUpdatedAt: Date,
+        persistedAt: Date
+    ) -> [String: String] {
+        [
+            "current_channel": currentChannelID ?? "none",
+            "includes_videos": includesVideos ? "true" : "false",
+            "snapshot_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: snapshotLoadedAt),
+            "home_status_ms": AppConsoleLogger.elapsedMilliseconds(from: snapshotLoadedAt, to: homeStatusUpdatedAt),
+            "persist_ms": AppConsoleLogger.elapsedMilliseconds(from: homeStatusUpdatedAt, to: persistedAt),
+            "videos_ms": includesVideos ? AppConsoleLogger.elapsedMilliseconds(from: persistedAt, to: Date()) : "0",
+            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            "main_thread": AppConsoleLogger.mainThreadFlag(),
+        ]
     }
 
     private func buildMaintenanceItems(from snapshot: FeedCacheSnapshot) -> [ChannelMaintenanceItem] {
@@ -934,38 +1000,13 @@ final class FeedCacheCoordinator: ObservableObject {
     ) async -> VideoSearchResult {
         let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
         if RemoteSearchErrorPolicy.isCancellation(error) {
-            if let cached = await remoteSearchService.loadSnapshot(keyword: keyword, limit: limit, allowExpired: true) {
-                logger.notice(
-                    "refresh_cancelled",
-                    metadata: [
-                        "keyword": keywordPreview,
-                        "fallback": cached.source == .staleRemoteCache ? "stale_cache" : "cache",
-                        "videos": String(cached.videos.count),
-                        "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
-                    ]
-                )
-                return VideoSearchResult(
-                    keyword: cached.keyword,
-                    videos: cached.videos,
-                    totalCount: cached.totalCount,
-                    source: cached.source,
-                    fetchedAt: cached.fetchedAt,
-                    expiresAt: cached.expiresAt
-                )
-            }
-            logger.notice(
-                "refresh_cancelled",
-                metadata: [
-                    "keyword": keywordPreview,
-                    "fallback": "empty",
-                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
-                ]
-            )
-            return VideoSearchResult(
+            return await resolveCancelledRemoteRefreshFailure(
+                error: error,
                 keyword: keyword,
-                videos: [],
-                totalCount: 0,
-                source: .remoteCache
+                limit: limit,
+                keywordPreview: keywordPreview,
+                logger: logger,
+                remoteSearchService: remoteSearchService
             )
         }
 
@@ -1002,6 +1043,62 @@ final class FeedCacheCoordinator: ObservableObject {
             source: .remoteAPI,
             errorMessage: RemoteSearchErrorPolicy.userMessage(for: error)
         )
+    }
+
+    private nonisolated static func resolveCancelledRemoteRefreshFailure(
+        error: Error,
+        keyword: String,
+        limit: Int,
+        keywordPreview: String,
+        logger: AppConsoleLogger,
+        remoteSearchService: RemoteVideoSearchService
+    ) async -> VideoSearchResult {
+        if let cached = await remoteSearchService.loadSnapshot(keyword: keyword, limit: limit, allowExpired: true) {
+            logger.notice("refresh_cancelled", metadata: cancelledRefreshMetadata(
+                keywordPreview: keywordPreview,
+                fallback: cached.source == .staleRemoteCache ? "stale_cache" : "cache",
+                cachedVideoCount: cached.videos.count,
+                error: error
+            ))
+            return VideoSearchResult(
+                keyword: cached.keyword,
+                videos: cached.videos,
+                totalCount: cached.totalCount,
+                source: cached.source,
+                fetchedAt: cached.fetchedAt,
+                expiresAt: cached.expiresAt
+            )
+        }
+
+        logger.notice("refresh_cancelled", metadata: cancelledRefreshMetadata(
+            keywordPreview: keywordPreview,
+            fallback: "empty",
+            cachedVideoCount: nil,
+            error: error
+        ))
+        return VideoSearchResult(
+            keyword: keyword,
+            videos: [],
+            totalCount: 0,
+            source: .remoteCache
+        )
+    }
+
+    private nonisolated static func cancelledRefreshMetadata(
+        keywordPreview: String,
+        fallback: String,
+        cachedVideoCount: Int?,
+        error: Error
+    ) -> [String: String] {
+        var metadata: [String: String] = [
+            "keyword": keywordPreview,
+            "fallback": fallback,
+            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+        ]
+        if let cachedVideoCount {
+            metadata["videos"] = String(cachedVideoCount)
+        }
+        return metadata
     }
 }
 

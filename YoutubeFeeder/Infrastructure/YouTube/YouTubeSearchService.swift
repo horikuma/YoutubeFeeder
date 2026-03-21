@@ -1,40 +1,5 @@
 import Foundation
 
-struct YouTubeSearchVideo: Hashable {
-    let id: String
-    let channelID: String
-    let channelTitle: String
-    let title: String
-    let publishedAt: Date?
-    let videoURL: URL?
-    let thumbnailURL: URL?
-    let durationSeconds: Int?
-    let viewCount: Int?
-}
-
-struct YouTubeSearchResponse: Hashable {
-    let videos: [YouTubeSearchVideo]
-    let totalCount: Int
-    let fetchedAt: Date
-}
-
-enum YouTubeSearchError: LocalizedError {
-    case apiKeyMissing
-    case invalidResponse
-    case httpError(statusCode: Int)
-
-    var errorDescription: String? {
-        switch self {
-        case .apiKeyMissing:
-            return "YouTube 検索 API キーが未設定です。"
-        case .invalidResponse:
-            return "YouTube 検索結果を読み取れませんでした。"
-        case let .httpError(statusCode):
-            return "YouTube 検索 API が失敗しました。(status: \(statusCode))"
-        }
-    }
-}
-
 struct YouTubeSearchService {
     nonisolated static let videoDetailsPartParameter = "snippet,contentDetails,statistics,liveStreamingDetails"
 
@@ -47,89 +12,141 @@ struct YouTubeSearchService {
         let startedAt = Date()
         let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
         var stage = "prepare"
-        logger.info(
-            "request_start",
-            metadata: ["keyword": keywordPreview, "limit": String(limit), "mode": AppLaunchMode.current.usesMockData ? "mock" : "live"]
-        )
+        logRequestStart(keywordPreview: keywordPreview, limit: limit, logger: logger)
 
         do {
             if AppLaunchMode.current.usesMockData {
-                stage = "mock_delay"
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                stage = "mock_response"
-                let response = mockSearchResponse(keyword: keyword, limit: limit)
-                logger.notice(
-                    "request_complete",
-                    metadata: [
-                        "keyword": keywordPreview,
-                        "videos": String(response.videos.count),
-                        "source": "mock",
-                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                    ]
+                return try await performMockSearch(
+                    keyword: keyword,
+                    limit: limit,
+                    keywordPreview: keywordPreview,
+                    startedAt: startedAt,
+                    logger: logger,
+                    stage: &stage
                 )
-                return response
             }
 
-            guard let apiKey = resolvedAPIKey else {
-                logger.error(
-                    "config_missing",
-                    message: YouTubeSearchError.apiKeyMissing.localizedDescription,
-                    metadata: ["keyword": keywordPreview]
-                )
-                throw YouTubeSearchError.apiKeyMissing
-            }
-            stage = "candidate_medium"
-            let mediumCandidates = try await searchCandidates(
+            let apiKey = try resolveAPIKey(keywordPreview: keywordPreview, logger: logger)
+            let selection = try await fetchSelectedVideoIDs(
                 keyword: keyword,
-                duration: "medium",
+                limit: limit,
                 apiKey: apiKey,
-                maxResults: 50
+                stage: &stage
             )
-            stage = "candidate_long"
-            let longCandidates = try await searchCandidates(
-                keyword: keyword,
-                duration: "long",
-                apiKey: apiKey,
-                maxResults: 50
-            )
-
-            stage = "merge_candidates"
-            let mergedCandidates = Self.mergeCandidates(mediumCandidates + longCandidates)
-            let videoIDs = Array(mergedCandidates.map(\.id).prefix(limit))
             stage = "video_details"
-            let detailedVideos = try await fetchVideoDetails(videoIDs: videoIDs, apiKey: apiKey)
+            let detailedVideos = try await fetchVideoDetails(videoIDs: selection.videoIDs, apiKey: apiKey)
             stage = "merge_details"
-            let videos = Self.mergeDetailedVideos(detailedVideos, preferredOrder: videoIDs)
+            let videos = Self.mergeDetailedVideos(detailedVideos, preferredOrder: selection.videoIDs)
             let response = YouTubeSearchResponse(videos: videos, totalCount: videos.count, fetchedAt: .now)
-            logger.notice(
-                "request_complete",
-                metadata: [
-                    "keyword": keywordPreview,
-                    "medium_candidates": String(mediumCandidates.count),
-                    "long_candidates": String(longCandidates.count),
-                    "selected_ids": String(videoIDs.count),
-                    "videos": String(videos.count),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                ]
-            )
+            logger.notice("request_complete", metadata: selection.completionMetadata(
+                keywordPreview: keywordPreview,
+                videoCount: videos.count,
+                startedAt: startedAt
+            ))
             return response
         } catch {
-            let metadata = [
-                "keyword": keywordPreview,
-                "stage": stage,
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
-            ]
-            if RemoteSearchErrorPolicy.isCancellation(error) {
-                logger.notice("request_cancelled", metadata: metadata)
-            } else {
-                logger.error(
-                    "request_failed",
-                    message: AppConsoleLogger.errorSummary(error),
-                    metadata: metadata
-                )
-            }
+            handleSearchFailure(error, keywordPreview: keywordPreview, stage: stage, startedAt: startedAt, logger: logger)
             throw error
+        }
+    }
+
+    private func logRequestStart(keywordPreview: String, limit: Int, logger: AppConsoleLogger) {
+        logger.info(
+            "request_start",
+            metadata: [
+                "keyword": keywordPreview,
+                "limit": String(limit),
+                "mode": AppLaunchMode.current.usesMockData ? "mock" : "live"
+            ]
+        )
+    }
+
+    private func performMockSearch(
+        keyword: String,
+        limit: Int,
+        keywordPreview: String,
+        startedAt: Date,
+        logger: AppConsoleLogger,
+        stage: inout String
+    ) async throws -> YouTubeSearchResponse {
+        stage = "mock_delay"
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        stage = "mock_response"
+        let response = mockSearchResponse(keyword: keyword, limit: limit)
+        logger.notice(
+            "request_complete",
+            metadata: [
+                "keyword": keywordPreview,
+                "videos": String(response.videos.count),
+                "source": "mock",
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            ]
+        )
+        return response
+    }
+
+    private func resolveAPIKey(keywordPreview: String, logger: AppConsoleLogger) throws -> String {
+        guard let apiKey = resolvedAPIKey else {
+            logger.error(
+                "config_missing",
+                message: YouTubeSearchError.apiKeyMissing.localizedDescription,
+                metadata: ["keyword": keywordPreview]
+            )
+            throw YouTubeSearchError.apiKeyMissing
+        }
+        return apiKey
+    }
+
+    private func fetchSelectedVideoIDs(
+        keyword: String,
+        limit: Int,
+        apiKey: String,
+        stage: inout String
+    ) async throws -> CandidateSelection {
+        stage = "candidate_medium"
+        let mediumCandidates = try await searchCandidates(
+            keyword: keyword,
+            duration: "medium",
+            apiKey: apiKey,
+            maxResults: 50
+        )
+        stage = "candidate_long"
+        let longCandidates = try await searchCandidates(
+            keyword: keyword,
+            duration: "long",
+            apiKey: apiKey,
+            maxResults: 50
+        )
+        stage = "merge_candidates"
+        let mergedCandidates = Self.mergeCandidates(mediumCandidates + longCandidates)
+        return CandidateSelection(
+            mediumCandidateCount: mediumCandidates.count,
+            longCandidateCount: longCandidates.count,
+            videoIDs: Array(mergedCandidates.map(\.id).prefix(limit))
+        )
+    }
+
+    private func handleSearchFailure(
+        _ error: Error,
+        keywordPreview: String,
+        stage: String,
+        startedAt: Date,
+        logger: AppConsoleLogger
+    ) {
+        let metadata = [
+            "keyword": keywordPreview,
+            "stage": stage,
+            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+        ]
+        if RemoteSearchErrorPolicy.isCancellation(error) {
+            logger.notice("request_cancelled", metadata: metadata)
+        } else {
+            logger.error(
+                "request_failed",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: metadata
+            )
         }
     }
 
@@ -209,7 +226,7 @@ struct YouTubeSearchService {
         let logger = AppConsoleLogger.youtubeSearch
         let startedAt = Date()
         var mergedVideos: [YouTubeSearchVideo] = []
-        let batches = videoIDs.chunked(into: 50)
+        let batches = chunkVideoIDs(videoIDs, size: 50)
         logger.debug(
             "video_details_start",
             metadata: ["video_ids": String(videoIDs.count), "batches": String(batches.count)]
@@ -267,63 +284,114 @@ struct YouTubeSearchService {
         do {
             (data, response) = try await URLSession.shared.data(for: request)
         } catch {
-            let transportMetadata = metadata.merging(
-                [
-                    "endpoint": endpoint,
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
-                ],
-                uniquingKeysWith: { _, new in new }
-            )
-            if RemoteSearchErrorPolicy.isCancellation(error) {
-                logger.notice("http_cancelled", metadata: transportMetadata)
-            } else {
-                logger.error(
-                    "http_transport_failure",
-                    message: AppConsoleLogger.errorSummary(error),
-                    metadata: transportMetadata
-                )
-            }
+            let transportMetadata = transportFailureMetadata(metadata, endpoint: endpoint, startedAt: startedAt, error: error)
+            logTransportFailure(error, metadata: transportMetadata, logger: logger)
             throw error
         }
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            let invalidResponseMetadata = metadata.merging(
-                ["endpoint": endpoint, "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)],
-                uniquingKeysWith: { _, new in new }
-            )
-            logger.error(
-                "response_invalid",
-                message: "HTTP response を取得できませんでした。",
-                metadata: invalidResponseMetadata
-            )
+            logger.error("response_invalid", message: "HTTP response を取得できませんでした。", metadata: invalidResponseMetadata(
+                metadata,
+                endpoint: endpoint,
+                startedAt: startedAt
+            ))
             throw YouTubeSearchError.invalidResponse
         }
 
-        let responseMetadata = metadata.merging(
-            [
-                "endpoint": endpoint,
-                "status": String(httpResponse.statusCode),
-                "bytes": String(data.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-            ]
-        ) { _, new in new }
+        let responseMetadata = successMetadata(
+            metadata,
+            endpoint: endpoint,
+            startedAt: startedAt,
+            response: httpResponse,
+            data: data
+        )
 
         guard (200 ..< 300).contains(httpResponse.statusCode) else {
-            let failureMetadata = responseMetadata.merging(
-                ["body_preview": AppConsoleLogger.responsePreview(data)],
-                uniquingKeysWith: { _, new in new }
-            )
             logger.error(
                 "http_failure",
                 message: "YouTube API が失敗しました。",
-                metadata: failureMetadata
+                metadata: responseMetadata.merging(
+                    ["body_preview": AppConsoleLogger.responsePreview(data)],
+                    uniquingKeysWith: { _, new in new }
+                )
             )
             throw YouTubeSearchError.httpError(statusCode: httpResponse.statusCode)
         }
 
         logger.debug("http_success", metadata: responseMetadata)
         return data
+    }
+
+    private func transportFailureMetadata(
+        _ metadata: [String: String],
+        endpoint: String,
+        startedAt: Date,
+        error: Error
+    ) -> [String: String] {
+        metadata.merging(
+            [
+                "endpoint": endpoint,
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+            ],
+            uniquingKeysWith: { _, new in new }
+        )
+    }
+
+    private func logTransportFailure(
+        _ error: Error,
+        metadata: [String: String],
+        logger: AppConsoleLogger
+    ) {
+        if RemoteSearchErrorPolicy.isCancellation(error) {
+            logger.notice("http_cancelled", metadata: metadata)
+        } else {
+            logger.error(
+                "http_transport_failure",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: metadata
+            )
+        }
+    }
+
+    private func invalidResponseMetadata(
+        _ metadata: [String: String],
+        endpoint: String,
+        startedAt: Date
+    ) -> [String: String] {
+        metadata.merging(
+            ["endpoint": endpoint, "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)],
+            uniquingKeysWith: { _, new in new }
+        )
+    }
+
+    private func successMetadata(
+        _ metadata: [String: String],
+        endpoint: String,
+        startedAt: Date,
+        response: HTTPURLResponse,
+        data: Data
+    ) -> [String: String] {
+        metadata.merging(
+            [
+                "endpoint": endpoint,
+                "status": String(response.statusCode),
+                "bytes": String(data.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            ]
+        ) { _, new in new }
+    }
+
+    private func chunkVideoIDs(_ videoIDs: [String], size: Int) -> [[String]] {
+        guard size > 0 else { return [videoIDs] }
+        var result: [[String]] = []
+        var index = 0
+        while index < videoIDs.count {
+            let nextIndex = min(index + size, videoIDs.count)
+            result.append(Array(videoIDs[index ..< nextIndex]))
+            index = nextIndex
+        }
+        return result
     }
 
     private func decodeResponse<Response: Decodable>(
@@ -348,252 +416,21 @@ struct YouTubeSearchService {
         }
     }
 
-    static func mergeCandidates(_ candidates: [SearchCandidate]) -> [SearchCandidate] {
-        let deduplicated = candidates.reduce(into: [String: SearchCandidate]()) { partial, candidate in
-            guard let existing = partial[candidate.id] else {
-                partial[candidate.id] = candidate
-                return
-            }
+}
 
-            switch (candidate.publishedAt, existing.publishedAt) {
-            case let (left?, right?) where left > right:
-                partial[candidate.id] = candidate
-            case (_?, nil):
-                partial[candidate.id] = candidate
-            default:
-                break
-            }
-        }
+private struct CandidateSelection {
+    let mediumCandidateCount: Int
+    let longCandidateCount: Int
+    let videoIDs: [String]
 
-        return deduplicated.values.sorted {
-            switch ($0.publishedAt, $1.publishedAt) {
-            case let (left?, right?) where left != right:
-                return left > right
-            case (_?, _?):
-                return $0.id < $1.id
-            case (_?, nil):
-                return true
-            case (nil, _?):
-                return false
-            default:
-                return $0.id < $1.id
-            }
-        }
-    }
-
-    static func filterPlayableVideos(_ items: [VideoListResponse.Item]) -> [YouTubeSearchVideo] {
-        items.compactMap { item in
-            guard item.snippet.liveBroadcastContent == "none" else { return nil }
-            guard item.liveStreamingDetails == nil else { return nil }
-            let thumbnailURL = item.snippet.thumbnails.high?.url
-                ?? item.snippet.thumbnails.medium?.url
-                ?? item.snippet.thumbnails.defaultThumbnail?.url
-            return YouTubeSearchVideo(
-                id: item.id,
-                channelID: item.snippet.channelID,
-                channelTitle: item.snippet.channelTitle,
-                title: item.snippet.title,
-                publishedAt: item.snippet.publishedAt,
-                videoURL: URL(string: "https://www.youtube.com/watch?v=\(item.id)"),
-                thumbnailURL: thumbnailURL,
-                durationSeconds: parseDuration(item.contentDetails.duration),
-                viewCount: item.statistics?.viewCount.flatMap(Int.init)
-            )
-        }
-    }
-
-    static func mergeDetailedVideos(_ videos: [YouTubeSearchVideo], preferredOrder: [String]) -> [YouTubeSearchVideo] {
-        let order = Dictionary(uniqueKeysWithValues: preferredOrder.enumerated().map { ($1, $0) })
-        return videos.sorted { lhs, rhs in
-            switch (lhs.publishedAt, rhs.publishedAt) {
-            case let (left?, right?) where left != right:
-                return left > right
-            default:
-                return (order[lhs.id] ?? .max) < (order[rhs.id] ?? .max)
-            }
-        }
-    }
-
-    private func mockSearchResponse(keyword: String, limit: Int) -> YouTubeSearchResponse {
-        let videos = [
-            YouTubeSearchVideo(
-                id: "remote-refresh-001",
-                channelID: "UC_REMOTE_REFRESH",
-                channelTitle: "Refresh Channel",
-                title: "\(keyword) 最新テスト動画",
-                publishedAt: .now.addingTimeInterval(60),
-                videoURL: URL(string: "https://www.youtube.com/watch?v=remote-refresh-001"),
-                thumbnailURL: URL(string: "https://example.com/remote-refresh-001.jpg"),
-                durationSeconds: 1240,
-                viewCount: 4242
-            ),
-            YouTubeSearchVideo(
-                id: "remote-refresh-002",
-                channelID: "UC_REMOTE_REFRESH",
-                channelTitle: "Refresh Channel",
-                title: "\(keyword) 追加テスト動画",
-                publishedAt: .now,
-                videoURL: URL(string: "https://www.youtube.com/watch?v=remote-refresh-002"),
-                thumbnailURL: URL(string: "https://example.com/remote-refresh-002.jpg"),
-                durationSeconds: 980,
-                viewCount: 2024
-            )
+    func completionMetadata(keywordPreview: String, videoCount: Int, startedAt: Date) -> [String: String] {
+        [
+            "keyword": keywordPreview,
+            "medium_candidates": String(mediumCandidateCount),
+            "long_candidates": String(longCandidateCount),
+            "selected_ids": String(videoIDs.count),
+            "videos": String(videoCount),
+            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
         ]
-        return YouTubeSearchResponse(
-            videos: Array(videos.prefix(limit)),
-            totalCount: min(videos.count, limit),
-            fetchedAt: .now
-        )
     }
-}
-
-struct SearchCandidate: Hashable {
-    let id: String
-    let publishedAt: Date?
-}
-
-private struct SearchListResponse: Decodable {
-    let items: [Item]
-    let pageInfo: PageInfo
-
-    struct Item: Decodable {
-        let id: Identifier
-        let snippet: Snippet
-    }
-
-    struct Identifier: Decodable {
-        let videoID: String?
-
-        private enum CodingKeys: String, CodingKey {
-            case videoID = "videoId"
-        }
-    }
-
-    struct Snippet: Decodable {
-        let publishedAt: Date?
-        let channelID: String
-        let channelTitle: String
-        let title: String
-        let liveBroadcastContent: String?
-        let thumbnails: VideoThumbnails
-
-        private enum CodingKeys: String, CodingKey {
-            case publishedAt
-            case channelID = "channelId"
-            case channelTitle
-            case title
-            case liveBroadcastContent
-            case thumbnails
-        }
-    }
-
-    struct PageInfo: Decodable {
-        let totalResults: Int
-    }
-}
-
-struct VideoListResponse: Decodable {
-    let items: [Item]
-
-    struct Item: Decodable {
-        let id: String
-        let snippet: Snippet
-        let contentDetails: ContentDetails
-        let statistics: Statistics?
-        let liveStreamingDetails: LiveStreamingDetails?
-    }
-
-    struct Snippet: Decodable {
-        let publishedAt: Date?
-        let channelID: String
-        let channelTitle: String
-        let title: String
-        let liveBroadcastContent: String?
-        let thumbnails: VideoThumbnails
-
-        private enum CodingKeys: String, CodingKey {
-            case publishedAt
-            case channelID = "channelId"
-            case channelTitle
-            case title
-            case liveBroadcastContent
-            case thumbnails
-        }
-    }
-
-    struct ContentDetails: Decodable {
-        let duration: String
-    }
-
-    struct Statistics: Decodable {
-        let viewCount: String?
-    }
-
-    struct LiveStreamingDetails: Decodable {}
-}
-
-struct VideoThumbnails: Decodable {
-    let defaultThumbnail: VideoThumbnail?
-    let medium: VideoThumbnail?
-    let high: VideoThumbnail?
-
-    private enum CodingKeys: String, CodingKey {
-        case defaultThumbnail = "default"
-        case medium
-        case high
-    }
-}
-
-struct VideoThumbnail: Decodable {
-    let url: URL?
-}
-
-private extension Array {
-    func chunked(into size: Int) -> [[Element]] {
-        guard size > 0 else { return [self] }
-        var result: [[Element]] = []
-        var index = startIndex
-        while index < endIndex {
-            let nextIndex = self.index(index, offsetBy: size, limitedBy: endIndex) ?? endIndex
-            result.append(Array(self[index ..< nextIndex]))
-            index = nextIndex
-        }
-        return result
-    }
-}
-
-private extension JSONDecoder {
-    static let youtubeAPI: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }()
-}
-
-private func parseDuration(_ rawValue: String) -> Int? {
-    guard rawValue.hasPrefix("PT") else { return nil }
-
-    var total = 0
-    var buffer = ""
-    for character in rawValue.dropFirst(2) {
-        if character.isNumber {
-            buffer.append(character)
-            continue
-        }
-
-        guard let value = Int(buffer) else { continue }
-        switch character {
-        case "H":
-            total += value * 3_600
-        case "M":
-            total += value * 60
-        case "S":
-            total += value
-        default:
-            break
-        }
-        buffer.removeAll(keepingCapacity: true)
-    }
-
-    return total > 0 ? total : nil
 }

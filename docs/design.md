@@ -73,12 +73,18 @@
   - チャンネル一覧、全動画一覧、分割チャンネル閲覧。
   - `Tips` タイル、並び順反映、削除導線。
 - [SearchResultsViews.swift](../YoutubeFeeder/Features/Browse/SearchResultsViews.swift)
-  - 固定キーワード検索結果と YouTube 検索結果。
-  - 下部チップ、上部進行表示、検索結果の UI 写像。
+  - 固定キーワード検索結果と共通チップ UI。
+  - ローカルキャッシュ検索結果の UI 写像。
+- [RemoteSearchResultsViews.swift](../YoutubeFeeder/Features/Browse/RemoteSearchResultsViews.swift)
+  - YouTube 検索結果画面本体。
+  - snapshot 読込、再検索、split 初期読込予約、進行表示の状態束ね。
   - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
   - `refreshable` は trigger のみを担い、検索本体は coordinator の managed task へ委譲する。
   - iPad split では初期右ペイン読込を短く遅延させ、遷移直後はプレースホルダを表示する。
   - iPad split の初期右ペイン読込について、予約・開始・完了を runtime diagnostics へ記録する。
+- [RemoteSearchResultsContentViews.swift](../YoutubeFeeder/Features/Browse/RemoteSearchResultsContentViews.swift)
+  - YouTube 検索結果の compact / regular / split detail の表示責務。
+  - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
 - [BrowseViews.swift](../YoutubeFeeder/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - 自動 feed 更新時の上部進行表示。
@@ -120,8 +126,14 @@
   - bootstrap の読込と整形。
 - [ChannelRegistryStore.swift](../YoutubeFeeder/Features/FeedCache/ChannelRegistryStore.swift)
   - registry と端末内バックアップ JSON の永続化。
-- [FeedCacheModels.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheModels.swift)
-  - キャッシュ用モデル、進捗モデル、検索結果モデルなどの値型。
+- [FeedCacheStorageModels.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheStorageModels.swift)
+  - cache snapshot と永続化対象の値型。
+- [FeedCacheProgressModels.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheProgressModels.swift)
+  - 進捗表示、ホーム集約、検索キャッシュ状態の値型。
+- [FeedCacheChannelModels.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheChannelModels.swift)
+  - チャンネル保守、登録 / 削除 / バックアップ feedback の値型。
+- [RemoteSearchModels.swift](../YoutubeFeeder/Features/FeedCache/RemoteSearchModels.swift)
+  - YouTube 検索結果、検索キャッシュ、動画 query の値型。
 
 ### Infrastructure
 
@@ -129,8 +141,16 @@
   - feed 取得、更新判定、XML パース、URL / handle 解決。
 - [YouTubeSearchService.swift](../YoutubeFeeder/Infrastructure/YouTube/YouTubeSearchService.swift)
   - YouTube Data API v3 search / videos.list 呼び出し。
-  - API キー解決、レスポンス変換、詳細補完、ライブ除外。
+  - API キー解決、HTTP / decode error handling、検索 orchestration。
   - 検索開始、HTTP 応答、transport cancellation、decode failure、完了件数のログ。
+- [YouTubeSearchModels.swift](../YoutubeFeeder/Infrastructure/YouTube/YouTubeSearchModels.swift)
+  - YouTube 検索の公開モデルとエラー型。
+- [YouTubeSearchProcessing.swift](../YoutubeFeeder/Infrastructure/YouTube/YouTubeSearchProcessing.swift)
+  - candidate merge、詳細結果整列、mock 応答の補助ロジック。
+- [YouTubeSearchListResponse.swift](../YoutubeFeeder/Infrastructure/YouTube/YouTubeSearchListResponse.swift)
+  - search endpoint の decode DTO。
+- [YouTubeVideoListResponse.swift](../YoutubeFeeder/Infrastructure/YouTube/YouTubeVideoListResponse.swift)
+  - videos endpoint の decode DTO、duration parse、decoder 設定。
 
 ### Shared
 
@@ -144,7 +164,7 @@
 
 ## 画面と状態の詳細設計
 
-- `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面局所の UI 状態は `SearchResultsViews.swift` と `RemoteSearchPresentationState` に閉じ込める。
+- `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面局所の UI 状態は `SearchResultsViews.swift` / `RemoteSearchResultsViews.swift` と `RemoteSearchPresentationState` に閉じ込める。
 - `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択を pure logic として持つ。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListScreen` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。

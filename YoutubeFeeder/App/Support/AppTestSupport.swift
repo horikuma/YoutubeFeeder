@@ -250,18 +250,49 @@ enum UITestFixtureSeeder {
         let savedAt = cacheSnapshot.savedAt == .distantPast ? Date(timeIntervalSince1970: 1_773_399_605) : cacheSnapshot.savedAt
         let heavyAlphaVideos = makeHeavyAlphaVideos(savedAt: savedAt, channelID: alphaChannelID, channelTitle: alphaTitle)
         let remoteVideos = Array(heavyAlphaVideos.prefix(100))
+        cacheSnapshot = mergeHeavyAlphaFixture(
+            into: cacheSnapshot,
+            channelID: alphaChannelID,
+            channelTitle: alphaTitle,
+            savedAt: savedAt,
+            heavyAlphaVideos: heavyAlphaVideos
+        )
 
-        var mergedVideos = Dictionary(uniqueKeysWithValues: cacheSnapshot.videos.map { ($0.id, $0) })
+        writeHeavyCacheFixture(snapshot: cacheSnapshot, to: cacheURL)
+        updateBootstrapFixture(
+            bootstrapURL: bootstrapURL,
+            channelID: alphaChannelID,
+            channelTitle: alphaTitle,
+            savedAt: savedAt,
+            heavyAlphaVideos: heavyAlphaVideos,
+            cachedVideoCount: cacheSnapshot.videos.count
+        )
+        writeHeavyRemoteSearchFixture(
+            remoteVideos: remoteVideos,
+            savedAt: savedAt,
+            fileManager: fileManager
+        )
+    }
+
+    private static func mergeHeavyAlphaFixture(
+        into snapshot: FeedCacheSnapshot,
+        channelID: String,
+        channelTitle: String,
+        savedAt: Date,
+        heavyAlphaVideos: [CachedVideo]
+    ) -> FeedCacheSnapshot {
+        var updatedSnapshot = snapshot
+        var mergedVideos = Dictionary(uniqueKeysWithValues: updatedSnapshot.videos.map { ($0.id, $0) })
         for video in heavyAlphaVideos {
             mergedVideos[video.id] = video
         }
-        cacheSnapshot.videos = mergedVideos.values.sorted(by: sortCachedVideosDescending)
-        cacheSnapshot.savedAt = savedAt
-        cacheSnapshot.channels = cacheSnapshot.channels.map { channel in
-            guard channel.channelID == alphaChannelID else { return channel }
+        updatedSnapshot.videos = mergedVideos.values.sorted(by: sortCachedVideosDescending)
+        updatedSnapshot.savedAt = savedAt
+        updatedSnapshot.channels = updatedSnapshot.channels.map { channel in
+            guard channel.channelID == channelID else { return channel }
             var updated = channel
             updated.cachedVideoCount = heavyAlphaVideos.count
-            updated.channelTitle = alphaTitle
+            updated.channelTitle = channelTitle
             updated.lastAttemptAt = savedAt
             updated.lastCheckedAt = savedAt
             updated.lastSuccessAt = savedAt
@@ -269,45 +300,65 @@ enum UITestFixtureSeeder {
             updated.lastError = nil
             return updated
         }
+        return updatedSnapshot
+    }
 
-        if let encodedCache = try? cacheEncoder.encode(cacheSnapshot) {
+    private static func writeHeavyCacheFixture(snapshot: FeedCacheSnapshot, to cacheURL: URL) {
+        if let encodedCache = try? cacheEncoder.encode(snapshot) {
             try? encodedCache.write(to: cacheURL, options: [.atomic])
         }
+    }
 
-        if
+    private static func updateBootstrapFixture(
+        bootstrapURL: URL,
+        channelID: String,
+        channelTitle: String,
+        savedAt: Date,
+        heavyAlphaVideos: [CachedVideo],
+        cachedVideoCount: Int
+    ) {
+        guard
             let bootstrapData = try? Data(contentsOf: bootstrapURL),
             var bootstrapSnapshot = try? legacyCacheDecoder.decode(FeedBootstrapSnapshot.self, from: bootstrapData)
-        {
-            bootstrapSnapshot.progress = CacheProgress(
-                totalChannels: bootstrapSnapshot.progress.totalChannels,
-                cachedChannels: max(bootstrapSnapshot.progress.cachedChannels, 1),
-                cachedVideos: cacheSnapshot.videos.count,
-                cachedThumbnails: bootstrapSnapshot.progress.cachedThumbnails,
-                currentChannelID: bootstrapSnapshot.progress.currentChannelID,
-                currentChannelNumber: bootstrapSnapshot.progress.currentChannelNumber,
-                lastUpdatedAt: savedAt,
-                isRunning: false,
-                lastError: nil
-            )
-            bootstrapSnapshot.maintenanceItems = bootstrapSnapshot.maintenanceItems.map { item in
-                guard item.channelID == alphaChannelID else { return item }
-                return ChannelMaintenanceItem(
-                    id: item.id,
-                    channelID: item.channelID,
-                    channelTitle: alphaTitle,
-                    lastSuccessAt: savedAt,
-                    lastCheckedAt: savedAt,
-                    latestPublishedAt: heavyAlphaVideos.first?.publishedAt,
-                    cachedVideoCount: heavyAlphaVideos.count,
-                    lastError: nil,
-                    freshness: .fresh
-                )
-            }
-            if let encodedBootstrap = try? bootstrapEncoder.encode(bootstrapSnapshot) {
-                try? encodedBootstrap.write(to: bootstrapURL, options: [.atomic])
-            }
+        else {
+            return
         }
 
+        bootstrapSnapshot.progress = CacheProgress(
+            totalChannels: bootstrapSnapshot.progress.totalChannels,
+            cachedChannels: max(bootstrapSnapshot.progress.cachedChannels, 1),
+            cachedVideos: cachedVideoCount,
+            cachedThumbnails: bootstrapSnapshot.progress.cachedThumbnails,
+            currentChannelID: bootstrapSnapshot.progress.currentChannelID,
+            currentChannelNumber: bootstrapSnapshot.progress.currentChannelNumber,
+            lastUpdatedAt: savedAt,
+            isRunning: false,
+            lastError: nil
+        )
+        bootstrapSnapshot.maintenanceItems = bootstrapSnapshot.maintenanceItems.map { item in
+            guard item.channelID == channelID else { return item }
+            return ChannelMaintenanceItem(
+                id: item.id,
+                channelID: item.channelID,
+                channelTitle: channelTitle,
+                lastSuccessAt: savedAt,
+                lastCheckedAt: savedAt,
+                latestPublishedAt: heavyAlphaVideos.first?.publishedAt,
+                cachedVideoCount: heavyAlphaVideos.count,
+                lastError: nil,
+                freshness: .fresh
+            )
+        }
+        if let encodedBootstrap = try? bootstrapEncoder.encode(bootstrapSnapshot) {
+            try? encodedBootstrap.write(to: bootstrapURL, options: [.atomic])
+        }
+    }
+
+    private static func writeHeavyRemoteSearchFixture(
+        remoteVideos: [CachedVideo],
+        savedAt: Date,
+        fileManager: FileManager
+    ) {
         let remoteEntry = RemoteVideoSearchCacheEntry(
             keyword: remoteSearchKeyword,
             videos: remoteVideos,

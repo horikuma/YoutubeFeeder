@@ -1,4 +1,18 @@
 ## 2026/03/21
+### health_barometerの警告を責務に沿って整理
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `4.178s`
+- test-without-building: `132.229s`
+- 検証合計時間: `136.407s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `397ms`
+- スプラッシュ表示からホーム表示まで: `127ms`
+- 起動からホーム表示まで: `524ms`
+- 起動から bootstrap 読込完了まで: `467ms`
+- 起動からホーム遷移開始まで: `560ms`
+
 ### Mermaid検証をローカル実行へ移行
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
