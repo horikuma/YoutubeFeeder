@@ -98,6 +98,7 @@
   - 一覧系共通コンテナ `InteractiveListView`。
   - `ChannelTile` を機能共通核とし、`ChannelNavigationTile` と `ChannelSelectionTile` へ操作差分を分離する。
   - `VideoTile`、戻るスワイプ modifier。
+  - `VideoTile` の長押しメニューに `共有` を持ち、動画 URL を `UIActivityViewController` へ渡す共通 share sheet を提供する。
 
 ### Features/FeedCache
 
@@ -192,6 +193,7 @@
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListView` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
 - チャンネル一覧のタイルでは、`channel title`、件数、最新投稿日、サムネイルの表示責務を `ChannelTile` へ集約し、遷移か選択かという操作モデルの差は外側の wrapper で表現する。
+- `VideoTile` は画面ごとの差分があっても長押し共有だけは共通で持ち、YouTube検索、チャンネル動画、動画一覧、キャッシュ検索のどこからでも同じ share sheet を開ける。
 
 ## 命名規則
 
@@ -219,6 +221,8 @@
   - feed cache と検索 cache に同一 `video_id` があっても、`loadVideosForChannel` が fatal せず 1 件へ正規化すること。
 - [BackSwipePolicyTests.swift](../YoutubeFeederTests/Unit/Policies/BackSwipePolicyTests.swift)
   - 戻るスワイプ判定。
+- [VideoSharePolicyTests.swift](../YoutubeFeederTests/Unit/Policies/VideoSharePolicyTests.swift)
+  - 共有対象 URL の有無判定。
 - [FeedOrderingTests.swift](../YoutubeFeederTests/Unit/Ordering/FeedOrderingTests.swift)
   - 優先順、鮮度判定。
 - [AppLayoutTests.swift](../YoutubeFeederTests/Unit/Layout/AppLayoutTests.swift)

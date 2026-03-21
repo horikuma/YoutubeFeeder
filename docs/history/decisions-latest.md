@@ -1,4 +1,6 @@
 ## 2026/03/21
+- 動画 URL の共有は画面個別ではなく `VideoTile` 共通の長押しメニューへ載せ、YouTube検索、キャッシュ検索、チャンネル動画、動画一覧へ一括適用する方針にした。
+  - 現在の動画系画面は `VideoTile` を共通利用しており、ここで share sheet を持てば機能差分を作らずに全経路へ広げられるため。画面ごとに分けると long press の契約が崩れやすい。
 - 短尺動画マスクは `Shorts URL/title` だけでなく `durationSeconds < 240` も含む共通ポリシーとして復旧し、feed cache と remote search fallback の両方へ同じ基準を通す方針にした。
   - `4分未満` マスクが抜けると、feed 一覧では除外できても remote search 起点の channel fallback だけ短尺が混ざる、という経路差が生まれるため。判定を pure logic へ寄せ、保存前と表示前の両方で同じ基準を使う。
 - 旧 `JSON` / legacy migration は runtime から撤去し、全設定リセットでは `SQLite` と旧 runtime file の両方を削除して、古い永続状態を再注入しない方針に改めた。

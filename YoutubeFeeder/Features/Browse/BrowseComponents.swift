@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct InteractiveListView<Content: View>: View {
     let title: String
@@ -88,12 +89,23 @@ struct VideoTile: View {
     let openVideoAction: (() -> Void)?
     let removeChannel: (() -> Void)?
     let index: Int?
+    @State private var shareURL: URL?
 
     var body: some View {
         let menuActions = buildMenuActions()
         let tile = VideoHeroTile(video: video, index: index)
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .tileActionMenu(actions: menuActions)
+            .sheet(
+                isPresented: Binding(
+                    get: { shareURL != nil },
+                    set: { if !$0 { shareURL = nil } }
+                )
+            ) {
+                if let shareURL {
+                    ActivityShareSheet(activityItems: [shareURL])
+                }
+            }
             .accessibilityAddTraits(.isButton)
             .accessibilityHint("長押しでメニューを開きます")
             .accessibilityIdentifier("video.tile.\(video.id)")
@@ -110,6 +122,14 @@ struct VideoTile: View {
 
     private func buildMenuActions() -> [TileMenuAction] {
         var actions: [TileMenuAction] = []
+
+        if let shareURL = VideoSharePolicy.shareURL(for: video) {
+            actions.append(
+                TileMenuAction(title: "共有", role: nil) {
+                    self.shareURL = shareURL
+                }
+            )
+        }
 
         if let openVideoAction {
             actions.append(
@@ -129,6 +149,16 @@ struct VideoTile: View {
 
         return actions
     }
+}
+
+private struct ActivityShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 private enum ChannelSummaryTileAppearance {

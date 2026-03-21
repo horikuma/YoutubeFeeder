@@ -17,6 +17,12 @@ enum VideoOpenPolicy {
     static let maximumMovement: CGFloat = 18
 }
 
+enum VideoSharePolicy {
+    static func shareURL(for video: CachedVideo) -> URL? {
+        video.videoURL
+    }
+}
+
 enum ShortVideoMaskPolicy {
     static let maximumShortDurationSeconds = 239
 
