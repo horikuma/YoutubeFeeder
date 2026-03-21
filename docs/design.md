@@ -116,6 +116,7 @@
 - [RemoteVideoSearchCacheStore.swift](../YoutubeFeeder/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - YouTube 検索結果キャッシュの保存、鮮度判定、履歴クリア。
   - `remote-search-*-summary.plist` を併設し、ホームの検索キャッシュ鮮度表示は軽量 summary から返す。
+  - チャンネル別の動画集約では `remote-search.json` と `remote-search-*.json` の両方を走査し、既定キーワードの検索キャッシュも merge 対象へ含める。
   - summary 正本は binary property list とする。
 - [RemoteVideoSearchService.swift](../YoutubeFeeder/Features/FeedCache/RemoteVideoSearchService.swift)
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。

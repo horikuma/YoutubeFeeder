@@ -1,4 +1,18 @@
 ## 2026/03/21
+### YouTube検索既定キャッシュのチャンネル動画参照漏れを修正する
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `3.653s`
+- test-without-building: `129.754s`
+- 検証合計時間: `133.407s`
+- 手修正後の再試行回数: `1`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `442ms`
+- スプラッシュ表示からホーム表示まで: `136ms`
+- 起動からホーム表示まで: `578ms`
+- 起動から bootstrap 読込完了まで: `512ms`
+- 起動からホーム遷移開始まで: `589ms`
+
 ### YouTube検索画面の描画をhidden hostでprewarmする
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

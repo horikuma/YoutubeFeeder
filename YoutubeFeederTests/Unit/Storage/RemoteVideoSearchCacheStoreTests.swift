@@ -50,6 +50,9 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
             XCTAssertTrue(staleStatus.exists)
             XCTAssertFalse(staleStatus.isFresh)
             XCTAssertEqual(staleStatus.label, "期限切れ")
+
+            let defaultCacheVideos = await store.allVideos(channelID: "UC111")
+            XCTAssertEqual(defaultCacheVideos.map(\.id), ["video-1"])
         }
     }
 

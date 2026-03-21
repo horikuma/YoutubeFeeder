@@ -144,7 +144,9 @@ actor RemoteVideoSearchCacheStore {
         let baseURL = FeedCachePaths.baseDirectory(fileManager: fileManager)
         let filenames = (try? fileManager.contentsOfDirectory(atPath: baseURL.path)) ?? []
         let urls = filenames
-            .filter { $0.hasPrefix("remote-search-") && $0.hasSuffix(".json") }
+            .filter {
+                (($0 == "remote-search.json" || $0.hasPrefix("remote-search-")) && $0.hasSuffix(".json")) && !$0.hasSuffix("-summary.plist")
+            }
             .map { baseURL.appendingPathComponent($0) }
 
         let entries: [RemoteVideoSearchCacheEntry] = urls.compactMap { url in
