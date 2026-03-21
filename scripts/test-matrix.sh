@@ -4,9 +4,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROJECT="$REPO_ROOT/HelloWorld.xcodeproj"
-SCHEME="HelloWorld"
-DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/HelloWorld"
+PROJECT="$REPO_ROOT/YoutubeFeeder.xcodeproj"
+SCHEME="YoutubeFeeder"
+DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/YoutubeFeeder"
 DERIVED_DATA="$DERIVED_DATA_BASE/DerivedData"
 DESTINATIONS=(
   "iPhone 12 mini"

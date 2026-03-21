@@ -31,15 +31,15 @@
 
 ### 対象コードの責務
 
-- [FeedCacheCoordinator.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCacheCoordinator.swift)
+- [FeedCacheCoordinator.swift](/Users/ak/Documents/Codex/HelloWorld/YoutubeFeeder/Features/FeedCache/FeedCacheCoordinator.swift)
   - 画面から見たキャッシュ協調、YouTube 検索、split 右ペイン読込の入口。
-- [SearchResultsViews.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/Browse/SearchResultsViews.swift)
+- [SearchResultsViews.swift](/Users/ak/Documents/Codex/HelloWorld/YoutubeFeeder/Features/Browse/SearchResultsViews.swift)
   - YouTube 検索画面の左ペイン/右ペイン構築、split 初期選択、`refreshable`。
-- [FeedCacheStore.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCacheStore.swift)
+- [FeedCacheStore.swift](/Users/ak/Documents/Codex/HelloWorld/YoutubeFeeder/Features/FeedCache/FeedCacheStore.swift)
   - 通常キャッシュ `cache.json` の読込/保存。
-- [RemoteVideoSearchCacheStore.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
+- [RemoteVideoSearchCacheStore.swift](/Users/ak/Documents/Codex/HelloWorld/YoutubeFeeder/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - 検索キャッシュ `remote-search*.json` の読込/保存/鮮度確認。
-- [HomeSystemStatusService.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/HomeSystemStatusService.swift)
+- [HomeSystemStatusService.swift](/Users/ak/Documents/Codex/HelloWorld/YoutubeFeeder/Features/FeedCache/HomeSystemStatusService.swift)
   - ホーム画面へ出す `cached_videos`、`search cache status`、`thumbnail bytes` などの集約。
 
 ### 観測ポリシー
@@ -290,7 +290,7 @@
 ### 5. compact persistence と互換 decode
 
 - 変更:
-  - [FeedCachePersistenceCoders.swift](/Users/ak/Documents/Codex/HelloWorld/HelloWorld/Features/FeedCache/FeedCachePersistenceCoders.swift)
+  - [FeedCachePersistenceCoders.swift](/Users/ak/Documents/Codex/HelloWorld/YoutubeFeeder/Features/FeedCache/FeedCachePersistenceCoders.swift)
   - 本体 cache は `secondsSince1970` で再保存
   - 旧 ISO8601 形式は互換 decode
 - 効果:

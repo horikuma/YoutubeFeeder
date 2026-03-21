@@ -1,6 +1,6 @@
-# HelloWorld Rules
+# YoutubeFeeder Rules
 
-この文書は、HelloWorld プロジェクト固有の上位方針を定める正本である。ここでは、このプロダクトで守るべき意思決定ルール、優先順位、開発プロセス、開発原則を扱う。
+この文書は、YoutubeFeeder プロジェクト固有の上位方針を定める正本である。ここでは、このプロダクトで守るべき意思決定ルール、優先順位、開発プロセス、開発原則を扱う。
 
 文書群の役割分担と文書運用ルールは [rules-documents.md](./rules-documents.md) を参照する。
 

@@ -1,6 +1,6 @@
-# HelloWorld App Specification
+# YoutubeFeeder App Specification
 
-この文書は、HelloWorld アプリの要求仕様と機能仕様を記述する正本である。人間および LLM が、このアプリが何をしなければならないか、どのように振る舞わなければならないか、何を壊してはいけないかを同じ基準で理解するために用いる。
+この文書は、YoutubeFeeder アプリの要求仕様と機能仕様を記述する正本である。人間および LLM が、このアプリが何をしなければならないか、どのように振る舞わなければならないか、何を壊してはいけないかを同じ基準で理解するために用いる。
 
 文書群の役割分担と文書運用ルールは [rules-documents.md](./rules-documents.md) を参照する。
 
@@ -101,14 +101,14 @@
 - 現在登録されている全チャンネル情報を保存対象とすること
 - 読み込み自体はホーム画面の処理中表示を長時間引き延ばさずに完了すること
 - 読み込み後は、その端末側で最新動画情報の再取得をバックグラウンドで開始すること
-- 固定ファイルパスは `~/Documents/HelloWorld/channel-registry.json` 相当の `Documents/HelloWorld/channel-registry.json` とすること
+- 固定ファイルパスは `~/Documents/YoutubeFeeder/channel-registry.json` 相当の `Documents/YoutubeFeeder/channel-registry.json` とすること
 - バックアップファイルが存在しない場合は、ホーム画面上で明確に失敗理由を返すこと
 
 ### 5.5 全設定リセット
 
 - ホーム画面から、この端末内の設定とキャッシュをまとめて削除できること
 - 削除対象は channel registry、動画キャッシュ、bootstrap、検索履歴、サムネイルとすること
-- `Documents/HelloWorld/channel-registry.json` のバックアップファイルは削除対象に含めないこと
+- `Documents/YoutubeFeeder/channel-registry.json` のバックアップファイルは削除対象に含めないこと
 - 実行前に確認 UI を出し、破壊的操作であることを明示すること
 - 実行後は、何件のチャンネル / 動画 / サムネイル / 検索履歴を削除したかを画面上で返すこと
 - リセット後でも、ホーム画面からバックアップを読み込んで復旧できること
@@ -362,7 +362,7 @@
 
 ### 6.5 起動画面
 
-- `HelloWorld` の文字を表示する
+- `YoutubeFeeder` の文字を表示する
 - 画面は極力軽く、起動原因切り分けの基準点として使えること
 
 ### 6.6 ホーム画面

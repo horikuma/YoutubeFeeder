@@ -1,4 +1,4 @@
-# HelloWorld
+# YoutubeFeeder
 
 LLM ドリブンな iOS アプリ開発そのものを目的にした実験プロジェクトである。
 

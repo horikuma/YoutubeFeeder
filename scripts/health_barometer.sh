@@ -11,7 +11,7 @@ import re
 import sys
 
 repo_root = pathlib.Path(sys.argv[1])
-swift_files = sorted(repo_root.glob("HelloWorld/**/*.swift"))
+swift_files = sorted(repo_root.glob("YoutubeFeeder/**/*.swift"))
 
 FILE_WARN = 500
 FILE_FAIL = 900
@@ -90,7 +90,7 @@ for published_count, path in published_files:
     if published_count >= PUBLISHED_FAIL:
         hard_failures.append(f"published {path.relative_to(repo_root)}: {published_count}")
 
-print("HelloWorld Health Barometer")
+print("YoutubeFeeder Health Barometer")
 print("")
 
 print("Large files")

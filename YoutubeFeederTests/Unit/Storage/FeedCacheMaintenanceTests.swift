@@ -1,0 +1,226 @@
+import XCTest
+@testable import YoutubeFeeder
+
+final class FeedCacheMaintenanceTests: LoggedTestCase {
+    func testRemoveChannelIDDeletesRegisteredChannel() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            try ChannelRegistryStore.replaceChannels(
+                [
+                    RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
+                ],
+                fileManager: fileManager
+            )
+
+            XCTAssertTrue(try ChannelRegistryStore.removeChannelID("UC111", fileManager: fileManager))
+            XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), ["UC222"])
+        }
+    }
+
+    func testConsistencyMaintenanceRemovesDetachedVideosAndThumbnails() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let snapshot = FeedCacheSnapshot(
+                savedAt: now,
+                channels: [
+                    CachedChannelState(
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        lastAttemptAt: now,
+                        lastCheckedAt: now,
+                        lastSuccessAt: now,
+                        latestPublishedAt: now,
+                        cachedVideoCount: 1,
+                        lastError: nil,
+                        etag: nil,
+                        lastModified: nil
+                    ),
+                    CachedChannelState(
+                        channelID: "UC999",
+                        channelTitle: "orphan",
+                        lastAttemptAt: now,
+                        lastCheckedAt: now,
+                        lastSuccessAt: now,
+                        latestPublishedAt: now,
+                        cachedVideoCount: 1,
+                        lastError: nil,
+                        etag: nil,
+                        lastModified: nil
+                    ),
+                ],
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "kept",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=1"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: "video-1.jpg",
+                        fetchedAt: now,
+                        searchableText: "kept",
+                        durationSeconds: 1_500,
+                        viewCount: 101
+                    ),
+                    CachedVideo(
+                        id: "video-2",
+                        channelID: "UC999",
+                        channelTitle: "orphan",
+                        title: "removed",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=2"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: "video-2.jpg",
+                        fetchedAt: now,
+                        searchableText: "removed",
+                        durationSeconds: 2_100,
+                        viewCount: 202
+                    ),
+                ]
+            )
+
+            let encoder = FeedCachePersistenceCoders.makeEncoder(prettyPrinted: true)
+            try encoder.encode(snapshot).write(to: cacheURL, options: .atomic)
+            try Data("keep".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-1.jpg"), options: .atomic)
+            try Data("drop".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-2.jpg"), options: .atomic)
+            try Data("orphan".utf8).write(to: thumbnailsDirectory.appendingPathComponent("orphan.jpg"), options: .atomic)
+
+            let result = await FeedCacheStore().performConsistencyMaintenance(activeChannelIDs: ["UC111"], force: true, now: now)
+
+            XCTAssertEqual(result?.removedVideoCount, 1)
+            XCTAssertEqual(result?.removedThumbnailCount, 2)
+
+            let decoder = FeedCachePersistenceCoders.makeDecoder()
+            let savedSnapshot = try decoder.decode(FeedCacheSnapshot.self, from: Data(contentsOf: cacheURL))
+            XCTAssertEqual(savedSnapshot.channels.map(\.channelID), ["UC111"])
+            XCTAssertEqual(savedSnapshot.channels.first?.cachedVideoCount, 1)
+            XCTAssertEqual(savedSnapshot.videos.map(\.channelID), ["UC111"])
+            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent("video-1.jpg").path))
+            XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent("video-2.jpg").path))
+            XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent("orphan.jpg").path))
+        }
+    }
+
+    func testResetAllStoredDataClearsCacheButLeavesBackupRecoverable() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let backupURL = temporaryRoot
+            .appendingPathComponent("YoutubeFeeder", isDirectory: true)
+            .appendingPathComponent("channel-registry.json")
+        try fileManager.createDirectory(at: backupURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(
+            ChannelRegistryTransferDocument(
+                channels: [
+                    RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
+                ]
+            )
+        ).write(to: backupURL, options: .atomic)
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+            try ChannelRegistryStore.replaceChannels(
+                [
+                    RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
+                ],
+                fileManager: fileManager
+            )
+
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let snapshot = FeedCacheSnapshot(
+                savedAt: now,
+                channels: [
+                    CachedChannelState(
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        lastAttemptAt: now,
+                        lastCheckedAt: now,
+                        lastSuccessAt: now,
+                        latestPublishedAt: now,
+                        cachedVideoCount: 1,
+                        lastError: nil,
+                        etag: nil,
+                        lastModified: nil
+                    ),
+                ],
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "kept",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=1"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: "video-1.jpg",
+                        fetchedAt: now,
+                        searchableText: "kept",
+                        durationSeconds: 1_500,
+                        viewCount: 101
+                    ),
+                ]
+            )
+            let cacheEncoder = FeedCachePersistenceCoders.makeEncoder(prettyPrinted: true)
+            try cacheEncoder.encode(snapshot).write(to: cacheURL, options: .atomic)
+            try Data("keep".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-1.jpg"), options: .atomic)
+
+            let store = FeedCacheStore()
+            let reset = await store.resetAllStoredData()
+            let removedChannelCount = try ChannelRegistryStore.reset(fileManager: fileManager)
+
+            XCTAssertEqual(reset.removedVideoCount, 1)
+            XCTAssertEqual(reset.removedThumbnailCount, 1)
+            XCTAssertEqual(removedChannelCount, 2)
+            XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), [])
+            XCTAssertFalse(fileManager.fileExists(atPath: cacheURL.path))
+            XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.path))
+            XCTAssertTrue(fileManager.fileExists(atPath: backupURL.path))
+
+            _ = try ChannelRegistryTransferStore.import(
+                fileManager: fileManager,
+                backend: .localDocuments,
+                containerURL: temporaryRoot
+            )
+            XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), ["UC111", "UC222"])
+        }
+    }
+
+    private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () async throws -> T) async throws -> T {
+        let key = "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR"
+        let previousValue = ProcessInfo.processInfo.environment[key]
+        setenv(key, url.path, 1)
+        defer {
+            if let previousValue {
+                setenv(key, previousValue, 1)
+            } else {
+                unsetenv(key)
+            }
+        }
+        return try await operation()
+    }
+}

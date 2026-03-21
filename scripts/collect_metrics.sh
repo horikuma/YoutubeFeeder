@@ -4,9 +4,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROJECT="$REPO_ROOT/HelloWorld.xcodeproj"
-SCHEME="HelloWorld"
-DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/HelloWorld"
+PROJECT="$REPO_ROOT/YoutubeFeeder.xcodeproj"
+SCHEME="YoutubeFeeder"
+DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/YoutubeFeeder"
 DERIVED_DATA="$DERIVED_DATA_BASE/DerivedData"
 METRICS_DIR="$REPO_ROOT/.metrics"
 METRICS_DOC="$REPO_ROOT/docs/history/metrics-latest.md"
@@ -78,7 +78,7 @@ test_status=1
 while (( auto_retries <= AUTO_RETRY_LIMIT )); do
   rm -f "$STARTUP_JSON"
   test_start="$(now_seconds)"
-  if HELLOWORLD_STARTUP_METRICS_OUTPUT="$STARTUP_JSON" \
+  if YOUTUBEFEEDER_STARTUP_METRICS_OUTPUT="$STARTUP_JSON" \
     xcodebuild test-without-building \
       -project "$PROJECT" \
       -scheme "$SCHEME" \
@@ -143,7 +143,7 @@ else:
     test_log = startup_json.parent / "test-without-building.log"
     if test_log.exists():
         for line in reversed(test_log.read_text(errors="ignore").splitlines()):
-            marker = "HELLOWORLD_STARTUP_METRICS "
+            marker = "YOUTUBEFEEDER_STARTUP_METRICS "
             if marker in line:
                 startup_payload = json.loads(line.split(marker, 1)[1].strip())
                 break
@@ -180,7 +180,7 @@ else:
     )
 
 entry = "\n".join(entry_lines)
-content = metrics_doc.read_text() if metrics_doc.exists() else "# HelloWorld Metrics\n"
+content = metrics_doc.read_text() if metrics_doc.exists() else "# YoutubeFeeder Metrics\n"
 heading = f"## {today}"
 
 if heading in content:

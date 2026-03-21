@@ -1,13 +1,13 @@
-# HelloWorld Document Rules
+# YoutubeFeeder Document Rules
 
-この文書は、HelloWorld の文書群に関する上位ルールを定める正本である。ここでは、文書体系、文書の切り分け基準、参照資料の位置付け、文書運用、履歴管理、Markdown 記述の共通ルールを扱う。
+この文書は、YoutubeFeeder の文書群に関する上位ルールを定める正本である。ここでは、文書体系、文書の切り分け基準、参照資料の位置付け、文書運用、履歴管理、Markdown 記述の共通ルールを扱う。
 
 ## 文書体系
 
 ### 正本
 
 - [rules.md](./rules.md)
-  - HelloWorld の最上位方針として、意思決定ルール、優先順位、開発プロセス、開発原則を記述する。
+  - YoutubeFeeder の最上位方針として、意思決定ルール、優先順位、開発プロセス、開発原則を記述する。
 - [spec.md](./spec.md)
   - ユーザー向け機能、画面遷移、操作、表示要件を記述する。
 - [architecture.md](./architecture.md)

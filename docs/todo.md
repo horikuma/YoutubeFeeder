@@ -2,8 +2,8 @@
 
 ## 起動パフォーマンス調査
 
-- `HelloWorld` の初回表示まで約 10 秒かかる原因を切り分ける
-- `HelloWorld` からメンテナンス画面遷移まで約 30 秒かかる原因を切り分ける
+- `YoutubeFeeder` の初回表示まで約 10 秒かかる原因を切り分ける
+- `YoutubeFeeder` からメンテナンス画面遷移まで約 30 秒かかる原因を切り分ける
 - `ContentView` 初期化時に同期で走っている処理を棚卸しする
 - `FeedCacheCoordinator` 初期化時のファイル I/O を計測する
 - `maintenance-bootstrap.json` 読み込み時間を計測する

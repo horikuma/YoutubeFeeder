@@ -94,15 +94,15 @@ def main() -> int:
     log_paths = [Path(path) for path in sys.argv[3:]]
 
     definitions = {}
-    definitions.update(collect_definitions(repo_root, repo_root / "HelloWorldTests", "logic"))
-    definitions.update(collect_definitions(repo_root, repo_root / "HelloWorldUITests", "ui"))
+    definitions.update(collect_definitions(repo_root, repo_root / "YoutubeFeederTests", "logic"))
+    definitions.update(collect_definitions(repo_root, repo_root / "YoutubeFeederUITests", "ui"))
 
     events_by_test_id: dict[str, dict[str, str | float | None]] = defaultdict(dict)
     for path in log_paths:
         if not path.exists():
             continue
         for line in path.read_text(errors="ignore").splitlines():
-            marker = "HELLOWORLD_TEST_METRIC "
+            marker = "YOUTUBEFEEDER_TEST_METRIC "
             if marker not in line:
                 continue
             payload = json.loads(line.split(marker, 1)[1])

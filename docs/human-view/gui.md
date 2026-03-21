@@ -1,4 +1,4 @@
-# HelloWorld GUI Reference
+# YoutubeFeeder GUI Reference
 
 この文書は、人間の開発者が画面への変更指示をしやすくするための GUI 設計資料である。正本ではなく、関連する正本文書を人間が読みやすい形へ翻訳した `human-view` 文書として継続管理する。
 
@@ -39,7 +39,7 @@ flowchart TD
 - 画面名: `起動画面`
 - 実装: `LaunchScreenView`
 - 主な表示:
-  - アプリ名 `HelloWorld`
+  - アプリ名 `YoutubeFeeder`
   - 補助文言 `Launching...`
 - 遷移:
   - 軽量キャッシュ読込完了後に `ホーム画面` へ進む

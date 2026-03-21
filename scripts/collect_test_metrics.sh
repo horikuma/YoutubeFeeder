@@ -4,16 +4,16 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROJECT="$REPO_ROOT/HelloWorld.xcodeproj"
-SCHEME="HelloWorld"
-DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/HelloWorld"
+PROJECT="$REPO_ROOT/YoutubeFeeder.xcodeproj"
+SCHEME="YoutubeFeeder"
+DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/YoutubeFeeder"
 DERIVED_DATA="$DERIVED_DATA_BASE/DerivedData"
 DESTINATION="platform=iOS Simulator,name=iPhone 12 mini"
 DEVICE_NAME="iPhone 12 mini"
 TMP_METRICS_DIR="$(python3 - <<'PY'
 import tempfile
 from pathlib import Path
-print(Path(tempfile.gettempdir()) / "HelloWorldTestMetrics")
+print(Path(tempfile.gettempdir()) / "YoutubeFeederTestMetrics")
 PY
 )"
 OUTPUT_DOC="$REPO_ROOT/docs/test-metrics.md"
@@ -65,17 +65,17 @@ xcodebuild build-for-testing \
   -derivedDataPath "$DERIVED_DATA" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
-  >/tmp/helloworld-test-metrics-build.log 2>&1
+  >/tmp/youtubefeeder-test-metrics-build.log 2>&1
 
 echo "Running unit tests..."
-unit_args=("-only-testing:HelloWorldTests")
+unit_args=("-only-testing:YoutubeFeederTests")
 if (( ${#LOGIC_ONLY_TESTING[@]} > 0 )); then
   unit_args=()
   for test_id in "${LOGIC_ONLY_TESTING[@]}"; do
     unit_args+=("-only-testing:${test_id}")
   done
 fi
-HELLOWORLD_TEST_METRICS_DIR="$TMP_METRICS_DIR" xcodebuild test-without-building \
+YOUTUBEFEEDER_TEST_METRICS_DIR="$TMP_METRICS_DIR" xcodebuild test-without-building \
   -project "$PROJECT" \
   -scheme "$SCHEME" \
   -destination "$DESTINATION" \
@@ -83,17 +83,17 @@ HELLOWORLD_TEST_METRICS_DIR="$TMP_METRICS_DIR" xcodebuild test-without-building 
   "${unit_args[@]}" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
-  >/tmp/helloworld-test-metrics-unit.log 2>&1
+  >/tmp/youtubefeeder-test-metrics-unit.log 2>&1
 
 echo "Running UI tests..."
-ui_args=("-only-testing:HelloWorldUITests")
+ui_args=("-only-testing:YoutubeFeederUITests")
 if (( ${#UI_ONLY_TESTING[@]} > 0 )); then
   ui_args=()
   for test_id in "${UI_ONLY_TESTING[@]}"; do
     ui_args+=("-only-testing:${test_id}")
   done
 fi
-HELLOWORLD_TEST_METRICS_DIR="$TMP_METRICS_DIR" xcodebuild test-without-building \
+YOUTUBEFEEDER_TEST_METRICS_DIR="$TMP_METRICS_DIR" xcodebuild test-without-building \
   -project "$PROJECT" \
   -scheme "$SCHEME" \
   -destination "$DESTINATION" \
@@ -101,10 +101,10 @@ HELLOWORLD_TEST_METRICS_DIR="$TMP_METRICS_DIR" xcodebuild test-without-building 
   "${ui_args[@]}" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
-  >/tmp/helloworld-test-metrics-ui.log 2>&1
+  >/tmp/youtubefeeder-test-metrics-ui.log 2>&1
 
 python3 "$SCRIPT_DIR/render_test_metrics.py" \
   "$REPO_ROOT" \
   "$OUTPUT_DOC" \
-  "/tmp/helloworld-test-metrics-unit.log" \
-  "/tmp/helloworld-test-metrics-ui.log"
+  "/tmp/youtubefeeder-test-metrics-unit.log" \
+  "/tmp/youtubefeeder-test-metrics-ui.log"
