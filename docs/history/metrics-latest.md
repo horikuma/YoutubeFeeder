@@ -1,4 +1,18 @@
 ## 2026/03/21
+### YouTube検索画面の初回遷移をホーム側prewarmで軽くする
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `3.485s`
+- test-without-building: `132.058s`
+- 検証合計時間: `135.543s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `407ms`
+- スプラッシュ表示からホーム表示まで: `132ms`
+- 起動からホーム表示まで: `539ms`
+- 起動から bootstrap 読込完了まで: `484ms`
+- 起動からホーム遷移開始まで: `573ms`
+
 ### LLM所要時間の記録を安定化する
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

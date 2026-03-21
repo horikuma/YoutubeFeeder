@@ -1,4 +1,6 @@
 ## 2026/03/21
+- YouTube検索画面の初回遷移待ちを下げるため、ホーム表示中に `ゆっくり実況` の remote search snapshot を low priority で prewarm し、`FeedCacheCoordinator` にメモリ保持する方針にした。
+  - 画面そのものを hidden mount して副作用ごと先行実行するより、snapshot 読込を前倒しし、実表示では prewarm 済み結果を先に返すほうが安全なため。ホーム側の責務は prewarm の起点だけに留め、検索画面の state orchestration は既存の `RemoteKeywordSearchResultsView` に残す。
 - `LLM所要時間` の未測定が続かないよう、運用補助として `scripts/llm_elapsed.sh` を追加し、開始・終了の実測をコマンドで残す方針にした。
   - 手順だけを厳密化しても取りこぼしが続くため。通常運用では `start` / `finish` を必ず使い、`未測定` は移行期の例外に限定する。
 - Human-View の主要クラス図では、表現差分を束ねる親 View を `[Variants Host]`、表現差分群そのものを `[Variants]` と表記する方針に改めた。

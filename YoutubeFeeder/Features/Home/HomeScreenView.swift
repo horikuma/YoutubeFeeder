@@ -13,6 +13,7 @@ struct HomeScreenView: View {
     @State private var isTransferringRegistry = false
     @State private var isResettingAllSettings = false
     @State private var shouldConfirmReset = false
+    @State private var didPrewarmRemoteSearch = false
 
     var body: some View {
         ScrollView {
@@ -69,6 +70,11 @@ struct HomeScreenView: View {
             guard !didRunAutoRefresh else { return }
             didRunAutoRefresh = true
             await coordinator.refreshCacheManually()
+        }
+        .task(priority: .utility) {
+            guard !didPrewarmRemoteSearch else { return }
+            didPrewarmRemoteSearch = true
+            coordinator.prewarmRemoteSearchSnapshot(keyword: FeedCacheCoordinator.homeSearchKeyword)
         }
         .confirmationDialog(
             "この端末の設定をリセットしますか",

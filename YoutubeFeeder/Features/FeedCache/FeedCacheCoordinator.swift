@@ -24,6 +24,8 @@ final class FeedCacheCoordinator: ObservableObject {
     private var liveUpdateSuspendCount = 0
     private var needsRefreshWhenResumed = false
     private var remoteSearchTasks: [RemoteSearchTaskKey: Task<VideoSearchResult, Never>] = [:]
+    private var remoteSearchSnapshotCache: [String: VideoSearchResult] = [:]
+    private var remoteSearchPrewarmTasks: [String: Task<Void, Never>] = [:]
     private let remoteSearchCacheLifetime: TimeInterval = 12 * 60 * 60
 
     static let homeSearchKeyword = "ゆっくり実況"
@@ -296,16 +298,38 @@ final class FeedCacheCoordinator: ObservableObject {
         return VideoSearchResult(keyword: normalizedKeyword, videos: videos, totalCount: totalCount, source: .localCache)
     }
 
+    func prewarmRemoteSearchSnapshot(keyword: String, limit: Int = 100) {
+        let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedKeyword.isEmpty else { return }
+        guard remoteSearchSnapshotCache[normalizedKeyword] == nil else { return }
+        guard remoteSearchPrewarmTasks[normalizedKeyword] == nil else { return }
+
+        remoteSearchPrewarmTasks[normalizedKeyword] = Task(priority: .utility) { [weak self] in
+            guard let self else { return }
+            let result = await self.loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                self.remoteSearchSnapshotCache[normalizedKeyword] = result
+                self.remoteSearchPrewarmTasks[normalizedKeyword] = nil
+            }
+        }
+    }
+
     func loadRemoteSearchSnapshot(keyword: String, limit: Int = 100) async -> VideoSearchResult {
         let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedKeyword.isEmpty else {
             return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
         }
 
+        if let cached = remoteSearchSnapshotCache[normalizedKeyword] {
+            return limitedRemoteSearchResult(cached, limit: limit)
+        }
+
         let logger = AppConsoleLogger.youtubeSearch
 
         if AppLaunchMode.current.usesMockData {
             if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+                remoteSearchSnapshotCache[normalizedKeyword] = cached
                 logger.info(
                     "snapshot_hit",
                     metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "source": cached.source.label, "videos": String(cached.videos.count)]
@@ -325,10 +349,12 @@ final class FeedCacheCoordinator: ObservableObject {
                 fetchedAt: .now,
                 expiresAt: Date().addingTimeInterval(remoteSearchCacheLifetime)
             )
+            remoteSearchSnapshotCache[normalizedKeyword] = result
             return result
         }
 
         if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+            remoteSearchSnapshotCache[normalizedKeyword] = cached
             logger.info(
                 "snapshot_hit",
                 metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "source": cached.source.label, "videos": String(cached.videos.count)]
@@ -340,7 +366,9 @@ final class FeedCacheCoordinator: ObservableObject {
             "snapshot_miss",
             metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "limit": String(limit)]
         )
-        return VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
+        let result = VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
+        remoteSearchSnapshotCache[normalizedKeyword] = result
+        return result
     }
 
     func searchRemoteVideos(keyword: String, limit: Int = 100, forceRefresh: Bool = false) async -> VideoSearchResult {
@@ -376,12 +404,14 @@ final class FeedCacheCoordinator: ObservableObject {
             return await loadRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit)
         }
 
-        return await performManagedRemoteRefresh(
+        let result = await performManagedRemoteRefresh(
             keyword: normalizedKeyword,
             limit: limit,
             logger: logger,
             fallbackOnFailure: "none"
         )
+        remoteSearchSnapshotCache[normalizedKeyword] = result
+        return result
     }
 
     func addChannel(input: String) async throws -> ChannelRegistrationFeedback {
@@ -417,6 +447,7 @@ final class FeedCacheCoordinator: ObservableObject {
             backend: backend,
             usesMockData: AppLaunchMode.current.usesMockData
         )
+        resetRemoteSearchSnapshotCache()
         channels = execution.channels
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: true)
@@ -432,6 +463,7 @@ final class FeedCacheCoordinator: ObservableObject {
     func resetAllSettings() async throws -> LocalStateResetFeedback {
         let feedback = try await channelRegistryMaintenanceService.resetAllSettings()
 
+        resetRemoteSearchSnapshotCache()
         channels = []
         freshnessInterval = 60
         manualRefreshCount = 0
@@ -952,6 +984,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func clearRemoteSearchHistory(keyword: String) async {
         await remoteSearchService.clear(keyword: keyword)
+        clearRemoteSearchSnapshot(keyword: keyword)
         await refreshHomeSystemStatus()
     }
 
@@ -986,8 +1019,36 @@ final class FeedCacheCoordinator: ObservableObject {
 
         let result = await task.value
         remoteSearchTasks[key] = nil
+        remoteSearchSnapshotCache[keyword] = result
         await refreshHomeSystemStatus()
         return result
+    }
+
+    private func limitedRemoteSearchResult(_ result: VideoSearchResult, limit: Int) -> VideoSearchResult {
+        VideoSearchResult(
+            keyword: result.keyword,
+            videos: Array(result.videos.prefix(limit)),
+            totalCount: result.totalCount,
+            source: result.source,
+            fetchedAt: result.fetchedAt,
+            expiresAt: result.expiresAt,
+            errorMessage: result.errorMessage
+        )
+    }
+
+    private func clearRemoteSearchSnapshot(keyword: String) {
+        let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        remoteSearchSnapshotCache[normalizedKeyword] = nil
+        remoteSearchPrewarmTasks[normalizedKeyword]?.cancel()
+        remoteSearchPrewarmTasks[normalizedKeyword] = nil
+    }
+
+    private func resetRemoteSearchSnapshotCache() {
+        remoteSearchSnapshotCache.removeAll()
+        for task in remoteSearchPrewarmTasks.values {
+            task.cancel()
+        }
+        remoteSearchPrewarmTasks.removeAll()
     }
 
     private nonisolated static func resolveRemoteRefreshFailure(
