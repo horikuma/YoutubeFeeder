@@ -101,7 +101,7 @@
 - [design-overview.md](./human-view/design-overview.md) は、人間が機能境界と依存方向を短時間で把握するための UML 風俯瞰資料として扱う。
 - 章構成は、少なくとも `レイヤ構成`、`主要クラス図`、`主要シーケンス`、`依存関係メモ` を持つ。
 - `主要クラス図` は、正本の詳細設計をそのまま展開せず、機能 View、主要 coordinator / service / store、指示に使う共通 UI 部品だけを載せる。
-- Adaptive UI の細かな実装差分は `CompactView` / `RegularView` / `SplitDetailView` の個別クラスとして列挙せず、親となる機能 View の枠内注記で表す。
+- Adaptive UI の細かな実装差分は `CompactView` / `RegularView` / `SplitDetailView` の個別クラスとして列挙せず、親となる機能 View の枠内へ、`[Layout Variants Host]` のような「表現差分を束ねる親」であることが分かる注記を入れて表す。
 - 機能共通の表示核だけを見せたい場合は、`[Shared UI Core]` のような注記を使って明示し、遷移や選択などの操作差分 wrapper は図から省略してよい。
 - `主要シーケンス` は、機能導線の理解に必要な主要経路だけを扱い、分岐や補助処理を過剰に詰め込まない。
 - 図や注記の簡略化に使うルールは、`design-overview.md` にだけ閉じず、本書のような正本へ規定してから適用する。

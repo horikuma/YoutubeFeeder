@@ -23,12 +23,12 @@ classDiagram
     class ContentView
     class AppLayout
     class FeedCacheCoordinator
-    class ChannelBrowseView["ChannelBrowseView<br/>[Adaptive UI]"]
+    class ChannelBrowseView["ChannelBrowseView<br/>[Layout Variants Host]"]
     class ChannelVideosView
     class AllVideosView
     class KeywordSearchResultsView
-    class RemoteKeywordSearchResultsView["RemoteKeywordSearchResultsView<br/>[Adaptive UI]"]
-    class RemoteSearchResultsContentViews["RemoteSearchResultsContentViews<br/>compact / regular / split detail"]
+    class RemoteKeywordSearchResultsView["RemoteKeywordSearchResultsView<br/>[Layout Variants Host]"]
+    class RemoteSearchResultsContentViews["RemoteSearchResultsContentViews<br/>[Layout Variants: compact / regular / split detail]"]
     class InteractiveListView
     class ChannelTile["ChannelTile<br/>[Shared UI Core]"]
     class VideoTile
@@ -136,7 +136,7 @@ sequenceDiagram
 
 - `View` は I/O を直接持たず、`FeedCacheCoordinator` 経由で状態と操作を受ける。
 - `AppLayout` は adaptive 判定を持つが、機能差分は持たない。
-- クラス枠内に `[Adaptive UI]` を付けた View は、内部に `CompactView` / `RegularView` の表現差分を持つが、資料上は 1 つの機能 View として扱う。
+- クラス枠内に `[Layout Variants Host]` を付けた View は、内部に `CompactView` / `RegularView` / `SplitDetailView` などの表現差分を持つが、資料上は 1 つの機能 View として扱う。
 - クラス枠内に `[Shared UI Core]` を付けた要素は、機能的に共通な表示責務だけを表し、遷移や選択などの操作差分を持つ wrapper は図から省略する。
 - `RemoteSearchPresentationState` は YouTube 検索結果の UI 状態を pure logic として切り出す。
 - `RemoteKeywordSearchResultsView` は state orchestration を持ち、compact / regular / split detail の表示本体は `RemoteSearchResultsContentViews` へ分けて扱う。
