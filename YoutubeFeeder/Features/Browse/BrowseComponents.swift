@@ -131,21 +131,83 @@ struct VideoTile: View {
     }
 }
 
-struct ChannelTile: View {
+private enum ChannelSummaryTileAppearance {
+    case navigation
+    case unselected
+    case selected
+
+    var gradientColors: [Color] {
+        switch self {
+        case .navigation:
+            [.teal, .blue]
+        case .unselected:
+            [.teal.opacity(0.8), .blue.opacity(0.8)]
+        case .selected:
+            [.cyan, .blue]
+        }
+    }
+
+    var thumbnailOpacity: Double {
+        switch self {
+        case .navigation:
+            1.0
+        case .unselected:
+            0.78
+        case .selected:
+            0.92
+        }
+    }
+
+    var overlayOpacity: Double {
+        switch self {
+        case .navigation:
+            0.75
+        case .unselected, .selected:
+            0.78
+        }
+    }
+
+    var selectionBorderColor: Color {
+        switch self {
+        case .selected:
+            .white.opacity(0.95)
+        case .navigation, .unselected:
+            .clear
+        }
+    }
+}
+
+fileprivate struct ChannelSummaryTile: View {
     let item: ChannelBrowseItem
+    let appearance: ChannelSummaryTileAppearance
     let index: Int?
 
     var body: some View {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
-            .fill(LinearGradient(colors: [.teal, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
+            .fill(
+                LinearGradient(
+                    colors: appearance.gradientColors,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
             .aspectRatio(16 / 9, contentMode: .fit)
             .overlay {
                 if let latestVideo = item.latestVideo {
                     ThumbnailView(video: latestVideo, contentMode: .fill)
+                        .opacity(appearance.thumbnailOpacity)
                 }
             }
             .overlay {
-                LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+                LinearGradient(
+                    colors: [.clear, .black.opacity(appearance.overlayOpacity)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(appearance.selectionBorderColor, lineWidth: 3)
             }
             .overlay(alignment: .bottomLeading) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -179,64 +241,27 @@ struct ChannelTile: View {
     }
 }
 
+struct ChannelNavigationTile: View {
+    let item: ChannelBrowseItem
+    let index: Int?
+
+    var body: some View {
+        ChannelSummaryTile(item: item, appearance: .navigation, index: index)
+    }
+}
+
 struct ChannelSelectionTile: View {
     let item: ChannelBrowseItem
     let isSelected: Bool
     let index: Int?
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: isSelected ? [.cyan, .blue] : [.teal.opacity(0.8), .blue.opacity(0.8)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .aspectRatio(16 / 9, contentMode: .fit)
-            .overlay {
-                if let latestVideo = item.latestVideo {
-                    ThumbnailView(video: latestVideo, contentMode: .fill)
-                        .opacity(isSelected ? 0.92 : 0.78)
-                }
-            }
-            .overlay {
-                LinearGradient(colors: [.clear, .black.opacity(0.78)], startPoint: .top, endPoint: .bottom)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(isSelected ? .white.opacity(0.95) : .clear, lineWidth: 3)
-            }
-            .overlay(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(item.channelTitle)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-
-                    Text("\(item.cachedVideoCount)件")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.85))
-
-                    Text(formattedDate(item.latestPublishedAt))
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.8))
-                }
-                .padding(16)
-            }
-            .overlay(alignment: .topTrailing) {
-                if let index {
-                    TileIndexBadge(index: index)
-                        .padding(12)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        ChannelSummaryTile(
+            item: item,
+            appearance: isSelected ? .selected : .unselected,
+            index: index
+        )
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-    }
-
-    private func formattedDate(_ date: Date?) -> String {
-        guard let date else { return "投稿日なし" }
-        return AppFormatting.dateTimeFormatter.string(from: date)
     }
 }
 

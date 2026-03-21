@@ -102,18 +102,16 @@ flowchart TD
 | タイトル | `InteractiveListScreen` の `title` | `チャンネル一覧` |
 | サブタイトル | `sortDescriptor.listSubtitle` | 現在の並び順説明 |
 | Tips タイル | `ChannelBrowseTipsTile` | 件数、並び順、基本操作 |
-| チャンネルタイル | `ChannelTile` / `channel.tile.<channelID>` | 単独画面のチャンネル一覧項目 |
-| 左ペインチャンネルタイル | `ChannelSelectionTile` / `channel.tile.<channelID>` | regular 幅の左ペイン選択項目 |
+| チャンネルタイル | `ChannelSummaryTile` / `channel.tile.<channelID>` | チャンネル名、件数、最新投稿日、サムネイルを表す共通タイル |
 | 削除確認ダイアログ | `confirmationDialog` | `チャンネルを削除` を確認 |
 | 削除結果アラート | `alert` | 削除結果を表示 |
 
 - 操作と遷移:
-  - タップで `チャンネル別動画一覧画面`
-  - 長押しメニューで `チャンネルを削除`
+  - 単独画面ではタップで `チャンネル別動画一覧画面`
   - regular 幅では左ペイン選択で右ペインだけ更新
+  - 長押しメニューで `チャンネルを削除`
 - 長押しメニュー:
   - チャンネルタイル: `チャンネルを削除`
-  - 左ペインチャンネルタイル: `チャンネルを削除`
 
 <a id="screen-h"></a>
 ### 画面H. チャンネル別動画一覧画面

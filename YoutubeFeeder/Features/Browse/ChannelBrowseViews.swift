@@ -145,7 +145,7 @@ private struct ChannelBrowseListCompactView: View {
                                 )
                             )
                         ) {
-                            ChannelTile(item: item, index: offset + 1)
+                            ChannelNavigationTile(item: item, index: offset + 1)
                         }
                         .buttonStyle(.plain)
                         .tileActionMenu(

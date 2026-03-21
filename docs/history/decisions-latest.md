@@ -1,4 +1,6 @@
 ## 2026/03/21
+- チャンネル一覧のタイルは、機能共通の表示核を `ChannelSummaryTile` として切り出し、遷移用と選択用の操作差分は別 wrapper へ分ける方針にした。
+  - `ChannelNavigationTile` と `ChannelSelectionTile` だけを見ると、どちらも「チャンネルを表すタイル」であることが読み取りづらいため。Human-View では機能共通核だけを `ChannelSummaryTile [Shared UI Core]` として見せ、操作差分は図から省略する。
 - YouTube 検索 split 詳細のチャンネル切替では、タイトル更新、古い動画タイルの退避、右ペイン読込開始を親 View で一括管理する方針にした。
   - 選択中チャンネル名だけを先に更新し、旧タイルが数秒残る状態は GUI 契約として不自然なため。表示本体側で個別に読み替えるより、選択遷移を 1 箇所へ集約した方が中間状態を抑えやすい。
 - 文書体系では `rules-documents.md` を `rules-document.md` へ改名し、画面設計の共通基準は新しい正本 `rules-design.md` へ切り出す方針にした。

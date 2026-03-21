@@ -91,7 +91,8 @@
   - 自動 feed 更新時の上部進行表示。
 - [BrowseComponents.swift](../YoutubeFeeder/Features/Browse/BrowseComponents.swift)
   - 一覧系共通コンテナ `InteractiveListScreen`。
-  - `ChannelTile`、`ChannelSelectionTile`、`VideoTile`、戻るスワイプ modifier。
+  - `ChannelSummaryTile` を機能共通核とし、`ChannelNavigationTile` と `ChannelSelectionTile` へ操作差分を分離する。
+  - `VideoTile`、戻るスワイプ modifier。
 
 ### Features/FeedCache
 
@@ -170,6 +171,7 @@
 - YouTube 検索 split 詳細の `channel title` と動画タイルは、選択変更時に同じ state transition で切り替わるようにし、片方だけ先に更新される状態を残してはならない。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListScreen` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
+- チャンネル一覧のタイルでは、`channel title`、件数、最新投稿日、サムネイルの表示責務を `ChannelSummaryTile` へ集約し、遷移か選択かという操作モデルの差は外側の wrapper で表現する。
 
 ## テスト配置
 

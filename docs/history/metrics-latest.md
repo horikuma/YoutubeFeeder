@@ -1,4 +1,18 @@
 ## 2026/03/21
+### チャンネルタイルの機能核と操作差分を分離する
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `3.469s`
+- test-without-building: `132.562s`
+- 検証合計時間: `136.031s`
+- 手修正後の再試行回数: `1`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `407ms`
+- スプラッシュ表示からホーム表示まで: `118ms`
+- 起動からホーム表示まで: `525ms`
+- 起動から bootstrap 読込完了まで: `468ms`
+- 起動からホーム遷移開始まで: `562ms`
+
 ### YouTube検索split詳細のチャンネル表示ずれを解消
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
