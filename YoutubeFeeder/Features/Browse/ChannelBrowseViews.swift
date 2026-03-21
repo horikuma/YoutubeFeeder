@@ -192,7 +192,7 @@ private struct ChannelBrowseListRegularView: View {
         .onDisappear {
             coordinator.resumeLiveUpdates()
         }
-        .onChange(of: items) { _, _ in
+        .onChange(of: items) { _ in
             applyDefaultSelectionIfNeeded()
         }
     }

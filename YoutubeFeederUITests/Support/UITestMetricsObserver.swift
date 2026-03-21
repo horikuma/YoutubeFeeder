@@ -89,7 +89,7 @@ private final class UITestMetricsObserver: NSObject, XCTestObservation {
         if FileManager.default.fileExists(atPath: UITestMetricsPaths.outputURL.path) {
             if let handle = try? FileHandle(forWritingTo: UITestMetricsPaths.outputURL) {
                 defer { try? handle.close() }
-                try? handle.seekToEnd()
+                _ = try? handle.seekToEnd()
                 try? handle.write(contentsOf: Data(payload.utf8))
             }
         } else {

@@ -6,6 +6,15 @@
 
 ## 実装単位の責務
 
+### Project Settings
+
+- [project.pbxproj](../YoutubeFeeder.xcodeproj/project.pbxproj)
+  - shared build settings と target build settings の正本。
+  - iOS deployment target は `16.0` を維持する。
+  - app / unit test / UI test の bundle identifier は `Neko.YoutubeFeeder` 系へ統一する。
+  - 実機向け署名は `YQA274TX99` の automatic signing を前提にする。
+  - プロダクト名変更後に Xcode 側の build が不安定になった場合は、旧名の project-local `.DerivedData*` と `xcuserstate` を破棄して再生成する。
+
 ### App
 
 - [YoutubeFeederApp.swift](../YoutubeFeeder/App/YoutubeFeederApp.swift)

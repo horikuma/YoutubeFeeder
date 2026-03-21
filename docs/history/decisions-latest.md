@@ -1,4 +1,8 @@
 ## 2026/03/21
+- プロダクト名変更後に Xcode の build が崩れた場合は、project-local `.DerivedData*` と `xcuserstate` を旧名生成物ごと破棄して再生成する方針にした。
+  - `HelloWorld` 時代の build database、生成物、UI 状態が `YoutubeFeeder` へ改名後も残っていると、Xcode が旧 project 参照や locked DB を引きずり、コードに問題がなくても `BuildFailed` になりうるため。
+- iOS deployment target は app / unit test / UI test すべて `16.0` にそろえ、実機署名は `YQA274TX99` の automatic signing を前提にする方針にした。
+  - `26.2` のような現実離れした target は Xcode / SDK の差分に弱く、さらに `Neko.YoutubeFeeder` へ改名後の実機ビルドでは新 bundle identifier 用の provisioning が必要になるため。共通条件を `16.0` へそろえ、署名責務は Xcode の自動管理へ寄せた方が継続運用しやすい。
 - プロダクト名、ターゲット名、バンドルID、スキーマ、文書見出し、リソース参照は `YoutubeFeeder` に統一し、リポジトリを clone した作業フォルダ名だけは `HelloWorld` のまま維持する方針にした。
   - アプリ内部と正本では旧名を残さず統一したい一方、作業フォルダ名まで変えると Codex 側の前提や履歴上の絶対パスへ余計な影響が広がるため。プロダクト名とワークスペース名を切り分けて扱う。
 - 文書体系と文書運用の正本は、章構成を分けたまま `rules-documents.md` へ統合し、旧 `document-rules.md` / `document-operations.md` の二分割は解消する方針に改めた。
