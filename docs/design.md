@@ -14,6 +14,13 @@
   - app / unit test / UI test の bundle identifier は `Neko.YoutubeFeeder` 系へ統一する。
   - 実機向け署名は `YQA274TX99` の automatic signing を前提にする。
   - プロダクト名変更後に Xcode 側の build が不安定になった場合は、旧名の project-local `.DerivedData*` と `xcuserstate` を破棄して再生成する。
+- [package.json](../package.json)
+  - 文書検証用 Node.js 依存の正本。
+  - Mermaid ローカル検証の CLI 版固定。
+- [package-lock.json](../package-lock.json)
+  - Mermaid ローカル検証の npm lock file。
+- [check_mermaid.mjs](../scripts/check_mermaid.mjs)
+  - Markdown から Mermaid ブロックを抽出し、ローカルで SVG 描画して検証する。
 
 ### App
 

@@ -1,0 +1,15 @@
+{
+  "name": "youtubefeeder-doc-tools",
+  "private": true,
+  "packageManager": "npm@11.9.0",
+  "engines": {
+    "node": "24.14.0"
+  },
+  "scripts": {
+    "check:mermaid": "node ./scripts/check_mermaid.mjs"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "11.12.0",
+    "puppeteer": "23.11.1"
+  }
+}

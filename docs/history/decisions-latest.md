@@ -1,4 +1,6 @@
 ## 2026/03/21
+- Mermaid を含む Markdown の検証は、外部 API ではなく Node.js `24.14.0` とローカル依存に固定した `mmdc` による SVG 描画で行う方針にした。
+  - 文書変更の成否をネットワーク先の可用性へ委ねると再現性が落ちるため。版固定した Node.js と npm lock file を正本にすれば、同じリポジトリ状態から同じローカル検証結果を再現しやすい。
 - プロダクト名変更後に Xcode の build が崩れた場合は、project-local `.DerivedData*` と `xcuserstate` を旧名生成物ごと破棄して再生成する方針にした。
   - `HelloWorld` 時代の build database、生成物、UI 状態が `YoutubeFeeder` へ改名後も残っていると、Xcode が旧 project 参照や locked DB を引きずり、コードに問題がなくても `BuildFailed` になりうるため。
 - iOS deployment target は app / unit test / UI test すべて `16.0` にそろえ、実機署名は `YQA274TX99` の automatic signing を前提にする方針にした。

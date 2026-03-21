@@ -21,6 +21,8 @@
   - 画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
 - [design-overview.md](./human-view/design-overview.md)
   - クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
+- [development-environment.md](./development-environment.md)
+  - ローカル開発に必要なツール、版固定、セットアップ手順、再現性を守る運用を記述する。
 - `docs/report/` 配下
   - 個別の障害調査、性能探索、検証ログの整理結果を、将来の再調査に使う参照資料として記述する。
 
@@ -78,7 +80,8 @@
 
 ### Markdown ルール
 
-- Markdown に `mermaid` または `plantuml` を含める場合は、コミット前に構文エラーなく描画できることを確認してから反映する。
+- Markdown に `mermaid` または `plantuml` を含める場合は、コミット前にローカル環境で構文エラーなく描画できることを確認してから反映する。
+- `mermaid` を含める Markdown を変更した場合は、外部 API ではなく [check_mermaid.mjs](../scripts/check_mermaid.mjs) によるローカル検証を使う。
 - Markdown のファイルリンクは、表示テキストをファイル名のみとし、表示上にパスを含めない。
 - Markdown のリンク先自体は、各文書位置から実体ファイルへ辿れる相対パスで維持する。
 

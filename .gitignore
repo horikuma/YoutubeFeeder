@@ -14,5 +14,8 @@ build/
 # Local metrics artifacts
 .metrics/
 
+# Node.js local dependencies
+node_modules/
+
 # Local secrets
 Config/LocalSecrets.xcconfig
