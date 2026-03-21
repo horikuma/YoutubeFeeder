@@ -204,7 +204,9 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func loadChannelBrowseItems(sortDescriptor: ChannelBrowseSortDescriptor = .default) async -> [ChannelBrowseItem] {
         let channelIDs = maintenanceItems.map(\.channelID).isEmpty ? channels : maintenanceItems.map(\.channelID)
-        let registeredAtByChannelID = Dictionary(uniqueKeysWithValues: ChannelRegistryStore.loadAllChannels().map { ($0.channelID, $0.addedAt) })
+        let registeredAtByChannelID = dictionaryKeepingLastValue(
+            ChannelRegistryStore.loadAllChannels().map { ($0.channelID, $0.addedAt) }
+        )
         let items = await store.loadChannelBrowseItems(channelIDs: channelIDs, registeredAtByChannelID: registeredAtByChannelID)
         return FeedOrdering.sortBrowseItems(items, by: sortDescriptor)
     }
@@ -212,7 +214,7 @@ final class FeedCacheCoordinator: ObservableObject {
     func loadVideosForChannel(_ channelID: String) async -> [CachedVideo] {
         let cachedVideos = await loadCachedVideosForChannel(channelID)
         let remoteVideos = await remoteSearchService.allVideos(channelID: channelID)
-        let mergedByID = Dictionary(uniqueKeysWithValues: (cachedVideos + remoteVideos).map { ($0.id, $0) })
+        let mergedByID = dictionaryKeepingPreferredVideo(cachedVideos + remoteVideos)
         let mergedVideos = mergedByID.values
             .sorted { lhs, rhs in
                 switch (lhs.publishedAt, rhs.publishedAt) {
@@ -497,7 +499,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
     private func performManualRefresh() async {
         let snapshot = await store.loadSnapshot()
-        let states = Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) })
+        let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let sortedChannels = prioritizedChannelIDs(states: states)
         let totalChannels = sortedChannels.count
 
@@ -824,7 +826,7 @@ final class FeedCacheCoordinator: ObservableObject {
     ) -> CacheProgress {
         let cachedChannels = snapshot.channels.filter { $0.lastSuccessAt != nil }.count
         let cachedThumbnails = snapshot.videos.filter { $0.thumbnailLocalFilename != nil }.count
-        let prioritizedChannels = prioritizedChannelIDs(states: Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) }))
+        let prioritizedChannels = prioritizedChannelIDs(states: dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) }))
         let currentChannelNumber = currentChannelID.flatMap { prioritizedChannels.firstIndex(of: $0) }.map { $0 + 1 }
         return CacheProgress(
             totalChannels: channels.count,
@@ -898,7 +900,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     private func buildMaintenanceItems(from snapshot: FeedCacheSnapshot) -> [ChannelMaintenanceItem] {
-        let prioritizedChannels = prioritizedChannelIDs(states: Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) }))
+        let prioritizedChannels = prioritizedChannelIDs(states: dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) }))
         return prioritizedChannels.map { channelID in
             let state = snapshot.channels.first(where: { $0.channelID == channelID })
             return ChannelMaintenanceItem(
@@ -931,7 +933,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
     private func refreshImportedChannels(_ importedChannelIDs: [String]) async {
         let snapshot = await store.loadSnapshot()
-        let states = Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) })
+        let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let cachedVideoChannelIDs = Set(snapshot.videos.map(\.channelID))
         let prioritizedChannelIDs = importedChannelIDs.sorted { lhs, rhs in
             let lhsNeedsWarmup = states[lhs]?.channelTitle == nil || !cachedVideoChannelIDs.contains(lhs)
@@ -967,6 +969,27 @@ final class FeedCacheCoordinator: ObservableObject {
 
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
+    }
+
+    private func dictionaryKeepingLastValue<Value>(_ pairs: [(String, Value)]) -> [String: Value] {
+        Dictionary(pairs, uniquingKeysWith: { _, rhs in rhs })
+    }
+
+    private func dictionaryKeepingPreferredVideo(_ videos: [CachedVideo]) -> [String: CachedVideo] {
+        Dictionary(videos.map { ($0.id, $0) }, uniquingKeysWith: preferredVideoForMerge)
+    }
+
+    private func preferredVideoForMerge(_ lhs: CachedVideo, _ rhs: CachedVideo) -> CachedVideo {
+        switch (lhs.publishedAt, rhs.publishedAt) {
+        case let (left?, right?) where left != right:
+            return left >= right ? lhs : rhs
+        case (_?, nil):
+            return lhs
+        case (nil, _?):
+            return rhs
+        default:
+            return lhs.fetchedAt >= rhs.fetchedAt ? lhs : rhs
+        }
     }
 
     private func performConsistencyMaintenanceIfNeeded(force: Bool) async -> CacheConsistencyMaintenanceResult? {

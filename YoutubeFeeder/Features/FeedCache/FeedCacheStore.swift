@@ -64,7 +64,7 @@ actor FeedCacheStore {
     func loadChannelBrowseItems(channelIDs: [String], registeredAtByChannelID: [String: Date?] = [:]) -> [ChannelBrowseItem] {
         let snapshot = loadSnapshot()
         let groupedVideos = Dictionary(grouping: snapshot.videos.filter { !looksLikeShort($0) }, by: \.channelID)
-        let states = Dictionary(uniqueKeysWithValues: snapshot.channels.map { ($0.channelID, $0) })
+        let states = Dictionary(snapshot.channels.map { ($0.channelID, $0) }, uniquingKeysWith: { _, rhs in rhs })
 
         return channelIDs.map { channelID in
             let latestVideo = groupedVideos[channelID]?.sorted(by: sortComparator(.publishedDescending)).first
@@ -220,7 +220,7 @@ actor FeedCacheStore {
         channelID: String,
         fetchedAt: Date
     ) -> [CachedVideo] {
-        var cachedVideosByID = Dictionary(uniqueKeysWithValues: existingVideos.map { ($0.id, $0) })
+        var cachedVideosByID = Dictionary(existingVideos.map { ($0.id, $0) }, uniquingKeysWith: { _, rhs in rhs })
         for video in fetchedVideos {
             cachedVideosByID[video.id] = buildCachedVideo(
                 from: video,
@@ -402,6 +402,9 @@ actor FeedCacheStore {
         let removedThumbnailCount = Set(snapshot.videos.compactMap(\.thumbnailLocalFilename)).count
 
         database.clearFeedCache()
+        database.close()
+        FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager)
+        removeDatabaseFiles()
         try? fileManager.removeItem(at: bootstrapFileURL)
         try? fileManager.removeItem(at: thumbnailsDirectory)
 
@@ -454,6 +457,16 @@ actor FeedCacheStore {
     private func createDirectories() throws {
         try fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+    }
+
+    private func removeDatabaseFiles() {
+        let databaseURL = FeedCachePaths.databaseURL(fileManager: fileManager)
+        let urls = [
+            databaseURL,
+            URL(fileURLWithPath: databaseURL.path + "-shm"),
+            URL(fileURLWithPath: databaseURL.path + "-wal"),
+        ]
+        urls.forEach { try? fileManager.removeItem(at: $0) }
     }
 
     private func sortComparator(_ order: VideoSortOrder) -> (CachedVideo, CachedVideo) -> Bool {

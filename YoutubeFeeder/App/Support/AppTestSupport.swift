@@ -295,7 +295,10 @@ enum UITestFixtureSeeder {
         heavyAlphaVideos: [CachedVideo]
     ) -> FeedCacheSnapshot {
         var updatedSnapshot = snapshot
-        var mergedVideos = Dictionary(uniqueKeysWithValues: updatedSnapshot.videos.map { ($0.id, $0) })
+        var mergedVideos = Dictionary(
+            updatedSnapshot.videos.map { ($0.id, $0) },
+            uniquingKeysWith: { _, rhs in rhs }
+        )
         for video in heavyAlphaVideos {
             mergedVideos[video.id] = video
         }

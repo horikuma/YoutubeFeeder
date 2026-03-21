@@ -47,7 +47,7 @@ enum FeedBootstrapStore {
     }
 
     private static func merged(snapshot: FeedBootstrapSnapshot, channels: [String]) -> FeedBootstrapSnapshot {
-        let existingItems = Dictionary(uniqueKeysWithValues: snapshot.maintenanceItems.map { ($0.channelID, $0) })
+        let existingItems = Dictionary(snapshot.maintenanceItems.map { ($0.channelID, $0) }, uniquingKeysWith: { _, rhs in rhs })
         let mergedItems = channels.map { channelID in
             existingItems[channelID] ?? ChannelMaintenanceItem(
                 id: channelID,

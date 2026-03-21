@@ -105,6 +105,7 @@
   - bootstrap 読込、一覧データ読込、手動更新、単独チャンネル更新、検索結果読込。
   - YouTube 検索の snapshot hit / miss、refresh failure fallback、cancel fallback の境界ログ。
   - YouTube 検索の managed task の生成、再利用管理。
+  - feed cache と検索 cache の動画を合流する際は、`video_id` 重複で落とさず、より新しい `publishedAt` / `fetchedAt` を優先して 1 件へ正規化する。
 - [FeedChannelSyncService.swift](../YoutubeFeeder/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、更新判定、store 反映を束ねる更新実行サービス。
 - [ChannelRegistryMaintenanceService.swift](../YoutubeFeeder/Features/FeedCache/ChannelRegistryMaintenanceService.swift)
@@ -113,12 +114,14 @@
   - cache、snapshot、thumbnail、整合性メンテナンス。
   - ホーム表示に必要な件数・更新時刻・thumbnail 合計サイズの集約窓口。
   - 動画・チャンネルの正本は `SQLite` に保存し、表示用文字列も同一更新点で生成して row に保持する。
+  - 全設定リセットでは `SQLite` 正本を table 単位で空にするだけでなく、database file / `-wal` / `-shm` も削除して完全再初期化する。
 - [FeedCacheSQLiteDatabase.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheSQLiteDatabase.swift)
   - 動画、チャンネル、検索履歴、登録チャンネルをまとめて保持する `SQLite` 永続層。
   - 旧 `JSON` 永続物からの移行と、検索結果のチャンネル別集約問い合わせを担う。
 - [RemoteVideoSearchCacheStore.swift](../YoutubeFeeder/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - YouTube 検索結果キャッシュの保存、鮮度判定、履歴クリア。
   - チャンネル別の動画集約では `SQLite` 上の検索結果履歴全体を `channel_id` で問い合わせ、既定キーワード分も merge 対象へ含める。
+  - 同じ `video_id` が検索履歴側で再入しても、重複 key fatal にせず後勝ちで 1 件へ正規化する。
 - [RemoteVideoSearchService.swift](../YoutubeFeeder/Features/FeedCache/RemoteVideoSearchService.swift)
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。
   - 検索キャッシュ反映完了と remote refresh cancellation のログ。
@@ -203,6 +206,7 @@
 - [FeedCacheCoordinatorRemoteSearchTests.swift](../YoutubeFeederTests/Unit/Storage/FeedCacheCoordinatorRemoteSearchTests.swift)
   - 強制再検索がキャッシュへ保存され、次回読込へ反映されること。
   - 呼び出し元 task が cancel されても managed task 側で検索完了まで進むこと。
+  - feed cache と検索 cache に同一 `video_id` があっても、`loadVideosForChannel` が fatal せず 1 件へ正規化すること。
 - [BackSwipePolicyTests.swift](../YoutubeFeederTests/Unit/Policies/BackSwipePolicyTests.swift)
   - 戻るスワイプ判定。
 - [FeedOrderingTests.swift](../YoutubeFeederTests/Unit/Ordering/FeedOrderingTests.swift)

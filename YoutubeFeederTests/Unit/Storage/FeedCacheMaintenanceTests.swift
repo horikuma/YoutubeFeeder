@@ -190,13 +190,10 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
 
             let store = FeedCacheStore()
             let reset = await store.resetAllStoredData()
-            let removedChannelCount = try ChannelRegistryStore.reset(fileManager: fileManager)
 
             XCTAssertEqual(reset.removedVideoCount, 1)
             XCTAssertEqual(reset.removedThumbnailCount, 1)
-            XCTAssertEqual(removedChannelCount, 2)
-            XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), [])
-            XCTAssertTrue(fileManager.fileExists(atPath: databaseURL.path))
+            XCTAssertFalse(fileManager.fileExists(atPath: databaseURL.path))
             XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.path))
             let reloadedSnapshot = await store.loadSnapshot()
             XCTAssertEqual(reloadedSnapshot.videos.count, 0)

@@ -20,7 +20,10 @@ actor RemoteVideoSearchCacheStore {
 
     func merge(keyword: String, videos: [CachedVideo], fetchedAt: Date) {
         let existing = load(keyword: keyword)
-        var mergedByID = Dictionary(uniqueKeysWithValues: (existing?.videos ?? []).map { ($0.id, $0) })
+        var mergedByID = Dictionary(
+            (existing?.videos ?? []).map { ($0.id, $0) },
+            uniquingKeysWith: { _, rhs in rhs }
+        )
         for video in videos {
             mergedByID[video.id] = video
         }
