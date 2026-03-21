@@ -1,4 +1,6 @@
 ## 2026/03/21
+- 短尺動画マスクは `Shorts URL/title` だけでなく `durationSeconds < 240` も含む共通ポリシーとして復旧し、feed cache と remote search fallback の両方へ同じ基準を通す方針にした。
+  - `4分未満` マスクが抜けると、feed 一覧では除外できても remote search 起点の channel fallback だけ短尺が混ざる、という経路差が生まれるため。判定を pure logic へ寄せ、保存前と表示前の両方で同じ基準を使う。
 - 旧 `JSON` / legacy migration は runtime から撤去し、全設定リセットでは `SQLite` と旧 runtime file の両方を削除して、古い永続状態を再注入しない方針に改めた。
   - 今回は旧仕様データの互換維持が不要で、reset 後は「古いデータは存在しない」前提でよい。migration や legacy file cleanup を中途半端に残すと、再起動時や別経路で古い file が混ざり、原因追跡が難しくなるため。
 - YouTube検索 split 右ペインで channel 動画が `1 件` に留まる場合は、単なる表示制限ではなく data source 不足とみなし、`routeSource = .remoteSearch` を文脈として channel-specific API fallback を実行する方針にした。

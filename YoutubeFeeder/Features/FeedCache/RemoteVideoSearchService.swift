@@ -93,8 +93,15 @@ struct RemoteVideoSearchService {
     }
 
     private func cachedVideos(from response: YouTubeSearchResponse) -> [CachedVideo] {
-        response.videos.map { video in
-            CachedVideo(
+        response.videos.compactMap { video in
+            guard !ShortVideoMaskPolicy.shouldMask(
+                durationSeconds: video.durationSeconds,
+                videoURL: video.videoURL,
+                title: video.title
+            ) else {
+                return nil
+            }
+            return CachedVideo(
                 id: video.id,
                 channelID: video.channelID,
                 channelTitle: video.channelTitle,

@@ -17,6 +17,23 @@ enum VideoOpenPolicy {
     static let maximumMovement: CGFloat = 18
 }
 
+enum ShortVideoMaskPolicy {
+    static let maximumShortDurationSeconds = 239
+
+    static func shouldMask(durationSeconds: Int?, videoURL: URL?, title: String) -> Bool {
+        if let durationSeconds, durationSeconds <= maximumShortDurationSeconds {
+            return true
+        }
+
+        if let videoURL = videoURL?.absoluteString.lowercased(), videoURL.contains("/shorts/") {
+            return true
+        }
+
+        let loweredTitle = title.lowercased()
+        return loweredTitle.contains("#shorts") || loweredTitle.hasPrefix("shorts")
+    }
+}
+
 enum SortDirection: String, CaseIterable, Hashable {
     case descending
     case ascending

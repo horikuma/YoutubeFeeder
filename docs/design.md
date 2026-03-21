@@ -116,6 +116,7 @@
   - cache、snapshot、thumbnail、整合性メンテナンス。
   - ホーム表示に必要な件数・更新時刻・thumbnail 合計サイズの集約窓口。
   - 動画・チャンネルの正本は `SQLite` に保存し、表示用文字列も同一更新点で生成して row に保持する。
+  - 一覧問い合わせでは、`Shorts URL/title` に加えて `durationSeconds < 240` も短尺判定へ含め、表示対象から除外する。
   - 全設定リセットでは `SQLite` 正本を table 単位で空にするだけでなく、database file / `-wal` / `-shm` も削除して完全再初期化する。
   - 全設定リセットでは、旧 runtime が使っていた `cache.json`、`cache-summary.plist`、`channel-registry.json`、`remote-search*.json`、`remote-search*.plist` も同時に削除し、reset 後に古い file が再注入されないようにする。
 - [FeedCacheSQLiteDatabase.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheSQLiteDatabase.swift)
@@ -130,6 +131,7 @@
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。
   - 検索キャッシュ反映完了と remote refresh cancellation のログ。
   - channelID 単位の動画一覧 fallback 取得と、その結果の検索キャッシュ保存。
+  - remote search 系の保存前フィルタでも `durationSeconds < 240` を短尺として除外し、feed cache 側の短尺マスクと基準をそろえる。
 - [HomeSystemStatusService.swift](../YoutubeFeeder/Features/FeedCache/HomeSystemStatusService.swift)
   - ホーム画面へ出すシステム状況の集約。
   - summary を優先し、必要時だけ本体 snapshot を読む。
@@ -186,6 +188,7 @@
 - YouTube 検索 split 右ペインのチャンネル動画一覧は、初回 20 件を表示し、末尾到達で 20 件ずつ継ぎ足して全件表示する。
 - YouTube 検索 split 詳細の `channel title` と動画タイルは、選択変更時に同じ state transition で切り替わるようにし、片方だけ先に更新される状態を残してはならない。
 - YouTube 検索 split 右ペインで feed refresh 後も `1 件以下` に留まる時は、検索結果由来のチャンネルであるとみなし、channel-specific API fallback の取得結果を追加して一覧を復元する。
+- 短尺動画マスクは `ShortVideoMaskPolicy` へ集約し、`Shorts URL/title` と `durationSeconds < 240` の両方を同じ基準で扱う。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListView` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
 - チャンネル一覧のタイルでは、`channel title`、件数、最新投稿日、サムネイルの表示責務を `ChannelTile` へ集約し、遷移か選択かという操作モデルの差は外側の wrapper で表現する。

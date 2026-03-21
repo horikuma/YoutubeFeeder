@@ -500,12 +500,11 @@ actor FeedCacheStore {
     }
 
     private func looksLikeShort(_ video: CachedVideo) -> Bool {
-        if let videoURL = video.videoURL?.absoluteString.lowercased(), videoURL.contains("/shorts/") {
-            return true
-        }
-
-        let title = video.title.lowercased()
-        return title.contains("#shorts") || title.hasPrefix("shorts")
+        ShortVideoMaskPolicy.shouldMask(
+            durationSeconds: video.durationSeconds,
+            videoURL: video.videoURL,
+            title: video.title
+        )
     }
 
     private func upsert(channel: CachedChannelState, into channels: inout [CachedChannelState]) {

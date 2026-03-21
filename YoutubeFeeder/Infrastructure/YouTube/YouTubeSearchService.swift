@@ -82,6 +82,13 @@ struct YouTubeSearchService {
             let detailedVideos = try await fetchVideoDetails(videoIDs: videoIDs, apiKey: apiKey)
             stage = "merge_details"
             let videos = Self.mergeDetailedVideos(detailedVideos, preferredOrder: videoIDs)
+                .filter {
+                    !ShortVideoMaskPolicy.shouldMask(
+                        durationSeconds: $0.durationSeconds,
+                        videoURL: $0.videoURL,
+                        title: $0.title
+                    )
+                }
             let response = YouTubeSearchResponse(videos: videos, totalCount: videos.count, fetchedAt: .now)
             logger.notice(
                 "channel_request_complete",

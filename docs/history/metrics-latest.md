@@ -1,4 +1,18 @@
 ## 2026/03/21
+### 4分未満の短尺動画マスクを復旧する
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `4.153s`
+- test-without-building: `134.783s`
+- 検証合計時間: `138.936s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `429ms`
+- スプラッシュ表示からホーム表示まで: `130ms`
+- 起動からホーム表示まで: `559ms`
+- 起動から bootstrap 読込完了まで: `494ms`
+- 起動からホーム遷移開始まで: `597ms`
+
 ### remote search起点のチャンネル動画1件化を修正しlegacy runtimeを撤去する
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
