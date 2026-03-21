@@ -1,4 +1,6 @@
 ## 2026/03/21
+- health_barometer 整理後の文書同期では、`design.md` だけでなく `architecture.md` と `human-view/design-overview.md` も同じ責務分割単位へ合わせて更新する方針にした。
+  - 詳細設計だけ更新すると、人間向けの俯瞰資料で古い構造が残り、次回の分割判断や指示出しがぶれやすいため。
 - health_barometer の長関数や広すぎるファイルは、責務境界が既にある単位から順に分割し、`FeedCacheCoordinator` のような巨大型でもアクセス修飾を広げる大手術は避ける方針にした。
   - 数値だけを下げるために無理な分割を行うと、かえって依存関係や可視性が悪化して自爆しやすいため。今回は Browse の remote search view 群、FeedCache の値型群、YouTubeSearch 周辺 DTO / 補助ロジックを自然な境界で分け、残る巨大型は今後の設計変更時に改めて扱う。
 - Mermaid を含む Markdown の検証は、外部 API ではなく Node.js `24.14.0` とローカル依存に固定した `mmdc` による SVG 描画で行う方針にした。

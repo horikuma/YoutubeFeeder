@@ -28,6 +28,7 @@ classDiagram
     class AllVideosView
     class KeywordSearchResultsView
     class RemoteKeywordSearchResultsView["RemoteKeywordSearchResultsView<br/>[Adaptive UI]"]
+    class RemoteSearchResultsContentViews["RemoteSearchResultsContentViews<br/>compact / regular / split detail"]
     class InteractiveListScreen
     class ChannelTile
     class ChannelSelectionTile
@@ -38,6 +39,10 @@ classDiagram
     class RemoteVideoSearchCacheStore
     class YouTubeFeed
     class YouTubeSearchService
+    class YouTubeSearchModels
+    class YouTubeSearchListResponse
+    class YouTubeVideoListResponse
+    class YouTubeSearchProcessing
     class RemoteSearchPresentationState
 
     ContentView --> AppLayout : computes
@@ -55,6 +60,7 @@ classDiagram
 
     ChannelBrowseListView --> InteractiveListScreen
     RemoteKeywordSearchResultsView --> InteractiveListScreen
+    RemoteKeywordSearchResultsView --> RemoteSearchResultsContentViews
     AllVideosView --> InteractiveListScreen
     KeywordSearchResultsView --> InteractiveListScreen
     ChannelVideosView --> VideoTile
@@ -70,6 +76,10 @@ classDiagram
     RemoteVideoSearchService --> RemoteVideoSearchCacheStore
     RemoteVideoSearchService --> YouTubeSearchService
     FeedCacheCoordinator --> YouTubeFeed
+    YouTubeSearchService --> YouTubeSearchModels
+    YouTubeSearchService --> YouTubeSearchListResponse
+    YouTubeSearchService --> YouTubeVideoListResponse
+    YouTubeSearchService --> YouTubeSearchProcessing
 
     RemoteKeywordSearchResultsView --> RemoteSearchPresentationState : uses
 ```
@@ -130,4 +140,6 @@ sequenceDiagram
 - `AppLayout` は adaptive 判定を持つが、機能差分は持たない。
 - クラス枠内に `[Adaptive UI]` を付けた View は、内部に `CompactView` / `RegularView` の表現差分を持つが、資料上は 1 つの機能 View として扱う。
 - `RemoteSearchPresentationState` は YouTube 検索結果の UI 状態を pure logic として切り出す。
+- `RemoteKeywordSearchResultsView` は state orchestration を持ち、compact / regular / split detail の表示本体は `RemoteSearchResultsContentViews` へ分けて扱う。
+- `YouTubeSearchService` は API 呼び出しと error handling を担い、公開 model、decode DTO、結果整列 helper は別ファイルへ分けて扱う。
 - 正本を更新した時は、本書のクラス図、シーケンス図も同じ変更セットで同期する。

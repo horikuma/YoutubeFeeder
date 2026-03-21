@@ -34,6 +34,7 @@
 - `View` は一時的な UI 状態、アニメーション状態、選択状態、ダイアログ状態を持ってよく、MVVM を理由にそれらを機械的に `ViewModel` へ押し上げてはならない。
 - `Coordinator / ViewModel` は UI と永続化の仲介を担うが、ファイル形式や API 呼び出しの細部を抱え込まない。
 - `Coordinator / ViewModel` は `1 画面` もしくは `1 機能の orchestration` に責務を寄せ、画面描画専用の細かな値変換や単純な表示状態まで過剰に抱え込まない。
+- `Coordinator / ViewModel` の健全性改善では、警告を消すためだけに private 状態や内部 helper を外へ公開せず、まず値型、表示部品、DTO、純粋補助ロジックの順に外出しする。
 - `Service / Use Case` は UI 文脈から独立して成立する判定、状態遷移、マージ、更新フローを持つ。
 - `Store / Infrastructure` はデータの保存、読込、問い合わせ、外部接続の詳細を閉じ込める。
 - 固定パス、永続ファイル、検索キャッシュ、秘密情報解決のような `スコープの広いリソース` は、専用の `Paths` / `Store` / `Service` 型へ閉じ込め、View や汎用 model ファイルへ散らしてはならない。
@@ -55,12 +56,15 @@
   - ホーム画面と、その周辺の設定系機能を担う。
 - `Browse`
   - 一覧表示、検索結果表示、詳細表示などの閲覧機能を担う。
+  - ローカルキャッシュ検索と YouTube 検索は同じ feature に置くが、検索 state の orchestration と compact / regular / split detail の表示責務は別ファイルへ分けて保つ。
 - `FeedCache`
   - データ更新、キャッシュ保守、初期表示用データ、状態集約を担う。
+  - 値型は storage / progress / channel / remote search のように意味単位で分け、巨大な model ファイルへ再集約しない。
 
 ### Infrastructure
 
 - YouTube feed、YouTube search API、URL / handle 解決など、外部接続の責務を担う。
+- YouTube search は service 本体、公開 model、API response DTO、結果整列や mock 応答の補助ロジックを分け、通信 orchestration と decode 詳細を 1 ファイルへ混在させない。
 
 ### Shared
 
