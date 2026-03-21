@@ -21,6 +21,7 @@ struct RemoteKeywordSearchResultsView: View {
     )
     @State private var splitContext: ChannelVideosRouteContext?
     @State private var splitVideos: [CachedVideo] = []
+    @State private var splitVisibleCount = 20
     @State private var splitLoadTask: Task<Void, Never>?
     @State private var isSplitLoading = false
     @State private var hasLoggedRootRender = false
@@ -240,6 +241,7 @@ struct RemoteKeywordSearchResultsView: View {
             splitLoadTask?.cancel()
             splitContext = nil
             splitVideos = []
+            splitVisibleCount = 20
             isSplitLoading = false
             return
         }
@@ -272,6 +274,7 @@ struct RemoteKeywordSearchResultsView: View {
     private func beginDeferredSplitSelection(_ context: ChannelVideosRouteContext) {
         splitContext = context
         splitVideos = []
+        splitVisibleCount = 20
         isSplitLoading = true
     }
 
@@ -303,6 +306,7 @@ struct RemoteKeywordSearchResultsView: View {
         await MainActor.run {
             guard splitContext == context else { return }
             splitVideos = loadedVideos
+            splitVisibleCount = min(20, loadedVideos.count)
             isSplitLoading = false
         }
 
@@ -352,6 +356,7 @@ struct RemoteKeywordSearchResultsView: View {
         await MainActor.run {
             guard splitContext == context else { return }
             splitVideos = loadedVideos
+            splitVisibleCount = min(20, loadedVideos.count)
             isSplitLoading = false
         }
         recordDeferredSplitSelectionCompleted(
@@ -421,6 +426,11 @@ struct RemoteKeywordSearchResultsView: View {
         video.channelTitle.isEmpty ? nil : video.channelTitle
     }
 
+    private func loadMoreSplitVideosIfNeeded() {
+        guard splitVisibleCount < splitVideos.count else { return }
+        splitVisibleCount = min(splitVisibleCount + 20, splitVideos.count)
+    }
+
     private func recordRenderProbe(_ phase: String) {
         let metadata = [
             "phase": phase,
@@ -449,9 +459,11 @@ struct RemoteKeywordSearchResultsView: View {
                 visibleCount: presentationState.visibleCount,
                 splitContext: $splitContext,
                 splitVideos: $splitVideos,
+                splitVisibleCount: $splitVisibleCount,
                 isSplitLoading: isSplitLoading,
                 presentationMode: presentationMode,
                 onRenderProbe: recordRenderProbe,
+                onLoadMoreSplitVideos: loadMoreSplitVideosIfNeeded,
                 onSelectSplitChannel: selectSplitChannel,
                 onRefresh: { await reloadResults(forceRefresh: true) },
                 onDismissChip: dismissChip,

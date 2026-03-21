@@ -16,6 +16,10 @@ enum FeedCachePaths {
         baseDirectory(fileManager: fileManager).appendingPathComponent("thumbnails", isDirectory: true)
     }
 
+    nonisolated static func databaseURL(fileManager: FileManager = .default) -> URL {
+        baseDirectory(fileManager: fileManager).appendingPathComponent("feed-cache.sqlite")
+    }
+
     nonisolated static func thumbnailURL(filename: String, fileManager: FileManager = .default) -> URL {
         thumbnailsDirectory(fileManager: fileManager).appendingPathComponent(filename)
     }

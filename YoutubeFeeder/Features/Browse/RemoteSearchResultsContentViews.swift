@@ -77,9 +77,11 @@ struct RemoteKeywordSearchResultsRegularView: View {
     let visibleCount: Int
     @Binding var splitContext: ChannelVideosRouteContext?
     @Binding var splitVideos: [CachedVideo]
+    @Binding var splitVisibleCount: Int
     let isSplitLoading: Bool
     let presentationMode: RemoteSearchPresentationMode
     let onRenderProbe: (String) -> Void
+    let onLoadMoreSplitVideos: () -> Void
     let onSelectSplitChannel: (ChannelVideosRouteContext) -> Void
     let onRefresh: () async -> Void
     let onDismissChip: () -> Void
@@ -153,9 +155,11 @@ struct RemoteKeywordSearchResultsRegularView: View {
                 layout: layout,
                 splitContext: $splitContext,
                 splitVideos: $splitVideos,
+                splitVisibleCount: $splitVisibleCount,
                 isSplitLoading: isSplitLoading,
                 presentationMode: presentationMode,
                 onRenderProbe: onRenderProbe,
+                onLoadMore: onLoadMoreSplitVideos,
                 onAppearOnce: nil
             )
         }
@@ -171,9 +175,11 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
     let layout: AppLayout
     @Binding var splitContext: ChannelVideosRouteContext?
     @Binding var splitVideos: [CachedVideo]
+    @Binding var splitVisibleCount: Int
     let isSplitLoading: Bool
     let presentationMode: RemoteSearchPresentationMode
     let onRenderProbe: (String) -> Void
+    let onLoadMore: () -> Void
     let onAppearOnce: ((String?) -> Void)?
     @State private var hasLoggedDetailRender = false
 
@@ -184,7 +190,7 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
                     .font(.system(size: 34, weight: .black, design: .rounded))
                     .accessibilityIdentifier("screen.remoteSearchSplitTitle")
 
-                Text("このチャンネルの動画を新しい順に最大50件表示")
+                Text("このチャンネルの動画を新しい順に表示")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
@@ -206,8 +212,9 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
                 } else if splitVideos.isEmpty {
                     MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
                 } else {
+                    let visibleVideos = Array(splitVideos.prefix(splitVisibleCount))
                     LazyVGrid(columns: layout.listColumns, spacing: 20) {
-                        ForEach(Array(splitVideos.enumerated()), id: \.element.id) { offset, video in
+                        ForEach(Array(visibleVideos.enumerated()), id: \.element.id) { offset, video in
                             VideoTile(
                                 video: video,
                                 tapAction: nil,
@@ -217,6 +224,10 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
                                 removeChannel: nil,
                                 index: offset + 1
                             )
+                            .onAppear {
+                                guard offset >= visibleVideos.count - 1 else { return }
+                                onLoadMore()
+                            }
                         }
                     }
                 }
@@ -242,6 +253,7 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
             guard let splitContext else { return }
             await coordinator.refreshChannelManually(splitContext.channelID)
             splitVideos = await coordinator.openChannelVideos(splitContext)
+            splitVisibleCount = min(20, splitVideos.count)
         }
     }
 

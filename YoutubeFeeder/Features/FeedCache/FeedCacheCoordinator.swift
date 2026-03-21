@@ -226,7 +226,6 @@ final class FeedCacheCoordinator: ObservableObject {
                     return lhs.fetchedAt > rhs.fetchedAt
                 }
             }
-            .prefix(200)
             .map { $0 }
         return mergedVideos
     }

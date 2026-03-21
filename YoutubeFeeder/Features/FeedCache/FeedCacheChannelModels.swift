@@ -30,10 +30,42 @@ struct ChannelBrowseItem: Identifiable, Hashable {
     let id: String
     let channelID: String
     let channelTitle: String
+    let channelDisplayTitle: String
     let latestPublishedAt: Date?
+    let latestPublishedAtText: String
     let registeredAt: Date?
     let latestVideo: CachedVideo?
     let cachedVideoCount: Int
+
+    init(
+        id: String,
+        channelID: String,
+        channelTitle: String,
+        channelDisplayTitle: String? = nil,
+        latestPublishedAt: Date?,
+        latestPublishedAtText: String? = nil,
+        registeredAt: Date?,
+        latestVideo: CachedVideo?,
+        cachedVideoCount: Int
+    ) {
+        self.id = id
+        self.channelID = channelID
+        self.channelTitle = channelTitle
+        self.channelDisplayTitle = channelDisplayTitle ?? (channelTitle.isEmpty ? channelID : channelTitle)
+        self.latestPublishedAt = latestPublishedAt
+        if let latestPublishedAtText {
+            self.latestPublishedAtText = latestPublishedAtText
+        } else if let latestVideo {
+            self.latestPublishedAtText = latestVideo.publishedAtText
+        } else if let latestPublishedAt {
+            self.latestPublishedAtText = AppFormatting.dateTimeFormatter.string(from: latestPublishedAt)
+        } else {
+            self.latestPublishedAtText = "投稿日なし"
+        }
+        self.registeredAt = registeredAt
+        self.latestVideo = latestVideo
+        self.cachedVideoCount = cachedVideoCount
+    }
 }
 
 enum ChannelRegistrationStatus: Hashable {

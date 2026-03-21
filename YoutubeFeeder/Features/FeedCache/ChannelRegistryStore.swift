@@ -83,10 +83,7 @@ enum ChannelRegistryTransferRuntime {
 
 enum ChannelRegistryStore {
     static func loadAllChannels(fileManager: FileManager = .default) -> [RegisteredChannel] {
-        let channels = loadSnapshot(fileManager: fileManager).channels.map {
-            RegisteredChannel(channelID: $0.channelID, addedAt: $0.addedAt)
-        }
-        return uniqueChannels(channels)
+        uniqueChannels(FeedCacheSQLiteDatabase.shared(fileManager: fileManager).loadRegisteredChannels())
     }
 
     static func loadAllChannelIDs(fileManager: FileManager = .default) -> [String] {
@@ -100,31 +97,13 @@ enum ChannelRegistryStore {
     static func addChannelID(_ channelID: String, fileManager: FileManager = .default) throws -> Bool {
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedChannelID.isEmpty else { return false }
-
-        var snapshot = loadSnapshot(fileManager: fileManager)
-        guard !snapshot.channels.contains(where: { $0.channelID == normalizedChannelID }) else {
-            return false
-        }
-
-        snapshot.channels.append(
-            RegisteredChannelRecord(channelID: normalizedChannelID, addedAt: .now)
-        )
-        snapshot.channels = uniqueRecords(snapshot.channels)
-        try persist(snapshot: snapshot, fileManager: fileManager)
-        return true
+        return FeedCacheSQLiteDatabase.shared(fileManager: fileManager).addRegisteredChannel(normalizedChannelID, addedAt: .now)
     }
 
     static func removeChannelID(_ channelID: String, fileManager: FileManager = .default) throws -> Bool {
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedChannelID.isEmpty else { return false }
-
-        var snapshot = loadSnapshot(fileManager: fileManager)
-        let originalCount = snapshot.channels.count
-        snapshot.channels.removeAll { $0.channelID == normalizedChannelID }
-        guard snapshot.channels.count != originalCount else { return false }
-
-        try persist(snapshot: snapshot, fileManager: fileManager)
-        return true
+        return FeedCacheSQLiteDatabase.shared(fileManager: fileManager).removeRegisteredChannel(normalizedChannelID)
     }
 
     static func loadChannelRecords(fileManager: FileManager = .default) -> [RegisteredChannelRecord] {
@@ -134,38 +113,11 @@ enum ChannelRegistryStore {
     }
 
     static func replaceChannels(_ channels: [RegisteredChannelRecord], fileManager: FileManager = .default) throws {
-        try persist(snapshot: ChannelRegistrySnapshot(channels: uniqueRecords(channels)), fileManager: fileManager)
+        FeedCacheSQLiteDatabase.shared(fileManager: fileManager).replaceRegisteredChannels(uniqueRecords(channels))
     }
 
     static func reset(fileManager: FileManager = .default) throws -> Int {
-        let existingCount = loadAllChannels(fileManager: fileManager).count
-        let registryURL = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
-        if fileManager.fileExists(atPath: registryURL.path) {
-            try fileManager.removeItem(at: registryURL)
-        }
-        return existingCount
-    }
-
-    private static func loadSnapshot(fileManager: FileManager) -> ChannelRegistrySnapshot {
-        let url = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
-        guard
-            let data = try? Data(contentsOf: url),
-            let snapshot = try? JSONDecoder().decode(ChannelRegistrySnapshot.self, from: data)
-        else {
-            return ChannelRegistrySnapshot(channels: [])
-        }
-
-        return snapshot
-    }
-
-    private static func persist(snapshot: ChannelRegistrySnapshot, fileManager: FileManager) throws {
-        let baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
-        try fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
-
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(snapshot)
-        try data.write(to: FeedCachePaths.channelRegistryURL(fileManager: fileManager), options: .atomic)
+        FeedCacheSQLiteDatabase.shared(fileManager: fileManager).resetRegisteredChannels()
     }
 
     private static func uniqueChannels(_ channels: [RegisteredChannel]) -> [RegisteredChannel] {

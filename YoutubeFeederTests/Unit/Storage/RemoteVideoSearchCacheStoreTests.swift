@@ -38,6 +38,7 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
                 ttl: 12 * 60 * 60,
                 now: fetchedAt.addingTimeInterval(60)
             )
+            XCTAssertTrue(fileManager.fileExists(atPath: FeedCachePaths.databaseURL(fileManager: fileManager).path))
             XCTAssertTrue(freshStatus.exists)
             XCTAssertTrue(freshStatus.isFresh)
             XCTAssertEqual(freshStatus.totalCount, 24)
@@ -143,6 +144,7 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
         let previousValue = ProcessInfo.processInfo.environment[key]
         setenv(key, url.path, 1)
         defer {
+            FeedCacheSQLiteDatabase.resetShared()
             if let previousValue {
                 setenv(key, previousValue, 1)
             } else {

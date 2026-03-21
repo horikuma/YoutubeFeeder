@@ -111,13 +111,14 @@
   - チャンネル登録、削除、バックアップ入出力、全設定リセット。
 - [FeedCacheStore.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheStore.swift)
   - cache、snapshot、thumbnail、整合性メンテナンス。
-  - `cache-summary.plist` を併設し、ホーム表示に必要な件数・更新時刻・thumbnail 合計サイズを本体 snapshot decode なしで返す。
-  - 本体 JSON は compact date 形式で保存する。
+  - ホーム表示に必要な件数・更新時刻・thumbnail 合計サイズの集約窓口。
+  - 動画・チャンネルの正本は `SQLite` に保存し、表示用文字列も同一更新点で生成して row に保持する。
+- [FeedCacheSQLiteDatabase.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheSQLiteDatabase.swift)
+  - 動画、チャンネル、検索履歴、登録チャンネルをまとめて保持する `SQLite` 永続層。
+  - 旧 `JSON` 永続物からの移行と、検索結果のチャンネル別集約問い合わせを担う。
 - [RemoteVideoSearchCacheStore.swift](../YoutubeFeeder/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - YouTube 検索結果キャッシュの保存、鮮度判定、履歴クリア。
-  - `remote-search-*-summary.plist` を併設し、ホームの検索キャッシュ鮮度表示は軽量 summary から返す。
-  - チャンネル別の動画集約では `remote-search.json` と `remote-search-*.json` の両方を走査し、既定キーワードの検索キャッシュも merge 対象へ含める。
-  - summary 正本は binary property list とする。
+  - チャンネル別の動画集約では `SQLite` 上の検索結果履歴全体を `channel_id` で問い合わせ、既定キーワード分も merge 対象へ含める。
 - [RemoteVideoSearchService.swift](../YoutubeFeeder/Features/FeedCache/RemoteVideoSearchService.swift)
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。
   - 検索キャッシュ反映完了と remote refresh cancellation のログ。
@@ -132,7 +133,7 @@
 - [FeedBootstrapStore.swift](../YoutubeFeeder/Features/FeedCache/FeedBootstrapStore.swift)
   - bootstrap の読込と整形。
 - [ChannelRegistryStore.swift](../YoutubeFeeder/Features/FeedCache/ChannelRegistryStore.swift)
-  - registry と端末内バックアップ JSON の永続化。
+  - 登録チャンネルの `SQLite` 永続化と、端末内バックアップ `JSON` の入出力。
 - [FeedCacheStorageModels.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheStorageModels.swift)
   - cache snapshot と永続化対象の値型。
 - [FeedCacheProgressModels.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheProgressModels.swift)
@@ -173,6 +174,7 @@
 
 - `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面局所の UI 状態は `SearchResultsViews.swift` / `RemoteSearchResultsViews.swift` と `RemoteSearchPresentationState` に閉じ込める。
 - `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択を pure logic として持つ。
+- YouTube 検索 split 右ペインのチャンネル動画一覧は、初回 20 件を表示し、末尾到達で 20 件ずつ継ぎ足して全件表示する。
 - YouTube 検索 split 詳細の `channel title` と動画タイルは、選択変更時に同じ state transition で切り替わるようにし、片方だけ先に更新される状態を残してはならない。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListView` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。

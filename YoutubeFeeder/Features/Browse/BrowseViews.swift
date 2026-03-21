@@ -18,7 +18,7 @@ struct ChannelVideosView: View {
     var body: some View {
         InteractiveListView(
             title: channelTitle,
-            subtitle: "このチャンネルの動画を新しい順に最大50件表示",
+            subtitle: "このチャンネルの動画を新しい順に表示",
             coordinator: coordinator,
             path: $path,
             layout: layout,

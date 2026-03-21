@@ -1,4 +1,18 @@
 ## 2026/03/21
+### YouTube検索split右ペインの全件段階表示とSQLite永続化へ移行
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `5.056s`
+- test-without-building: `129.858s`
+- 検証合計時間: `134.914s`
+- 手修正後の再試行回数: `1`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `445ms`
+- スプラッシュ表示からホーム表示まで: `137ms`
+- 起動からホーム表示まで: `582ms`
+- 起動から bootstrap 読込完了まで: `515ms`
+- 起動からホーム遷移開始まで: `593ms`
+
 ### YouTube検索既定キャッシュのチャンネル動画参照漏れを修正する
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

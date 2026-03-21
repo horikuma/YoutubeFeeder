@@ -171,11 +171,12 @@ enum UITestFixtureSeeder {
 
         let baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
         try? fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
+        FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager)
+        removeDatabaseFiles(baseDirectory: baseDirectory, fileManager: fileManager)
         clearRemoteSearchFixtures(baseDirectory: baseDirectory, fileManager: fileManager)
-
-        copyFixture(named: "UITest.channel-registry", extension: "json", to: FeedCachePaths.channelRegistryURL(fileManager: fileManager), bundle: bundle)
         copyFixture(named: "UITest.bootstrap", extension: "json", to: FeedCachePaths.bootstrapURL(fileManager: fileManager), bundle: bundle)
-        copyCacheFixture(to: FeedCachePaths.cacheURL(fileManager: fileManager), bundle: bundle)
+        seedChannelRegistryFixture(bundle: bundle, fileManager: fileManager)
+        seedCacheFixture(bundle: bundle, fileManager: fileManager)
         applyRemoteSearchFixtureVariantIfNeeded(baseDirectory: baseDirectory, fileManager: fileManager)
     }
 
@@ -184,10 +185,6 @@ enum UITestFixtureSeeder {
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }()
-
-    private static let cacheDecoder = FeedCachePersistenceCoders.makeDecoder()
-
-    private static let cacheEncoder = FeedCachePersistenceCoders.makeEncoder(prettyPrinted: true)
 
     private static let bootstrapEncoder: JSONEncoder = {
         let encoder = JSONEncoder()
@@ -202,18 +199,27 @@ enum UITestFixtureSeeder {
         try? FileManager.default.copyItem(at: source, to: destination)
     }
 
-    private static func copyCacheFixture(to destination: URL, bundle: Bundle) {
+    private static func seedChannelRegistryFixture(bundle: Bundle, fileManager: FileManager) {
+        guard let source = bundle.url(forResource: "UITest.channel-registry", withExtension: "json") else { return }
+        guard
+            let data = try? Data(contentsOf: source),
+            let snapshot = try? JSONDecoder().decode(ChannelRegistrySnapshot.self, from: data)
+        else {
+            return
+        }
+        try? ChannelRegistryStore.replaceChannels(snapshot.channels, fileManager: fileManager)
+    }
+
+    private static func seedCacheFixture(bundle: Bundle, fileManager: FileManager) {
         guard let source = bundle.url(forResource: "UITest.cache", withExtension: "json") else { return }
         guard
             let data = try? Data(contentsOf: source),
-            let snapshot = try? legacyCacheDecoder.decode(FeedCacheSnapshot.self, from: data),
-            let encoded = try? cacheEncoder.encode(snapshot)
+            let snapshot = try? legacyCacheDecoder.decode(FeedCacheSnapshot.self, from: data)
         else {
             return
         }
 
-        try? FileManager.default.removeItem(at: destination)
-        try? encoded.write(to: destination, options: [.atomic])
+        FeedCacheSQLiteDatabase.shared(fileManager: fileManager).replaceFeedSnapshot(snapshot)
     }
 
     private static func clearRemoteSearchFixtures(baseDirectory: URL, fileManager: FileManager) {
@@ -222,6 +228,18 @@ enum UITestFixtureSeeder {
             ($0 == "remote-search.json" || $0.hasPrefix("remote-search-")) && $0.hasSuffix(".json")
         }
         for filename in targets {
+            try? fileManager.removeItem(at: baseDirectory.appendingPathComponent(filename))
+        }
+        _ = FeedCacheSQLiteDatabase.shared(fileManager: fileManager).clearAllRemoteSearch()
+    }
+
+    private static func removeDatabaseFiles(baseDirectory: URL, fileManager: FileManager) {
+        let filenames = [
+            "feed-cache.sqlite",
+            "feed-cache.sqlite-shm",
+            "feed-cache.sqlite-wal",
+        ]
+        for filename in filenames {
             try? fileManager.removeItem(at: baseDirectory.appendingPathComponent(filename))
         }
     }
@@ -236,14 +254,9 @@ enum UITestFixtureSeeder {
     }
 
     private static func seedHeavyRemoteSearchFixture(baseDirectory: URL, fileManager: FileManager) {
-        let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
         let bootstrapURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
-        guard
-            let cacheData = try? Data(contentsOf: cacheURL),
-            var cacheSnapshot = try? cacheDecoder.decode(FeedCacheSnapshot.self, from: cacheData)
-        else {
-            return
-        }
+        let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+        var cacheSnapshot = database.loadFeedSnapshot()
 
         let alphaChannelID = "UC_TEST_ALPHA"
         let alphaTitle = "Alpha Channel"
@@ -258,7 +271,7 @@ enum UITestFixtureSeeder {
             heavyAlphaVideos: heavyAlphaVideos
         )
 
-        writeHeavyCacheFixture(snapshot: cacheSnapshot, to: cacheURL)
+        database.replaceFeedSnapshot(cacheSnapshot)
         updateBootstrapFixture(
             bootstrapURL: bootstrapURL,
             channelID: alphaChannelID,
@@ -301,12 +314,6 @@ enum UITestFixtureSeeder {
             return updated
         }
         return updatedSnapshot
-    }
-
-    private static func writeHeavyCacheFixture(snapshot: FeedCacheSnapshot, to cacheURL: URL) {
-        if let encodedCache = try? cacheEncoder.encode(snapshot) {
-            try? encodedCache.write(to: cacheURL, options: [.atomic])
-        }
     }
 
     private static func updateBootstrapFixture(
@@ -365,10 +372,7 @@ enum UITestFixtureSeeder {
             totalCount: remoteVideos.count,
             fetchedAt: savedAt
         )
-        let remoteURL = FeedCachePaths.remoteSearchCacheURL(keyword: remoteSearchKeyword, fileManager: fileManager)
-        if let encodedRemote = try? cacheEncoder.encode(remoteEntry) {
-            try? encodedRemote.write(to: remoteURL, options: [.atomic])
-        }
+        FeedCacheSQLiteDatabase.shared(fileManager: fileManager).saveRemoteSearchEntry(remoteEntry)
     }
 
     private static func makeHeavyAlphaVideos(savedAt: Date, channelID: String, channelTitle: String) -> [CachedVideo] {

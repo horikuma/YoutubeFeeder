@@ -211,7 +211,7 @@ fileprivate struct ChannelTile: View {
             }
             .overlay(alignment: .bottomLeading) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(item.channelTitle)
+                    Text(item.channelDisplayTitle)
                         .font(.headline)
                         .foregroundStyle(.white)
                         .lineLimit(2)
@@ -220,7 +220,7 @@ fileprivate struct ChannelTile: View {
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.85))
 
-                    Text(formattedDate(item.latestPublishedAt))
+                    Text(item.latestPublishedAtText)
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.8))
                 }
@@ -233,11 +233,6 @@ fileprivate struct ChannelTile: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-    }
-
-    private func formattedDate(_ date: Date?) -> String {
-        guard let date else { return "投稿日なし" }
-        return AppFormatting.dateTimeFormatter.string(from: date)
     }
 }
 
@@ -286,12 +281,12 @@ struct VideoHeroTile: View {
                         .foregroundStyle(.white)
                         .lineLimit(2)
 
-                    Text(video.channelTitle.isEmpty ? video.channelID : video.channelTitle)
+                    Text(video.channelDisplayTitle)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.85))
                         .lineLimit(1)
 
-                    Text(formattedDate(video.publishedAt))
+                    Text(video.publishedAtText)
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.8))
                 }
@@ -308,11 +303,6 @@ struct VideoHeroTile: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-    }
-
-    private func formattedDate(_ date: Date?) -> String {
-        guard let date else { return "投稿日なし" }
-        return AppFormatting.dateTimeFormatter.string(from: date)
     }
 }
 
@@ -333,7 +323,7 @@ private struct VideoMetadataBadge: View {
     let video: CachedVideo
 
     var body: some View {
-        Text(AppFormatting.videoTileBadgeText(durationSeconds: video.durationSeconds, viewCount: video.viewCount))
+        Text(video.metadataBadgeText)
             .font(.caption2.monospacedDigit().weight(.bold))
             .foregroundStyle(.white)
             .padding(.horizontal, 8)

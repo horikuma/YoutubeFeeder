@@ -80,6 +80,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
                 ],
                 fileManager: fileManager
             )
+            XCTAssertTrue(fileManager.fileExists(atPath: FeedCachePaths.databaseURL(fileManager: fileManager).path))
 
             let result = try ChannelRegistryTransferStore.export(
                 fileManager: fileManager,
@@ -231,6 +232,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
         let previousValue = ProcessInfo.processInfo.environment[key]
         setenv(key, url.path, 1)
         defer {
+            FeedCacheSQLiteDatabase.resetShared()
             if let previousValue {
                 setenv(key, previousValue, 1)
             } else {

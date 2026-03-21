@@ -29,7 +29,6 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         defer { try? fileManager.removeItem(at: temporaryRoot) }
 
         try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
-            let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
             let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
             try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
 
@@ -94,19 +93,19 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                 ]
             )
 
-            let encoder = FeedCachePersistenceCoders.makeEncoder(prettyPrinted: true)
-            try encoder.encode(snapshot).write(to: cacheURL, options: .atomic)
+            let store = FeedCacheStore()
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(snapshot)
             try Data("keep".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-1.jpg"), options: .atomic)
             try Data("drop".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-2.jpg"), options: .atomic)
             try Data("orphan".utf8).write(to: thumbnailsDirectory.appendingPathComponent("orphan.jpg"), options: .atomic)
 
-            let result = await FeedCacheStore().performConsistencyMaintenance(activeChannelIDs: ["UC111"], force: true, now: now)
+            let result = await store.performConsistencyMaintenance(activeChannelIDs: ["UC111"], force: true, now: now)
 
             XCTAssertEqual(result?.removedVideoCount, 1)
             XCTAssertEqual(result?.removedThumbnailCount, 2)
 
-            let decoder = FeedCachePersistenceCoders.makeDecoder()
-            let savedSnapshot = try decoder.decode(FeedCacheSnapshot.self, from: Data(contentsOf: cacheURL))
+            let savedSnapshot = await store.loadSnapshot()
             XCTAssertEqual(savedSnapshot.channels.map(\.channelID), ["UC111"])
             XCTAssertEqual(savedSnapshot.channels.first?.cachedVideoCount, 1)
             XCTAssertEqual(savedSnapshot.videos.map(\.channelID), ["UC111"])
@@ -140,7 +139,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         ).write(to: backupURL, options: .atomic)
 
         try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
-            let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+            let databaseURL = FeedCachePaths.databaseURL(fileManager: fileManager)
             let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
             try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
             try ChannelRegistryStore.replaceChannels(
@@ -185,8 +184,8 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                     ),
                 ]
             )
-            let cacheEncoder = FeedCachePersistenceCoders.makeEncoder(prettyPrinted: true)
-            try cacheEncoder.encode(snapshot).write(to: cacheURL, options: .atomic)
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(snapshot)
             try Data("keep".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-1.jpg"), options: .atomic)
 
             let store = FeedCacheStore()
@@ -197,8 +196,10 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
             XCTAssertEqual(reset.removedThumbnailCount, 1)
             XCTAssertEqual(removedChannelCount, 2)
             XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), [])
-            XCTAssertFalse(fileManager.fileExists(atPath: cacheURL.path))
+            XCTAssertTrue(fileManager.fileExists(atPath: databaseURL.path))
             XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.path))
+            let reloadedSnapshot = await store.loadSnapshot()
+            XCTAssertEqual(reloadedSnapshot.videos.count, 0)
             XCTAssertTrue(fileManager.fileExists(atPath: backupURL.path))
 
             _ = try ChannelRegistryTransferStore.import(
@@ -215,6 +216,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         let previousValue = ProcessInfo.processInfo.environment[key]
         setenv(key, url.path, 1)
         defer {
+            FeedCacheSQLiteDatabase.resetShared()
             if let previousValue {
                 setenv(key, previousValue, 1)
             } else {

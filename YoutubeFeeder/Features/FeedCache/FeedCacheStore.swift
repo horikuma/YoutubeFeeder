@@ -3,55 +3,30 @@ import Foundation
 actor FeedCacheStore {
     private let fileManager = FileManager.default
     private let encoder = FeedCachePersistenceCoders.makeEncoder()
-    private let decoder = FeedCachePersistenceCoders.makeDecoder()
-    private let summaryEncoder = FeedCachePersistenceCoders.makeSummaryEncoder()
-    private let summaryDecoder = FeedCachePersistenceCoders.makeSummaryDecoder()
+    private let database = FeedCacheSQLiteDatabase.shared()
 
     private let baseDirectory: URL
-    private let cacheFileURL: URL
-    private let summaryFileURL: URL
     private let bootstrapFileURL: URL
     private let thumbnailsDirectory: URL
     private var lastConsistencyMaintenanceAt: Date?
 
     init() {
         baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
-        cacheFileURL = FeedCachePaths.cacheURL(fileManager: fileManager)
-        summaryFileURL = FeedCachePaths.cacheSummaryURL(fileManager: fileManager)
         bootstrapFileURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
         thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
     }
 
     func loadSnapshot() -> FeedCacheSnapshot {
         try? createDirectories()
-        guard fileManager.fileExists(atPath: cacheFileURL.path) else { return .empty }
-
-        let data: Data
-        do {
-            data = try Data(contentsOf: cacheFileURL)
-        } catch {
-            return .empty
-        }
-
-        let snapshot: FeedCacheSnapshot
-        do {
-            snapshot = try decoder.decode(FeedCacheSnapshot.self, from: data)
-        } catch {
-            return .empty
-        }
-
-        persistSummary(snapshot)
-
-        return snapshot
+        return database.loadFeedSnapshot()
     }
 
     func loadSummary() -> FeedCacheSummary? {
-        try? createDirectories()
-
-        guard let data = try? Data(contentsOf: summaryFileURL) else {
+        let snapshot = loadSnapshot()
+        guard !snapshot.channels.isEmpty || !snapshot.videos.isEmpty || snapshot.savedAt != .distantPast else {
             return nil
         }
-        return try? summaryDecoder.decode(FeedCacheSummary.self, from: data)
+        return buildSummary(from: snapshot)
     }
 
     func summary(for snapshot: FeedCacheSnapshot) -> FeedCacheSummary {
@@ -98,7 +73,9 @@ actor FeedCacheStore {
                 id: channelID,
                 channelID: channelID,
                 channelTitle: state?.channelTitle ?? latestVideo?.channelTitle ?? channelID,
+                channelDisplayTitle: state?.channelDisplayTitle ?? latestVideo?.channelDisplayTitle ?? channelID,
                 latestPublishedAt: state?.latestPublishedAt ?? latestVideo?.publishedAt,
+                latestPublishedAtText: state?.latestPublishedAtText ?? latestVideo?.publishedAtText ?? "投稿日なし",
                 registeredAt: registeredAtByChannelID[channelID] ?? nil,
                 latestVideo: latestVideo,
                 cachedVideoCount: state?.cachedVideoCount ?? groupedVideos[channelID]?.count ?? 0
@@ -122,6 +99,19 @@ actor FeedCacheStore {
         )
         channel.lastAttemptAt = checkedAt
         channel.lastCheckedAt = checkedAt
+        channel.latestPublishedAtText = CachedChannelState(
+            channelID: channel.channelID,
+            channelTitle: channel.channelTitle,
+            channelDisplayTitle: channel.channelDisplayTitle,
+            lastAttemptAt: checkedAt,
+            lastCheckedAt: checkedAt,
+            lastSuccessAt: channel.lastSuccessAt,
+            latestPublishedAt: channel.latestPublishedAt,
+            cachedVideoCount: channel.cachedVideoCount,
+            lastError: error,
+            etag: channel.etag,
+            lastModified: channel.lastModified
+        ).latestPublishedAtText
         channel.lastError = error
         upsert(channel: channel, into: &snapshot.channels)
         snapshot.savedAt = checkedAt
@@ -144,6 +134,19 @@ actor FeedCacheStore {
         )
         channel.lastAttemptAt = metadata.checkedAt
         channel.lastCheckedAt = metadata.checkedAt
+        channel.latestPublishedAtText = CachedChannelState(
+            channelID: channel.channelID,
+            channelTitle: channel.channelTitle,
+            channelDisplayTitle: channel.channelDisplayTitle,
+            lastAttemptAt: metadata.checkedAt,
+            lastCheckedAt: metadata.checkedAt,
+            lastSuccessAt: channel.lastSuccessAt,
+            latestPublishedAt: channel.latestPublishedAt,
+            cachedVideoCount: channel.cachedVideoCount,
+            lastError: nil,
+            etag: metadata.validationToken.etag,
+            lastModified: metadata.validationToken.lastModified
+        ).latestPublishedAtText
         channel.lastError = nil
         channel.etag = metadata.validationToken.etag
         channel.lastModified = metadata.validationToken.lastModified
@@ -182,10 +185,24 @@ actor FeedCacheStore {
             lastModified: nil
         )
         channel.channelTitle = resolvedChannelTitle ?? channel.channelTitle
+        channel.channelDisplayTitle = resolvedChannelTitle ?? channel.channelDisplayTitle
         channel.lastAttemptAt = fetchedAt
         channel.lastCheckedAt = fetchedAt
         channel.lastSuccessAt = fetchedAt
         channel.latestPublishedAt = latestPublishedAt ?? channel.latestPublishedAt
+        channel.latestPublishedAtText = CachedChannelState(
+            channelID: channel.channelID,
+            channelTitle: channel.channelTitle,
+            channelDisplayTitle: channel.channelDisplayTitle,
+            lastAttemptAt: fetchedAt,
+            lastCheckedAt: fetchedAt,
+            lastSuccessAt: fetchedAt,
+            latestPublishedAt: latestPublishedAt ?? channel.latestPublishedAt,
+            cachedVideoCount: channelVideoCount,
+            lastError: nil,
+            etag: metadata.validationToken.etag,
+            lastModified: metadata.validationToken.lastModified
+        ).latestPublishedAtText
         channel.cachedVideoCount = channelVideoCount
         channel.lastError = nil
         channel.etag = metadata.validationToken.etag
@@ -226,6 +243,7 @@ actor FeedCacheStore {
             id: video.id,
             channelID: channelID,
             channelTitle: channelTitle,
+            channelDisplayTitle: channelTitle.isEmpty ? channelID : channelTitle,
             title: video.title,
             publishedAt: video.publishedAt,
             videoURL: video.videoURL,
@@ -273,15 +291,18 @@ actor FeedCacheStore {
                 id: existing.id,
                 channelID: existing.channelID,
                 channelTitle: existing.channelTitle,
+                channelDisplayTitle: existing.channelDisplayTitle,
                 title: existing.title,
                 publishedAt: existing.publishedAt,
+                publishedAtText: existing.publishedAtText,
                 videoURL: existing.videoURL,
                 thumbnailRemoteURL: existing.thumbnailRemoteURL,
                 thumbnailLocalFilename: localThumbnailFilename,
                 fetchedAt: existing.fetchedAt,
                 searchableText: existing.searchableText,
                 durationSeconds: existing.durationSeconds,
-                viewCount: existing.viewCount
+                viewCount: existing.viewCount,
+                metadataBadgeText: existing.metadataBadgeText
             )
             snapshot.savedAt = .now
             persist(snapshot)
@@ -337,10 +358,24 @@ actor FeedCacheStore {
             CachedChannelState(
                 channelID: channel.channelID,
                 channelTitle: channel.channelTitle,
+                channelDisplayTitle: channel.channelDisplayTitle,
                 lastAttemptAt: channel.lastAttemptAt,
                 lastCheckedAt: channel.lastCheckedAt,
                 lastSuccessAt: channel.lastSuccessAt,
                 latestPublishedAt: latestPublishedAtByChannelID[channel.channelID] ?? nil,
+                latestPublishedAtText: CachedChannelState(
+                    channelID: channel.channelID,
+                    channelTitle: channel.channelTitle,
+                    channelDisplayTitle: channel.channelDisplayTitle,
+                    lastAttemptAt: channel.lastAttemptAt,
+                    lastCheckedAt: channel.lastCheckedAt,
+                    lastSuccessAt: channel.lastSuccessAt,
+                    latestPublishedAt: latestPublishedAtByChannelID[channel.channelID] ?? nil,
+                    cachedVideoCount: cachedVideoCountByChannelID[channel.channelID] ?? 0,
+                    lastError: channel.lastError,
+                    etag: channel.etag,
+                    lastModified: channel.lastModified
+                ).latestPublishedAtText,
                 cachedVideoCount: cachedVideoCountByChannelID[channel.channelID] ?? 0,
                 lastError: channel.lastError,
                 etag: channel.etag,
@@ -366,8 +401,7 @@ actor FeedCacheStore {
         let removedVideoCount = snapshot.videos.count
         let removedThumbnailCount = Set(snapshot.videos.compactMap(\.thumbnailLocalFilename)).count
 
-        try? fileManager.removeItem(at: cacheFileURL)
-        try? fileManager.removeItem(at: summaryFileURL)
+        database.clearFeedCache()
         try? fileManager.removeItem(at: bootstrapFileURL)
         try? fileManager.removeItem(at: thumbnailsDirectory)
 
@@ -399,15 +433,7 @@ actor FeedCacheStore {
 
     private func persist(_ snapshot: FeedCacheSnapshot) {
         try? createDirectories()
-        guard let data = try? encoder.encode(snapshot) else { return }
-        try? data.write(to: cacheFileURL, options: .atomic)
-        persistSummary(snapshot)
-    }
-
-    private func persistSummary(_ snapshot: FeedCacheSnapshot) {
-        let summary = buildSummary(from: snapshot)
-        guard let data = try? summaryEncoder.encode(summary) else { return }
-        try? data.write(to: summaryFileURL, options: .atomic)
+        database.replaceFeedSnapshot(snapshot)
     }
 
     private func buildSummary(from snapshot: FeedCacheSnapshot) -> FeedCacheSummary {

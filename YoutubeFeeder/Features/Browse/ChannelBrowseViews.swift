@@ -244,7 +244,7 @@ private struct ChannelBrowseRegularView: View {
                 Text(selectedTitle)
                     .font(.system(size: 34, weight: .black, design: .rounded))
 
-                Text("このチャンネルの動画を新しい順に最大50件表示")
+                Text("このチャンネルの動画を新しい順に表示")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
@@ -382,14 +382,14 @@ struct AllVideosView: View {
     var body: some View {
         InteractiveListView(
             title: "動画一覧",
-            subtitle: "キャッシュ済み動画を新しい順に最大50件表示",
+            subtitle: "キャッシュ済み動画を新しい順に表示",
             coordinator: coordinator,
             path: $path,
             layout: layout,
             onRefresh: nil
         ) {
             if coordinator.videos.isEmpty {
-                MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を最大50件まで表示します")
+                MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を表示します")
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(Array(coordinator.videos.enumerated()), id: \.element.id) { offset, video in
