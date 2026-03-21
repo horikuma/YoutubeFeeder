@@ -58,7 +58,7 @@
   - 手動更新、検索導線、バックアップ、全設定リセット、システム状況表示。
   - YouTube検索タイル選択の runtime diagnostics 記録。
   - ホーム表示と YouTube検索タイル選択の lifecycle ログ。
-  - ホーム表示中に YouTube検索用 snapshot を low priority で prewarm し、初回遷移時の待ちを抑える。
+  - ホーム表示中に YouTube検索用 snapshot を low priority で prewarm し、その後 hidden host で検索画面を事前描画して初回遷移時の待ちを抑える。
 - [ChannelRegistrationView.swift](../YoutubeFeeder/Features/Home/ChannelRegistrationView.swift)
   - チャンネル登録画面。
   - 入力、解決、登録、結果表示。
@@ -80,6 +80,7 @@
   - YouTube 検索結果画面本体。
   - snapshot 読込、再検索、split 初期読込予約、進行表示の状態束ね。
   - 先に prewarm 済み snapshot があれば、それを優先して初回表示へ使う。
+  - `visible` と `prewarm` を分けて root 描画、split 初期読込、画面出入りをログで観測する。
   - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
   - `refreshable` は trigger のみを担い、検索本体は coordinator の managed task へ委譲する。
   - iPad split では初期右ペイン読込を短く遅延させ、遷移直後はプレースホルダを表示する。
@@ -87,6 +88,7 @@
   - iPad split の初期右ペイン読込について、予約・開始・完了を runtime diagnostics へ記録する。
 - [RemoteSearchResultsContentViews.swift](../YoutubeFeeder/Features/Browse/RemoteSearchResultsContentViews.swift)
   - YouTube 検索結果の compact / regular / split detail の表示責務。
+  - regular 左ペインと split detail の描画到達点を render probe で観測する。
   - split 詳細の表示本体は持つが、チャンネル切替に伴う状態遷移や読込開始は親 View へ委譲する。
 - [BrowseViews.swift](../YoutubeFeeder/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。

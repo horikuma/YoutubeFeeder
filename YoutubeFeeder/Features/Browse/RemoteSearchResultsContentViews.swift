@@ -78,11 +78,14 @@ struct RemoteKeywordSearchResultsRegularView: View {
     @Binding var splitContext: ChannelVideosRouteContext?
     @Binding var splitVideos: [CachedVideo]
     let isSplitLoading: Bool
+    let presentationMode: RemoteSearchPresentationMode
+    let onRenderProbe: (String) -> Void
     let onSelectSplitChannel: (ChannelVideosRouteContext) -> Void
     let onRefresh: () async -> Void
     let onDismissChip: () -> Void
     let onLoadMore: () -> Void
     let normalizedChannelTitle: (CachedVideo) -> String?
+    @State private var hasLoggedListRender = false
 
     var body: some View {
         NavigationSplitView {
@@ -135,6 +138,14 @@ struct RemoteKeywordSearchResultsRegularView: View {
                     }
                 }
             }
+            .background(
+                RenderProbe {
+                    guard !hasLoggedListRender else { return }
+                    hasLoggedListRender = true
+                    onRenderProbe("regular_list")
+                }
+                .frame(width: 0, height: 0)
+            )
         } detail: {
             RemoteKeywordSearchResultsSplitDetailView(
                 coordinator: coordinator,
@@ -143,6 +154,8 @@ struct RemoteKeywordSearchResultsRegularView: View {
                 splitContext: $splitContext,
                 splitVideos: $splitVideos,
                 isSplitLoading: isSplitLoading,
+                presentationMode: presentationMode,
+                onRenderProbe: onRenderProbe,
                 onAppearOnce: nil
             )
         }
@@ -159,7 +172,10 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
     @Binding var splitContext: ChannelVideosRouteContext?
     @Binding var splitVideos: [CachedVideo]
     let isSplitLoading: Bool
+    let presentationMode: RemoteSearchPresentationMode
+    let onRenderProbe: (String) -> Void
     let onAppearOnce: ((String?) -> Void)?
+    @State private var hasLoggedDetailRender = false
 
     var body: some View {
         ScrollView {
@@ -211,6 +227,14 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
             .padding(.vertical, 20)
         }
         .background(Color(.systemGroupedBackground))
+        .background(
+            RenderProbe {
+                guard !hasLoggedDetailRender else { return }
+                hasLoggedDetailRender = true
+                onRenderProbe("split_detail")
+            }
+            .frame(width: 0, height: 0)
+        )
         .onAppear {
             onAppearOnce?(splitContext?.channelID)
         }

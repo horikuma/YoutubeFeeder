@@ -1,4 +1,18 @@
 ## 2026/03/21
+### YouTube検索画面の描画をhidden hostでprewarmする
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `3.735s`
+- test-without-building: `134.512s`
+- 検証合計時間: `138.247s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `397ms`
+- スプラッシュ表示からホーム表示まで: `133ms`
+- 起動からホーム表示まで: `530ms`
+- 起動から bootstrap 読込完了まで: `473ms`
+- 起動からホーム遷移開始まで: `543ms`
+
 ### YouTube検索画面の初回遷移をホーム側prewarmで軽くする
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

@@ -1,11 +1,17 @@
 import SwiftUI
 
+enum RemoteSearchPresentationMode: String {
+    case visible
+    case prewarm
+}
+
 struct RemoteKeywordSearchResultsView: View {
     let keyword: String
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let layout: AppLayout
+    let presentationMode: RemoteSearchPresentationMode
 
     @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
     @State private var presentationState = RemoteSearchPresentationState(
@@ -17,9 +23,34 @@ struct RemoteKeywordSearchResultsView: View {
     @State private var splitVideos: [CachedVideo] = []
     @State private var splitLoadTask: Task<Void, Never>?
     @State private var isSplitLoading = false
+    @State private var hasLoggedRootRender = false
+
+    init(
+        keyword: String,
+        coordinator: FeedCacheCoordinator,
+        openVideo: @escaping (CachedVideo) -> Void,
+        path: Binding<NavigationPath>,
+        layout: AppLayout,
+        presentationMode: RemoteSearchPresentationMode = .visible
+    ) {
+        self.keyword = keyword
+        self.coordinator = coordinator
+        self.openVideo = openVideo
+        _path = path
+        self.layout = layout
+        self.presentationMode = presentationMode
+    }
 
     var body: some View {
         content
+            .background(
+                RenderProbe {
+                    guard !hasLoggedRootRender else { return }
+                    hasLoggedRootRender = true
+                    recordRenderProbe("root")
+                }
+                .frame(width: 0, height: 0)
+            )
             .overlay(alignment: .top) {
                 if presentationState.isRefreshingChip {
                     SearchRefreshStatusView()
@@ -73,11 +104,15 @@ struct RemoteKeywordSearchResultsView: View {
                     metadata: [
                         "keyword": keyword,
                         "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                        "mode": presentationMode.rawValue,
                     ]
                 )
                 AppConsoleLogger.youtubeSearch.info(
                     "screen_appear",
-                    metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword)]
+                    metadata: [
+                        "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
+                        "mode": presentationMode.rawValue,
+                    ]
                 )
             }
             .onDisappear {
@@ -88,6 +123,7 @@ struct RemoteKeywordSearchResultsView: View {
                         "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
                         "videos": String(result.videos.count),
                         "refreshing": presentationState.isRefreshingChip ? "true" : "false",
+                        "mode": presentationMode.rawValue,
                     ]
                 )
             }
@@ -122,6 +158,7 @@ struct RemoteKeywordSearchResultsView: View {
             metadata: [
                 "keyword": keywordPreview,
                 "limit": "100",
+                "mode": presentationMode.rawValue,
             ]
         )
         result = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
@@ -133,6 +170,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "videos": String(result.videos.count),
                 "error": result.errorMessage == nil ? "none" : "present",
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "mode": presentationMode.rawValue,
             ]
         )
         applyPresentationState()
@@ -147,6 +185,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "keyword": keywordPreview,
                 "force_refresh": forceRefresh ? "true" : "false",
                 "current_videos": String(result.videos.count),
+                "mode": presentationMode.rawValue,
             ]
         )
         if forceRefresh {
@@ -162,6 +201,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "videos": String(result.videos.count),
                 "fetched": result.fetchedAt == nil ? "false" : "true",
                 "error": result.errorMessage == nil ? "none" : "present",
+                "mode": presentationMode.rawValue,
             ]
         )
         applyPresentationState()
@@ -243,6 +283,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "channelID": context.channelID,
                 "trigger": "tap",
                 "scheduled_wait_ms": "0",
+                "mode": presentationMode.rawValue,
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -251,6 +292,7 @@ struct RemoteKeywordSearchResultsView: View {
             metadata: [
                 "channelID": context.channelID,
                 "trigger": "tap",
+                "mode": presentationMode.rawValue,
             ]
         )
 
@@ -272,6 +314,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "videos": String(loadedVideos.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 "publish_ms": AppConsoleLogger.elapsedMilliseconds(from: publishStartedAt, to: Date()),
+                "mode": presentationMode.rawValue,
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -282,6 +325,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "trigger": "tap",
                 "videos": String(loadedVideos.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "mode": presentationMode.rawValue,
             ]
         )
     }
@@ -293,6 +337,7 @@ struct RemoteKeywordSearchResultsView: View {
             metadata: [
                 "channelID": context.channelID,
                 "delay_ms": "150",
+                "mode": presentationMode.rawValue,
             ]
         )
     }
@@ -328,6 +373,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "channelID": context.channelID,
                 "trigger": "initial",
                 "scheduled_wait_ms": AppConsoleLogger.elapsedMilliseconds(from: scheduledAt, to: startedAt),
+                "mode": presentationMode.rawValue,
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -336,6 +382,7 @@ struct RemoteKeywordSearchResultsView: View {
             metadata: [
                 "channelID": context.channelID,
                 "trigger": "initial",
+                "mode": presentationMode.rawValue,
             ]
         )
     }
@@ -354,6 +401,7 @@ struct RemoteKeywordSearchResultsView: View {
                 "videos": String(loadedVideos.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 "publish_ms": AppConsoleLogger.elapsedMilliseconds(from: publishStartedAt, to: Date()),
+                "mode": presentationMode.rawValue,
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -364,12 +412,28 @@ struct RemoteKeywordSearchResultsView: View {
                 "trigger": "initial",
                 "videos": String(loadedVideos.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "mode": presentationMode.rawValue,
             ]
         )
     }
 
     private func normalizedChannelTitle(for video: CachedVideo) -> String? {
         video.channelTitle.isEmpty ? nil : video.channelTitle
+    }
+
+    private func recordRenderProbe(_ phase: String) {
+        let metadata = [
+            "phase": phase,
+            "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+            "mode": presentationMode.rawValue,
+            "videos": String(result.videos.count),
+        ]
+        AppConsoleLogger.youtubeSearch.debug("screen_render_probe", metadata: metadata)
+        RuntimeDiagnostics.shared.record(
+            "remote_search_render_probe",
+            detail: "YouTube検索画面の描画到達点",
+            metadata: metadata
+        )
     }
 
     @ViewBuilder
@@ -386,6 +450,8 @@ struct RemoteKeywordSearchResultsView: View {
                 splitContext: $splitContext,
                 splitVideos: $splitVideos,
                 isSplitLoading: isSplitLoading,
+                presentationMode: presentationMode,
+                onRenderProbe: recordRenderProbe,
                 onSelectSplitChannel: selectSplitChannel,
                 onRefresh: { await reloadResults(forceRefresh: true) },
                 onDismissChip: dismissChip,

@@ -450,6 +450,21 @@ extension View {
     }
 }
 
+struct RenderProbe: UIViewRepresentable {
+    let onMount: () -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.isHidden = true
+        DispatchQueue.main.async {
+            onMount()
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+}
+
 struct UITestMarker: View {
     let identifier: String
     let value: String

@@ -14,39 +14,57 @@ struct HomeScreenView: View {
     @State private var isResettingAllSettings = false
     @State private var shouldConfirmReset = false
     @State private var didPrewarmRemoteSearch = false
+    @State private var shouldMountRemoteSearchPrewarmHost = false
+    @State private var remoteSearchPrewarmPath = NavigationPath()
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                if AppLaunchMode.current.usesMockData {
-                    UITestMarker(
-                        identifier: "test.manualRefreshCount",
-                        value: "\(coordinator.manualRefreshCount)"
-                    )
+        ZStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                    if AppLaunchMode.current.usesMockData {
+                        UITestMarker(
+                            identifier: "test.manualRefreshCount",
+                            value: "\(coordinator.manualRefreshCount)"
+                        )
+                    }
+
+                    Text("ホーム")
+                        .font(layout.isPad ? .system(size: 38, weight: .black, design: .rounded) : .largeTitle.bold())
+                        .accessibilityIdentifier("screen.home")
+
+                    navigationSection
+                    SystemStatusTile(status: coordinator.homeSystemStatus)
+
+                    if let transferFeedback {
+                        registryTransferFeedbackCard(transferFeedback)
+                            .accessibilityIdentifier("home.transferFeedback")
+                    } else if let resetFeedback {
+                        resetFeedbackCard(resetFeedback)
+                            .accessibilityIdentifier("home.resetFeedback")
+                    } else if let transferErrorMessage {
+                        registryTransferErrorCard(transferErrorMessage)
+                            .accessibilityIdentifier("home.transferError")
+                    }
                 }
-
-                Text("ホーム")
-                    .font(layout.isPad ? .system(size: 38, weight: .black, design: .rounded) : .largeTitle.bold())
-                    .accessibilityIdentifier("screen.home")
-
-                navigationSection
-                SystemStatusTile(status: coordinator.homeSystemStatus)
-
-                if let transferFeedback {
-                    registryTransferFeedbackCard(transferFeedback)
-                        .accessibilityIdentifier("home.transferFeedback")
-                } else if let resetFeedback {
-                    resetFeedbackCard(resetFeedback)
-                        .accessibilityIdentifier("home.resetFeedback")
-                } else if let transferErrorMessage {
-                    registryTransferErrorCard(transferErrorMessage)
-                        .accessibilityIdentifier("home.transferError")
-                }
+                .frame(maxWidth: layout.contentWidth ?? .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, layout.horizontalPadding)
+                .padding(.vertical, 20)
             }
-            .frame(maxWidth: layout.contentWidth ?? .infinity, alignment: .leading)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, layout.horizontalPadding)
-            .padding(.vertical, 20)
+
+            if shouldMountRemoteSearchPrewarmHost {
+                RemoteKeywordSearchResultsView(
+                    keyword: FeedCacheCoordinator.homeSearchKeyword,
+                    coordinator: coordinator,
+                    openVideo: { _ in },
+                    path: $remoteSearchPrewarmPath,
+                    layout: layout,
+                    presentationMode: .prewarm
+                )
+                .opacity(0.001)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
         }
         .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
@@ -75,6 +93,9 @@ struct HomeScreenView: View {
             guard !didPrewarmRemoteSearch else { return }
             didPrewarmRemoteSearch = true
             coordinator.prewarmRemoteSearchSnapshot(keyword: FeedCacheCoordinator.homeSearchKeyword)
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            shouldMountRemoteSearchPrewarmHost = true
         }
         .confirmationDialog(
             "この端末の設定をリセットしますか",
