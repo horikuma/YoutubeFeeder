@@ -1,4 +1,6 @@
 ## 2026/03/21
+- `LLM所要時間` の終了時刻は、metrics 計測前ではなく原則 `コミット直前` に取る方針へ改めた。
+  - source change では `scripts/collect_metrics.sh` が分単位の検証コストを持つため、その前に `finish` すると実態より極端に短い値が残りうるため。文書-only などコミットしない場合だけ、最終応答直前を例外の終了点とする。
 - 動画 URL の共有は画面個別ではなく `VideoTile` 共通の長押しメニューへ載せ、YouTube検索、キャッシュ検索、チャンネル動画、動画一覧へ一括適用する方針にした。
   - 現在の動画系画面は `VideoTile` を共通利用しており、ここで share sheet を持てば機能差分を作らずに全経路へ広げられるため。画面ごとに分けると long press の契約が崩れやすい。
 - 短尺動画マスクは `Shorts URL/title` だけでなく `durationSeconds < 240` も含む共通ポリシーとして復旧し、feed cache と remote search fallback の両方へ同じ基準を通す方針にした。
