@@ -1,4 +1,18 @@
 ## 2026/03/21
+### LLM所要時間の記録を安定化する
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `6.224s`
+- test-without-building: `135.263s`
+- 検証合計時間: `141.487s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `449ms`
+- スプラッシュ表示からホーム表示まで: `147ms`
+- 起動からホーム表示まで: `596ms`
+- 起動から bootstrap 読込完了まで: `530ms`
+- 起動からホーム遷移開始まで: `634ms`
+
 ### チャンネルタイルの機能核と操作差分を分離する
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
