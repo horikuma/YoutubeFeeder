@@ -1,4 +1,6 @@
 ## 2026/03/21
+- human-view 固有に見えていた文書ルールは、`rules-document.md` の `Human-View ルール` 章へ集約し、画面識別子や図の簡略化方針も正本として管理する方針にした。
+  - `gui.md` や `design-overview.md` の中にしか存在しない運用ルールがあると、翻訳資料の更新だけで判断基準が変わってしまうため。`画面A` のような識別子、章構成、Adaptive UI 詳細を図へ出しすぎない方針などは、文書運用の正本へサルベージしてから運用する。
 - Browse 命名は、`ChannelBrowseView` のように機能語を主語にし、`InteractiveListView` のように SwiftUI 型は原則 `View` で終える方針にそろえた。
   - `ChannelBrowseListView` のように一部だけ `ListView` を含む名前や、`InteractiveListScreen` のように `View` で終わらない型名が混じると、機能責務と容器責務の読み分けがぶれやすいため。
 - チャンネルタイルの共通核は `ChannelTile` へ戻し、遷移や選択の差分だけを `ChannelNavigationTile`、`ChannelSelectionTile` へ残す方針に改めた。
