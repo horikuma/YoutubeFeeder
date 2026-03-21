@@ -70,7 +70,7 @@
 ### Features/Browse
 
 - [ChannelBrowseViews.swift](../YoutubeFeeder/Features/Browse/ChannelBrowseViews.swift)
-  - チャンネル一覧、全動画一覧、分割チャンネル閲覧。
+  - `ChannelBrowseView`、全動画一覧、分割チャンネル閲覧。
   - `Tips` タイル、並び順反映、削除導線。
 - [SearchResultsViews.swift](../YoutubeFeeder/Features/Browse/SearchResultsViews.swift)
   - 固定キーワード検索結果と共通チップ UI。
@@ -90,8 +90,8 @@
   - チャンネル別動画一覧。
   - 自動 feed 更新時の上部進行表示。
 - [BrowseComponents.swift](../YoutubeFeeder/Features/Browse/BrowseComponents.swift)
-  - 一覧系共通コンテナ `InteractiveListScreen`。
-  - `ChannelSummaryTile` を機能共通核とし、`ChannelNavigationTile` と `ChannelSelectionTile` へ操作差分を分離する。
+  - 一覧系共通コンテナ `InteractiveListView`。
+  - `ChannelTile` を機能共通核とし、`ChannelNavigationTile` と `ChannelSelectionTile` へ操作差分を分離する。
   - `VideoTile`、戻るスワイプ modifier。
 
 ### Features/FeedCache
@@ -170,8 +170,16 @@
 - `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択を pure logic として持つ。
 - YouTube 検索 split 詳細の `channel title` と動画タイルは、選択変更時に同じ state transition で切り替わるようにし、片方だけ先に更新される状態を残してはならない。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
-- `InteractiveListScreen` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
-- チャンネル一覧のタイルでは、`channel title`、件数、最新投稿日、サムネイルの表示責務を `ChannelSummaryTile` へ集約し、遷移か選択かという操作モデルの差は外側の wrapper で表現する。
+- `InteractiveListView` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
+- チャンネル一覧のタイルでは、`channel title`、件数、最新投稿日、サムネイルの表示責務を `ChannelTile` へ集約し、遷移か選択かという操作モデルの差は外側の wrapper で表現する。
+
+## 命名規則
+
+- 画面や表示部品の型名は、SwiftUI の `View` 型であることが読めるよう、原則として `View` で終える。
+- 機能単位の親 View は、`ChannelBrowseView` のように `対象 + 機能` を先に表し、`List`、`Pane`、`Screen` のような実装都合の容器語は、その責務が名前に不可欠な場合だけ使う。
+- Adaptive UI の派生 View は、親機能名を保ったまま `CompactView`、`RegularView`、`SplitDetailView` のように末尾で差分を表す。
+- 共通の機能核を表す表示部品は、`ChannelTile` のように短い機能名を優先し、遷移・選択・編集などの操作差分は `ChannelNavigationTile`、`ChannelSelectionTile` のように別 wrapper で表す。
+- 同じ役割を持つ型は、画面をまたいでも同じ語を使う。逆に、同じ語を使う型は機能上の中心責務が一致している状態を保つ。
 
 ## テスト配置
 

@@ -11,7 +11,7 @@ struct KeywordSearchResultsView: View {
     @State private var isChipVisible = true
 
     var body: some View {
-        InteractiveListScreen(
+        InteractiveListView(
             title: "検索結果",
             subtitle: "「\(keyword)」に一致する動画を新しい順に20件表示",
             coordinator: coordinator,

@@ -13,7 +13,7 @@ struct RemoteKeywordSearchResultsCompactView: View {
     let normalizedChannelTitle: (CachedVideo) -> String?
 
     var body: some View {
-        InteractiveListScreen(
+        InteractiveListView(
             title: "YouTube検索",
             subtitle: "下に引っ張ると「\(keyword)」を YouTube で検索し、履歴を順次マージして表示",
             coordinator: coordinator,
@@ -86,7 +86,7 @@ struct RemoteKeywordSearchResultsRegularView: View {
 
     var body: some View {
         NavigationSplitView {
-            InteractiveListScreen(
+            InteractiveListView(
                 title: "YouTube検索",
                 subtitle: "下に引っ張ると「\(keyword)」を YouTube で検索し、履歴を順次マージして表示",
                 coordinator: coordinator,
@@ -136,7 +136,7 @@ struct RemoteKeywordSearchResultsRegularView: View {
                 }
             }
         } detail: {
-            RemoteKeywordSearchResultsSplitDetailPane(
+            RemoteKeywordSearchResultsSplitDetailView(
                 coordinator: coordinator,
                 openVideo: openVideo,
                 layout: layout,
@@ -152,7 +152,7 @@ struct RemoteKeywordSearchResultsRegularView: View {
     }
 }
 
-struct RemoteKeywordSearchResultsSplitDetailPane: View {
+struct RemoteKeywordSearchResultsSplitDetailView: View {
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
     let layout: AppLayout

@@ -41,7 +41,7 @@ struct ContentView: View {
                         .navigationDestination(for: MaintenanceRoute.self) { route in
                             switch route {
                             case let .channelList(sortDescriptor):
-                                ChannelBrowseListView(
+                                ChannelBrowseView(
                                     coordinator: coordinator,
                                     openVideo: openVideo,
                                     path: $navigationPath,

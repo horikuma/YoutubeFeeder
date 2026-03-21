@@ -23,14 +23,14 @@ classDiagram
     class ContentView
     class AppLayout
     class FeedCacheCoordinator
-    class ChannelBrowseListView["ChannelBrowseListView<br/>[Adaptive UI]"]
+    class ChannelBrowseView["ChannelBrowseView<br/>[Adaptive UI]"]
     class ChannelVideosView
     class AllVideosView
     class KeywordSearchResultsView
     class RemoteKeywordSearchResultsView["RemoteKeywordSearchResultsView<br/>[Adaptive UI]"]
     class RemoteSearchResultsContentViews["RemoteSearchResultsContentViews<br/>compact / regular / split detail"]
-    class InteractiveListScreen
-    class ChannelSummaryTile["ChannelSummaryTile<br/>[Shared UI Core]"]
+    class InteractiveListView
+    class ChannelTile["ChannelTile<br/>[Shared UI Core]"]
     class VideoTile
     class FeedCacheStore
     class ChannelRegistryMaintenanceService
@@ -46,27 +46,27 @@ classDiagram
 
     ContentView --> AppLayout : computes
     ContentView --> FeedCacheCoordinator : owns
-    ContentView --> ChannelBrowseListView
+    ContentView --> ChannelBrowseView
     ContentView --> AllVideosView
     ContentView --> KeywordSearchResultsView
     ContentView --> RemoteKeywordSearchResultsView
 
-    ChannelBrowseListView --> FeedCacheCoordinator
+    ChannelBrowseView --> FeedCacheCoordinator
     ChannelVideosView --> FeedCacheCoordinator
     AllVideosView --> FeedCacheCoordinator
     KeywordSearchResultsView --> FeedCacheCoordinator
     RemoteKeywordSearchResultsView --> FeedCacheCoordinator
 
-    ChannelBrowseListView --> InteractiveListScreen
-    RemoteKeywordSearchResultsView --> InteractiveListScreen
+    ChannelBrowseView --> InteractiveListView
+    RemoteKeywordSearchResultsView --> InteractiveListView
     RemoteKeywordSearchResultsView --> RemoteSearchResultsContentViews
-    AllVideosView --> InteractiveListScreen
-    KeywordSearchResultsView --> InteractiveListScreen
+    AllVideosView --> InteractiveListView
+    KeywordSearchResultsView --> InteractiveListView
     ChannelVideosView --> VideoTile
     AllVideosView --> VideoTile
     KeywordSearchResultsView --> VideoTile
     RemoteKeywordSearchResultsView --> VideoTile
-    ChannelBrowseListView --> ChannelSummaryTile
+    ChannelBrowseView --> ChannelTile
 
     FeedCacheCoordinator --> FeedCacheStore
     FeedCacheCoordinator --> ChannelRegistryMaintenanceService
@@ -90,7 +90,7 @@ classDiagram
 sequenceDiagram
     actor User
     participant Home as HomeScreenView
-    participant Browse as ChannelBrowseListView
+    participant Browse as ChannelBrowseView
     participant Coord as FeedCacheCoordinator
     participant Store as FeedCacheStore
 

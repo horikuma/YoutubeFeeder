@@ -16,7 +16,7 @@ struct ChannelVideosView: View {
     @State private var removalFeedback: ChannelRemovalFeedback?
 
     var body: some View {
-        InteractiveListScreen(
+        InteractiveListView(
             title: channelTitle,
             subtitle: "このチャンネルの動画を新しい順に最大50件表示",
             coordinator: coordinator,

@@ -32,6 +32,7 @@
 - 依存方向は `View -> Coordinator / ViewModel -> Service / Use Case -> Store or Infrastructure` を原則とする。
 - `View` は I/O を直接持たず、外部通信、永続化、複雑な判定は内側の層へ委譲する。
 - `View` は一時的な UI 状態、アニメーション状態、選択状態、ダイアログ状態を持ってよく、MVVM を理由にそれらを機械的に `ViewModel` へ押し上げてはならない。
+- `View` や表示部品の命名では、機能を先に、操作差分を後ろに置き、共通核と wrapper の関係が名前から読める状態を保つ。
 - `Coordinator / ViewModel` は UI と永続化の仲介を担うが、ファイル形式や API 呼び出しの細部を抱え込まない。
 - `Coordinator / ViewModel` は `1 画面` もしくは `1 機能の orchestration` に責務を寄せ、画面描画専用の細かな値変換や単純な表示状態まで過剰に抱え込まない。
 - `Coordinator / ViewModel` の健全性改善では、警告を消すためだけに private 状態や内部 helper を外へ公開せず、まず値型、表示部品、DTO、純粋補助ロジックの順に外出しする。

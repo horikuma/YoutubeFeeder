@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct InteractiveListScreen<Content: View>: View {
+struct InteractiveListView<Content: View>: View {
     let title: String
     let subtitle: String
     let coordinator: FeedCacheCoordinator
@@ -177,7 +177,7 @@ private enum ChannelSummaryTileAppearance {
     }
 }
 
-fileprivate struct ChannelSummaryTile: View {
+fileprivate struct ChannelTile: View {
     let item: ChannelBrowseItem
     let appearance: ChannelSummaryTileAppearance
     let index: Int?
@@ -246,7 +246,7 @@ struct ChannelNavigationTile: View {
     let index: Int?
 
     var body: some View {
-        ChannelSummaryTile(item: item, appearance: .navigation, index: index)
+        ChannelTile(item: item, appearance: .navigation, index: index)
     }
 }
 
@@ -256,7 +256,7 @@ struct ChannelSelectionTile: View {
     let index: Int?
 
     var body: some View {
-        ChannelSummaryTile(
+        ChannelTile(
             item: item,
             appearance: isSelected ? .selected : .unselected,
             index: index

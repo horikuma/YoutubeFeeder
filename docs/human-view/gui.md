@@ -10,7 +10,7 @@
 flowchart TD
     A["A 起動\nLaunchScreenView"] --> B["B ホーム\nHomeScreenView"]
     B --> C["C チャンネル登録\nChannelRegistrationView"]
-    B --> D["D チャンネル一覧\nChannelBrowseListView"]
+    B --> D["D チャンネル一覧\nChannelBrowseView"]
     B --> E["E 動画一覧\nAllVideosView"]
     B --> F["F 固定キーワード検索結果\nKeywordSearchResultsView"]
     B --> G["G YouTube検索結果\nRemoteKeywordSearchResultsView"]
@@ -94,15 +94,15 @@ flowchart TD
 ### 画面D. チャンネル一覧画面
 
 - 画面名: `チャンネル一覧画面`
-- 実装: `ChannelBrowseListView`
+- 実装: `ChannelBrowseView`
 - 主な GUI パーツ:
 
 | 指示用の呼び名 | 実装/識別子 | 役割 |
 | --- | --- | --- |
-| タイトル | `InteractiveListScreen` の `title` | `チャンネル一覧` |
+| タイトル | `InteractiveListView` の `title` | `チャンネル一覧` |
 | サブタイトル | `sortDescriptor.listSubtitle` | 現在の並び順説明 |
 | Tips タイル | `ChannelBrowseTipsTile` | 件数、並び順、基本操作 |
-| チャンネルタイル | `ChannelSummaryTile` / `channel.tile.<channelID>` | チャンネル名、件数、最新投稿日、サムネイルを表す共通タイル |
+| チャンネルタイル | `ChannelTile` / `channel.tile.<channelID>` | チャンネル名、件数、最新投稿日、サムネイルを表す共通タイル |
 | 削除確認ダイアログ | `confirmationDialog` | `チャンネルを削除` を確認 |
 | 削除結果アラート | `alert` | 削除結果を表示 |
 
@@ -146,8 +146,8 @@ flowchart TD
 
 | 指示用の呼び名 | 実装/識別子 | 役割 |
 | --- | --- | --- |
-| タイトル | `InteractiveListScreen` の `title` | `動画一覧` |
-| サブタイトル | `InteractiveListScreen` の `subtitle` | 一覧の説明文 |
+| タイトル | `InteractiveListView` の `title` | `動画一覧` |
+| サブタイトル | `InteractiveListView` の `subtitle` | 一覧の説明文 |
 | 動画タイル | `VideoTile` | 全動画一覧項目 |
 | 空状態タイル | `MetricTile` | 動画が無い時の案内 |
 | 削除確認ダイアログ | `confirmationDialog` | チャンネル削除の確認 |
@@ -168,8 +168,8 @@ flowchart TD
 
 | 指示用の呼び名 | 実装/識別子 | 役割 |
 | --- | --- | --- |
-| タイトル | `InteractiveListScreen` の `title` | `検索結果` |
-| サブタイトル | `InteractiveListScreen` の `subtitle` | 一覧の説明文 |
+| タイトル | `InteractiveListView` の `title` | `検索結果` |
+| サブタイトル | `InteractiveListView` の `subtitle` | 一覧の説明文 |
 | 動画タイル | `VideoTile` | 検索ヒットした動画 |
 | チップ | `SearchResultCountChip` / `search.resultChip` | 件数、更新時刻、検索元表示 |
 | 空状態タイル | `MetricTile` | 動画が無い時の案内 |
@@ -190,8 +190,8 @@ flowchart TD
 
 | 指示用の呼び名 | 実装/識別子 | 役割 |
 | --- | --- | --- |
-| タイトル | `InteractiveListScreen` の `title` | `YouTube検索` |
-| サブタイトル | `InteractiveListScreen` の `subtitle` | 一覧の説明文 |
+| タイトル | `InteractiveListView` の `title` | `YouTube検索` |
+| サブタイトル | `InteractiveListView` の `subtitle` | 一覧の説明文 |
 | 動画タイル | `VideoTile` | API/キャッシュ検索結果 |
 | チップ | `SearchResultCountChip` / `search.resultChip` | 件数、更新時刻、検索元表示 |
 | 履歴クリアボタン | `ToolbarItem` の `Button("クリア")` | 検索履歴をクリア |

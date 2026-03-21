@@ -1,4 +1,8 @@
 ## 2026/03/21
+- Browse 命名は、`ChannelBrowseView` のように機能語を主語にし、`InteractiveListView` のように SwiftUI 型は原則 `View` で終える方針にそろえた。
+  - `ChannelBrowseListView` のように一部だけ `ListView` を含む名前や、`InteractiveListScreen` のように `View` で終わらない型名が混じると、機能責務と容器責務の読み分けがぶれやすいため。
+- チャンネルタイルの共通核は `ChannelTile` へ戻し、遷移や選択の差分だけを `ChannelNavigationTile`、`ChannelSelectionTile` へ残す方針に改めた。
+  - 機能的に共通な中心語は短く保ちたい一方で、操作差分まで同じ名前へ押し込むと責務がぼやけるため。`ChannelTile` を核にし、差分 wrapper だけを長めの操作語で表す構成が最も読みやすい。
 - チャンネル一覧のタイルは、機能共通の表示核を `ChannelSummaryTile` として切り出し、遷移用と選択用の操作差分は別 wrapper へ分ける方針にした。
   - `ChannelNavigationTile` と `ChannelSelectionTile` だけを見ると、どちらも「チャンネルを表すタイル」であることが読み取りづらいため。Human-View では機能共通核だけを `ChannelSummaryTile [Shared UI Core]` として見せ、操作差分は図から省略する。
 - YouTube 検索 split 詳細のチャンネル切替では、タイトル更新、古い動画タイルの退避、右ペイン読込開始を親 View で一括管理する方針にした。

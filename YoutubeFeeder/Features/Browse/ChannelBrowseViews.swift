@@ -8,7 +8,7 @@ struct PendingChannelRemoval: Identifiable, Hashable {
     var id: String { channelID }
 }
 
-struct ChannelBrowseListView: View {
+struct ChannelBrowseView: View {
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
@@ -22,7 +22,7 @@ struct ChannelBrowseListView: View {
     var body: some View {
         Group {
             if layout.usesSplitChannelBrowser {
-                ChannelBrowseListRegularView(
+                ChannelBrowseRegularView(
                     coordinator: coordinator,
                     openVideo: openVideo,
                     path: $path,
@@ -32,7 +32,7 @@ struct ChannelBrowseListView: View {
                     onRequestRemoval: requestRemoval
                 )
             } else {
-                ChannelBrowseListCompactView(
+                ChannelBrowseCompactView(
                     coordinator: coordinator,
                     layout: layout,
                     path: $path,
@@ -112,7 +112,7 @@ struct ChannelBrowseListView: View {
     }
 }
 
-private struct ChannelBrowseListCompactView: View {
+private struct ChannelBrowseCompactView: View {
     let coordinator: FeedCacheCoordinator
     let layout: AppLayout
     @Binding var path: NavigationPath
@@ -122,7 +122,7 @@ private struct ChannelBrowseListCompactView: View {
     let onRequestRemoval: (ChannelBrowseItem) -> Void
 
     var body: some View {
-        InteractiveListScreen(
+        InteractiveListView(
             title: "チャンネル一覧",
             subtitle: sortDescriptor.listSubtitle,
             coordinator: coordinator,
@@ -163,7 +163,7 @@ private struct ChannelBrowseListCompactView: View {
     }
 }
 
-private struct ChannelBrowseListRegularView: View {
+private struct ChannelBrowseRegularView: View {
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
@@ -380,7 +380,7 @@ struct AllVideosView: View {
     @State private var removalFeedback: ChannelRemovalFeedback?
 
     var body: some View {
-        InteractiveListScreen(
+        InteractiveListView(
             title: "動画一覧",
             subtitle: "キャッシュ済み動画を新しい順に最大50件表示",
             coordinator: coordinator,
