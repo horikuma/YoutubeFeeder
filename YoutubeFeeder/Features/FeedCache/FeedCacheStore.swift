@@ -405,6 +405,7 @@ actor FeedCacheStore {
         database.close()
         FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager)
         removeDatabaseFiles()
+        removeLegacyRuntimeFiles()
         try? fileManager.removeItem(at: bootstrapFileURL)
         try? fileManager.removeItem(at: thumbnailsDirectory)
 
@@ -467,6 +468,21 @@ actor FeedCacheStore {
             URL(fileURLWithPath: databaseURL.path + "-wal"),
         ]
         urls.forEach { try? fileManager.removeItem(at: $0) }
+    }
+
+    private func removeLegacyRuntimeFiles() {
+        let baseDirectory = FeedCachePaths.baseDirectory(fileManager: fileManager)
+        let legacyURLs = [
+            FeedCachePaths.cacheURL(fileManager: fileManager),
+            FeedCachePaths.cacheSummaryURL(fileManager: fileManager),
+            FeedCachePaths.channelRegistryURL(fileManager: fileManager),
+        ]
+        legacyURLs.forEach { try? fileManager.removeItem(at: $0) }
+
+        let filenames = (try? fileManager.contentsOfDirectory(atPath: baseDirectory.path)) ?? []
+        for filename in filenames where filename.hasPrefix("remote-search") && (filename.hasSuffix(".json") || filename.hasSuffix(".plist")) {
+            try? fileManager.removeItem(at: baseDirectory.appendingPathComponent(filename))
+        }
     }
 
     private func sortComparator(_ order: VideoSortOrder) -> (CachedVideo, CachedVideo) -> Bool {

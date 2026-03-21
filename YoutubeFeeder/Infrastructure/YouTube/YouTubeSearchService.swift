@@ -50,6 +50,55 @@ struct YouTubeSearchService {
         }
     }
 
+    func searchChannelVideos(channelID: String, limit: Int = 50) async throws -> YouTubeSearchResponse {
+        let logger = AppConsoleLogger.youtubeSearch
+        let startedAt = Date()
+        var stage = "prepare"
+
+        do {
+            if AppLaunchMode.current.usesMockData {
+                stage = "mock_response"
+                let response = mockChannelSearchResponse(channelID: channelID, limit: limit)
+                logger.notice(
+                    "channel_request_complete",
+                    metadata: [
+                        "channelID": channelID,
+                        "videos": String(response.videos.count),
+                        "source": "mock",
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    ]
+                )
+                return response
+            }
+
+            let apiKey = try resolveAPIKey(keywordPreview: channelID, logger: logger)
+            stage = "channel_candidates"
+            let videoIDs = try await searchChannelVideoIDs(
+                channelID: channelID,
+                apiKey: apiKey,
+                maxResults: min(limit, 50)
+            )
+            stage = "video_details"
+            let detailedVideos = try await fetchVideoDetails(videoIDs: videoIDs, apiKey: apiKey)
+            stage = "merge_details"
+            let videos = Self.mergeDetailedVideos(detailedVideos, preferredOrder: videoIDs)
+            let response = YouTubeSearchResponse(videos: videos, totalCount: videos.count, fetchedAt: .now)
+            logger.notice(
+                "channel_request_complete",
+                metadata: [
+                    "channelID": channelID,
+                    "videos": String(videos.count),
+                    "selected_ids": String(videoIDs.count),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
+            return response
+        } catch {
+            handleSearchFailure(error, keywordPreview: channelID, stage: stage, startedAt: startedAt, logger: logger)
+            throw error
+        }
+    }
+
     private func logRequestStart(keywordPreview: String, limit: Int, logger: AppConsoleLogger) {
         logger.info(
             "request_start",
@@ -218,6 +267,58 @@ struct YouTubeSearchService {
             ]
         )
         return candidates
+    }
+
+    private func searchChannelVideoIDs(
+        channelID: String,
+        apiKey: String,
+        maxResults: Int
+    ) async throws -> [String] {
+        let logger = AppConsoleLogger.youtubeSearch
+        let startedAt = Date()
+        var components = URLComponents(string: "https://www.googleapis.com/youtube/v3/search")
+        components?.queryItems = [
+            URLQueryItem(name: "part", value: "snippet"),
+            URLQueryItem(name: "channelId", value: channelID),
+            URLQueryItem(name: "type", value: "video"),
+            URLQueryItem(name: "order", value: "date"),
+            URLQueryItem(name: "videoEmbeddable", value: "true"),
+            URLQueryItem(name: "maxResults", value: String(maxResults)),
+        ]
+
+        guard let url = components?.url else {
+            throw YouTubeSearchError.invalidResponse
+        }
+
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+        request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
+
+        logger.debug(
+            "channel_candidate_request_start",
+            metadata: ["channelID": channelID, "max_results": String(maxResults)]
+        )
+
+        let data = try await loadData(
+            for: request,
+            endpoint: "search",
+            metadata: ["channelID": channelID, "max_results": String(maxResults)]
+        )
+        let response = try decodeResponse(
+            SearchListResponse.self,
+            from: data,
+            endpoint: "search",
+            metadata: ["channelID": channelID]
+        )
+        let ids = response.items.compactMap(\.id.videoID)
+        logger.debug(
+            "channel_candidate_request_complete",
+            metadata: [
+                "channelID": channelID,
+                "items": String(ids.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            ]
+        )
+        return ids
     }
 
     private func fetchVideoDetails(videoIDs: [String], apiKey: String) async throws -> [YouTubeSearchVideo] {

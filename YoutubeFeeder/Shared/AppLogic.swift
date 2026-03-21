@@ -148,7 +148,8 @@ struct RemoteSearchPresentationState: Hashable {
             channelID: firstVideo.channelID,
             preferredChannelTitle: normalizedChannelTitle(for: firstVideo),
             selectedVideoID: firstVideo.id,
-            prefersAutomaticRefresh: true
+            prefersAutomaticRefresh: true,
+            routeSource: .remoteSearch
         )
     }
 
@@ -242,8 +243,16 @@ enum FeedOrdering {
 }
 
 enum ChannelVideosAutoRefreshPolicy {
-    static func shouldRefresh(cachedChannelVideos: [CachedVideo], selectedVideoID: String?) -> Bool {
+    static func shouldRefresh(
+        cachedChannelVideos: [CachedVideo],
+        selectedVideoID: String?,
+        routeSource: ChannelVideosRouteSource
+    ) -> Bool {
         if cachedChannelVideos.isEmpty {
+            return true
+        }
+
+        if routeSource == .remoteSearch, cachedChannelVideos.count <= 1 {
             return true
         }
 

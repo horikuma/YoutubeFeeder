@@ -6,7 +6,8 @@ final class ChannelVideosAutoRefreshPolicyTests: LoggedTestCase {
         XCTAssertTrue(
             ChannelVideosAutoRefreshPolicy.shouldRefresh(
                 cachedChannelVideos: [],
-                selectedVideoID: "video-1"
+                selectedVideoID: "video-1",
+                routeSource: .channelBrowse
             )
         )
     }
@@ -15,7 +16,8 @@ final class ChannelVideosAutoRefreshPolicyTests: LoggedTestCase {
         XCTAssertTrue(
             ChannelVideosAutoRefreshPolicy.shouldRefresh(
                 cachedChannelVideos: [makeVideo(id: "video-1")],
-                selectedVideoID: "video-2"
+                selectedVideoID: "video-2",
+                routeSource: .channelBrowse
             )
         )
     }
@@ -24,7 +26,18 @@ final class ChannelVideosAutoRefreshPolicyTests: LoggedTestCase {
         XCTAssertFalse(
             ChannelVideosAutoRefreshPolicy.shouldRefresh(
                 cachedChannelVideos: [makeVideo(id: "video-1")],
-                selectedVideoID: "video-1"
+                selectedVideoID: "video-1",
+                routeSource: .channelBrowse
+            )
+        )
+    }
+
+    func testRemoteSearchRequiresRefreshWhenOnlyOneCachedVideoExists() {
+        XCTAssertTrue(
+            ChannelVideosAutoRefreshPolicy.shouldRefresh(
+                cachedChannelVideos: [makeVideo(id: "video-1")],
+                selectedVideoID: "video-1",
+                routeSource: .remoteSearch
             )
         )
     }

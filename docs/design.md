@@ -90,6 +90,7 @@
   - YouTube 検索結果の compact / regular / split detail の表示責務。
   - regular 左ペインと split detail の描画到達点を render probe で観測する。
   - split 詳細の表示本体は持つが、チャンネル切替に伴う状態遷移や読込開始は親 View へ委譲する。
+  - remote search 起点でチャンネル一覧へ遷移する時は、`ChannelVideosRouteContext.routeSource = .remoteSearch` を必ず引き継ぐ。
 - [BrowseViews.swift](../YoutubeFeeder/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - 自動 feed 更新時の上部進行表示。
@@ -106,6 +107,7 @@
   - YouTube 検索の snapshot hit / miss、refresh failure fallback、cancel fallback の境界ログ。
   - YouTube 検索の managed task の生成、再利用管理。
   - feed cache と検索 cache の動画を合流する際は、`video_id` 重複で落とさず、より新しい `publishedAt` / `fetchedAt` を優先して 1 件へ正規化する。
+  - remote search 起点のチャンネル動画表示では、feed refresh 後も動画が `1 件以下` の場合に限って YouTube Data API の channel search fallback を実行し、右ペインが単一動画で止まらないようにする。
 - [FeedChannelSyncService.swift](../YoutubeFeeder/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、更新判定、store 反映を束ねる更新実行サービス。
 - [ChannelRegistryMaintenanceService.swift](../YoutubeFeeder/Features/FeedCache/ChannelRegistryMaintenanceService.swift)
@@ -115,9 +117,11 @@
   - ホーム表示に必要な件数・更新時刻・thumbnail 合計サイズの集約窓口。
   - 動画・チャンネルの正本は `SQLite` に保存し、表示用文字列も同一更新点で生成して row に保持する。
   - 全設定リセットでは `SQLite` 正本を table 単位で空にするだけでなく、database file / `-wal` / `-shm` も削除して完全再初期化する。
+  - 全設定リセットでは、旧 runtime が使っていた `cache.json`、`cache-summary.plist`、`channel-registry.json`、`remote-search*.json`、`remote-search*.plist` も同時に削除し、reset 後に古い file が再注入されないようにする。
 - [FeedCacheSQLiteDatabase.swift](../YoutubeFeeder/Features/FeedCache/FeedCacheSQLiteDatabase.swift)
   - 動画、チャンネル、検索履歴、登録チャンネルをまとめて保持する `SQLite` 永続層。
-  - 旧 `JSON` 永続物からの移行と、検索結果のチャンネル別集約問い合わせを担う。
+  - 検索結果のチャンネル別集約問い合わせを担う。
+  - runtime では旧 `JSON` 永続物の migration を持たず、正本は `SQLite` のみを扱う。
 - [RemoteVideoSearchCacheStore.swift](../YoutubeFeeder/Features/FeedCache/RemoteVideoSearchCacheStore.swift)
   - YouTube 検索結果キャッシュの保存、鮮度判定、履歴クリア。
   - チャンネル別の動画集約では `SQLite` 上の検索結果履歴全体を `channel_id` で問い合わせ、既定キーワード分も merge 対象へ含める。
@@ -125,6 +129,7 @@
 - [RemoteVideoSearchService.swift](../YoutubeFeeder/Features/FeedCache/RemoteVideoSearchService.swift)
   - YouTube 検索の再取得、TTL 判定、検索キャッシュ統合。
   - 検索キャッシュ反映完了と remote refresh cancellation のログ。
+  - channelID 単位の動画一覧 fallback 取得と、その結果の検索キャッシュ保存。
 - [HomeSystemStatusService.swift](../YoutubeFeeder/Features/FeedCache/HomeSystemStatusService.swift)
   - ホーム画面へ出すシステム状況の集約。
   - summary を優先し、必要時だけ本体 snapshot を読む。
@@ -177,8 +182,10 @@
 
 - `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面局所の UI 状態は `SearchResultsViews.swift` / `RemoteSearchResultsViews.swift` と `RemoteSearchPresentationState` に閉じ込める。
 - `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択を pure logic として持つ。
+- `RemoteSearchPresentationState` の split 初期選択は `routeSource = .remoteSearch` を含む `ChannelVideosRouteContext` を返し、後続の自動 refresh / fallback 判定へ文脈を引き渡す。
 - YouTube 検索 split 右ペインのチャンネル動画一覧は、初回 20 件を表示し、末尾到達で 20 件ずつ継ぎ足して全件表示する。
 - YouTube 検索 split 詳細の `channel title` と動画タイルは、選択変更時に同じ state transition で切り替わるようにし、片方だけ先に更新される状態を残してはならない。
+- YouTube 検索 split 右ペインで feed refresh 後も `1 件以下` に留まる時は、検索結果由来のチャンネルであるとみなし、channel-specific API fallback の取得結果を追加して一覧を復元する。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListView` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
 - チャンネル一覧のタイルでは、`channel title`、件数、最新投稿日、サムネイルの表示責務を `ChannelTile` へ集約し、遷移か選択かという操作モデルの差は外側の wrapper で表現する。

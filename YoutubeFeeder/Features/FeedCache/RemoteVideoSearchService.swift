@@ -111,6 +111,18 @@ struct RemoteVideoSearchService {
         }
     }
 
+    func refreshChannelVideos(channelID: String, limit: Int = 50) async throws -> [CachedVideo] {
+        let response = try await searchService.searchChannelVideos(channelID: channelID, limit: limit)
+        let cachedVideos = cachedVideos(from: response)
+        await cacheStore.save(
+            keyword: channelCacheKeyword(channelID: channelID),
+            videos: cachedVideos,
+            totalCount: cachedVideos.count,
+            fetchedAt: response.fetchedAt
+        )
+        return cachedVideos
+    }
+
     func clear(keyword: String) async {
         await cacheStore.clear(keyword: keyword)
     }
@@ -125,5 +137,9 @@ struct RemoteVideoSearchService {
 
     func clearAll() async -> Int {
         await cacheStore.clearAll()
+    }
+
+    private func channelCacheKeyword(channelID: String) -> String {
+        "channel-videos-\(channelID)"
     }
 }

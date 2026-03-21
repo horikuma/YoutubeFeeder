@@ -35,7 +35,8 @@ struct KeywordSearchResultsView: View {
                                         ChannelVideosRouteContext(
                                             channelID: video.channelID,
                                             preferredChannelTitle: normalizedChannelTitle(for: video),
-                                            selectedVideoID: video.id
+                                            selectedVideoID: video.id,
+                                            routeSource: .localSearch
                                         )
                                     )
                                 )

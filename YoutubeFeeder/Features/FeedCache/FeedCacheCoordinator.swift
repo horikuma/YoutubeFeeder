@@ -267,6 +267,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
         await refreshChannelManually(channelID)
         mergedVideos = await loadVideosForChannel(channelID)
+        mergedVideos = await loadRemoteSearchChannelFallbackIfNeeded(context: context, currentVideos: mergedVideos)
         AppConsoleLogger.appLifecycle.notice(
             "channel_videos_open_complete",
             metadata: [
@@ -287,7 +288,8 @@ final class FeedCacheCoordinator: ObservableObject {
         let cachedVideos = await loadCachedVideosForChannel(channelID)
         return ChannelVideosAutoRefreshPolicy.shouldRefresh(
             cachedChannelVideos: cachedVideos,
-            selectedVideoID: context.selectedVideoID
+            selectedVideoID: context.selectedVideoID,
+            routeSource: context.routeSource
         )
     }
 
@@ -989,6 +991,48 @@ final class FeedCacheCoordinator: ObservableObject {
             return rhs
         default:
             return lhs.fetchedAt >= rhs.fetchedAt ? lhs : rhs
+        }
+    }
+
+    private func loadRemoteSearchChannelFallbackIfNeeded(
+        context: ChannelVideosRouteContext,
+        currentVideos: [CachedVideo]
+    ) async -> [CachedVideo] {
+        guard context.routeSource == .remoteSearch else { return currentVideos }
+        guard currentVideos.count <= 1 else { return currentVideos }
+        guard remoteSearchService.isConfigured else { return currentVideos }
+
+        let startedAt = Date()
+        AppConsoleLogger.youtubeSearch.info(
+            "channel_fallback_start",
+            metadata: [
+                "channelID": context.channelID,
+                "existing_videos": String(currentVideos.count),
+            ]
+        )
+
+        do {
+            _ = try await remoteSearchService.refreshChannelVideos(channelID: context.channelID, limit: 50)
+            let reloadedVideos = await loadVideosForChannel(context.channelID)
+            AppConsoleLogger.youtubeSearch.notice(
+                "channel_fallback_complete",
+                metadata: [
+                    "channelID": context.channelID,
+                    "videos": String(reloadedVideos.count),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
+            return reloadedVideos
+        } catch {
+            AppConsoleLogger.youtubeSearch.error(
+                "channel_fallback_failed",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: [
+                    "channelID": context.channelID,
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
+            return currentVideos
         }
     }
 

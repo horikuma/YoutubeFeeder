@@ -56,7 +56,8 @@ final class ChannelBrowseTipsSummaryTests: LoggedTestCase {
             channelID: "UC_KEEP",
             preferredChannelTitle: "Keep Channel",
             selectedVideoID: "keep-1",
-            prefersAutomaticRefresh: true
+            prefersAutomaticRefresh: true,
+            routeSource: .remoteSearch
         )
         let result = VideoSearchResult(
             keyword: "swift",
@@ -102,7 +103,8 @@ final class ChannelBrowseTipsSummaryTests: LoggedTestCase {
                 channelID: "UC_FIRST",
                 preferredChannelTitle: "First Channel",
                 selectedVideoID: "first-1",
-                prefersAutomaticRefresh: true
+                prefersAutomaticRefresh: true,
+                routeSource: .remoteSearch
             )
         )
     }

@@ -98,4 +98,25 @@ extension YouTubeSearchService {
             fetchedAt: .now
         )
     }
+
+    func mockChannelSearchResponse(channelID: String, limit: Int) -> YouTubeSearchResponse {
+        let videos = (1 ... 15).map { index in
+            YouTubeSearchVideo(
+                id: "mock-channel-\(channelID)-\(index)",
+                channelID: channelID,
+                channelTitle: "Channel \(channelID)",
+                title: "Channel video \(index)",
+                publishedAt: .now.addingTimeInterval(TimeInterval(-index * 600)),
+                videoURL: URL(string: "https://www.youtube.com/watch?v=mock-channel-\(channelID)-\(index)"),
+                thumbnailURL: URL(string: "https://example.com/mock-channel-\(channelID)-\(index).jpg"),
+                durationSeconds: 1200 + index,
+                viewCount: 1000 + index
+            )
+        }
+        return YouTubeSearchResponse(
+            videos: Array(videos.prefix(limit)),
+            totalCount: min(videos.count, limit),
+            fetchedAt: .now
+        )
+    }
 }

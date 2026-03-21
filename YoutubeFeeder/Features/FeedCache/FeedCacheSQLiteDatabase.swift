@@ -33,7 +33,6 @@ final class FeedCacheSQLiteDatabase {
     private let databaseURL: URL
     private let baseDirectory: URL
     private let queue: DispatchQueue
-    private let legacyDecoder = FeedCachePersistenceCoders.makeDecoder()
     private var database: OpaquePointer?
 
     private init(databaseURL: URL, baseDirectory: URL, fileManager: FileManager) {
@@ -44,7 +43,6 @@ final class FeedCacheSQLiteDatabase {
         queue.sync {
             openIfNeeded()
             createSchema()
-            migrateLegacyStorageIfNeeded()
         }
     }
 
@@ -316,126 +314,6 @@ final class FeedCacheSQLiteDatabase {
             "CREATE INDEX IF NOT EXISTS idx_remote_search_videos_channel_id ON remote_search_videos(channel_id);",
         ]
         statements.forEach { execute($0) }
-    }
-
-    private func migrateLegacyStorageIfNeeded() {
-        guard metadataText(for: "legacy_json_migration") != "done" else { return }
-
-        if scalarInt("SELECT COUNT(*) FROM cached_videos;") == 0,
-           let snapshot = loadLegacyFeedSnapshot() {
-            replaceFeedSnapshotInCurrentQueue(snapshot)
-        }
-
-        if scalarInt("SELECT COUNT(*) FROM remote_search_queries;") == 0 {
-            legacyRemoteSearchEntries().forEach(saveRemoteSearchEntryInCurrentQueue)
-        }
-
-        if scalarInt("SELECT COUNT(*) FROM registered_channels;") == 0,
-           let registrySnapshot = loadLegacyChannelRegistrySnapshot() {
-            replaceRegisteredChannelsInCurrentQueue(registrySnapshot.channels)
-        }
-
-        cleanupLegacyFiles()
-        saveMetadataText("done", for: "legacy_json_migration")
-    }
-
-    private func loadLegacyFeedSnapshot() -> FeedCacheSnapshot? {
-        let url = FeedCachePaths.cacheURL(fileManager: fileManager)
-        guard let data = try? Data(contentsOf: url),
-              let snapshot = try? legacyDecoder.decode(LegacyFeedCacheSnapshot.self, from: data) else {
-            return nil
-        }
-
-        return FeedCacheSnapshot(
-            savedAt: snapshot.savedAt,
-            channels: snapshot.channels.map {
-                CachedChannelState(
-                    channelID: $0.channelID,
-                    channelTitle: $0.channelTitle,
-                    lastAttemptAt: $0.lastAttemptAt,
-                    lastCheckedAt: $0.lastCheckedAt,
-                    lastSuccessAt: $0.lastSuccessAt,
-                    latestPublishedAt: $0.latestPublishedAt,
-                    cachedVideoCount: $0.cachedVideoCount,
-                    lastError: $0.lastError,
-                    etag: $0.etag,
-                    lastModified: $0.lastModified
-                )
-            },
-            videos: snapshot.videos.map {
-                CachedVideo(
-                    id: $0.id,
-                    channelID: $0.channelID,
-                    channelTitle: $0.channelTitle,
-                    title: $0.title,
-                    publishedAt: $0.publishedAt,
-                    videoURL: $0.videoURL,
-                    thumbnailRemoteURL: $0.thumbnailRemoteURL,
-                    thumbnailLocalFilename: $0.thumbnailLocalFilename,
-                    fetchedAt: $0.fetchedAt,
-                    searchableText: $0.searchableText,
-                    durationSeconds: $0.durationSeconds,
-                    viewCount: $0.viewCount
-                )
-            }
-        )
-    }
-
-    private func legacyRemoteSearchEntries() -> [RemoteVideoSearchCacheEntry] {
-        let filenames = ((try? fileManager.contentsOfDirectory(atPath: baseDirectory.path)) ?? []).filter {
-            (($0 == "remote-search.json" || $0.hasPrefix("remote-search-")) && $0.hasSuffix(".json")) && !$0.hasSuffix("-summary.plist")
-        }
-        return filenames.compactMap { filename in
-            let url = baseDirectory.appendingPathComponent(filename)
-            guard let data = try? Data(contentsOf: url),
-                  let entry = try? legacyDecoder.decode(LegacyRemoteVideoSearchCacheEntry.self, from: data) else {
-                return nil
-            }
-            return RemoteVideoSearchCacheEntry(
-                keyword: entry.keyword,
-                videos: entry.videos.map {
-                    CachedVideo(
-                        id: $0.id,
-                        channelID: $0.channelID,
-                        channelTitle: $0.channelTitle,
-                        title: $0.title,
-                        publishedAt: $0.publishedAt,
-                        videoURL: $0.videoURL,
-                        thumbnailRemoteURL: $0.thumbnailRemoteURL,
-                        thumbnailLocalFilename: $0.thumbnailLocalFilename,
-                        fetchedAt: $0.fetchedAt,
-                        searchableText: $0.searchableText,
-                        durationSeconds: $0.durationSeconds,
-                        viewCount: $0.viewCount
-                    )
-                },
-                totalCount: entry.totalCount,
-                fetchedAt: entry.fetchedAt
-            )
-        }
-    }
-
-    private func loadLegacyChannelRegistrySnapshot() -> ChannelRegistrySnapshot? {
-        let url = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
-        guard let data = try? Data(contentsOf: url),
-              let snapshot = try? JSONDecoder().decode(ChannelRegistrySnapshot.self, from: data) else {
-            return nil
-        }
-        return snapshot
-    }
-
-    private func cleanupLegacyFiles() {
-        let legacyURLs = [
-            FeedCachePaths.cacheURL(fileManager: fileManager),
-            FeedCachePaths.cacheSummaryURL(fileManager: fileManager),
-            FeedCachePaths.channelRegistryURL(fileManager: fileManager),
-        ]
-        legacyURLs.forEach { try? fileManager.removeItem(at: $0) }
-
-        let filenames = (try? fileManager.contentsOfDirectory(atPath: baseDirectory.path)) ?? []
-        for filename in filenames where filename.hasPrefix("remote-search") && (filename.hasSuffix(".json") || filename.hasSuffix(".plist")) {
-            try? fileManager.removeItem(at: baseDirectory.appendingPathComponent(filename))
-        }
     }
 
     private func loadCachedChannels() -> [CachedChannelState] {
@@ -783,47 +661,6 @@ final class FeedCacheSQLiteDatabase {
             return lhs.fetchedAt > rhs.fetchedAt
         }
     }
-}
-
-private struct LegacyCachedVideo: Codable {
-    let id: String
-    let channelID: String
-    let channelTitle: String
-    let title: String
-    let publishedAt: Date?
-    let videoURL: URL?
-    let thumbnailRemoteURL: URL?
-    let thumbnailLocalFilename: String?
-    let fetchedAt: Date
-    let searchableText: String
-    let durationSeconds: Int?
-    let viewCount: Int?
-}
-
-private struct LegacyCachedChannelState: Codable {
-    let channelID: String
-    let channelTitle: String?
-    let lastAttemptAt: Date?
-    let lastCheckedAt: Date?
-    let lastSuccessAt: Date?
-    let latestPublishedAt: Date?
-    let cachedVideoCount: Int
-    let lastError: String?
-    let etag: String?
-    let lastModified: String?
-}
-
-private struct LegacyFeedCacheSnapshot: Codable {
-    let savedAt: Date
-    let channels: [LegacyCachedChannelState]
-    let videos: [LegacyCachedVideo]
-}
-
-private struct LegacyRemoteVideoSearchCacheEntry: Codable {
-    let keyword: String
-    let videos: [LegacyCachedVideo]
-    let totalCount: Int
-    let fetchedAt: Date
 }
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)

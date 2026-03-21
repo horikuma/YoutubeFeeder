@@ -1,4 +1,18 @@
 ## 2026/03/21
+### remote search起点のチャンネル動画1件化を修正しlegacy runtimeを撤去する
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- build-for-testing: `5.166s`
+- test-without-building: `151.192s`
+- 検証合計時間: `156.358s`
+- 手修正後の再試行回数: `3`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `411ms`
+- スプラッシュ表示からホーム表示まで: `122ms`
+- 起動からホーム表示まで: `533ms`
+- 起動から bootstrap 読込完了まで: `475ms`
+- 起動からホーム遷移開始まで: `544ms`
+
 ### 重複動画IDクラッシュを防ぎ全設定リセットでSQLiteを完全再初期化する
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

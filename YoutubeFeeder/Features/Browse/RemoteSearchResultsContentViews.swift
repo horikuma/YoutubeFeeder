@@ -47,7 +47,8 @@ struct RemoteKeywordSearchResultsCompactView: View {
                                             channelID: video.channelID,
                                             preferredChannelTitle: normalizedChannelTitle(video),
                                             selectedVideoID: video.id,
-                                            prefersAutomaticRefresh: true
+                                            prefersAutomaticRefresh: true,
+                                            routeSource: .remoteSearch
                                         )
                                     )
                                 )
@@ -124,7 +125,8 @@ struct RemoteKeywordSearchResultsRegularView: View {
                                             channelID: video.channelID,
                                             preferredChannelTitle: normalizedChannelTitle(video),
                                             selectedVideoID: video.id,
-                                            prefersAutomaticRefresh: true
+                                            prefersAutomaticRefresh: true,
+                                            routeSource: .remoteSearch
                                         )
                                     )
                                 },

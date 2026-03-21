@@ -94,6 +94,63 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
         }
     }
 
+    func testOpenChannelVideosUsesChannelFallbackWhenRemoteSearchHasOnlyOneVideo() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let channelID = "UC_REMOTE_FALLBACK"
+        let selectedVideoID = "remote-only-1"
+        let now = ISO8601DateFormatter().date(from: "2026-03-21T03:00:00Z")!
+
+        try await withEnvironment([
+            "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR": temporaryRoot.appendingPathComponent("Cache", isDirectory: true).path,
+            "YOUTUBEFEEDER_UI_TEST_MODE": "1"
+        ]) {
+            let remoteCacheStore = RemoteVideoSearchCacheStore()
+            await remoteCacheStore.save(
+                keyword: "fallback-test",
+                videos: [
+                    CachedVideo(
+                        id: selectedVideoID,
+                        channelID: channelID,
+                        channelTitle: "Remote Channel",
+                        title: "single remote result",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=\(selectedVideoID)"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: nil,
+                        fetchedAt: now,
+                        searchableText: "single remote result",
+                        durationSeconds: 180,
+                        viewCount: 99
+                    )
+                ],
+                totalCount: 1,
+                fetchedAt: now
+            )
+
+            let coordinator = FeedCacheCoordinator(
+                channels: [],
+                dependencies: FeedCacheDependencies.live()
+            )
+
+            let videos = await coordinator.openChannelVideos(
+                ChannelVideosRouteContext(
+                    channelID: channelID,
+                    preferredChannelTitle: "Remote Channel",
+                    selectedVideoID: selectedVideoID,
+                    prefersAutomaticRefresh: true,
+                    routeSource: .remoteSearch
+                )
+            )
+
+            XCTAssertGreaterThan(videos.count, 1)
+            XCTAssertTrue(videos.contains { $0.id == selectedVideoID })
+        }
+    }
+
     func testForceRefreshPersistsRemoteSearchResultToCache() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

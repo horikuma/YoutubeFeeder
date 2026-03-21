@@ -141,6 +141,11 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
             let databaseURL = FeedCachePaths.databaseURL(fileManager: fileManager)
             let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            let legacyCacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+            let legacyCacheSummaryURL = FeedCachePaths.cacheSummaryURL(fileManager: fileManager)
+            let legacyRegistryURL = FeedCachePaths.channelRegistryURL(fileManager: fileManager)
+            let legacySearchURL = FeedCachePaths.remoteSearchCacheURL(keyword: "", fileManager: fileManager)
+            let legacySearchSummaryURL = FeedCachePaths.remoteSearchCacheSummaryURL(keyword: "", fileManager: fileManager)
             try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
             try ChannelRegistryStore.replaceChannels(
                 [
@@ -187,6 +192,11 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
             let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
             database.replaceFeedSnapshot(snapshot)
             try Data("keep".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-1.jpg"), options: .atomic)
+            try Data("legacy-cache".utf8).write(to: legacyCacheURL, options: .atomic)
+            try Data("legacy-summary".utf8).write(to: legacyCacheSummaryURL, options: .atomic)
+            try Data("legacy-registry".utf8).write(to: legacyRegistryURL, options: .atomic)
+            try Data("legacy-search".utf8).write(to: legacySearchURL, options: .atomic)
+            try Data("legacy-search-summary".utf8).write(to: legacySearchSummaryURL, options: .atomic)
 
             let store = FeedCacheStore()
             let reset = await store.resetAllStoredData()
@@ -195,6 +205,11 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
             XCTAssertEqual(reset.removedThumbnailCount, 1)
             XCTAssertFalse(fileManager.fileExists(atPath: databaseURL.path))
             XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.path))
+            XCTAssertFalse(fileManager.fileExists(atPath: legacyCacheURL.path))
+            XCTAssertFalse(fileManager.fileExists(atPath: legacyCacheSummaryURL.path))
+            XCTAssertFalse(fileManager.fileExists(atPath: legacyRegistryURL.path))
+            XCTAssertFalse(fileManager.fileExists(atPath: legacySearchURL.path))
+            XCTAssertFalse(fileManager.fileExists(atPath: legacySearchSummaryURL.path))
             let reloadedSnapshot = await store.loadSnapshot()
             XCTAssertEqual(reloadedSnapshot.videos.count, 0)
             XCTAssertTrue(fileManager.fileExists(atPath: backupURL.path))

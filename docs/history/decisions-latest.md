@@ -1,4 +1,8 @@
 ## 2026/03/21
+- 旧 `JSON` / legacy migration は runtime から撤去し、全設定リセットでは `SQLite` と旧 runtime file の両方を削除して、古い永続状態を再注入しない方針に改めた。
+  - 今回は旧仕様データの互換維持が不要で、reset 後は「古いデータは存在しない」前提でよい。migration や legacy file cleanup を中途半端に残すと、再起動時や別経路で古い file が混ざり、原因追跡が難しくなるため。
+- YouTube検索 split 右ペインで channel 動画が `1 件` に留まる場合は、単なる表示制限ではなく data source 不足とみなし、`routeSource = .remoteSearch` を文脈として channel-specific API fallback を実行する方針にした。
+  - 実ログでは `channel_videos_open_complete videos="1"` の直前に `home_status_load_complete cached_videos="0"` が出ており、feed refresh 後もチャンネル cache が埋まっていなかった。UI の 20 件刻み表示を軽くしても根本解決にならず、remote search 起点に限った追加取得が必要だった。
 - チャンネル動画一覧の merge では、feed cache と検索 cache に同じ `video_id` があっても fatal にせず、より新しい動画を優先して 1 件へ正規化する方針にした。
   - `Dictionary(uniqueKeysWithValues:)` のままだと、同一動画が複数経路へ保存された時点で `Duplicate values for key` でフリーズするため。ローカル正本を守るには、重複を例外ではなく整形対象として扱う必要がある。
 - 全設定リセットでは `SQLite` の table だけでなく database file / `-wal` / `-shm` も削除し、旧永続状態を丸ごと捨てて再初期化する方針にした。
