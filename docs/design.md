@@ -81,10 +81,11 @@
   - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
   - `refreshable` は trigger のみを担い、検索本体は coordinator の managed task へ委譲する。
   - iPad split では初期右ペイン読込を短く遅延させ、遷移直後はプレースホルダを表示する。
+  - iPad split のチャンネル切替では、選択文脈の更新、古い動画タイルの退避、右ペイン再読込の開始を親 View で同時に管理し、タイトルと動画タイルが別チャンネルを指す中間状態を作らない。
   - iPad split の初期右ペイン読込について、予約・開始・完了を runtime diagnostics へ記録する。
 - [RemoteSearchResultsContentViews.swift](../YoutubeFeeder/Features/Browse/RemoteSearchResultsContentViews.swift)
   - YouTube 検索結果の compact / regular / split detail の表示責務。
-  - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
+  - split 詳細の表示本体は持つが、チャンネル切替に伴う状態遷移や読込開始は親 View へ委譲する。
 - [BrowseViews.swift](../YoutubeFeeder/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - 自動 feed 更新時の上部進行表示。
@@ -166,6 +167,7 @@
 
 - `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面局所の UI 状態は `SearchResultsViews.swift` / `RemoteSearchResultsViews.swift` と `RemoteSearchPresentationState` に閉じ込める。
 - `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択を pure logic として持つ。
+- YouTube 検索 split 詳細の `channel title` と動画タイルは、選択変更時に同じ state transition で切り替わるようにし、片方だけ先に更新される状態を残してはならない。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListScreen` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
 

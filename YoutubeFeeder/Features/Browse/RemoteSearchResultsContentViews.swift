@@ -78,6 +78,7 @@ struct RemoteKeywordSearchResultsRegularView: View {
     @Binding var splitContext: ChannelVideosRouteContext?
     @Binding var splitVideos: [CachedVideo]
     let isSplitLoading: Bool
+    let onSelectSplitChannel: (ChannelVideosRouteContext) -> Void
     let onRefresh: () async -> Void
     let onDismissChip: () -> Void
     let onLoadMore: () -> Void
@@ -113,21 +114,14 @@ struct RemoteKeywordSearchResultsRegularView: View {
                                 video: video,
                                 tapAction: {
                                     onDismissChip()
-                                    Task {
-                                        let context = ChannelVideosRouteContext(
+                                    onSelectSplitChannel(
+                                        ChannelVideosRouteContext(
                                             channelID: video.channelID,
                                             preferredChannelTitle: normalizedChannelTitle(video),
                                             selectedVideoID: video.id,
                                             prefersAutomaticRefresh: true
                                         )
-                                        await MainActor.run {
-                                            splitContext = context
-                                        }
-                                        let loadedVideos = await coordinator.openChannelVideos(context)
-                                        await MainActor.run {
-                                            splitVideos = loadedVideos
-                                        }
-                                    }
+                                    )
                                 },
                                 openVideoAction: nil,
                                 removeChannel: nil,

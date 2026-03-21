@@ -1,4 +1,6 @@
 ## 2026/03/21
+- YouTube 検索 split 詳細のチャンネル切替では、タイトル更新、古い動画タイルの退避、右ペイン読込開始を親 View で一括管理する方針にした。
+  - 選択中チャンネル名だけを先に更新し、旧タイルが数秒残る状態は GUI 契約として不自然なため。表示本体側で個別に読み替えるより、選択遷移を 1 箇所へ集約した方が中間状態を抑えやすい。
 - 文書体系では `rules-documents.md` を `rules-document.md` へ改名し、画面設計の共通基準は新しい正本 `rules-design.md` へ切り出す方針にした。
   - 文書名の単数化で参照名を安定させつつ、視覚設計ルールを `rules.md` や `spec.md` へ分散させずに管理したいため。内容は `iPhone` / `iPad` 向けとして `8pt` グリッド、Dynamic Type、Adaptive UI 前提へ調整する。
 - health_barometer 整理後の文書同期では、`design.md` だけでなく `architecture.md` と `human-view/design-overview.md` も同じ責務分割単位へ合わせて更新する方針にした。
