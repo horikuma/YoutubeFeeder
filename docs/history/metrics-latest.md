@@ -1,6 +1,11 @@
 
 
 ## 2026/03/23
+### issue駆動フロー追加とgithub skill拡張
+- 種別: source
+- 計測: `skip`
+- 理由: `tools` / `skills` / `scripts` / `docs` の変更のみのため、アプリ本体の build / test は実施しない
+
 ### issue更新skill追加とissue5詳細化
 - 種別: source
 - 計測: `skip`

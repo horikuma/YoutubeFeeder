@@ -8,7 +8,12 @@
     {
       "name": "issue",
       "path": "issue.sh",
-      "description": "Read or update GitHub issue bodies through PyGithub using GitHub App credentials from local secrets."
+      "description": "Read, comment on, or update GitHub issues through PyGithub using GitHub App credentials from local secrets."
+    },
+    {
+      "name": "pull-request",
+      "path": "pull-request.sh",
+      "description": "Create pull requests through PyGithub using GitHub App credentials from local secrets."
     }
   ]
 }
