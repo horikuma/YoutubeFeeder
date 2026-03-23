@@ -51,3 +51,10 @@ def get_repository(repo_slug: str, config_path: str | None = None, per_page: int
     access_token = integration.get_access_token(installation.id)
     github_client = Github(auth=Auth.Token(access_token.token), per_page=per_page)
     return github_client.get_repo(repo_slug)
+
+
+def ensure_label(repository, name: str, color: str, description: str):
+    try:
+        return repository.get_label(name)
+    except Exception:
+        return repository.create_label(name=name, color=color, description=description)
