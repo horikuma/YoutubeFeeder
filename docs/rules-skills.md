@@ -1,6 +1,6 @@
-# YoutubeFeeder Skills Rules
+# Skills Rules
 
-この文書は、リポジトリ直下の `tools`、`skills`、`scripts` に関する運用ルールを定める正本である。ここでは、各ディレクトリの責務、配置規則、命名規則、更新判断、動作確認の原則を扱う。
+この文書は、このリポジトリ直下の `tools`、`skills`、`scripts` に関する運用ルールを定める正本である。ここでは、各ディレクトリの責務、配置規則、命名規則、更新判断、動作確認の原則を扱う。
 
 上位方針と rules コレクション全体の役割分担は [rules.md](./rules.md)、文書体系と履歴運用は [rules-document.md](./rules-document.md)、開発フローは [rules-process.md](./rules-process.md) を参照する。
 
@@ -20,7 +20,7 @@
 
 ## 配置規則
 
-- `skills` は用途ごとのサブディレクトリで分類し、たとえば GitHub 連携は [../skills/github](../skills/github) のように置く。
+- `skills` は用途ごとのサブディレクトリで分類し、同一用途の実装は同じ配下へ集約する。
 - `skills` のサブディレクトリごとに、公開するコマンド群を集約した `_meta.json` を 1 つだけ置く。
 - `scripts` はリポジトリ直下の入口として置き、対応する skills の呼び出しだけを行う。
 - `scripts` から skills を呼ぶ時は、リポジトリ root 基準またはスクリプト自身の位置から相対解決し、呼び出し先の実体パスをハードコードしすぎない。
@@ -41,9 +41,9 @@
 - `_meta.json` には、そのサブディレクトリ配下で公開する commands を集約し、同一ドメインの skill ごとに分散定義しない。
 - `scripts` は `bash skills/... "$@"` 相当の薄いラッパーに留め、追加の分岐や変換を増やさない。
 - 認証情報や秘密情報は `scripts` や `skills` に埋め込まず、ignore 対象の JSON 設定やリポジトリ外ファイルから受け取る。
-- GitHub App などの認証設定は、shell の `eval` で環境変数を展開せず、ignore 対象の JSON を読み込む実装へ統一する。
+- 外部サービスの認証設定は、shell の `eval` で環境変数を展開せず、ignore 対象の JSON を読み込む実装へ統一する。
 - 仮想環境や依存実行系の吸収が必要な場合は、`skills` 側で処理するか、`scripts` から最小限の形で委譲する。
-- GitHub Projects を扱う skill は、ProjectV2 を前提に GraphQL API のみを使い、classic Projects API やフォールバック経路を持ち込まない。
+- 特定の外部サービスへ接続する skill は、対象サービスの現行 API を前提にし、旧 API や場当たり的なフォールバック経路を持ち込まない。
 - `skills` と `scripts` の利用例や動作確認コマンドは、ワークスペース root から実行できる相対パス基準で記述する。
 - `tools`、`skills`、`scripts` のいずれでも、リポジトリに残す必要のない生成物はコミットしない。
 
