@@ -24,6 +24,8 @@
   - 採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を記述する。
 - [specs-design.md](../specs/specs-design.md)
   - ファイル単位、型単位、テスト単位の責務や構成など、詳細設計を記述する。
+- [specs-environment.md](../specs/specs-environment.md)
+  - ローカル開発に必要なツール、版固定、セットアップ手順、再現性を守る運用を記述する。
 - [rules-design.md](./rules-design.md)
   - 画面設計、余白、文字組み、色の使い方など、視覚設計ルールを記述する。
 
@@ -33,8 +35,6 @@
   - 画面名、GUI パーツ名、画面遷移、指示に使う呼び名を、人間向けの参照資料として整理して記述する。
 - [design-overview.md](../human-view/design-overview.md)
   - クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
-- [development-environment.md](../development-environment.md)
-  - ローカル開発に必要なツール、版固定、セットアップ手順、再現性を守る運用を記述する。
 - [metrics-src.md](../metrics/metrics-src.md)
   - ソース総行数、正本文書行数、health barometer の観測結果、ファイル別の行数概観を、単発または定点スナップショットとして整理する参照資料とする。
 - [metrics-test.md](../metrics/metrics-test.md)
@@ -53,6 +53,7 @@
 - ユーザー操作や画面導線に依存する内容は、原則として [specs-product.md](../specs/specs-product.md) へ置く。
 - 変更しても全体構造が変わらない実装運用の詳細は、主題に応じて [rules-process.md](./rules-process.md) または [specs-product.md](../specs/specs-product.md) へ置く。
 - レイヤ構造、依存方向、データフローの形、責務の原則を規定する内容は、[specs-architecture.md](../specs/specs-architecture.md) へ置く。
+- 開発環境、版固定、ローカル検証手順、再現性の確保方法は、[specs-environment.md](../specs/specs-environment.md) へ置く。
 - 文書の内容が詳細化しすぎた場合は、上位方針を残して詳細を対応する正本文書へ移す。
 
 ## 人間向け参照資料の位置付け
@@ -85,6 +86,7 @@
 - 機能を変更したら [specs-product.md](../specs/specs-product.md) を見直す。
 - 採用アーキテクチャ、責務境界、データフロー、テスト方針を変更したら [specs-architecture.md](../specs/specs-architecture.md) を見直す。
 - ファイル単位や型単位の責務、詳細設計、テストの配置を変更したら [specs-design.md](../specs/specs-design.md) を見直す。
+- 開発環境、版固定、ローカル検証手順を変更したら [specs-environment.md](../specs/specs-environment.md) を見直す。
 - GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui.md](../human-view/gui.md) を見直す。
 - 人間向けの設計図や依存関係の見え方が変わる変更では [design-overview.md](../human-view/design-overview.md) を見直す。
 - 余白、文字組み、色の使い方、視覚的一貫性の基準を変更したら [rules-design.md](./rules-design.md) を見直す。

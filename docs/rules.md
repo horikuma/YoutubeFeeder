@@ -23,6 +23,7 @@
 - 機能追加や画面仕様変更に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて [specs.md](./specs.md)、必要なら [specs-product.md](./specs/specs-product.md)、[specs-architecture.md](./specs/specs-architecture.md)、[specs-design.md](./specs/specs-design.md) を読む。
 - 不具合修正や調査に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて影響範囲に応じて [specs.md](./specs.md)、[specs-product.md](./specs/specs-product.md)、[specs-architecture.md](./specs/specs-architecture.md)、[specs-design.md](./specs/specs-design.md) を読む。
 - 設計整理や責務分割に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて [specs.md](./specs.md)、[specs-architecture.md](./specs/specs-architecture.md)、[specs-design.md](./specs/specs-design.md) を読む。
+- 開発環境、版固定、ローカル検証手順の変更へ着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて [specs.md](./specs.md) と [specs-environment.md](./specs/specs-environment.md) を読む。
 - 文書更新に着手する前は、[rules-document.md](./rules/rules-document.md) を読み、どの文書へ置くべきかの判断基準を確認する。
 - `tools`、`skills`、`scripts` に関わる変更へ着手する前は、[rules-skills.md](./rules/rules-skills.md) を追加で読む。
 - 開発シーケンスの終盤で文書更新へ入る前は、この文書を再読し、役割分担を崩す更新を混ぜていないことを確認する。
