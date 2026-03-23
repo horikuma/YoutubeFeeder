@@ -1,0 +1,9 @@
+{
+  "commands": [
+    {
+      "name": "list-issues",
+      "path": "list-issues.sh",
+      "description": "GitHub App credentials from local secrets to fetch repository issues."
+    }
+  ]
+}
