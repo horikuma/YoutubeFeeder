@@ -119,7 +119,7 @@
 ## Markdown ルール
 
 - Markdown に `mermaid` または `plantuml` を含める場合は、コミット前にローカル環境で構文エラーなく描画できることを確認してから反映する。
-- `mermaid` を含める Markdown を変更した場合は、外部 API ではなく [check_mermaid.mjs](../scripts/check_mermaid.mjs) によるローカル検証を使う。
+- `mermaid` を含める Markdown を変更した場合は、外部 API ではなく [check-mermaid.mjs](../scripts/check-mermaid.mjs) によるローカル検証を使う。
 - Markdown のファイルリンクは、表示テキストをファイル名のみとし、表示上にパスを含めない。
 - Markdown のリンク先自体は、各文書位置から実体ファイルへ辿れる相対パスで維持する。
 
@@ -155,9 +155,9 @@
 - 同じ日付見出しの中では、新しいエントリほど上、古いエントリほど下になるように追加する。
 - 1 つの metrics ブロックと次の見出しの間には、1 行だけ空行を入れる。
 - 各エントリは metrics を実測したコミット単位で追加し、計測値と再試行回数を一貫した形式で残す。
-- `scripts/collect_metrics.sh` の既定出力先は [metrics-latest.md](../history/metrics-latest.md) とし、日中の追記が履歴ファイルへ直接流れ込まないようにする。
-- 最終の全体検証では `scripts/collect_metrics.sh` を正本とし、同スクリプトが [test-metrics.md](../test-metrics.md) も同時更新する前提で運用する。
-- `scripts/collect_test_metrics.sh` は、修正ループ中の logic 1 件 / UI 1 件のような限定確認や、部分集合の計測確認にだけ使う。
+- `scripts/collect-metrics.sh` の既定出力先は [metrics-latest.md](../history/metrics-latest.md) とし、日中の追記が履歴ファイルへ直接流れ込まないようにする。
+- 最終の全体検証では `scripts/collect-metrics.sh` を正本とし、同スクリプトが [test-metrics.md](../test-metrics.md) も同時更新する前提で運用する。
+- `scripts/collect-test-metrics.sh` は、修正ループ中の logic 1 件 / UI 1 件のような限定確認や、部分集合の計測確認にだけ使う。
 - [metrics-log.md](../history/metrics-log.md) は、検証コストや起動性能の履歴を後から参照するための正本として扱う。
 
 ### history/decisions-log.md / history/decisions-latest.md

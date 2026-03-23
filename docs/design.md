@@ -19,7 +19,7 @@
   - Mermaid ローカル検証の CLI 版固定。
 - [package-lock.json](../package-lock.json)
   - Mermaid ローカル検証の npm lock file。
-- [check_mermaid.mjs](../scripts/check_mermaid.mjs)
+- [check-mermaid.mjs](../scripts/check-mermaid.mjs)
   - Markdown から Mermaid ブロックを抽出し、ローカルで SVG 描画して検証する。
 
 ### App
@@ -254,7 +254,7 @@
   - UI テスト用 cache。
 - `YOUTUBEFEEDER_UI_TEST_REMOTE_SEARCH_FIXTURE`
   - `baseline` / `heavy` を切り替え、YouTube検索 split 計測用の重め検索キャッシュを seed できる。
-- [stream_device_runtime_logs.sh](../scripts/stream_device_runtime_logs.sh)
+- [stream-device-runtime-logs.sh](../scripts/stream-device-runtime-logs.sh)
   - 実機ランタイムログの取得。
-- [health_barometer.sh](../scripts/health_barometer.sh)
+- [health-barometer.sh](../scripts/health-barometer.sh)
   - 行数、関数長、型数、`@Published` 数の軽量点検。
