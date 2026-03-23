@@ -3,11 +3,21 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import sys
+from pathlib import Path
 
-from github_app import get_repository
+
+def load_github_app_module():
+    module_path = Path(__file__).with_name("github-app.py")
+    spec = importlib.util.spec_from_file_location("github_app", module_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"Unable to load GitHub App module: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,7 +48,8 @@ def read_body(args: argparse.Namespace) -> str:
 
 def main() -> int:
     args = parse_args()
-    repository = get_repository(args.repo, config_path=args.config)
+    github_app = load_github_app_module()
+    repository = github_app.get_repository(args.repo, config_path=args.config)
     pull_request = repository.create_pull(
         title=args.title,
         body=read_body(args),

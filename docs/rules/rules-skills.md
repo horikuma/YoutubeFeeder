@@ -2,7 +2,7 @@
 
 この文書は、このリポジトリ直下の `tools`、`skills`、`scripts` に関する運用ルールを定める正本である。ここでは、各ディレクトリの責務、配置規則、命名規則、更新判断、動作確認の原則を扱う。
 
-上位方針と rules コレクション全体の役割分担は [rules.md](./rules.md)、文書体系と履歴運用は [rules-document.md](./rules-document.md)、開発フローは [rules-process.md](./rules-process.md) を参照する。
+上位方針と rules コレクション全体の役割分担は [rules.md](../rules.md)、文書体系と履歴運用は [rules-document.md](./rules-document.md)、開発フローは [rules-process.md](./rules-process.md) を参照する。
 
 ## この文書の位置付け
 
@@ -24,6 +24,7 @@
 - `scripts` はリポジトリ直下の入口として置き、対応する skills の呼び出しだけを行う。
 - `scripts` から skills を呼ぶ時は、リポジトリ root 基準またはスクリプト自身の位置から相対解決し、呼び出し先の実体パスをハードコードしすぎない。
 - `skills` 内で必要になる補助ファイルは、可能な限り同じ skill ディレクトリ配下へ閉じ込める。
+- Python 系の共有実行環境や依存定義は、skill ごとの局所配置へ分散させず、原則としてリポジトリ root の `.venv/` と `requirements.txt` へ集約する。
 - `tools` には skills の公開入口を重複して置かず、temporary な補助や移行用の機械処理へ責務を限定する。
 
 ## 命名規則
@@ -32,6 +33,7 @@
 - `scripts` 配下のラッパー名は拡張子なしの `lowercase-kebab-case` を基本とする。
 - `scripts` のラッパー名は、利用者が何をしたいかで判断できる動詞中心の名前を優先する。
 - Python などの補助実装も、`skills` 配下では呼び出し元の skill 名と対応づく `lowercase-kebab-case.py` を基本とする。
+- Python から直接 import しにくい事情がある場合でも、公開ファイル名ではアンダースコアを増やさず、kebab-case を前提に構成を工夫する。
 - 一時ユーティリティであっても、`tools` 配下の名前は用途が識別できる具体名にする。
 
 ## 実装原則
@@ -42,6 +44,7 @@
 - 認証情報や秘密情報は `scripts` や `skills` に埋め込まず、ignore 対象の JSON 設定やリポジトリ外ファイルから受け取る。
 - 外部サービスの認証設定は、shell の `eval` で環境変数を展開せず、ignore 対象の JSON を読み込む実装へ統一する。
 - 仮想環境や依存実行系の吸収が必要な場合は、`skills` 側で処理するか、`scripts` から最小限の形で委譲する。
+- LLM が補助ファイルや一時ファイルを生成する場合は、`temp-llm/` を使い、不要になっても自動削除しない。
 - 特定の外部サービスへ接続する skill は、対象サービスの現行 API を前提にし、旧 API や場当たり的なフォールバック経路を持ち込まない。
 - `skills` と `scripts` の利用例や動作確認コマンドは、ワークスペース root から実行できる相対パス基準で記述する。
 - `tools`、`skills`、`scripts` のいずれでも、リポジトリに残す必要のない生成物はコミットしない。

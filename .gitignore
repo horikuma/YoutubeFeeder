@@ -16,7 +16,8 @@ build/
 
 # Node.js local dependencies
 node_modules/
-skills/**/.venv/
+.venv/
+temp-llm/
 
 # Local secrets
 Config/LocalSecrets.xcconfig

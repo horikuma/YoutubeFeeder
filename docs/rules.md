@@ -10,21 +10,21 @@
 
 ## rules コレクション
 
-- [rules-document.md](./rules-document.md)
+- [rules-document.md](./rules/rules-document.md)
   - 文書体系、文書の切り分け、履歴文書、Markdown、human-view の運用を扱う。
-- [rules-process.md](./rules-process.md)
+- [rules-process.md](./rules/rules-process.md)
   - 開発シーケンス、テスト、検証、完了条件、健康度観測のフローを扱う。
-- [rules-skills.md](./rules-skills.md)
+- [rules-skills.md](./rules/rules-skills.md)
   - `tools`、`skills`、`scripts` の責務と運用ルールを扱う。
 
 ## タスク別の参照順
 
-- 新規の開発セッションを始める前は、まずこの文書を読み、続いて [rules-document.md](./rules-document.md) と [rules-process.md](./rules-process.md) を読む。
-- 機能追加や画面仕様変更に着手する前は、[rules-process.md](./rules-process.md) を読み、続いて [spec.md](./spec.md)、必要なら [architecture.md](./architecture.md) と [design.md](./design.md) を読む。
-- 不具合修正や調査に着手する前は、[rules-process.md](./rules-process.md) を読み、続いて影響範囲に応じて [spec.md](./spec.md)、[architecture.md](./architecture.md)、[design.md](./design.md) を読む。
-- 設計整理や責務分割に着手する前は、[rules-process.md](./rules-process.md) を読み、続いて [architecture.md](./architecture.md) と [design.md](./design.md) を読む。
-- 文書更新に着手する前は、[rules-document.md](./rules-document.md) を読み、どの文書へ置くべきかの判断基準を確認する。
-- `tools`、`skills`、`scripts` に関わる変更へ着手する前は、[rules-skills.md](./rules-skills.md) を追加で読む。
+- 新規の開発セッションを始める前は、まずこの文書を読み、続いて [rules-document.md](./rules/rules-document.md) と [rules-process.md](./rules/rules-process.md) を読む。
+- 機能追加や画面仕様変更に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて [spec.md](./spec.md)、必要なら [architecture.md](./architecture.md) と [design.md](./design.md) を読む。
+- 不具合修正や調査に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて影響範囲に応じて [spec.md](./spec.md)、[architecture.md](./architecture.md)、[design.md](./design.md) を読む。
+- 設計整理や責務分割に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて [architecture.md](./architecture.md) と [design.md](./design.md) を読む。
+- 文書更新に着手する前は、[rules-document.md](./rules/rules-document.md) を読み、どの文書へ置くべきかの判断基準を確認する。
+- `tools`、`skills`、`scripts` に関わる変更へ着手する前は、[rules-skills.md](./rules/rules-skills.md) を追加で読む。
 - 開発シーケンスの終盤で文書更新へ入る前は、この文書を再読し、役割分担を崩す更新を混ぜていないことを確認する。
 
 ## rules コレクションの運用原則

@@ -10,12 +10,12 @@ DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/YoutubeFeeder"
 DERIVED_DATA="$DERIVED_DATA_BASE/DerivedData"
 DESTINATION="platform=iOS Simulator,name=iPhone 12 mini"
 DEVICE_NAME="iPhone 12 mini"
-TMP_METRICS_DIR="$(python3 - <<'PY'
-import tempfile
-from pathlib import Path
-print(Path(tempfile.gettempdir()) / "YoutubeFeederTestMetrics")
-PY
-)"
+TEMP_LLM_DIR="$REPO_ROOT/temp-llm"
+RUN_STAMP="$(date +%Y%m%d-%H%M%S)"
+TMP_METRICS_DIR="$TEMP_LLM_DIR/collect-test-metrics-$RUN_STAMP"
+BUILD_LOG="$TEMP_LLM_DIR/collect-test-metrics-build-$RUN_STAMP.log"
+UNIT_LOG="$TEMP_LLM_DIR/collect-test-metrics-unit-$RUN_STAMP.log"
+UI_LOG="$TEMP_LLM_DIR/collect-test-metrics-ui-$RUN_STAMP.log"
 OUTPUT_DOC="$REPO_ROOT/docs/test-metrics.md"
 typeset -a LOGIC_ONLY_TESTING=()
 typeset -a UI_ONLY_TESTING=()
@@ -37,8 +37,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+mkdir -p "$TEMP_LLM_DIR"
 mkdir -p "$DERIVED_DATA_BASE"
-rm -rf "$TMP_METRICS_DIR"
 mkdir -p "$TMP_METRICS_DIR"
 
 available_devices="$(xcrun simctl list devices available)"
@@ -65,7 +65,7 @@ xcodebuild build-for-testing \
   -derivedDataPath "$DERIVED_DATA" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
-  >/tmp/youtubefeeder-test-metrics-build.log 2>&1
+  >"$BUILD_LOG" 2>&1
 
 echo "Running unit tests..."
 unit_args=("-only-testing:YoutubeFeederTests")
@@ -83,7 +83,7 @@ YOUTUBEFEEDER_TEST_METRICS_DIR="$TMP_METRICS_DIR" xcodebuild test-without-buildi
   "${unit_args[@]}" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
-  >/tmp/youtubefeeder-test-metrics-unit.log 2>&1
+  >"$UNIT_LOG" 2>&1
 
 echo "Running UI tests..."
 ui_args=("-only-testing:YoutubeFeederUITests")
@@ -101,10 +101,10 @@ YOUTUBEFEEDER_TEST_METRICS_DIR="$TMP_METRICS_DIR" xcodebuild test-without-buildi
   "${ui_args[@]}" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
-  >/tmp/youtubefeeder-test-metrics-ui.log 2>&1
+  >"$UI_LOG" 2>&1
 
 python3 "$SCRIPT_DIR/render_test_metrics.py" \
   "$REPO_ROOT" \
   "$OUTPUT_DOC" \
-  "/tmp/youtubefeeder-test-metrics-unit.log" \
-  "/tmp/youtubefeeder-test-metrics-ui.log"
+  "$UNIT_LOG" \
+  "$UI_LOG"
