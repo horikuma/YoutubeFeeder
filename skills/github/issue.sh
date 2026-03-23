@@ -3,9 +3,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VENV_DIR="$SCRIPT_DIR/.venv"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+VENV_DIR="$REPO_ROOT/.venv"
 PYTHON_BIN="$VENV_DIR/bin/python3"
-REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
+REQUIREMENTS_FILE="$REPO_ROOT/requirements.txt"
 STAMP_FILE="$VENV_DIR/.requirements-installed"
 
 if [[ ! -x "$PYTHON_BIN" ]]; then
