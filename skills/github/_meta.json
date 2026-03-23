@@ -4,6 +4,11 @@
       "name": "list-issues",
       "path": "list-issues.sh",
       "description": "Fetch repository issues through PyGithub using GitHub App credentials from local secrets."
+    },
+    {
+      "name": "issue",
+      "path": "issue.sh",
+      "description": "Read or update GitHub issue bodies through PyGithub using GitHub App credentials from local secrets."
     }
   ]
 }

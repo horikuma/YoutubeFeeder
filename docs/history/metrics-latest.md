@@ -1,6 +1,11 @@
 
 
 ## 2026/03/23
+### issue更新skill追加とissue5詳細化
+- 種別: source
+- 計測: `skip`
+- 理由: `tools` / `skills` / `scripts` と外部 Issue 更新のみの変更のため、アプリ本体の build / test は実施しない
+
 ### rules整理とissue取得skill追加
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
