@@ -35,8 +35,10 @@
   - クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
 - [development-environment.md](../development-environment.md)
   - ローカル開発に必要なツール、版固定、セットアップ手順、再現性を守る運用を記述する。
-- [src-metrics.md](../src-metrics.md)
+- [metrics-src.md](../metrics/metrics-src.md)
   - ソース総行数、正本文書行数、health barometer の観測結果、ファイル別の行数概観を、単発または定点スナップショットとして整理する参照資料とする。
+- [metrics-test.md](../metrics/metrics-test.md)
+  - テストごとの所要時間と分類を整理する参照資料とする。
 - `docs/report/` 配下
   - 個別の障害調査、性能探索、検証ログの整理結果を、将来の再調査に使う参照資料として記述する。
 
@@ -87,6 +89,7 @@
 - 人間向けの設計図や依存関係の見え方が変わる変更では [design-overview.md](../human-view/design-overview.md) を見直す。
 - 余白、文字組み、色の使い方、視覚的一貫性の基準を変更したら [rules-design.md](./rules-design.md) を見直す。
 - 検証コストや性能観測の更新では [metrics-latest.md](../history/metrics-latest.md) を更新し、日次履歴は [metrics-log.md](../history/metrics-log.md) で保持する。
+- metrics の参照資料は `docs/metrics/` 配下へ置き、用途別の個別文書として扱う。metrics 専用の index 文書は作らない。
 
 ## Human-View ルール
 
@@ -159,7 +162,7 @@
 - 1 つの metrics ブロックと次の見出しの間には、1 行だけ空行を入れる。
 - 各エントリは metrics を実測したコミット単位で追加し、計測値と再試行回数を一貫した形式で残す。
 - `scripts/collect-metrics.sh` の既定出力先は [metrics-latest.md](../history/metrics-latest.md) とし、日中の追記が履歴ファイルへ直接流れ込まないようにする。
-- 最終の全体検証では `scripts/collect-metrics.sh` を正本とし、同スクリプトが [test-metrics.md](../test-metrics.md) も同時更新する前提で運用する。
+- 最終の全体検証では `scripts/collect-metrics.sh` を正本とし、同スクリプトが [metrics-test.md](../metrics/metrics-test.md) も同時更新する前提で運用する。
 - `scripts/collect-test-metrics.sh` は、修正ループ中の logic 1 件 / UI 1 件のような限定確認や、部分集合の計測確認にだけ使う。
 - [metrics-log.md](../history/metrics-log.md) は、検証コストや起動性能の履歴を後から参照するための正本として扱う。
 

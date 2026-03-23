@@ -16,7 +16,7 @@ TMP_METRICS_DIR="$TEMP_LLM_DIR/collect-test-metrics-$RUN_STAMP"
 BUILD_LOG="$TEMP_LLM_DIR/collect-test-metrics-build-$RUN_STAMP.log"
 UNIT_LOG="$TEMP_LLM_DIR/collect-test-metrics-unit-$RUN_STAMP.log"
 UI_LOG="$TEMP_LLM_DIR/collect-test-metrics-ui-$RUN_STAMP.log"
-OUTPUT_DOC="$REPO_ROOT/docs/test-metrics.md"
+OUTPUT_DOC="$REPO_ROOT/docs/metrics/metrics-test.md"
 typeset -a LOGIC_ONLY_TESTING=()
 typeset -a UI_ONLY_TESTING=()
 
