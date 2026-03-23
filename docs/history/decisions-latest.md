@@ -1,4 +1,10 @@
 ## 2026/03/23
+- specs 文書は `docs/specs.md` を入口とし、本文は `docs/specs/` 配下の `specs-product.md`、`specs-architecture.md`、`specs-design.md` へ分ける方針にした。
+  - rules と同じように入口と本文を分けた方が、参照順と責務境界を保ちやすく、仕様系文書の置き場判断も安定するため。
+- metrics 文書は `docs/metrics/` 配下の個別文書として扱い、専用 index は作らない方針にした。
+  - metrics は一覧よりも用途別の参照資料として直接読む場面が多く、index を増やすより `metrics-src.md` と `metrics-test.md` へ分けた方が軽く保てるため。
+- Issue の実施タスクに ToDo がある場合は、ToDo を 1 つ終えるごとにコミットする運用を明文化する方針にした。
+  - 後から履歴を見た時に、どの変更がどのタスクに対応するかを追いやすくしたいため。同一ファイルへ複数回触る場合でも、タスク単位で順次確定する方が混乱を減らせる。
 - Issue の進行管理はラベルではなく GitHub Projects と Pull Request の関係で扱い、LLM は Issue を直接 close しない方針に改めた。
   - 進行ラベルは Projects の責務を重複させやすく、Issue の状態と運用規則が二重化するため。完了は PR 側の close 関係や人手運用へ寄せる方が GitHub 標準の流れに近い。
 - Python 系の共有実行環境は `skills/github/.venv` のような局所配置ではなく、リポジトリ root の `.venv/` と `requirements.txt` に集約する方針にした。

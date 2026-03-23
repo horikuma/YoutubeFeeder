@@ -1,6 +1,11 @@
 
 
 ## 2026/03/23
+### issue9実施のためのspecsとmetrics再編
+- 種別: source
+- 計測: `skip`
+- 理由: `tools` / `scripts` / `docs` の変更のみのため、アプリ本体の build / test は実施しない
+
 ### issue7実施のためのrules再配置とgithub skill整理
 - 種別: source
 - 計測: `skip`
