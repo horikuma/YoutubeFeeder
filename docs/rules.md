@@ -1,11 +1,11 @@
 # YoutubeFeeder Rules
 
-この文書は、YoutubeFeeder の rules コレクション全体に対する最上位の入口である。ここでは、各 rules 文書の役割、参照順序、抽象度の境界だけを定義する。
+この文書は、YoutubeFeeder の rules コレクション全体に対する最上位の入口である。ここでは、各 rules 文書の役割、開発タスクごとの参照順、コレクション全体に共通する運用原則だけを定義する。
 
 ## この文書の役割
 
 - `rules.md` は、rules コレクション全体の索引とし、個別ルール本文の置き場として肥大化させない。
-- この文書には、プロダクト固有の抽象方針、各 rules 文書の責務、読む順序だけを残す。
+- この文書には、rules コレクション全体に共通する運用原則、各 rules 文書の責務、開発着手時の参照順だけを残す。
 - 文書運用、開発フロー、tools / skills / scripts の具体ルールは、対応する個別文書へ委譲する。
 
 ## rules コレクション
@@ -17,23 +17,18 @@
 - [rules-skills.md](./rules-skills.md)
   - `tools`、`skills`、`scripts` の責務と運用ルールを扱う。
 
-## 参照順序
+## タスク別の参照順
 
-- 新規の開発着手時は、まずこの文書を読み、続いて [rules-document.md](./rules-document.md) と [rules-process.md](./rules-process.md) を読む。
-- `tools`、`skills`、`scripts` に関わる変更や確認がある場合だけ、追加で [rules-skills.md](./rules-skills.md) を読む。
-- 個別ルールを更新する時は、この文書の役割定義と矛盾しないことを確認する。
+- 新規の開発セッションを始める前は、まずこの文書を読み、続いて [rules-document.md](./rules-document.md) と [rules-process.md](./rules-process.md) を読む。
+- 機能追加や画面仕様変更に着手する前は、[rules-process.md](./rules-process.md) を読み、続いて [spec.md](./spec.md)、必要なら [architecture.md](./architecture.md) と [design.md](./design.md) を読む。
+- 不具合修正や調査に着手する前は、[rules-process.md](./rules-process.md) を読み、続いて影響範囲に応じて [spec.md](./spec.md)、[architecture.md](./architecture.md)、[design.md](./design.md) を読む。
+- 設計整理や責務分割に着手する前は、[rules-process.md](./rules-process.md) を読み、続いて [architecture.md](./architecture.md) と [design.md](./design.md) を読む。
+- 文書更新に着手する前は、[rules-document.md](./rules-document.md) を読み、どの文書へ置くべきかの判断基準を確認する。
+- `tools`、`skills`、`scripts` に関わる変更へ着手する前は、[rules-skills.md](./rules-skills.md) を追加で読む。
+- 開発シーケンスの終盤で文書更新へ入る前は、この文書を再読し、役割分担を崩す更新を混ぜていないことを確認する。
 
-## このプロダクトで守る抽象方針
+## rules コレクションの運用原則
 
 - 人と LLM のどちらが変更しても、同じ判断基準で継続開発できる状態を保つ。
-- 起動性能、操作中の軽さ、ローカルキャッシュを正本とする閲覧体験を長期的に損なわない。
-- `iPhone` と `iPad` の機能差分を作らず、差分は Adaptive UI に沿った表現差分へ閉じ込める。
 - 人間向け参照資料を含め、正本と翻訳資料の同期を崩さない。
-
-## 抽象度の境界
-
-- `rules.md` へ、実装詳細、画面単位の仕様、日次運用手順、個別コマンド運用を集約してはならない。
-- 開発手順が主題の内容は [rules-process.md](./rules-process.md) へ置く。
-- 文書の配置、更新対象、履歴、human-view、Markdown 記法が主題の内容は [rules-document.md](./rules-document.md) へ置く。
-- `tools`、`skills`、`scripts` の配置、命名、更新判断が主題の内容は [rules-skills.md](./rules-skills.md) へ置く。
 - 文書群の再編で役割が変わった時は、まずこの文書の役割定義を更新し、その後に個別文書を更新する。
