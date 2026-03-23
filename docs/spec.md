@@ -455,5 +455,5 @@
 ## 8. 仕様とルールの境界
 
 - この文書には、ユーザーから見える振る舞い、キャッシュ更新の挙動、画面要件、非機能要件を記載する
-- 実装責務、ファイル責務、テスト運用、変更管理は [rules.md](./rules.md)、文書更新手順は [rules-document.md](./rules-document.md) に記載する
-- 仕様変更時は、この文書と `rules.md` の両方を確認し、振る舞いと開発ルールの間に矛盾を残してはならない
+- 実装責務や rules コレクション全体の入口は [rules.md](./rules.md)、テスト運用と変更管理は [rules-process.md](./rules-process.md)、文書更新手順は [rules-document.md](./rules-document.md) に記載する
+- 仕様変更時は、この文書と rules コレクションを確認し、振る舞いと開発ルールの間に矛盾を残してはならない
