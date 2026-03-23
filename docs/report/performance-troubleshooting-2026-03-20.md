@@ -1,6 +1,6 @@
 # Performance Troubleshooting Report 2026-03-20
 
-この文書は、2026-03-20 に実施した YouTube 検索まわりの処理負荷トラブル探索を、再利用可能な調査記録として整理した参照資料である。正本の方針や責務定義は [rules.md](../rules.md)、[architecture.md](../architecture.md)、[design.md](../design.md) を参照する。
+この文書は、2026-03-20 に実施した YouTube 検索まわりの処理負荷トラブル探索を、再利用可能な調査記録として整理した参照資料である。正本の方針や責務定義は [rules.md](../rules.md)、[specs-architecture.md](../specs/specs-architecture.md)、[specs-design.md](../specs/specs-design.md) を参照する。
 
 ## Summary
 

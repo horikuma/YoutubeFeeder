@@ -10,7 +10,7 @@ DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/YoutubeFeeder"
 DERIVED_DATA="$DERIVED_DATA_BASE/DerivedData"
 METRICS_DIR="$REPO_ROOT/.metrics"
 METRICS_DOC="$REPO_ROOT/docs/history/metrics-latest.md"
-TEST_METRICS_DOC="$REPO_ROOT/docs/test-metrics.md"
+TEST_METRICS_DOC="$REPO_ROOT/docs/metrics/metrics-test.md"
 STARTUP_JSON="$METRICS_DIR/startup-metrics.json"
 BUILD_LOG="$METRICS_DIR/build-for-testing.log"
 TEST_LOG="$METRICS_DIR/test-without-building.log"
@@ -100,7 +100,7 @@ if (( test_status != 0 )); then
   exit 1
 fi
 
-python3 "$SCRIPT_DIR/render_test_metrics.py" \
+python3 "$SCRIPT_DIR/render-test-metrics.py" \
   "$REPO_ROOT" \
   "$TEST_METRICS_DOC" \
   "$TEST_LOG"

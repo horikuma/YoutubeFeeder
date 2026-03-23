@@ -22,17 +22,17 @@
 
 ## Mermaid ローカル検証
 
-- Mermaid の検証は [check_mermaid.mjs](../scripts/check_mermaid.mjs) を正本とする。
+- Mermaid の検証は [check-mermaid.mjs](../scripts/check-mermaid.mjs) を正本とする。
 - `npm run check:mermaid` は `docs/` 配下と [README.md](../README.md) から Mermaid ブロックを抽出し、`mmdc` でローカル SVG レンダリングを行う。
 - 失敗時は `ファイル:開始行` を出力し、そのブロックだけを直せる状態を保つ。
 - Mermaid の検証に必要な CLI と browser runtime は、[package-lock.json](../package-lock.json) に固定したローカル依存から取得する。
 
 ## LLM 所要時間の補助コマンド
 
-- `LLM所要時間` の開始・終了時刻は、手入力ではなく [llm_elapsed.sh](../scripts/llm_elapsed.sh) を使って記録する。
-- ユーザー指示を受けた直後に `scripts/llm_elapsed.sh start` を実行し、`chat-latest.md` などを更新する直前に `scripts/llm_elapsed.sh finish` を実行して、その出力をそのまま履歴へ貼り付ける。
-- 途中確認が必要なら `scripts/llm_elapsed.sh status` を使い、取り直しが必要なら `scripts/llm_elapsed.sh reset` で現在の測定を破棄してから再開する。
-- 状態ファイルはリポジトリの `.git/llm_elapsed/` 配下へ保存し、Git 管理対象には含めない。
+- `LLM所要時間` の開始・終了時刻は、手入力ではなく [llm-elapsed.sh](../scripts/llm-elapsed.sh) を使って記録する。
+- ユーザー指示を受けた直後に `scripts/llm-elapsed.sh start` を実行し、`chat-latest.md` などを更新する直前に `scripts/llm-elapsed.sh finish` を実行して、その出力をそのまま履歴へ貼り付ける。
+- 途中確認が必要なら `scripts/llm-elapsed.sh status` を使い、取り直しが必要なら `scripts/llm-elapsed.sh reset` で現在の測定を破棄してから再開する。
+- 状態ファイルはリポジトリの `.git/llm-elapsed/` 配下へ保存し、Git 管理対象には含めない。
 
 ## 更新ルール
 

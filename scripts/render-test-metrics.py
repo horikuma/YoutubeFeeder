@@ -84,7 +84,7 @@ def parse_iso8601(value: str | None) -> datetime | None:
 def main() -> int:
     if len(sys.argv) < 4:
         print(
-            "Usage: render_test_metrics.py <repo_root> <output_doc> <log_path> [<log_path> ...]",
+            "Usage: render-test-metrics.py <repo_root> <output_doc> <log_path> [<log_path> ...]",
             file=sys.stderr,
         )
         return 1

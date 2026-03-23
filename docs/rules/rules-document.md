@@ -16,11 +16,13 @@
   - 開発シーケンス、テスト、検証、完了条件、健全性観測のフローを記述する。
 - [rules-skills.md](./rules-skills.md)
   - `tools`、`skills`、`scripts` の責務と運用ルールを記述する。
-- [spec.md](../spec.md)
+- [specs.md](../specs.md)
+  - specs コレクション全体の入口として、仕様系文書の役割と参照順序を記述する。
+- [specs-product.md](../specs/specs-product.md)
   - ユーザー向け機能、画面遷移、操作、表示要件を記述する。
-- [architecture.md](../architecture.md)
+- [specs-architecture.md](../specs/specs-architecture.md)
   - 採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を記述する。
-- [design.md](../design.md)
+- [specs-design.md](../specs/specs-design.md)
   - ファイル単位、型単位、テスト単位の責務や構成など、詳細設計を記述する。
 - [rules-design.md](./rules-design.md)
   - 画面設計、余白、文字組み、色の使い方など、視覚設計ルールを記述する。
@@ -33,8 +35,10 @@
   - クラス図やレイヤ図などの UML 風設計資料を、人間向けの参照資料として整理して記述する。
 - [development-environment.md](../development-environment.md)
   - ローカル開発に必要なツール、版固定、セットアップ手順、再現性を守る運用を記述する。
-- [src-metrics.md](../src-metrics.md)
+- [metrics-src.md](../metrics/metrics-src.md)
   - ソース総行数、正本文書行数、health barometer の観測結果、ファイル別の行数概観を、単発または定点スナップショットとして整理する参照資料とする。
+- [metrics-test.md](../metrics/metrics-test.md)
+  - テストごとの所要時間と分類を整理する参照資料とする。
 - `docs/report/` 配下
   - 個別の障害調査、性能探索、検証ログの整理結果を、将来の再調査に使う参照資料として記述する。
 
@@ -44,11 +48,11 @@
 - `rules.md` へ個別運用フローや directory 運用の本文を集約してはならない。
 - 開発フロー、完了条件、検証手順、健全性観測は [rules-process.md](./rules-process.md) へ置く。
 - `tools`、`skills`、`scripts` の責務や配置規則は [rules-skills.md](./rules-skills.md) へ置く。
-- クラス名や型名が出る内容は、原則として [design.md](../design.md) へ置く。
+- クラス名や型名が出る内容は、原則として [specs-design.md](../specs/specs-design.md) へ置く。
 - 画面の見た目や視覚的一貫性の基準は、仕様や詳細設計へ散らさず [rules-design.md](./rules-design.md) へ置く。
-- ユーザー操作や画面導線に依存する内容は、原則として [spec.md](../spec.md) へ置く。
-- 変更しても全体構造が変わらない実装運用の詳細は、主題に応じて [rules-process.md](./rules-process.md) または [spec.md](../spec.md) へ置く。
-- レイヤ構造、依存方向、データフローの形、責務の原則を規定する内容は、[architecture.md](../architecture.md) へ置く。
+- ユーザー操作や画面導線に依存する内容は、原則として [specs-product.md](../specs/specs-product.md) へ置く。
+- 変更しても全体構造が変わらない実装運用の詳細は、主題に応じて [rules-process.md](./rules-process.md) または [specs-product.md](../specs/specs-product.md) へ置く。
+- レイヤ構造、依存方向、データフローの形、責務の原則を規定する内容は、[specs-architecture.md](../specs/specs-architecture.md) へ置く。
 - 文書の内容が詳細化しすぎた場合は、上位方針を残して詳細を対応する正本文書へ移す。
 
 ## 人間向け参照資料の位置付け
@@ -77,13 +81,15 @@
 - 文書体系、履歴、Markdown、human-view のルールを変更したら [rules-document.md](./rules-document.md) を見直す。
 - 開発フロー、検証、完了条件、健全性観測を変更したら [rules-process.md](./rules-process.md) を見直す。
 - `tools`、`skills`、`scripts` の責務や配置規則を変更したら [rules-skills.md](./rules-skills.md) を見直す。
-- 機能を変更したら [spec.md](../spec.md) を見直す。
-- 採用アーキテクチャ、責務境界、データフロー、テスト方針を変更したら [architecture.md](../architecture.md) を見直す。
-- ファイル単位や型単位の責務、詳細設計、テストの配置を変更したら [design.md](../design.md) を見直す。
+- specs コレクション全体の役割分担を変更したら [specs.md](../specs.md) を見直す。
+- 機能を変更したら [specs-product.md](../specs/specs-product.md) を見直す。
+- 採用アーキテクチャ、責務境界、データフロー、テスト方針を変更したら [specs-architecture.md](../specs/specs-architecture.md) を見直す。
+- ファイル単位や型単位の責務、詳細設計、テストの配置を変更したら [specs-design.md](../specs/specs-design.md) を見直す。
 - GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui.md](../human-view/gui.md) を見直す。
 - 人間向けの設計図や依存関係の見え方が変わる変更では [design-overview.md](../human-view/design-overview.md) を見直す。
 - 余白、文字組み、色の使い方、視覚的一貫性の基準を変更したら [rules-design.md](./rules-design.md) を見直す。
 - 検証コストや性能観測の更新では [metrics-latest.md](../history/metrics-latest.md) を更新し、日次履歴は [metrics-log.md](../history/metrics-log.md) で保持する。
+- metrics の参照資料は `docs/metrics/` 配下へ置き、用途別の個別文書として扱う。metrics 専用の index 文書は作らない。
 
 ## Human-View ルール
 
@@ -104,7 +110,7 @@
 - 各画面の章構成は、少なくとも `画面名`、`実装`、必要なら `画面識別`、`主な GUI パーツ`、`操作と遷移`、必要なら `長押しメニュー` を持つ。
 - `主な GUI パーツ` は、実装上の全 subview を列挙するのではなく、人間が変更指示に使う部品だけを表に載せる。
 - 同じ役割の GUI パーツは画面をまたいでも同じ呼び名を使い、1 画面内で重複しない場合は短い呼び名を優先する。
-- `gui.md` にしか存在しないパーツ呼称ルールや識別子運用を見つけた場合は、必要に応じて [spec.md](../spec.md) または本書へ先に反映する。
+- `gui.md` にしか存在しないパーツ呼称ルールや識別子運用を見つけた場合は、必要に応じて [specs-product.md](../specs/specs-product.md) または本書へ先に反映する。
 
 ### design-overview.md
 
@@ -119,7 +125,7 @@
 ## Markdown ルール
 
 - Markdown に `mermaid` または `plantuml` を含める場合は、コミット前にローカル環境で構文エラーなく描画できることを確認してから反映する。
-- `mermaid` を含める Markdown を変更した場合は、外部 API ではなく [check_mermaid.mjs](../scripts/check_mermaid.mjs) によるローカル検証を使う。
+- `mermaid` を含める Markdown を変更した場合は、外部 API ではなく [check-mermaid.mjs](../scripts/check-mermaid.mjs) によるローカル検証を使う。
 - Markdown のファイルリンクは、表示テキストをファイル名のみとし、表示上にパスを含めない。
 - Markdown のリンク先自体は、各文書位置から実体ファイルへ辿れる相対パスで維持する。
 
@@ -155,9 +161,9 @@
 - 同じ日付見出しの中では、新しいエントリほど上、古いエントリほど下になるように追加する。
 - 1 つの metrics ブロックと次の見出しの間には、1 行だけ空行を入れる。
 - 各エントリは metrics を実測したコミット単位で追加し、計測値と再試行回数を一貫した形式で残す。
-- `scripts/collect_metrics.sh` の既定出力先は [metrics-latest.md](../history/metrics-latest.md) とし、日中の追記が履歴ファイルへ直接流れ込まないようにする。
-- 最終の全体検証では `scripts/collect_metrics.sh` を正本とし、同スクリプトが [test-metrics.md](../test-metrics.md) も同時更新する前提で運用する。
-- `scripts/collect_test_metrics.sh` は、修正ループ中の logic 1 件 / UI 1 件のような限定確認や、部分集合の計測確認にだけ使う。
+- `scripts/collect-metrics.sh` の既定出力先は [metrics-latest.md](../history/metrics-latest.md) とし、日中の追記が履歴ファイルへ直接流れ込まないようにする。
+- 最終の全体検証では `scripts/collect-metrics.sh` を正本とし、同スクリプトが [metrics-test.md](../metrics/metrics-test.md) も同時更新する前提で運用する。
+- `scripts/collect-test-metrics.sh` は、修正ループ中の logic 1 件 / UI 1 件のような限定確認や、部分集合の計測確認にだけ使う。
 - [metrics-log.md](../history/metrics-log.md) は、検証コストや起動性能の履歴を後から参照するための正本として扱う。
 
 ### history/decisions-log.md / history/decisions-latest.md

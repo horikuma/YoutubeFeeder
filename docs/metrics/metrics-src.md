@@ -5,8 +5,8 @@
 ## 対象と前提
 
 - 対象ソースは `YoutubeFeeder/` 配下の `Swift` ファイルとする。
-- 対象ドキュメントは `docs/` 直下の正本 `6` 文書とする。
-- 健全性のバロメタは `scripts/health_barometer.sh` の基準に従う。
+- 対象ドキュメントは、当時の正本 `6` 文書とする。
+- 健全性のバロメタは `scripts/health-barometer.sh` の基準に従う。
 - この文書の数値は、`2026-03-21 17:14:55 +0900` 時点のワークツリーから取得した。
 
 ## サマリー
@@ -63,7 +63,7 @@
 - 現時点の最大リスクは、`FeedCacheCoordinator` の巨大化と `FeedCacheSQLiteDatabase` の schema 構築関数の長さである。
 - `SQLite` 移行後の `FeedCache` 周辺に行数が寄っており、永続化、集約、起動補助の責務が密集している。
 - `Browse` 系は分割が進んでいるが、`BrowseComponents.swift` の top-level type 数はまだ多い。
-- 正本文書は `1,173` 行で、ソース総行数比では `12.7%` に留まる。規模の俯瞰用としては足りているが、実装密度の高い領域ほど `design.md` への追記余地がある。
+- 正本文書は `1,173` 行で、ソース総行数比では `12.7%` に留まる。規模の俯瞰用としては足りているが、実装密度の高い領域ほど詳細設計文書への追記余地がある。
 
 ## Appendix A: ソース行数上位
 
@@ -94,9 +94,9 @@
 
 | 文書 | 行数 |
 | --- | ---: |
-| `docs/spec.md` | `459` |
-| `docs/design.md` | `260` |
-| `docs/rules-document.md` | `173` |
-| `docs/architecture.md` | `141` |
+| `docs/specs/specs-product.md` | `459` |
+| `docs/specs/specs-design.md` | `260` |
+| `docs/rules/rules-document.md` | `173` |
+| `docs/specs/specs-architecture.md` | `141` |
 | `docs/rules.md` | `114` |
-| `docs/rules-design.md` | `26` |
+| `docs/rules/rules-design.md` | `26` |

@@ -2,7 +2,7 @@
 
 この文書は、YoutubeFeeder の採用アーキテクチャ、責務境界、依存方向、データフロー、テスト方針を定める設計文書である。本書は「このプロダクトでどう設計するか」を扱う。
 
-文書群の役割分担と文書運用ルールは [rules-document.md](./rules/rules-document.md) を参照する。
+文書群の役割分担と文書運用ルールは [rules-document.md](../rules/rules-document.md) を参照する。
 
 ## プロダクト前提
 
@@ -129,7 +129,7 @@
 - 画面駆動の型だけを `@MainActor` とし、永続化モデルや parser、store は UI 文脈へ固定しない。
 - 起動直後の MainActor を長時間塞ぐ file decode は避け、ホームの初期表示に不要な大きい cache decode を挟まない。
 - build 検証は `error 0` に加えて `warning 0` を成立条件とする。
-- 計測は `scripts/collect_metrics.sh` を正本とし、同一の全体実行から build、test、起動性能を取得する。
+- 計測は `scripts/collect-metrics.sh` を正本とし、同一の全体実行から build、test、起動性能を取得する。
 
 ## Observability
 

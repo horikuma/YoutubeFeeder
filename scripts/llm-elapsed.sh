@@ -5,15 +5,15 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/llm_elapsed.sh start
-  scripts/llm_elapsed.sh finish
-  scripts/llm_elapsed.sh status
-  scripts/llm_elapsed.sh reset
+  scripts/llm-elapsed.sh start
+  scripts/llm-elapsed.sh finish
+  scripts/llm-elapsed.sh status
+  scripts/llm-elapsed.sh reset
 EOF
 }
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-state_dir="$repo_root/.git/llm_elapsed"
+state_dir="$repo_root/.git/llm-elapsed"
 state_file="$state_dir/current_start_epoch"
 
 mkdir -p "$state_dir"

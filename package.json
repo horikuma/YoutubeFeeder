@@ -6,7 +6,7 @@
     "node": "24.14.0"
   },
   "scripts": {
-    "check:mermaid": "node ./scripts/check_mermaid.mjs"
+    "check:mermaid": "node ./scripts/check-mermaid.mjs"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "11.12.0",
