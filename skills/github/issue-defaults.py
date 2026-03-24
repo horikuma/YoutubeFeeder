@@ -6,7 +6,6 @@ import argparse
 import importlib.util
 import json
 import os
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -53,15 +52,20 @@ def cache_matches(
     *,
     repo: str,
     assignee: str,
+    mode: str,
     project_owner: str,
     project_title: str,
 ) -> bool:
     return (
         payload.get("repo") == repo
+        and payload.get("mode") == mode
         and payload.get("assignee", {}).get("login") == assignee
         and payload.get("project", {}).get("owner") == project_owner
         and payload.get("project", {}).get("title") == project_title
-        and bool(payload.get("project", {}).get("id"))
+        and (
+            bool(payload.get("project", {}).get("id"))
+            or bool(payload.get("project", {}).get("number"))
+        )
     )
 
 
@@ -90,64 +94,8 @@ def resolve_assignee(repository, login: str) -> dict:
     raise SystemExit(f"Default assignee not found in repository assignees: {login}")
 
 
-def run_gh_project_query(project_owner: str) -> list[dict]:
-    query = """
-query($login: String!) {
-  user(login: $login) {
-    projectsV2(first: 100) {
-      nodes {
-        id
-        title
-        number
-      }
-    }
-  }
-  organization(login: $login) {
-    projectsV2(first: 100) {
-      nodes {
-        id
-        title
-        number
-      }
-    }
-  }
-}
-""".strip()
-
-    command = [
-        "gh",
-        "api",
-        "graphql",
-        "-f",
-        f"query={query}",
-        "-F",
-        f"login={project_owner}",
-    ]
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
-
-    if result.returncode != 0:
-        stderr = result.stderr.strip()
-        if "read:project" in stderr:
-            raise SystemExit(
-                "GitHub project defaults could not be fetched because gh auth lacks "
-                "`read:project` scope. Run `gh auth refresh -s read:project,project` once, "
-                "then rerun `scripts/resolve-github-defaults` to seed the cache."
-            )
-        raise SystemExit(f"Failed to query GitHub projects through gh: {stderr or result.stdout.strip()}")
-
-    payload = json.loads(result.stdout)
-    data = payload.get("data") or {}
-    projects: list[dict] = []
-    for key in ("user", "organization"):
-        subject = data.get(key)
-        if not subject:
-            continue
-        projects.extend(subject.get("projectsV2", {}).get("nodes", []))
-    return projects
-
-
-def resolve_project(project_owner: str, project_title: str) -> dict:
-    matches = [project for project in run_gh_project_query(project_owner) if project.get("title") == project_title]
+def resolve_project_via_gh(github_app, project_owner: str, project_title: str) -> dict:
+    matches = [project for project in github_app.gh_project_list(project_owner) if project.get("title") == project_title]
 
     if not matches:
         raise SystemExit(f"GitHub project not found: owner={project_owner} title={project_title}")
@@ -166,6 +114,18 @@ def resolve_project(project_owner: str, project_title: str) -> dict:
     }
 
 
+def resolve_project_via_app(github_app, config_path: str | None, project_owner: str, project_title: str) -> dict:
+    project = github_app.get_project_settings(config_path)
+    if project["owner"] != project_owner or project["title"] != project_title:
+        raise SystemExit(
+            "Project settings in config do not match requested owner/title: "
+            f"config=({project['owner']}, {project['title']}) requested=({project_owner}, {project_title})"
+        )
+    if not project.get("id"):
+        raise SystemExit("Organization mode requires projectId in config")
+    return project
+
+
 def resolve_defaults(
     *,
     repo: str,
@@ -176,24 +136,31 @@ def resolve_defaults(
     refresh: bool,
     config_path: str | None,
 ) -> dict:
+    github_app = load_github_app_module()
+    mode = github_app.get_operation_mode(config_path)
     if not refresh:
         cached = read_cache(cache_file)
         if cached and cache_matches(
             cached,
             repo=repo,
             assignee=assignee_login,
+            mode=mode,
             project_owner=project_owner,
             project_title=project_title,
         ):
             return cached
 
-    github_app = load_github_app_module()
     repository = github_app.get_repository(repo, config_path=config_path)
+    if mode == "user":
+        project = resolve_project_via_gh(github_app, project_owner, project_title)
+    else:
+        project = resolve_project_via_app(github_app, config_path, project_owner, project_title)
     payload = {
         "repo": repo,
+        "mode": mode,
         "resolvedAt": datetime.now(timezone.utc).isoformat(),
         "assignee": resolve_assignee(repository, assignee_login),
-        "project": resolve_project(project_owner, project_title),
+        "project": project,
     }
     write_cache(cache_file, payload)
     return payload

@@ -1,4 +1,10 @@
 ## 2026/03/24
+- GitHub 操作モードは secrets の `operationMode` で切り替え、本プロダクトは `user` モードで運用する方針にした。
+  - User アカウント配下では repo 操作と Projects 操作の到達経路が一致しないため。`user` モードでは repo を GitHub App、Projects を `gh` に分離し、`organization` モードでは両方を GitHub App へ寄せる形で固定した方が再利用しやすい。
+- Issue 詳細化中や ToDo 実施中に blocker が出た場合は、Issue コメントへ確認内容を書いて停止する方針にした。
+  - 途中で黙って止まると、どこまで確認したかが履歴から追えなくなるため。Issue コメントへ残して停止すれば、再開時に同じ探索を繰り返しにくい。
+- Pull Request も Issue と同様に Assignee と Project を設定し、ToDo は 1 ステップごとにコミットする方針にした。
+  - Issue と PR で管理粒度がずれると、進行状態と変更履歴の対応が崩れやすいため。ToDo 単位でコミットを分けておけば、どの変更がどのステップに対応するかを後から辿りやすい。
 - 開発シーケンスは開始時に `main` で `git pull --ff-only origin main` を実行し、最新を確認してから進める方針にした。
   - 前の作業ブランチやローカル遅延を引きずったまま着手すると、Issue 化や文書更新だけのタスクでも基準点がぶれやすいため。開始点を常に最新の `main` へ固定した方が、各シーケンスを独立して再現しやすい。
 - GitHub Issue の既定 Assignee / Project は、厳密に解決した結果を `temp-llm/` 配下へ cache し、cache が無い時だけ取得し直す方針にした。
