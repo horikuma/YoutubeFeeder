@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 from pathlib import Path
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
 from github import Auth, Github, GithubIntegration
 
@@ -16,12 +19,16 @@ def resolve_config_path(config_path: str | None = None) -> Path:
     return Path(raw_path).expanduser().resolve()
 
 
-def load_config(config_path: str | None = None) -> tuple[str, str]:
+def load_settings(config_path: str | None = None) -> dict:
     config_file = resolve_config_path(config_path)
     if not config_file.is_file():
         raise SystemExit(f"GitHub App config not found: {config_file}")
+    return json.loads(config_file.read_text())
 
-    payload = json.loads(config_file.read_text())
+
+def load_config(config_path: str | None = None) -> tuple[str, str]:
+    config_file = resolve_config_path(config_path)
+    payload = load_settings(config_path)
     app_id = payload.get("appId") or payload.get("app_id")
     private_key_path = payload.get("privateKeyPath") or payload.get("private_key_path")
 
@@ -36,6 +43,30 @@ def load_config(config_path: str | None = None) -> tuple[str, str]:
         raise SystemExit(f"Private key not found: {private_key_file}")
 
     return str(app_id), private_key_file.read_text()
+
+
+def get_operation_mode(config_path: str | None = None) -> str:
+    payload = load_settings(config_path)
+    mode = str(payload.get("operationMode", "user")).strip().lower()
+    if mode not in {"user", "organization"}:
+        raise SystemExit(f"operationMode must be 'user' or 'organization': {mode}")
+    return mode
+
+
+def get_project_settings(config_path: str | None = None) -> dict:
+    payload = load_settings(config_path)
+    owner = payload.get("projectOwner")
+    title = payload.get("projectTitle")
+    number = payload.get("projectNumber")
+    project_id = payload.get("projectId")
+    if not owner or not title:
+        raise SystemExit("Config must contain projectOwner and projectTitle")
+    return {
+        "owner": owner,
+        "title": title,
+        "number": number,
+        "id": project_id,
+    }
 
 
 def get_repository(repo_slug: str, config_path: str | None = None, per_page: int = 100):
@@ -65,3 +96,53 @@ def get_installation_token(repo_slug: str, config_path: str | None = None) -> st
     installation = integration.get_repo_installation(owner, repo_name)
     access_token = integration.get_access_token(installation.id)
     return access_token.token
+
+
+def json_request(url: str, *, method: str, token: str, payload: dict | None = None) -> dict:
+    data = None
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "YoutubeFeeder-Codex",
+    }
+    if payload is not None:
+        data = json.dumps(payload).encode("utf-8")
+
+    request = Request(url, data=data, headers=headers, method=method)
+    try:
+        with urlopen(request) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise SystemExit(f"GitHub API request failed: {method} {url}: {exc.code} {detail}") from exc
+
+
+def graphql_request(token: str, *, query: str, variables: dict | None = None) -> dict:
+    payload = json_request(
+        "https://api.github.com/graphql",
+        method="POST",
+        token=token,
+        payload={"query": query, "variables": variables or {}},
+    )
+    if payload.get("errors"):
+        raise SystemExit(f"GitHub GraphQL request failed: {json.dumps(payload['errors'], ensure_ascii=False)}")
+    return payload["data"]
+
+
+def gh_project_list(owner: str) -> list[dict]:
+    command = ["gh", "project", "list", "--owner", owner, "--format", "json"]
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        stderr = result.stderr.strip() or result.stdout.strip()
+        raise SystemExit(f"Failed to list GitHub projects through gh: {stderr}")
+    payload = json.loads(result.stdout)
+    return payload.get("projects", [])
+
+
+def gh_add_project_item(*, owner: str, number: int, url: str) -> None:
+    command = ["gh", "project", "item-add", str(number), "--owner", owner, "--url", url]
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        stderr = result.stderr.strip() or result.stdout.strip()
+        raise SystemExit(f"Failed to add item to GitHub project through gh: {stderr}")
