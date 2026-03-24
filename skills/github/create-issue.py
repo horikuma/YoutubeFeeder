@@ -8,8 +8,6 @@ import json
 import os
 import sys
 from pathlib import Path
-from urllib.error import HTTPError
-from urllib.request import Request, urlopen
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -56,37 +54,6 @@ def read_body(args: argparse.Namespace) -> str:
     return Path(args.body_file).read_text(encoding="utf-8")
 
 
-def json_request(url: str, *, method: str, token: str, payload: dict | None = None) -> dict:
-    data = None
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
-        "Content-Type": "application/json",
-    }
-    if payload is not None:
-        data = json.dumps(payload).encode("utf-8")
-
-    request = Request(url, data=data, headers=headers, method=method)
-    try:
-        with urlopen(request) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise SystemExit(f"GitHub API request failed: {method} {url}: {exc.code} {detail}") from exc
-
-
-def graphql_request(token: str, *, query: str, variables: dict) -> dict:
-    payload = json_request(
-        "https://api.github.com/graphql",
-        method="POST",
-        token=token,
-        payload={"query": query, "variables": variables},
-    )
-    if payload.get("errors"):
-        raise SystemExit(f"GitHub GraphQL request failed: {json.dumps(payload['errors'], ensure_ascii=False)}")
-    return payload["data"]
-
-
 def main() -> int:
     args = parse_args()
     defaults_module = load_module("issue-defaults.py", "issue_defaults")
@@ -104,7 +71,7 @@ def main() -> int:
     token = github_app.get_installation_token(args.repo, config_path=args.config)
     owner, repo_name = args.repo.split("/", 1)
 
-    issue = json_request(
+    issue = github_app.json_request(
         f"https://api.github.com/repos/{owner}/{repo_name}/issues",
         method="POST",
         token=token,
@@ -115,24 +82,15 @@ def main() -> int:
         },
     )
 
-    graphql_request(
-        token,
-        query="""
-mutation($projectId: ID!, $contentId: ID!) {
-  addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
-    item {
-      id
-    }
-  }
-}
-""".strip(),
-        variables={
-            "projectId": defaults["project"]["id"],
-            "contentId": issue["node_id"],
-        },
+    github_app.add_content_to_project(
+        repo_slug=args.repo,
+        content_node_id=issue["node_id"],
+        content_url=issue["html_url"],
+        project=defaults["project"],
+        config_path=args.config,
     )
 
-    json.dump(issue, sys.stdout, ensure_ascii=False, indent=2)
+    sys.stdout.write(json.dumps(issue, ensure_ascii=False, indent=2))
     sys.stdout.write("\n")
     return 0
 

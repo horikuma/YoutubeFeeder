@@ -146,3 +146,53 @@ def gh_add_project_item(*, owner: str, number: int, url: str) -> None:
     if result.returncode != 0:
         stderr = result.stderr.strip() or result.stdout.strip()
         raise SystemExit(f"Failed to add item to GitHub project through gh: {stderr}")
+
+
+def add_content_to_project(
+    *,
+    repo_slug: str,
+    content_node_id: str,
+    content_url: str,
+    project: dict,
+    config_path: str | None = None,
+) -> None:
+    mode = get_operation_mode(config_path)
+    if mode == "user":
+        if not project.get("number"):
+            raise SystemExit("User mode requires projectNumber for gh project item-add")
+        gh_add_project_item(owner=project["owner"], number=int(project["number"]), url=content_url)
+        return
+
+    if not project.get("id"):
+        raise SystemExit("Organization mode requires projectId for addProjectV2ItemById")
+    token = get_installation_token(repo_slug, config_path=config_path)
+    graphql_request(
+        token,
+        query="""
+mutation($projectId: ID!, $contentId: ID!) {
+  addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+    item {
+      id
+    }
+  }
+}
+""".strip(),
+        variables={"projectId": project["id"], "contentId": content_node_id},
+    )
+
+
+def add_assignees_to_issue(
+    *,
+    repo_slug: str,
+    issue_number: int,
+    assignees: list[str],
+    config_path: str | None = None,
+) -> dict:
+    owner, repo_name = repo_slug.split("/", 1)
+    token = get_installation_token(repo_slug, config_path=config_path)
+    return json_request(
+        f"https://api.github.com/repos/{owner}/{repo_name}/issues/{issue_number}/assignees",
+        method="POST",
+        token=token,
+        payload={"assignees": assignees},
+    )
