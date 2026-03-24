@@ -52,3 +52,16 @@ def get_repository(repo_slug: str, config_path: str | None = None, per_page: int
     github_client = Github(auth=Auth.Token(access_token.token), per_page=per_page)
     return github_client.get_repo(repo_slug)
 
+
+def get_installation_token(repo_slug: str, config_path: str | None = None) -> str:
+    if "/" not in repo_slug:
+        raise SystemExit(f"repository must be in owner/repo format: {repo_slug}")
+
+    owner, repo_name = repo_slug.split("/", 1)
+    app_id, private_key = load_config(config_path)
+
+    auth = Auth.AppAuth(app_id, private_key)
+    integration = GithubIntegration(auth=auth)
+    installation = integration.get_repo_installation(owner, repo_name)
+    access_token = integration.get_access_token(installation.id)
+    return access_token.token
