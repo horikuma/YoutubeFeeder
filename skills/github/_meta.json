@@ -11,6 +11,16 @@
       "description": "Read, comment on, or update GitHub issues through PyGithub using GitHub App credentials from local secrets."
     },
     {
+      "name": "issue-defaults",
+      "path": "issue-defaults.sh",
+      "description": "Resolve and cache the default GitHub assignee/project metadata used when creating issues."
+    },
+    {
+      "name": "create-issue",
+      "path": "create-issue.sh",
+      "description": "Create GitHub issues with the default assignee and project, using cached metadata when available."
+    },
+    {
       "name": "pull-request",
       "path": "pull-request.sh",
       "description": "Create pull requests through PyGithub using GitHub App credentials from local secrets."

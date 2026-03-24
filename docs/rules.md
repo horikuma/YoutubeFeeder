@@ -19,7 +19,7 @@
 
 ## タスク別の参照順
 
-- 新規の開発セッションを始める前は、まずこの文書を読み、続いて [rules-document.md](./rules/rules-document.md) と [rules-process.md](./rules/rules-process.md) を読む。
+- 新しい開発シーケンスを始める前は、まずこの文書を読み、続いて [rules-document.md](./rules/rules-document.md) と [rules-process.md](./rules/rules-process.md) を読む。
 - 機能追加や画面仕様変更に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて [specs.md](./specs.md)、必要なら [specs-product.md](./specs/specs-product.md)、[specs-architecture.md](./specs/specs-architecture.md)、[specs-design.md](./specs/specs-design.md) を読む。
 - 不具合修正や調査に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて影響範囲に応じて [specs.md](./specs.md)、[specs-product.md](./specs/specs-product.md)、[specs-architecture.md](./specs/specs-architecture.md)、[specs-design.md](./specs/specs-design.md) を読む。
 - 設計整理や責務分割に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて [specs.md](./specs.md)、[specs-architecture.md](./specs/specs-architecture.md)、[specs-design.md](./specs/specs-design.md) を読む。
