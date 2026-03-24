@@ -33,9 +33,10 @@ def parse_args() -> argparse.Namespace:
     show_parser.add_argument("--body-only", action="store_true")
 
     update_parser = subparsers.add_parser("update-body", parents=[common])
-    update_group = update_parser.add_mutually_exclusive_group(required=True)
+    update_group = update_parser.add_mutually_exclusive_group(required=False)
     update_group.add_argument("--body")
     update_group.add_argument("--body-file")
+    update_parser.add_argument("--title")
 
     comment_parser = subparsers.add_parser("comment", parents=[common])
     comment_group = comment_parser.add_mutually_exclusive_group(required=True)
@@ -50,6 +51,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("repository must be in owner/repo format")
     if args.issue_number <= 0:
         parser.error("--issue-number must be positive")
+    if args.command == "update-body" and args.title is None and args.body is None and args.body_file is None:
+        parser.error("update-body requires --title and/or --body/--body-file")
     return args
 
 
@@ -77,8 +80,12 @@ def main() -> int:
         return 0
 
     if args.command == "update-body":
-        new_body = read_body(args)
-        issue.edit(body=new_body)
+        kwargs = {}
+        if args.title is not None:
+            kwargs["title"] = args.title
+        if args.body is not None or args.body_file is not None:
+            kwargs["body"] = read_body(args)
+        issue.edit(**kwargs)
         issue = repository.get_issue(number=args.issue_number)
         json.dump(issue.raw_data, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")

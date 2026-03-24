@@ -25,39 +25,41 @@ def load_module(filename: str, module_name: str):
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Create a GitHub issue with cached default assignee/project.")
+    parser = argparse.ArgumentParser(description="Ensure or update a GitHub project number field for an Issue or PR.")
     parser.add_argument("--repo", default=os.getenv("GITHUB_REPOSITORY"))
-    parser.add_argument("--title", required=True)
-    body_group = parser.add_mutually_exclusive_group(required=True)
-    body_group.add_argument("--body")
-    body_group.add_argument("--body-file")
+    parser.add_argument("--field-name", default="LLM所要時間")
+    parser.add_argument("--value", type=float, required=True)
     parser.add_argument("--assignee")
     parser.add_argument("--project-title")
     parser.add_argument("--project-owner")
     parser.add_argument("--cache-file", default=str(DEFAULT_CACHE_PATH))
     parser.add_argument("--refresh-defaults", action="store_true")
     parser.add_argument("--config", default=os.getenv("GITHUB_APP_CONFIG_PATH"))
+
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--content-url")
+    target.add_argument("--issue-number", type=int)
+    target.add_argument("--pull-request-number", type=int)
     args = parser.parse_args()
 
     if not args.repo:
         parser.error("--repo or GITHUB_REPOSITORY is required")
     if "/" not in args.repo:
         parser.error("repository must be in owner/repo format")
-    github_app = load_module("github-app.py", "github_app")
-    if not args.assignee:
-        args.assignee = github_app.get_default_assignee(args.repo, args.config)
-    project_defaults = github_app.get_project_settings(args.repo, args.config)
-    if not args.project_owner:
-        args.project_owner = project_defaults["owner"]
-    if not args.project_title:
-        args.project_title = project_defaults["title"]
+    if args.issue_number is not None and args.issue_number <= 0:
+        parser.error("--issue-number must be positive")
+    if args.pull_request_number is not None and args.pull_request_number <= 0:
+        parser.error("--pull-request-number must be positive")
     return args
 
 
-def read_body(args: argparse.Namespace) -> str:
-    if args.body is not None:
-        return args.body
-    return Path(args.body_file).read_text(encoding="utf-8")
+def resolve_content_url(args: argparse.Namespace) -> str:
+    if args.content_url:
+        return args.content_url
+    owner, repo_name = args.repo.split("/", 1)
+    if args.issue_number is not None:
+        return f"https://github.com/{owner}/{repo_name}/issues/{args.issue_number}"
+    return f"https://github.com/{owner}/{repo_name}/pull/{args.pull_request_number}"
 
 
 def main() -> int:
@@ -65,38 +67,35 @@ def main() -> int:
     defaults_module = load_module("issue-defaults.py", "issue_defaults")
     github_app = load_module("github-app.py", "github_app")
 
+    assignee = args.assignee or github_app.get_default_assignee(args.repo, args.config)
+    project_defaults = github_app.get_project_settings(args.repo, args.config)
+    project_owner = args.project_owner or project_defaults["owner"]
+    project_title = args.project_title or project_defaults["title"]
+
     defaults = defaults_module.resolve_defaults(
         repo=args.repo,
-        assignee_login=args.assignee,
-        project_owner=args.project_owner,
-        project_title=args.project_title,
+        assignee_login=assignee,
+        project_owner=project_owner,
+        project_title=project_title,
         cache_file=Path(args.cache_file).expanduser().resolve(),
         refresh=args.refresh_defaults,
         config_path=args.config,
     )
-    token = github_app.get_installation_token(args.repo, config_path=args.config)
-    owner, repo_name = args.repo.split("/", 1)
-
-    issue = github_app.json_request(
-        f"https://api.github.com/repos/{owner}/{repo_name}/issues",
-        method="POST",
-        token=token,
-        payload={
-            "title": args.title,
-            "body": read_body(args),
-            "assignees": [defaults["assignee"]["login"]],
-        },
-    )
-
-    github_app.add_content_to_project(
+    result = github_app.set_project_number_field_value(
         repo_slug=args.repo,
-        content_node_id=issue["node_id"],
-        content_url=issue["html_url"],
         project=defaults["project"],
+        content_url=resolve_content_url(args),
+        field_name=args.field_name,
+        value=args.value,
         config_path=args.config,
     )
-
-    sys.stdout.write(json.dumps(issue, ensure_ascii=False, indent=2))
+    payload = {
+        "project": defaults["project"],
+        "field": result["field"],
+        "item": result["item"],
+        "value": args.value,
+    }
+    json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0
 

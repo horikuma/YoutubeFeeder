@@ -33,6 +33,8 @@
 - ユーザー指示を受けた直後に `scripts/llm-elapsed.sh start` を実行し、`chat-latest.md` などを更新する直前に `scripts/llm-elapsed.sh finish` を実行して、その出力をそのまま履歴へ貼り付ける。
 - 途中確認が必要なら `scripts/llm-elapsed.sh status` を使い、取り直しが必要なら `scripts/llm-elapsed.sh reset` で現在の測定を破棄してから再開する。
 - 状態ファイルはリポジトリの `.git/llm-elapsed/` 配下へ保存し、Git 管理対象には含めない。
+- GitHub Projects に `LLM所要時間` の Number フィールドを使う場合は、[set-project-number-field](../../scripts/set-project-number-field) を使って対象 Issue または Pull Request の project item へ分数を反映する。
+- [set-project-number-field](../../scripts/set-project-number-field) は、フィールドが未作成なら `LLM所要時間` の Number フィールドを作成し、その後に値を更新する。
 
 ## 更新ルール
 
