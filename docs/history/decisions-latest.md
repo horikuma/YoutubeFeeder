@@ -1,4 +1,6 @@
 ## 2026/03/24
+- Issue コメントで blocker や確認事項の問答をしたタスクを完遂した場合は、最後に処置内容をコメントへ追記する方針にした。
+  - 途中の問答だけが Issue に残ると、最終的に何を採用し何を破棄したかを後から追えなくなるため。完了時に処置結果を明示して、Issue 単体でも判断の終着点が分かる状態を保つ。
 - GitHub 操作モードは secrets の `operationMode` で切り替え、本プロダクトは `user` モードで運用する方針にした。
   - User アカウント配下では repo 操作と Projects 操作の到達経路が一致しないため。`user` モードでは repo を GitHub App、Projects を `gh` に分離し、`organization` モードでは両方を GitHub App へ寄せる形で固定した方が再利用しやすい。
 - Issue 詳細化中や ToDo 実施中に blocker が出た場合は、Issue コメントへ確認内容を書いて停止する方針にした。
