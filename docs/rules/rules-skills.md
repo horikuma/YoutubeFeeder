@@ -44,7 +44,8 @@
 - 認証情報や秘密情報は `scripts` や `skills` に埋め込まず、ignore 対象の JSON 設定やリポジトリ外ファイルから受け取る。
 - 外部サービスの認証設定は、shell の `eval` で環境変数を展開せず、ignore 対象の JSON を読み込む実装へ統一する。
 - GitHub 関連の secrets には `operationMode` を持たせ、`user` または `organization` のどちらで動くかを設定ファイル側で切り替えられるようにする。
-- GitHub 関連の secrets には、少なくとも `projectOwner`、`projectTitle`、必要に応じて `projectNumber` と `projectId` を持たせ、Issue / Pull Request と Project の対応を再利用できるようにする。
+- GitHub 関連の secrets には、少なくとも `projectOwner`、`projectTitle`、必要に応じて `projectNumber`、`projectId`、`defaultAssignee` を持たせ、Issue / Pull Request と Project の対応を再利用できるようにする。
+- rules 文書には Assignee 名や Project 名のようなプロダクト固有値を固定せず、GitHub skill / script は secrets と local cache から既定値を解決する。
 - 仮想環境や依存実行系の吸収が必要な場合は、`skills` 側で処理するか、`scripts` から最小限の形で委譲する。
 - LLM が補助ファイルや一時ファイルを生成する場合は、`temp-llm/` を使い、不要になっても自動削除しない。
 - GitHub の Assignee / Project のように毎回の曖昧一致を避けたい外部メタデータは、厳密に解決した結果を `temp-llm/` 配下の local cache へ保持し、cache が無い時だけ取得し直す。

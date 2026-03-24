@@ -23,15 +23,16 @@
 ### Issue 駆動の進め方
 
 - チャット欄から着手したタスクでは、作業開始前にユーザー指示を原文として残した Issue を作成する。
-- Issue を作成する時は、Assignees に `horikuma`、Projects に `YoutubeFeeder` を設定する。
-- GitHub 操作モードは secrets の `operationMode` で管理し、本プロダクトでは `user` モードを使う。
+- Issue / Pull Request の Assignee や Project の既定値は、rules へ直書きせず secrets と local cache から解決する。
+- GitHub 操作モードは secrets の `operationMode` で管理し、rules には特定プロダクトの固定モードを埋め込まない。
 - `user` モードでは、Issue / Pull Request の repo 操作は GitHub App、Projects 操作は `gh` で行う。
 - `organization` モードでは、Issue / Pull Request の repo 操作も Projects 操作も GitHub App で行う。
-- Issue 作成時に使う Assignee / Project の厳密な解決結果は local cache として `temp-llm/` 配下へ保持し、cache が無い時だけ対応する skill / script で再取得する。
-- チャット欄から作成した Issue は、元の指示を `原文` として残したうえで、背景、目的、スコープ、実施タスク、完了条件などを追記して詳細化し、その詳細化済み Issue を以後の実装上の正本として扱う。
+- Issue / Pull Request の既定 Assignee / Project の厳密な解決結果は local cache として `temp-llm/` 配下へ保持し、cache が無い時だけ対応する skill / script で再取得する。
+- rules へプロダクト固有値を持ち込む指示、または既存ルールに反する指示を受けた場合は、その内容を Issue コメントへ記録して停止し、次の指示を待つ。
+- チャット欄から作成した Issue は、元の指示を `原文` として残したうえで、Description にはチェックボックス付き ToDo のみを追記し、背景、目的、スコープ、実施タスク、完了条件などの詳細化本文は Issue コメントで追記する。そのコメント以後の整理結果を実装上の正本として扱う。
 - チャット起点で作成した Issue は、詳細化が完了した時点で通常の Issue 起点タスクと同じプロセスへ合流させ、以後は区別せず運用する。
 - Issue に基づいて着手するタスクでは、実装前に対象 Issue の Description を読み、作業単位、完了条件、非対象を確認してから着手する。
-- `Issue-x を詳細化せよ` と指示された場合は、ユーザーから与えられた元の指示自体は残し、その下に背景、目的、スコープ、実施タスク、完了条件などを整理して追加し、追加した構造化内容を以後の実装上の正本として扱う。
+- `Issue-x を詳細化せよ` と指示された場合は、ユーザーから与えられた元の指示自体は残し、Description にはチェックボックス付き ToDo だけを追記する。背景、目的、スコープ、実施タスク、完了条件などの構造化内容は Issue コメントで追加し、そのコメントを以後の実装上の正本として扱う。
 - Issue の詳細化中に blocker が見つかった場合は、その時点で Issue コメントへ理由、確認した内容、現在の状況を書き残して停止する。
 - Issue を詳細化する時は、本文だけでなくタイトルも内容に見合う具体度へ更新し、一覧から見ても作業対象が判別できる状態を保つ。
 - Issue に着手したら、実装開始前に対象 Issue に対応する作業ブランチを作成し、進行状態の管理は Issue ラベルではなく GitHub Projects や Pull Request の関係で追跡する。
@@ -40,7 +41,7 @@
 - 実装中は、意味のある変更がまとまるたびにコミットし、途中経過が再現できる粒度で履歴を残す。
 - タスクを実施できないと判明した場合は、新規実装や派生作業へ進まず、Issue のコメントに理由、確認した内容、現在の状況を書き残して処理を中断する。
 - Issue コメントで blocker や確認事項の問答を行ったタスクを完遂した場合は、最後に「どの問題をどう処置して完了へ進めたか」を Issue コメントへ追記し、Issue 上から最終判断が辿れる状態を保つ。
-- タスク完了時は、関連する検証と文書同期を終えたうえで Pull Request を作成し、Issue と同様に Assignees に `horikuma`、Projects に `YoutubeFeeder` を設定して完了へ進める。LLM は Issue を直接 close しない。
+- タスク完了時は、関連する検証と文書同期を終えたうえで Pull Request を作成し、Issue と同じ既定値解決経路で Assignee / Project を設定して完了へ進める。LLM は Issue を直接 close しない。
 
 ### テストと検証
 

@@ -31,8 +31,8 @@ def parse_args() -> argparse.Namespace:
     body_group = parser.add_mutually_exclusive_group(required=True)
     body_group.add_argument("--body")
     body_group.add_argument("--body-file")
-    parser.add_argument("--assignee", default="horikuma")
-    parser.add_argument("--project-title", default="YoutubeFeeder")
+    parser.add_argument("--assignee")
+    parser.add_argument("--project-title")
     parser.add_argument("--project-owner")
     parser.add_argument("--cache-file", default=str(DEFAULT_CACHE_PATH))
     parser.add_argument("--refresh-defaults", action="store_true")
@@ -43,8 +43,14 @@ def parse_args() -> argparse.Namespace:
         parser.error("--repo or GITHUB_REPOSITORY is required")
     if "/" not in args.repo:
         parser.error("repository must be in owner/repo format")
+    github_app = load_module("github-app.py", "github_app")
+    if not args.assignee:
+        args.assignee = github_app.get_default_assignee(args.repo, args.config)
+    project_defaults = github_app.get_project_settings(args.repo, args.config)
     if not args.project_owner:
-        args.project_owner = args.repo.split("/", 1)[0]
+        args.project_owner = project_defaults["owner"]
+    if not args.project_title:
+        args.project_title = project_defaults["title"]
     return args
 
 
