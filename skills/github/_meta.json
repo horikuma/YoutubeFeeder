@@ -24,6 +24,11 @@
       "name": "pull-request",
       "path": "pull-request.sh",
       "description": "Create pull requests through PyGithub using GitHub App credentials from local secrets."
+    },
+    {
+      "name": "project-field",
+      "path": "project-field.sh",
+      "description": "Ensure and update GitHub Project number fields for Issues or Pull Requests."
     }
   ]
 }

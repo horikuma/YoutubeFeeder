@@ -50,6 +50,7 @@
 - LLM が補助ファイルや一時ファイルを生成する場合は、`temp-llm/` を使い、不要になっても自動削除しない。
 - GitHub の Assignee / Project のように毎回の曖昧一致を避けたい外部メタデータは、厳密に解決した結果を `temp-llm/` 配下の local cache へ保持し、cache が無い時だけ取得し直す。
 - GitHub skill は `user` モードでは repo 操作を GitHub App、Projects 操作を `gh` へ振り分け、`organization` モードでは repo 操作も Projects 操作も GitHub App へ寄せる。
+- GitHub Project の custom field を扱う skill / script も、同じ mode 解決に従って field の作成と item 値更新を行う。
 - `history/*-latest.md` から `history/*-log.md` への移行のように大きな履歴文書を扱う処理は、LLM が巨大な log 本文を直接読んで編集せず、local skill / script として実装する。
 - 特定の外部サービスへ接続する skill は、対象サービスの現行 API を前提にし、旧 API や場当たり的なフォールバック経路を持ち込まない。
 - `skills` と `scripts` の利用例や動作確認コマンドは、ワークスペース root から実行できる相対パス基準で記述する。
