@@ -2,7 +2,7 @@
 
 この文書は、YoutubeFeeder アプリの要求仕様と機能仕様を記述する正本である。人間および LLM が、このアプリが何をしなければならないか、どのように振る舞わなければならないか、何を壊してはいけないかを同じ基準で理解するために用いる。
 
-文書群の役割分担と文書運用ルールは [rules-document.md](../rules/rules-document.md) を参照する。
+文書群の役割分担と文書運用ルールは [rules-update-documents.md](../rules/rules-update-documents.md) を参照する。
 
 ## 1. 目的
 
@@ -455,5 +455,5 @@
 ## 8. 仕様とルールの境界
 
 - この文書には、ユーザーから見える振る舞い、キャッシュ更新の挙動、画面要件、非機能要件を記載する
-- 実装責務や rules コレクション全体の入口は [rules.md](../rules.md)、テスト運用と変更管理は [rules-process.md](../rules/rules-process.md)、文書更新手順は [rules-document.md](../rules/rules-document.md) に記載する
+- 実装責務や rules コレクション全体の入口は [rules.md](../rules.md)、テスト運用と変更管理は [rules-run-development.md](../rules/rules-run-development.md)、文書更新手順は [rules-update-documents.md](../rules/rules-update-documents.md) に記載する
 - 仕様変更時は、この文書と rules コレクションを確認し、振る舞いと開発ルールの間に矛盾を残してはならない
