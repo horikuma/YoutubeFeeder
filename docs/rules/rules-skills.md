@@ -60,7 +60,7 @@ rules コレクション全体の役割分担を判断する場合に限って [
 - 履歴ローテーションの正規入口は [skills/history/rotate-history.sh](../../skills/history/rotate-history.sh) と [scripts/rotate-history](../../scripts/rotate-history) とし、`tools` 配下の一時スクリプトを開発プロセスの正規手順にしてはならない。
 - 履歴ローテーション skill / script は、`*-latest.md` 全体を無条件に空にするのではなく、過去日分だけを `*-log.md` へ移し、当日分があれば `*-latest.md` に残す契約で実装する。
 - 特定の外部サービスへ接続する skill は、対象サービスの現行 API を前提にしなければならず、旧 API や場当たり的なフォールバック経路を持ち込んではならない。
-- `skills` と `scripts` の利用例や動作確認コマンドは、ワークスペース root から実行できる相対パス基準で記述する。
+- `skills` と `scripts` の利用例や動作確認コマンドは、ワークスペース root から実行できる相対パス基準で記述しなければならない。
 - `tools`、`skills`、`scripts` のいずれでも、リポジトリに残す必要のない生成物はコミットしない。
 
 ## 更新判断
