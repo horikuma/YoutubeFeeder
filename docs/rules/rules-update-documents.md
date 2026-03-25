@@ -1,8 +1,8 @@
-# Document Rules
+# Document Update Rules
 
-この文書を、このリポジトリの文書群に関する上位ルールの正本として扱わなければならない。ここへ記述してよい内容は、文書体系、文書更新時の配置判断、参照資料の位置付け、文書運用、履歴文書、Markdown 記述の共通ルールだけに限定し、それ以外を混在させてはならない。
+この文書を、このリポジトリで文書を更新する時に参照する正本として扱わなければならない。ここへ記述してよい内容は、文書体系、文書更新時の配置判断、参照資料の位置付け、文書運用、履歴文書、Markdown 記述の共通ルールだけに限定し、それ以外を混在させてはならない。
 
-rules コレクション全体の役割分担を判断する場合に限って [rules.md](../rules.md) を参照しなければならず、開発フローを判断する場合に限って [rules-process.md](./rules-process.md) を参照しなければならない。それ以外の論点ではこれらを参照してはならない。
+rules コレクション全体の役割分担を判断する場合に限って [rules.md](../rules.md) を参照しなければならず、開発フローを判断する場合に限って [rules-run-development.md](./rules-run-development.md) を参照しなければならない。それ以外の論点ではこれらを参照してはならない。
 
 ## 文書体系
 
@@ -10,13 +10,13 @@ rules コレクション全体の役割分担を判断する場合に限って [
 
 - [rules.md](../rules.md)
   - rules コレクション全体の入口と参照順序を判断する場合に限って参照しなければならず、それ以外の論点では参照してはならない。
-- [rules-document.md](./rules-document.md)
+- [rules-update-documents.md](./rules-update-documents.md)
   - 文書体系、文書の切り分け、履歴文書、Markdown、human-view の運用を判断する場合に限って参照しなければならず、それ以外の論点では参照してはならない。
-- [rules-process.md](./rules-process.md)
+- [rules-run-development.md](./rules-run-development.md)
   - 開発シーケンス、テスト、検証、完了条件、健全性観測を判断する場合に限って参照しなければならず、それ以外の論点では参照してはならない。
-- [rules-domain.md](./rules-domain.md)
+- [rules-change-languages.md](./rules-change-languages.md)
   - shell、Python、C 系言語、`skills` の複雑度しきい値など、言語単位の原理原則を判断する場合に限って参照しなければならず、それ以外の論点では参照してはならない。
-- [rules-skills.md](./rules-skills.md)
+- [rules-change-tools.md](./rules-change-tools.md)
   - `tools`、`skills`、`scripts` の責務と運用ルールを判断する場合に限って参照しなければならず、それ以外の論点では参照してはならない。
 - [specs.md](../specs.md)
   - specs コレクション全体の入口と参照順序を判断する場合に限って参照しなければならず、それ以外の論点では参照してはならない。
@@ -28,7 +28,7 @@ rules コレクション全体の役割分担を判断する場合に限って [
   - ファイル単位、型単位、テスト単位の責務や構成など、詳細設計を判断する場合に限って参照しなければならず、それ以外の論点では参照してはならない。
 - [specs-environment.md](../specs/specs-environment.md)
   - ローカル開発に必要なツール、版固定、セットアップ手順、再現性を判断する場合に限って参照しなければならず、それ以外の論点では参照してはならない。
-- [rules-design.md](./rules-design.md)
+- [rules-change-visual-design.md](./rules-change-visual-design.md)
   - 画面設計、余白、文字組み、色の使い方など、視覚設計ルールを判断する場合に限って参照しなければならず、それ以外の論点では参照してはならない。
 
 ### 参照資料
@@ -48,13 +48,13 @@ rules コレクション全体の役割分担を判断する場合に限って [
 
 - `rules.md` へ実装詳細や画面単位の仕様を集約してはならない。
 - `rules.md` へ個別運用フローや directory 運用の本文を集約してはならない。
-- 開発フロー、完了条件、検証手順、健全性観測を更新する場合は [rules-process.md](./rules-process.md) へ記述しなければならない。ここへ直接書いてはならない。
-- 言語単位の formatter / lint、shell wrapper、複雑度しきい値を更新する場合は [rules-domain.md](./rules-domain.md) へ記述しなければならない。ここへ直接書いてはならない。
-- `tools`、`skills`、`scripts` の責務や配置規則を更新する場合は [rules-skills.md](./rules-skills.md) へ記述しなければならない。ここへ直接書いてはならない。
+- 開発フロー、完了条件、検証手順、健全性観測を更新する場合は [rules-run-development.md](./rules-run-development.md) へ記述しなければならない。ここへ直接書いてはならない。
+- 言語単位の formatter / lint、shell wrapper、複雑度しきい値を更新する場合は [rules-change-languages.md](./rules-change-languages.md) へ記述しなければならない。ここへ直接書いてはならない。
+- `tools`、`skills`、`scripts` の責務や配置規則を更新する場合は [rules-change-tools.md](./rules-change-tools.md) へ記述しなければならない。ここへ直接書いてはならない。
 - クラス名や型名が出る内容を更新する場合は、原則として [specs-design.md](../specs/specs-design.md) へ記述しなければならない。ここへ直接書いてはならない。
-- 画面の見た目や視覚的一貫性の基準を更新する場合は、仕様や詳細設計へ散らさず [rules-design.md](./rules-design.md) へ記述しなければならない。
+- 画面の見た目や視覚的一貫性の基準を更新する場合は、仕様や詳細設計へ散らさず [rules-change-visual-design.md](./rules-change-visual-design.md) へ記述しなければならない。
 - ユーザー操作や画面導線に依存する内容を更新する場合は、原則として [specs-product.md](../specs/specs-product.md) へ記述しなければならない。ここへ直接書いてはならない。
-- 変更しても全体構造が変わらない実装運用の詳細を更新する場合は、主題に応じて [rules-process.md](./rules-process.md) または [specs-product.md](../specs/specs-product.md) へ記述しなければならない。該当しない文書へ書いてはならない。
+- 変更しても全体構造が変わらない実装運用の詳細を更新する場合は、主題に応じて [rules-run-development.md](./rules-run-development.md) または [specs-product.md](../specs/specs-product.md) へ記述しなければならない。該当しない文書へ書いてはならない。
 - レイヤ構造、依存方向、データフローの形、責務の原則を規定する内容を更新する場合は、[specs-architecture.md](../specs/specs-architecture.md) へ記述しなければならない。ここへ直接書いてはならない。
 - 開発環境、版固定、ローカル検証手順、再現性の確保方法を更新する場合は、[specs-environment.md](../specs/specs-environment.md) へ記述しなければならない。ここへ直接書いてはならない。
 - 文書の内容が詳細化しすぎた場合は、上位方針を残して詳細を対応する正本文書へ移さなければならない。上位文書を詳細で肥大化させてはならない。
@@ -82,10 +82,10 @@ rules コレクション全体の役割分担を判断する場合に限って [
 ### 変更時の更新対象
 
 - 上位方針や rules コレクションの役割分担を変更したら [rules.md](../rules.md) を見直す。
-- 文書体系、履歴、Markdown、human-view のルールを変更したら [rules-document.md](./rules-document.md) を見直す。
-- 開発フロー、検証、完了条件、健全性観測を変更したら [rules-process.md](./rules-process.md) を見直す。
-- 言語単位の formatter / lint、shell wrapper、複雑度しきい値を変更したら [rules-domain.md](./rules-domain.md) を見直す。
-- `tools`、`skills`、`scripts` の責務や配置規則を変更したら [rules-skills.md](./rules-skills.md) を見直す。
+- 文書体系、履歴、Markdown、human-view のルールを変更したら [rules-update-documents.md](./rules-update-documents.md) を見直す。
+- 開発フロー、検証、完了条件、健全性観測を変更したら [rules-run-development.md](./rules-run-development.md) を見直す。
+- 言語単位の formatter / lint、shell wrapper、複雑度しきい値を変更したら [rules-change-languages.md](./rules-change-languages.md) を見直す。
+- `tools`、`skills`、`scripts` の責務や配置規則を変更したら [rules-change-tools.md](./rules-change-tools.md) を見直す。
 - specs コレクション全体の役割分担を変更したら [specs.md](../specs.md) を見直す。
 - 機能を変更したら [specs-product.md](../specs/specs-product.md) を見直す。
 - 採用アーキテクチャ、責務境界、データフロー、テスト方針を変更したら [specs-architecture.md](../specs/specs-architecture.md) を見直す。
@@ -93,7 +93,7 @@ rules コレクション全体の役割分担を判断する場合に限って [
 - 開発環境、版固定、ローカル検証手順を変更したら [specs-environment.md](../specs/specs-environment.md) を見直す。
 - GUI の見た目、パーツ名、画面遷移、画面ごとの指示に使う呼び名を変更したら [gui.md](../human-view/gui.md) を見直す。
 - 人間向けの設計図や依存関係の見え方が変わる変更では [design-overview.md](../human-view/design-overview.md) を見直す。
-- 余白、文字組み、色の使い方、視覚的一貫性の基準を変更したら [rules-design.md](./rules-design.md) を見直す。
+- 余白、文字組み、色の使い方、視覚的一貫性の基準を変更したら [rules-change-visual-design.md](./rules-change-visual-design.md) を見直す。
 - 検証コストや性能観測の更新では [metrics-latest.md](../history/metrics-latest.md) を更新し、日次履歴は [metrics-log.md](../history/metrics-log.md) で保持する。
 - metrics の参照資料を置く場合は `docs/metrics/` 配下へ置かなければならず、用途別の個別文書として扱わなければならない。metrics 専用の index 文書を作ってはならない。
 
@@ -156,7 +156,7 @@ rules コレクション全体の役割分担を判断する場合に限って [
 - [chat-log.md](../history/chat-log.md) は日次ローテーション後の履歴保持先として扱わなければならない。
 - 同じ日付の中では、新しい発言ほど上、古い発言ほど下になるように追記する。
 - 各発言には、`(LLM所要時間: 約12分)` の形式で所要時間を併記する。
-- 所要時間の測定手順、記録基準、例外条件は [rules-process.md](./rules-process.md) の開発フローに従う。
+- 所要時間の測定手順、記録基準、例外条件は [rules-run-development.md](./rules-run-development.md) の開発フローに従う。
 - 基本的にはユーザー発言をそのまま記録する。
 - ただし、明らかな変換ミスや誤字は、意味を変えない範囲で修正してよい。
 - `chatlog.md` や `Chatlog.md` のような旧名や揺れを受け取った場合でも、現在の運用名である `history/chat-log.md` または `history/chat-latest.md` に読み替えて扱わなければならない。旧名のまま新規運用してはならない。

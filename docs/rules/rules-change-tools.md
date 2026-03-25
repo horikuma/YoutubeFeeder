@@ -1,13 +1,13 @@
-# Skills Rules
+# Tool Change Rules
 
-この文書を、このリポジトリ直下の `tools`、`skills`、`scripts` に関する運用ルールの正本として扱わなければならない。ここへ記述してよい内容は、各ディレクトリの責務、配置規則、命名規則、更新判断、動作確認の原則だけに限定し、それ以外を混在させてはならない。
+この文書を、このリポジトリで `tools`、`skills`、`scripts` または GitHub skill を変更する時に参照する正本として扱わなければならない。ここへ記述してよい内容は、各ディレクトリの責務、配置規則、命名規則、更新判断、動作確認の原則だけに限定し、それ以外を混在させてはならない。
 
-rules コレクション全体の役割分担を判断する場合に限って [rules.md](../rules.md) を参照しなければならず、文書体系と履歴運用を判断する場合に限って [rules-document.md](./rules-document.md) を参照しなければならない。開発フローを判断する場合に限って [rules-process.md](./rules-process.md) を参照しなければならず、それ以外の論点ではこれらを参照してはならない。
+rules コレクション全体の役割分担を判断する場合に限って [rules.md](../rules.md) を参照しなければならず、文書体系と履歴運用を判断する場合に限って [rules-update-documents.md](./rules-update-documents.md) を参照しなければならない。開発フローを判断する場合に限って [rules-run-development.md](./rules-run-development.md) を参照しなければならず、それ以外の論点ではこれらを参照してはならない。
 
 ## この文書の位置付け
 
-- `rules-skills.md` では、`tools`、`skills`、`scripts` に関するルールだけを定義しなければならない。これに該当しない内容を記述してはならない。
-- shell、Python、C 系言語のような言語単位の原則を判断する場合は [rules-domain.md](./rules-domain.md) を正本として参照しなければならず、この文書へ重複して書いてはならない。
+- `rules-change-tools.md` では、`tools`、`skills`、`scripts` に関するルールだけを定義しなければならない。これに該当しない内容を記述してはならない。
+- shell、Python、C 系言語のような言語単位の原則を判断する場合は [rules-change-languages.md](./rules-change-languages.md) を正本として参照しなければならず、この文書へ重複して書いてはならない。
 - skills 自体の実装詳細や個別コマンド仕様を定義する場合は、対応するディレクトリ配下の文書へ置かなければならない。この文書へ実装本文を集約してはならない。
 
 ## ディレクトリの役割
@@ -25,7 +25,7 @@ rules コレクション全体の役割分担を判断する場合に限って [
 - `scripts` はリポジトリ直下の入口として置かなければならず、対応する skills の呼び出しだけを行わなければならない。独自実装を追加してはならない。
 - `scripts` から skills を呼ぶ時は、リポジトリ root 基準またはスクリプト自身の位置から相対解決し、呼び出し先の実体パスをハードコードしすぎない。
 - `skills` 内で必要になる補助ファイルは、可能な限り同じ skill ディレクトリ配下へ閉じ込める。
-- Python 系の共有実行環境や依存定義は、言語単位ルールとして [rules-domain.md](./rules-domain.md) に従い、skill ごとの局所配置へ分散させすぎない。
+- Python 系の共有実行環境や依存定義は、言語単位ルールとして [rules-change-languages.md](./rules-change-languages.md) に従い、skill ごとの局所配置へ分散させすぎない。
 - `tools` には skills の公開入口を重複して置かず、temporary な補助や移行用の機械処理へ責務を限定する。
 
 ## 命名規則
@@ -42,12 +42,12 @@ rules コレクション全体の役割分担を判断する場合に限って [
 - `skills` は再利用対象として、引数、環境変数、終了コードの契約を明確に保たなければならない。暗黙動作へ依存してはならない。
 - `_meta.json` には、そのサブディレクトリ配下で公開する commands を集約し、同一ドメインの skill ごとに分散定義しない。
 - `scripts` は `bash skills/... "$@"` 相当の薄いラッパーに留め、追加の分岐や変換を増やさない。
-- shell wrapper の分岐禁止や互換性方針は [rules-domain.md](./rules-domain.md) に従う。
+- shell wrapper の分岐禁止や互換性方針は [rules-change-languages.md](./rules-change-languages.md) に従う。
 - 認証情報や秘密情報は `scripts` や `skills` に埋め込まず、ignore 対象の JSON 設定やリポジトリ外ファイルから受け取る。
 - 外部サービスの認証設定は、shell の `eval` で環境変数を展開せず、ignore 対象の JSON を読み込む実装へ統一する。
 - GitHub 関連の secrets には `operationMode` を持たせなければならず、`user` または `organization` のどちらで動くかを設定ファイル側で切り替えられるようにしなければならない。
-- GitHub 関連の secrets は mode 判定に必要な最小情報だけを持たなければならず、既定 Assignee と既定 Projects は `llm-cache/` 配下の local cache を正本として管理しなければならない。secrets 側へ重複保持してはならない。
-- rules 文書へ Assignee 名や Project 名のようなプロダクト固有値を固定してはならず、GitHub skill / script は secrets と `llm-cache/` から既定値を解決しなければならない。
+- GitHub 関連の secrets は mode 判定に必要な最小情報だけを持たなければならず、Issue の既定 Assignee / Project と Pull Request の既定 Assignee は `llm-cache/` 配下の local cache を正本として管理しなければならない。secrets 側へ重複保持してはならない。
+- rules 文書へ Assignee 名や Project 名のようなプロダクト固有値を固定してはならず、GitHub skill / script は secrets と `llm-cache/` から既定値を解決しなければならない。Pull Request の Project 登録を既定動作にしてはならない。
 - 仮想環境や依存実行系の吸収が必要な場合は、`skills` 側で処理するか、`scripts` から最小限の形で委譲しなければならない。`scripts` 側へ複雑な吸収ロジックを持ち込んではならない。
 - `skills` の複雑度が上がった場合は、プロダクトコードのように内部レイヤを過剰分割する前に、skill 単位または command 単位への分割を優先する。
 - LLM が補助ファイルや一時ファイルを生成する場合は、`llm-temp/` を使い、不要になっても自動削除しない。
@@ -56,6 +56,7 @@ rules コレクション全体の役割分担を判断する場合に限って [
 - GitHub Project の custom field を扱う skill / script も、同じ mode 解決に従って field の作成と item 値更新を行う。
 - GitHub skill / script は、開発セッション開始時に現在の main ブランチ名と現在の mode を開発セッション情報として出力し、以後の branch base と API 経路判断に使う。
 - GitHub skill / script は、同じ開発セッション内の後続シーケンスで session main の問い合わせを繰り返さず、`llm-cache/session-context.json` に保持された値を参照して Issue / Pull Request の base を決める。
+- Issue に対応する作業ブランチを作成した後は、そのブランチ名を対象 Issue のコメントへ記録できる経路を維持しなければならない。正規入口は [skills/github/register-issue-branch.sh](../../skills/github/register-issue-branch.sh) と [scripts/register-issue-branch](../../scripts/register-issue-branch) に限定し、Issue とブランチの対応が GitHub 上から追えない状態にしてはならない。
 - `history/*-latest.md` から `history/*-log.md` への移行のように大きな履歴文書を扱う処理は、local skill / script として実装しなければならない。LLM が巨大な log 本文を直接読んで編集してはならない。
 - 履歴ローテーションの正規入口は [skills/history/rotate-history.sh](../../skills/history/rotate-history.sh) と [scripts/rotate-history](../../scripts/rotate-history) とし、`tools` 配下の一時スクリプトを開発プロセスの正規手順にしてはならない。
 - 履歴ローテーション skill / script は、`*-latest.md` 全体を無条件に空にするのではなく、過去日分だけを `*-log.md` へ移し、当日分があれば `*-latest.md` に残す契約で実装する。

@@ -26,6 +26,11 @@
       "description": "Create pull requests through PyGithub using GitHub App credentials from local secrets."
     },
     {
+      "name": "register-issue-branch",
+      "path": "register-issue-branch.sh",
+      "description": "Record the issue work branch in a standardized GitHub issue comment through PyGithub."
+    },
+    {
       "name": "project-field",
       "path": "project-field.sh",
       "description": "Ensure and update GitHub Project number fields for Issues or Pull Requests."
