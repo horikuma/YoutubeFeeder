@@ -6,7 +6,7 @@
 
 - `rules.md` は、rules コレクション全体の索引とし、個別ルール本文の置き場として肥大化させない。
 - この文書には、rules コレクション全体に共通する運用原則、各 rules 文書の責務、開発着手時の参照順だけを残す。
-- 文書運用、開発フロー、tools / skills / scripts の具体ルールは、対応する個別文書へ委譲する。
+- 文書運用、開発フロー、言語単位、tools / skills / scripts の具体ルールは、対応する個別文書へ委譲する。
 
 ## rules コレクション
 
@@ -14,6 +14,8 @@
   - 文書体系、文書の切り分け、履歴文書、Markdown、human-view の運用を扱う。
 - [rules-process.md](./rules/rules-process.md)
   - 開発シーケンス、テスト、検証、完了条件、健康度観測のフローを扱う。
+- [rules-domain.md](./rules/rules-domain.md)
+  - shell、Python、C 系言語、`skills` の複雑度しきい値など、言語単位の原理原則を扱う。
 - [rules-skills.md](./rules/rules-skills.md)
   - `tools`、`skills`、`scripts` の責務と運用ルールを扱う。
 
@@ -25,6 +27,7 @@
 - 設計整理や責務分割に着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて [specs.md](./specs.md)、[specs-architecture.md](./specs/specs-architecture.md)、[specs-design.md](./specs/specs-design.md) を読む。
 - 開発環境、版固定、ローカル検証手順の変更へ着手する前は、[rules-process.md](./rules/rules-process.md) を読み、続いて [specs.md](./specs.md) と [specs-environment.md](./specs/specs-environment.md) を読む。
 - 文書更新に着手する前は、[rules-document.md](./rules/rules-document.md) を読み、どの文書へ置くべきかの判断基準を確認する。
+- 実装言語、formatter / lint、shell wrapper の変更へ着手する前は、[rules-domain.md](./rules/rules-domain.md) を追加で読む。
 - `tools`、`skills`、`scripts` に関わる変更へ着手する前は、[rules-skills.md](./rules/rules-skills.md) を追加で読む。
 - 開発シーケンスの終盤で文書更新へ入る前は、この文書を再読し、役割分担を崩す更新を混ぜていないことを確認する。
 

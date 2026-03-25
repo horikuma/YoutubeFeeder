@@ -14,6 +14,8 @@
   - 文書体系、文書の切り分け、履歴文書、Markdown、human-view の運用を記述する。
 - [rules-process.md](./rules-process.md)
   - 開発シーケンス、テスト、検証、完了条件、健全性観測のフローを記述する。
+- [rules-domain.md](./rules-domain.md)
+  - shell、Python、C 系言語、`skills` の複雑度しきい値など、言語単位の原理原則を記述する。
 - [rules-skills.md](./rules-skills.md)
   - `tools`、`skills`、`scripts` の責務と運用ルールを記述する。
 - [specs.md](../specs.md)
@@ -47,6 +49,7 @@
 - `rules.md` へ実装詳細や画面単位の仕様を集約してはならない。
 - `rules.md` へ個別運用フローや directory 運用の本文を集約してはならない。
 - 開発フロー、完了条件、検証手順、健全性観測は [rules-process.md](./rules-process.md) へ置く。
+- 言語単位の formatter / lint、shell wrapper、複雑度しきい値は [rules-domain.md](./rules-domain.md) へ置く。
 - `tools`、`skills`、`scripts` の責務や配置規則は [rules-skills.md](./rules-skills.md) へ置く。
 - クラス名や型名が出る内容は、原則として [specs-design.md](../specs/specs-design.md) へ置く。
 - 画面の見た目や視覚的一貫性の基準は、仕様や詳細設計へ散らさず [rules-design.md](./rules-design.md) へ置く。
@@ -81,6 +84,7 @@
 - 上位方針や rules コレクションの役割分担を変更したら [rules.md](../rules.md) を見直す。
 - 文書体系、履歴、Markdown、human-view のルールを変更したら [rules-document.md](./rules-document.md) を見直す。
 - 開発フロー、検証、完了条件、健全性観測を変更したら [rules-process.md](./rules-process.md) を見直す。
+- 言語単位の formatter / lint、shell wrapper、複雑度しきい値を変更したら [rules-domain.md](./rules-domain.md) を見直す。
 - `tools`、`skills`、`scripts` の責務や配置規則を変更したら [rules-skills.md](./rules-skills.md) を見直す。
 - specs コレクション全体の役割分担を変更したら [specs.md](../specs.md) を見直す。
 - 機能を変更したら [specs-product.md](../specs/specs-product.md) を見直す。
@@ -137,10 +141,11 @@
 
 - 履歴を継続的に蓄積する文書は `history/chat-log.md`、`history/metrics-log.md`、`history/decisions-log.md` とし、当日作業中の追記先は対応する `*-latest.md` とする。
 - 当日中の更新は原則として対応する `*-latest.md` に対して行い、履歴文書 `*-log.md` へその場で追記しない。
-- 日付が変わった後で最初の開発シーケンスを始める時は、前日までの `*-latest.md` の内容を対応する `*-log.md` の先頭へ挿入してから `*-latest.md` を空にし、その当日分の運用を開始する。
+- 日付が変わった後で最初の開発シーケンスを始める時は、前日までの `*-latest.md` の内容を対応する `*-log.md` の先頭へ挿入し、当日分がすでに `*-latest.md` に存在する場合はその当日分だけを残して運用を継続する。
 - `*-latest.md` はトークン消費を抑えるための当日分バッファとして扱い、履歴の正本は `*-log.md` とする。
 - `*-log.md` は原則として LLM の通常読込対象にせず、当日作業では `*-latest.md` を優先して扱う。
-- `*-latest.md` から `*-log.md` への移行は、巨大な log を人手や LLM が直接結合せず、対応する local skill / script を使って行う。
+- `*-latest.md` から `*-log.md` への移行は、巨大な log を人手や LLM が直接結合せず、[scripts/rotate-history](../../scripts/rotate-history) のような対応する local skill / script を使って行う。
+- `*-log.md` はクォータ消費が大きいため、通常の開発では LLM が本文を読んで原因調査や結合作業をしてはならず、必要な場合はユーザーが明示的に許可した最小範囲だけを読む。
 - [chat-log.md](../history/chat-log.md)、[chat-latest.md](../history/chat-latest.md)、[metrics-log.md](../history/metrics-log.md)、[metrics-latest.md](../history/metrics-latest.md)、[decisions-log.md](../history/decisions-log.md)、[decisions-latest.md](../history/decisions-latest.md) は、先頭行を日付見出しから始め、先頭の説明文を置かない。
 - 新しい日付見出しを追加する場合は、直前の日付見出しとの間に 1 行だけ空行を入れる。
 - 見出しと直後の列挙の間には空行を入れない。
