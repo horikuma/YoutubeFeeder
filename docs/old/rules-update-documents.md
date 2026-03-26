@@ -141,12 +141,12 @@ rules コレクション全体の役割分担を判断する場合に限って [
 
 - 履歴を継続的に蓄積する文書は `history/chat-log.md`、`history/metrics-log.md`、`history/decisions-log.md` に限定しなければならず、当日作業中の追記先は対応する `*-latest.md` にしなければならない。別名の正本を増やしてはならない。
 - 当日中の更新は原則として対応する `*-latest.md` に対して行い、履歴文書 `*-log.md` へその場で追記しない。
-- 日付が変わった後で最初の開発シーケンスを始める時は、前日までの `*-latest.md` の内容を対応する `*-log.md` の先頭へ挿入し、当日分がすでに `*-latest.md` に存在する場合はその当日分だけを残して運用を継続する。
-- `*-latest.md` はトークン消費を抑えるための当日分バッファとして扱わなければならず、履歴の正本は `*-log.md` にしなければならない。役割を逆転させてはならない。
+- 日付が変わった後で最初の開発シーケンスを始める時は、前日までの `*-latest.md` の内容を対応する `*-log.md` の先頭へ挿入し、当日分がすでに `*-latest.md` に存在する場合はその当日分だけを残して運用を継続する。`[反映済み]`
+- `*-latest.md` はトークン消費を抑えるための当日分バッファとして扱わなければならず、履歴の正本は `*-log.md` にしなければならない。役割を逆転させてはならない。`[反映済み]`
 - `*-log.md` は原則として LLM の通常読込対象にしてはならず、当日作業では `*-latest.md` を優先して扱わなければならない。
 - `*-latest.md` から `*-log.md` への移行は、巨大な log を人手や LLM が直接結合せず、[scripts/rotate-history](../../scripts/rotate-history) のような対応する local skill / script を使って行う。
 - `*-log.md` はクォータ消費が大きいため、通常の開発では LLM が本文を読んで原因調査や結合作業をしてはならず、必要な場合はユーザーが明示的に許可した最小範囲だけを読む。
-- [chat-log.md](../history/chat-log.md)、[chat-latest.md](../history/chat-latest.md)、[metrics-log.md](../history/metrics-log.md)、[metrics-latest.md](../history/metrics-latest.md)、[decisions-log.md](../history/decisions-log.md)、[decisions-latest.md](../history/decisions-latest.md) は、先頭行を日付見出しから始め、先頭の説明文を置かない。
+- [chat-log.md](../history/chat-log.md)、[chat-latest.md](../history/chat-latest.md)、[metrics-log.md](../history/metrics-log.md)、[metrics-latest.md](../history/metrics-latest.md)、[decisions-log.md](../history/decisions-log.md)、[decisions-latest.md](../history/decisions-latest.md) は、先頭行を日付見出しから始め、先頭の説明文を置かない。`[反映済み]`
 - 新しい日付見出しを追加する場合は、直前の日付見出しとの間に 1 行だけ空行を入れる。
 - 見出しと直後の列挙の間には空行を入れない。
 
