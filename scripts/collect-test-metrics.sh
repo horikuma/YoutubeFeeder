@@ -10,15 +10,21 @@ DERIVED_DATA_BASE="${HOME}/Library/Caches/Codex/YoutubeFeeder"
 DERIVED_DATA="$DERIVED_DATA_BASE/DerivedData"
 DESTINATION="platform=iOS Simulator,name=iPhone 12 mini"
 DEVICE_NAME="iPhone 12 mini"
-TEMP_LLM_DIR="$REPO_ROOT/temp-llm"
 RUN_STAMP="$(date +%Y%m%d-%H%M%S)"
-TMP_METRICS_DIR="$TEMP_LLM_DIR/collect-test-metrics-$RUN_STAMP"
-BUILD_LOG="$TEMP_LLM_DIR/collect-test-metrics-build-$RUN_STAMP.log"
-UNIT_LOG="$TEMP_LLM_DIR/collect-test-metrics-unit-$RUN_STAMP.log"
-UI_LOG="$TEMP_LLM_DIR/collect-test-metrics-ui-$RUN_STAMP.log"
+TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/youtubefeeder-collect-test-metrics-$RUN_STAMP.XXXXXX")"
+TMP_METRICS_DIR="$TMP_ROOT/metrics"
+BUILD_LOG="$TMP_ROOT/build.log"
+UNIT_LOG="$TMP_ROOT/unit.log"
+UI_LOG="$TMP_ROOT/ui.log"
 OUTPUT_DOC="$REPO_ROOT/docs/metrics/metrics-test.md"
 typeset -a LOGIC_ONLY_TESTING=()
 typeset -a UI_ONLY_TESTING=()
+
+cleanup() {
+  rm -rf "$TMP_ROOT"
+}
+
+trap cleanup EXIT
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,7 +43,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-mkdir -p "$TEMP_LLM_DIR"
 mkdir -p "$DERIVED_DATA_BASE"
 mkdir -p "$TMP_METRICS_DIR"
 

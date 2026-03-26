@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CACHE_PATH = REPO_ROOT / "temp-llm" / "github" / "issue-defaults.json"
+DEFAULT_CACHE_PATH = REPO_ROOT / "llm-cache" / "issue-defaults.json"
 
 
 def load_module(filename: str, module_name: str):
