@@ -3,6 +3,7 @@
 - [開発セッション開始 rules-session-start.md](./rules/rules-session-start.md)
 - [開発シーケンス開始 rules-sequence-start.md](./rules/rules-sequence-start.md)
 - [開発シーケンス終了 rules-sequence-end.md](./rules/rules-sequence-end.md)
+- [スキル作成 rules-skill-creation.md](./rules/rules-skill-creation.md)
 
 ## タスク候補
 
@@ -15,6 +16,8 @@
 - `作業ブランチの準備`
   - 対象 Issue 用ブランチを作り、必要なら Issue に対応ブランチを記録するタスク。
   - GitHub App の API 使用法で引っかかっている。
+- `スキル作成`
+  - `skills`、`scripts`、必要な補助実装を追加し、再利用可能な入口として成立させるタスク。
 - `先行テストで期待固定`
   - 実装前に失敗するべきテストを追加し、期待を固定するタスク。
 - `実装と健康度点検`

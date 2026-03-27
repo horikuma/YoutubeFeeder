@@ -1,0 +1,39 @@
+{
+  "commands": [
+    {
+      "name": "collect-metrics",
+      "entry_point": "collect-metrics.py",
+      "args": {
+        "mode": "passthrough"
+      }
+    },
+    {
+      "name": "collect-test-metrics",
+      "entry_point": "collect-test-metrics.py",
+      "args": {
+        "mode": "passthrough"
+      }
+    },
+    {
+      "name": "health-barometer",
+      "entry_point": "health-barometer.py",
+      "args": {
+        "mode": "passthrough"
+      }
+    },
+    {
+      "name": "llm-elapsed",
+      "entry_point": "llm-elapsed.py",
+      "args": {
+        "mode": "passthrough"
+      }
+    },
+    {
+      "name": "test-matrix",
+      "entry_point": "test-matrix.py",
+      "args": {
+        "mode": "passthrough"
+      }
+    }
+  ]
+}

@@ -2,37 +2,125 @@
   "commands": [
     {
       "name": "list-issues",
-      "path": "list-issues.sh",
+      "entry_point": "list-issues.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
       "description": "Fetch repository issues through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "issue",
-      "path": "issue.sh",
-      "description": "Read, comment on, or update GitHub issues through PyGithub using GitHub App credentials from local secrets."
+      "name": "get-issue",
+      "entry_point": "issue.py",
+      "fixed_args": ["show"],
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
+      "description": "Read a GitHub issue through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "issue-defaults",
-      "path": "issue-defaults.sh",
+      "name": "comment-issue",
+      "entry_point": "issue.py",
+      "fixed_args": ["comment"],
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
+      "description": "Create a GitHub issue comment through PyGithub using GitHub App credentials from local secrets."
+    },
+    {
+      "name": "update-issue-body",
+      "entry_point": "issue.py",
+      "fixed_args": ["update-body"],
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
+      "description": "Update a GitHub issue title/body through PyGithub using GitHub App credentials from local secrets."
+    },
+    {
+      "name": "resolve-github-defaults",
+      "entry_point": "issue-defaults.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
       "description": "Resolve and cache the default GitHub assignee/project metadata used when creating issues."
     },
     {
       "name": "create-issue",
-      "path": "create-issue.sh",
+      "entry_point": "create-issue.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
       "description": "Create GitHub issues with the default assignee and project, using cached metadata when available."
     },
     {
-      "name": "pull-request",
-      "path": "pull-request.sh",
+      "name": "create-pr",
+      "entry_point": "pull-request.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
       "description": "Create pull requests through PyGithub using GitHub App credentials from local secrets."
     },
     {
       "name": "register-issue-branch",
-      "path": "register-issue-branch.sh",
+      "entry_point": "register-issue-branch.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
       "description": "Record the issue work branch in a standardized GitHub issue comment through PyGithub."
     },
     {
       "name": "project-field",
-      "path": "project-field.sh",
+      "entry_point": "project-field.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
+      "description": "Ensure and update GitHub Project number fields for Issues or Pull Requests."
+    },
+    {
+      "name": "set-project-number-field",
+      "entry_point": "project-field.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
       "description": "Ensure and update GitHub Project number fields for Issues or Pull Requests."
     }
   ]
