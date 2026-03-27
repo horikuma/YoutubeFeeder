@@ -4,24 +4,25 @@
 
 ## スキル作成
 
-- スキル作成とは、このリポジトリで再利用可能な `skills` と、その入口になる `scripts`、必要な補助実装を追加または変更し、利用者が安定して呼び出せる状態に整えるタスクである。
-- このタスクでは、`skills` の配置、命名、分割、shell wrapper、Python 実装、検証、更新判断までをこの文書だけで判断しなければならない。
+- スキル作成とは、このリポジトリで再利用可能な Python 実装を `skills` に置き、その唯一の shell ラッパ入口を `scripts` に整備し、利用者が安定して呼び出せる状態にするタスクである。
+- このタスクでは、`skills` の配置、命名、分割、`scripts` 配下の shell wrapper、Python 実装、検証、更新判断までをこの文書だけで判断しなければならない。
 
 ## 実施内容
 
 - `tools` は一時利用や運用補助に限定し、再利用対象の実装本体は `skills` に置く。
-- 利用者や LLM が呼ぶ入口は `scripts` に置き、実装本体を `scripts` へ持ち込まない。
+- 利用者や LLM が呼ぶ入口は `scripts` に置き、ラッパ層は `scripts` 配下の shell だけに限定し、実装本体を `scripts` へ持ち込まない。
 - `skills` は用途ごとのサブディレクトリで分類し、同一用途の実装を分散配置しない。
 - `skills` のサブディレクトリごとに、公開する command 群を集約した `_meta.json` を 1 つだけ置く。
+- `_meta.json` は実行に必須の宣言ファイルであり、公開 command を実行するために必要な情報を定義する唯一の正本としなければならない。
+- `_meta.json` には各 command の名前、エントリポイントとして対応する Python ファイル、引数仕様を必須で記述しなければならない。
+- `_meta.json` を更新する時は、実行時に必要な command 名、対応する `scripts` 入口、呼び出される Python 実装、必要な引数や契約のような必須情報を同時に更新しなければならない。
 - `skills` 内で必要になる補助ファイルは、可能な限り同じ skill ディレクトリ配下へ閉じ込める。
+- `skills` 配下の実装は Python のみとし、shell で再ラップしない。
 - 一時利用から再利用対象へ昇格した処理は、`tools` に留めず `skills` と `scripts` へ移す。
 
 ## 設計原則
 
 - `skills` は再利用対象として、引数、環境変数、終了コードの契約を明確に保つ。
-- `scripts` は `bash skills/... "$@"` 相当の薄いラッパーに留め、追加の分岐や変換を増やさない。
-- shell script は、パス解決、環境変数受け渡し、実行系の起動だけを担う薄い wrapper とし、業務ロジック、状態管理、`if` / `case` / `while` / `for` を使った分岐処理を持ち込まない。
-- 条件分岐や複雑な判定が必要になった時点で、shell に留めず Python の実装本体へ移す。
 - `skills` を分割する時は、プロダクトコードの内部レイヤ分割を模倣せず、公開する skill や command の機能単位で分割する。
 - `skills` の複雑度が上がった場合は、内部構造を過剰に細分化する前に、skill 単位または command 単位へ分割できないかを確認する。
 - `skills` の分割判断は `specs` の内部責務ではなく、利用者に公開する機能境界と再利用単位を基準に行う。
@@ -30,31 +31,48 @@
 
 ## 命名規則
 
-- `skills` 配下の shell script 名は `lowercase-kebab-case.sh` を基本とする。
 - `scripts` 配下のラッパー名は、拡張子なしの `lowercase-kebab-case` を基本とする。
 - `scripts` の名前は、利用者が何をしたいかで判断できる動詞中心の名前を優先する。
 - Python などの補助実装も、`skills` 配下では呼び出し元の skill 名と対応づく `lowercase-kebab-case.py` を基本とする。
 - Python から直接 import しにくい事情がある場合でも、公開ファイル名ではアンダースコアを増やさず、kebab-case を前提に構成を工夫する。
 
+## Shell ルール
+
+- 目的は、`scripts` を Mac 標準の `bash` でも壊れない最小のラッパ層として固定し、実装本体を必ず `skills` 配下の Python へ集約することである。
+- `scripts` は唯一の実行入口かつ唯一の shell ラッパ層とし、`skills` 配下の Python 実装を起動する薄い wrapper に限定する。
+- shell wrapper の実体は `scripts` 配下にのみ置き、`skills` 配下へ shell wrapper を置かない。
+- `scripts` 配下の wrapper は shebang に `bash` を指定し、`set -euo pipefail` を定義しなければならない。
+- `scripts` 配下の wrapper は、Mac 標準の `bash` でも通用する記法だけを使わなければならない。
+- `scripts` 配下の wrapper に許可される責務は、パス解決、最小限の環境変数受け渡し、Python 呼び出しだけである。
+- `scripts` は `_meta.json` を読み取り、command 名から対応する Python エントリポイントを決定する唯一の解決機構として動作しなければならない。
+- `scripts` はこの解決に失敗した場合、フォールバックや推測を行わず処理を即時中断し、エラー内容を利用者へ返さなければならない。
+- `scripts` 配下の wrapper は引数をそのまま Python 実装本体へ透過し、引数の意味変換や暗黙補完を増やしてはならない。
+- 条件分岐や複雑な判定が必要になった時点で、shell に留めず `skills` 配下の Python 実装本体へ移さなければならない。
+- LLM は shell に業務ロジック、状態管理、ループ、再試行、フォールバック、文字列整形、JSON 組み立て、設定ファイル解釈、出力整形、サブコマンド選択、エラー分類を実装してはならない。
+- LLM は shell に `if` / `case` / `while` / `for` による分岐や反復、配列依存、`[[ ... ]]`、高度な parameter expansion、`eval`、`source`、process substitution、`xargs` 前提の複雑なパイプ処理を書いてはならない。
+- ただし shell で許可される分岐は、環境変数や実行ファイルパスの未設定確認、既定値の補完前確認、対象 Python ファイルの存在確認のような単純条件を 1 段で判定して即時終了またはそのまま Python 呼び出しへ進む場合に限る。
+- 前項の単純条件例外でも、分岐の中で別経路の実装選択、文字列組み立て、再試行、フォールバック、反復処理、ネストした判定を行ってはならない。
+- LLM は shell を Python の前処理層として肥大化させてはならず、複数段の shell 呼び出し、`skills` 配下 shell への委譲、実質的な再ラップを作ってはならない。
+- `scripts` は `_meta.json` に定義されていない command の推測、補完、動的解決を行ってはならない。
+
 ## Python と言語横断ルール
 
-- shell wrapper の実体は、特別な制約がない限り Python に置き、理由なく他言語へ分散させない。
+- `skills` 配下の実装本体は Python のみとし、理由なく他言語へ分散させない。
+- `skills` 配下の Python 実装は `python .../skill.py` のように直接実行する運用を許可せず、必ず対応する `scripts` 入口から起動しなければならない。
+- Python 実装も command 名の解決およびエントリポイントの決定において `_meta.json` だけを唯一の情報源として扱い、`_meta.json` に定義されていない command の推測、補完、動的解決を行ってはならない。
 - Python の共有実行環境はリポジトリ root の `.venv/` を正本として扱い、共有依存定義はリポジトリ root の `requirements.txt` へ集約する。
 - 依存が増えた場合は、局所 requirements を増やす前に root の `requirements.txt` へ集約できないかを先に検討する。
 - Python の構文確認と lint の最低ラインは `py_compile` とし、変更した Python ファイルに対して `python -m py_compile` を実行して確認する。
 - `skills` の Python 実装は、1 ファイル `800` 行未満を原則とし、`1200` 行以上は分割なしに進めない。
 - `skills` の Python 実装は、1 関数 `100` 行未満を原則とし、`140` 行以上は分割または補助関数への抽出なしに進めない。
 - `skills` では、探索や試行の余地を残すため、プロダクトコードより緩い複雑度しきい値を使い、product code と同一しきい値を機械的に適用しない。
-- `skills` の shell wrapper も product code と同様に薄い wrapper とし、分岐や実装本体を持ち込まない。
-- Mac で shell を扱う場合は `zsh` を標準 shell とし、Linux では `bash`、Windows では `PowerShell` を標準 shell として扱う。
-- `zsh` と `bash` をまたぐ wrapper は互換性を優先し、配列依存、`[[ ... ]]` の多用、process substitution のような互換性を崩しやすい記法を避ける。
-- wrapper は引数をそのまま実装本体へ透過し、引数の意味変換や暗黙補完を増やさない。
 
 ## 検証
 
 - `skills` や `scripts` を追加または変更した時は、少なくとも構文確認と代表的な 1 経路の実行確認を行う。
 - `scripts` の動作確認では、利用者が実際に呼ぶ入口を優先して検証する。
-- shell を追加または変更した時は、少なくとも `bash -n` で構文確認する。
+- 変更した Python ファイルに対しては、`python -m py_compile` による構文確認を必ず実施する。
+- `scripts` 配下の shell を追加または変更した時は、少なくとも `bash -n` で構文確認する。
 - 開発プロセスに組み込む `tools` を変更した場合も、最低限の構文確認を行う。
 
 ## 完了条件
@@ -68,7 +86,18 @@
 
 - この文書から他の `.md` 文書を参照して判断してはならない。
 - `scripts` に実装本体や複雑な分岐を持ち込んではならない。
+- `skills` 配下で shell による再ラップをしてはならない。
+- `scripts` 配下のラッパーに拡張子を付けてはならない。
+- `scripts` 配下の shell を `bash` 以外で実装してはならない。
+- Mac 標準の `bash` で動かない書き方を `scripts` 配下へ持ち込んではならない。
+- `scripts` 配下の shell へ、環境変数の受け渡しと Python 呼び出し以外の責務を持ち込んではならない。
+- `scripts` を経由せず、`skills` 配下の Python を直接実行する入口を作ってはならない。
+- `_meta.json` に実行時に必要な情報を欠いたまま追加や更新をしてはならない。
+- `scripts` および Python 実装で、`_meta.json` に定義されていない command を推測や補完で解決してはならない。
+- `scripts` および Python 実装で、`_meta.json` を使わずに command 名やエントリポイントを決定してはならない。
+- `scripts` は未定義 command や不整合を検出した時に、別 command へのフォールバック、近似一致、既定値補完で処理を継続してはならない。
 - `tools` を再利用対象の正規配置先として扱ってはならない。
 - `skills` の公開入口を `tools` に重複配置してはならない。
+- `skills` 配下へ Python 以外の実装本体を置いてはならない。
 - `skills` に product code と同じ内部レイヤ分割や複雑度しきい値を機械的に適用してはならない。
 - 未検証の `skills` や `scripts` を開発プロセスへ組み込んではならない。
