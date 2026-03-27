@@ -1,0 +1,11 @@
+{
+  "commands": [
+    {
+      "name": "stream-device-runtime-logs",
+      "entry_point": "stream-device-runtime-logs.py",
+      "args": {
+        "mode": "passthrough"
+      }
+    }
+  ]
+}

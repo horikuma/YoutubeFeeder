@@ -254,7 +254,7 @@
   - UI テスト用 cache。
 - `YOUTUBEFEEDER_UI_TEST_REMOTE_SEARCH_FIXTURE`
   - `baseline` / `heavy` を切り替え、YouTube検索 split 計測用の重め検索キャッシュを seed できる。
-- [stream-device-runtime-logs.sh](../../scripts/stream-device-runtime-logs.sh)
+- [stream-device-runtime-logs](../../scripts/stream-device-runtime-logs)
   - 実機ランタイムログの取得。
-- [health-barometer.sh](../../scripts/health-barometer.sh)
+- [health-barometer](../../scripts/health-barometer)
   - 行数、関数長、型数、`@Published` 数の軽量点検。

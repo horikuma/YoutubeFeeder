@@ -1,8 +1,8 @@
-#!/bin/zsh
-
+#!/usr/bin/env bash
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+COMMAND_NAME="$(basename "$0")"
 
-exec "$REPO_ROOT/skills/github/issue-defaults.sh" "$@"
+exec python3 "$REPO_ROOT/skills/shared/command-runner.py" --repo-root "$REPO_ROOT" "$COMMAND_NAME" "$@"

@@ -1,8 +1,11 @@
 {
   "commands": [
     {
-      "name": "rotate-latest",
-      "path": "rotate-latest.sh",
+      "name": "rotate-history",
+      "entry_point": "rotate-latest.py",
+      "args": {
+        "mode": "passthrough"
+      },
       "description": "Move previous-day history entries from *-latest.md files into the matching *-log.md files."
     }
   ]
