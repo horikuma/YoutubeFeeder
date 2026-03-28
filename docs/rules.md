@@ -14,6 +14,7 @@
 - [シーケンス終了 rules-sequence-end.md](./rules/rules-sequence-end.md)
 - [Issue作成・更新 rules-issue-creation.md](./rules/rules-issue-creation.md)
 - [Pull Request作成・更新 rules-pr-creation.md](./rules/rules-pr-creation.md)
+- [コミット rules-commit.md](./rules/rules-commit.md)
 - [文書同期 rules-document-sync.md](./rules/rules-document-sync.md)
 - [スキル作成・更新 rules-skill-creation.md](./rules/rules-skill-creation.md)
 - [ルール作成・更新 rules-rule-creation.md](./rules/rules-rule-creation.md)
@@ -31,7 +32,7 @@
 - `検証`
   - 変更内容に応じたテストと build 確認を実施するタスク。
 - `文書同期`
-  - 正本、human-view、履歴文書の必要更新を反映するタスク。
+  - 正本、human-view、履歴文書以外の必要更新を反映するタスク。
 - `コミット`
   - 完了条件を満たした変更セットを 1 単位として確定するタスク。
 - `LLM 所要時間の反映`
