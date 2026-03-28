@@ -1,14 +1,18 @@
 # Project Rules
 
-- [開発セッション開始 rules-session-start.md](./rules/rules-session-start.md)
-- [開発シーケンス開始 rules-sequence-start.md](./rules/rules-sequence-start.md)
-- [開発シーケンス終了 rules-sequence-end.md](./rules/rules-sequence-end.md)
-- [スキル作成 rules-skill-creation.md](./rules/rules-skill-creation.md)
-
 ## 共通原則
 
-- ルール確認や作業実行のために文書を読む際は、現在の目的タスクを遂行するために必要なファイルだけを読まなければならない。
-- 目的タスクの完了条件、実施内容、禁止事項の確認に不要なファイルを、先回りや参考目的で読んではならない。
+- 文書読込みは、現在の目的タスクを完了するために必要なファイルだけに限定しなければならない。
+- LLM は、読んだ文書の記載内容だけで判断しなければならず、推測、補完、慣習、文脈、先回りで意味を追加してはならない。
+- Git 操作は、同一リポジトリ内で常に 1 操作ずつ直列に実行しなければならない。
+
+## タスク
+
+- [セッション開始 rules-session-start.md](./rules/rules-session-start.md)
+- [シーケンス開始 rules-sequence-start.md](./rules/rules-sequence-start.md)
+- [シーケンス終了 rules-sequence-end.md](./rules/rules-sequence-end.md)
+- [スキル作成・更新 rules-skill-creation.md](./rules/rules-skill-creation.md)
+- [ルール作成・更新 rules-rule-creation.md](./rules/rules-rule-creation.md)
 
 ## タスク候補
 
@@ -21,8 +25,6 @@
 - `作業ブランチの準備`
   - 対象 Issue 用ブランチを作り、必要なら Issue に対応ブランチを記録するタスク。
   - GitHub App の API 使用法で引っかかっている。
-- `スキル作成`
-  - `skills`、`scripts`、必要な補助実装を追加し、再利用可能な入口として成立させるタスク。
 - `先行テストで期待固定`
   - 実装前に失敗するべきテストを追加し、期待を固定するタスク。
 - `実装と健康度点検`
