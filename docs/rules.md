@@ -12,6 +12,7 @@
 - [セッション開始 rules-session-start.md](./rules/rules-session-start.md)
 - [シーケンス開始 rules-sequence-start.md](./rules/rules-sequence-start.md)
 - [シーケンス終了 rules-sequence-end.md](./rules/rules-sequence-end.md)
+- [ユーザー指示の理解 rules-user-instruction-understanding.md](./rules/rules-user-instruction-understanding.md)
 - [Issue作成・更新 rules-issue-creation.md](./rules/rules-issue-creation.md)
 - [Pull Request作成・更新 rules-pr-creation.md](./rules/rules-pr-creation.md)
 - [コミット rules-commit.md](./rules/rules-commit.md)
@@ -21,8 +22,6 @@
 
 ## タスク候補
 
-- `ユーザー指示の理解`
-  - 指示、関連コード、関連文書を読んで変更対象と影響範囲を確定するタスク。
 - `Issue の詳細化`
   - Description の ToDo と Issue コメントの詳細化本文を整えるタスク。
 - `先行テストで期待固定`
@@ -31,10 +30,6 @@
   - 実装を進めつつ、責務境界・複雑度・状態管理を点検するタスク。
 - `検証`
   - 変更内容に応じたテストと build 確認を実施するタスク。
-- `文書同期`
-  - 正本、human-view、履歴文書以外の必要更新を反映するタスク。
-- `コミット`
-  - 完了条件を満たした変更セットを 1 単位として確定するタスク。
 - `LLM 所要時間の反映`
   - Project の Number フィールドへ所要時間を反映するタスク。
 - `ブロッカー記録と停止`
