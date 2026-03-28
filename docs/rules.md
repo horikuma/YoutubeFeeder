@@ -4,6 +4,7 @@
 
 - 文書読込みは、現在の目的タスクを完了するために必要なファイルだけに限定しなければならない。
 - LLM は、読んだ文書の記載内容だけで判断しなければならず、推測、補完、慣習、文脈、先回りで意味を追加してはならない。
+- タスク規定が曖昧で、タスク遂行に推論を要すると判明した場合は、処理を中断し、その旨をユーザーへ報告しなければならない。
 - Git 操作は、同一リポジトリ内で常に 1 操作ずつ直列に実行しなければならない。
 
 ## タスク
@@ -13,6 +14,7 @@
 - [シーケンス終了 rules-sequence-end.md](./rules/rules-sequence-end.md)
 - [Issue作成・更新 rules-issue-creation.md](./rules/rules-issue-creation.md)
 - [Pull Request作成・更新 rules-pr-creation.md](./rules/rules-pr-creation.md)
+- [文書同期 rules-document-sync.md](./rules/rules-document-sync.md)
 - [スキル作成・更新 rules-skill-creation.md](./rules/rules-skill-creation.md)
 - [ルール作成・更新 rules-rule-creation.md](./rules/rules-rule-creation.md)
 
