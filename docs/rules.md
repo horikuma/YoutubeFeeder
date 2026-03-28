@@ -5,6 +5,11 @@
 - [開発シーケンス終了 rules-sequence-end.md](./rules/rules-sequence-end.md)
 - [スキル作成 rules-skill-creation.md](./rules/rules-skill-creation.md)
 
+## 共通原則
+
+- ルール確認や作業実行のために文書を読む際は、現在の目的タスクを遂行するために必要なファイルだけを読まなければならない。
+- 目的タスクの完了条件、実施内容、禁止事項の確認に不要なファイルを、先回りや参考目的で読んではならない。
+
 ## タスク候補
 
 - `ユーザー指示の理解`

@@ -48,12 +48,20 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def first_heading(sections: list[str]) -> str | None:
+    if not sections:
+        return None
+    return sections[0].splitlines()[0].replace("## ", "", 1).strip()
+
+
 def rotate_pair(history_dir: Path, stem: str, today: str) -> None:
     latest_path = history_dir / f"{stem}-latest.md"
     log_path = history_dir / f"{stem}-log.md"
 
     latest_sections = split_sections(read_text(latest_path))
     if not latest_sections:
+        return
+    if first_heading(latest_sections) == today:
         return
 
     keep_sections: list[str] = []
