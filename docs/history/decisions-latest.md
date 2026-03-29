@@ -1,4 +1,6 @@
 ## 2026/03/29
+- `rules-commit.md` では、履歴更新 command を `chat` `decisions` `metrics` の各ファイルごとに明示し、完了条件でも対象ごとに分解して記述する方針にした。
+  - `scripts/append-*` という総称のままだと、どの更新でどの command を成功させるべきかを LLM が補完する余地が残るため。対象ファイルと command 名を 1 対 1 で固定することで、完了条件を文面だけで一意に判断できるようにする。
 - `rotate-history` skill では、`*-latest.md` の先頭行確認を外側で行わず、Python 実装内でローテート、空ファイル初期化、完了条件検証まで完結させる方針にした。
   - セッション開始で本文を読んで先頭行を確認すると `chat-latest.md` の内容量ぶんトークン消費が増えるため。`scripts/rotate-history` から呼ばれる Python 実装が最終状態を保証すれば、外側はコマンド実行だけで完了判定できる。
 - `rules-commit.md` では、`docs/history/*-latest.md` 更新を本文だけでなくコミット定義と完了条件にも明記する方針にした。
