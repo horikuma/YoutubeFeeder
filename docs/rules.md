@@ -21,5 +21,6 @@
 - [Pull Request作成・更新 rules-pr-creation.md](./rules/rules-pr-creation.md)
 - [コミット rules-commit.md](./rules/rules-commit.md)
 - [文書同期 rules-document-sync.md](./rules/rules-document-sync.md)
+- [レポート作成・更新 rules-report-creation.md](./rules/rules-report-creation.md)
 - [スキル作成・更新 rules-skill-creation.md](./rules/rules-skill-creation.md)
 - [ルール作成・更新 rules-rule-creation.md](./rules/rules-rule-creation.md)
