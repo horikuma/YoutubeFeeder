@@ -2,6 +2,45 @@ import XCTest
 @testable import YoutubeFeeder
 
 final class FeedCacheMaintenanceTests: LoggedTestCase {
+    func testFeedSnapshotPersistsThumbnailLastAccessedAt() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let lastAccessedAt = now.addingTimeInterval(120)
+            let snapshot = FeedCacheSnapshot(
+                savedAt: now,
+                channels: [],
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "kept",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=1"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: "video-1.jpg",
+                        thumbnailLastAccessedAt: lastAccessedAt,
+                        fetchedAt: now,
+                        searchableText: "kept",
+                        durationSeconds: 1_500,
+                        viewCount: 101
+                    ),
+                ]
+            )
+
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(snapshot)
+
+            let reloaded = database.loadFeedSnapshot()
+            XCTAssertEqual(reloaded.videos.first?.thumbnailLastAccessedAt, lastAccessedAt)
+        }
+    }
+
     func testRemoveChannelIDDeletesRegisteredChannel() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

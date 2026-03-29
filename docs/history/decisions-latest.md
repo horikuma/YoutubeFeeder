@@ -1,4 +1,6 @@
 ## 2026/03/29
+- サムネイル参照の最終アクセス時刻は cached_videos / remote_search_videos の thumbnail_local_filename と同じ管理単位に REAL 列で保持し、既存DBは起動時 ALTER TABLE で後方互換 migration する。
+  - Issue 4 の第1ToDoは保持先追加だけを独立に完了させる必要があり、更新契機や廃棄ロジックより先に永続化と既存DB互換を確保すると段階的コミットとテストが成立するため。
 - `rules-commit.md` では、履歴更新 command を `chat` `decisions` `metrics` の各ファイルごとに明示し、完了条件でも対象ごとに分解して記述する方針にした。
   - `scripts/append-*` という総称のままだと、どの更新でどの command を成功させるべきかを LLM が補完する余地が残るため。対象ファイルと command 名を 1 対 1 で固定することで、完了条件を文面だけで一意に判断できるようにする。
 - `rotate-history` skill では、`*-latest.md` の先頭行確認を外側で行わず、Python 実装内でローテート、空ファイル初期化、完了条件検証まで完結させる方針にした。
