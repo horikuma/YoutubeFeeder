@@ -206,6 +206,75 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         }
     }
 
+    func testCurrentThumbnailCacheStatusReportsBytesAndThresholdJudgement() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let snapshot = FeedCacheSnapshot(
+                savedAt: now,
+                channels: [],
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "one",
+                        publishedAt: now,
+                        videoURL: nil,
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: "video-1.jpg",
+                        thumbnailLastAccessedAt: now,
+                        fetchedAt: now,
+                        searchableText: "one",
+                        durationSeconds: 1_500,
+                        viewCount: 1
+                    ),
+                    CachedVideo(
+                        id: "video-2",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "two",
+                        publishedAt: now,
+                        videoURL: nil,
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: "video-2.jpg",
+                        thumbnailLastAccessedAt: now,
+                        fetchedAt: now,
+                        searchableText: "two",
+                        durationSeconds: 1_500,
+                        viewCount: 2
+                    ),
+                ]
+            )
+
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(snapshot)
+            try Data("1".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-1.jpg"), options: .atomic)
+            try Data("22".utf8).write(to: thumbnailsDirectory.appendingPathComponent("video-2.jpg"), options: .atomic)
+
+            let store = FeedCacheStore()
+            let status = await store.currentThumbnailCacheStatus()
+            let thresholds = ThumbnailCacheThresholds(
+                maxThumbnailCount: 1,
+                minThumbnailCount: 1,
+                maxThumbnailBytes: 2,
+                minThumbnailBytes: 2
+            )
+
+            XCTAssertEqual(status.fileCount, 2)
+            XCTAssertEqual(status.totalBytes, 3)
+            XCTAssertTrue(status.exceedsUpperBound(thresholds: thresholds))
+            XCTAssertTrue(status.exceedsLowerBound(thresholds: thresholds))
+        }
+    }
+
     func testRemoveChannelIDDeletesRegisteredChannel() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

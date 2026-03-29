@@ -10,6 +10,32 @@ struct ThumbnailTrimResult: Hashable {
     let removedBytes: Int64
 }
 
+struct ThumbnailCacheThresholds: Hashable {
+    let maxThumbnailCount: Int?
+    let minThumbnailCount: Int?
+    let maxThumbnailBytes: Int64?
+    let minThumbnailBytes: Int64?
+}
+
+struct ThumbnailCacheStatus: Hashable {
+    let fileCount: Int
+    let totalBytes: Int64
+
+    func exceedsUpperBound(thresholds: ThumbnailCacheThresholds) -> Bool {
+        let exceedsCount = thresholds.maxThumbnailCount.map { fileCount > $0 } ?? false
+        let exceedsBytes = thresholds.maxThumbnailBytes.map { totalBytes > $0 } ?? false
+        return exceedsCount || exceedsBytes
+    }
+
+    func exceedsLowerBound(thresholds: ThumbnailCacheThresholds) -> Bool {
+        let targetCount = thresholds.minThumbnailCount ?? thresholds.maxThumbnailCount
+        let targetBytes = thresholds.minThumbnailBytes ?? thresholds.maxThumbnailBytes
+        let exceedsCount = targetCount.map { fileCount > $0 } ?? false
+        let exceedsBytes = targetBytes.map { totalBytes > $0 } ?? false
+        return exceedsCount || exceedsBytes
+    }
+}
+
 private struct ThumbnailEvictionCandidate {
     let filename: String
     let lastAccessedAt: Date?
@@ -23,10 +49,17 @@ extension FeedCacheStore {
     ) -> ThumbnailEvictionResult? {
         let snapshot = loadSnapshot()
         let candidates = thumbnailEvictionCandidates(snapshot: snapshot)
-        let totalBytes = candidates.reduce(into: Int64(0)) { $0 += $1.bytes }
-        let exceedsCount = maxThumbnailCount.map { candidates.count > $0 } ?? false
-        let exceedsBytes = maxThumbnailBytes.map { totalBytes > $0 } ?? false
-        guard exceedsCount || exceedsBytes else { return nil }
+        let thresholds = ThumbnailCacheThresholds(
+            maxThumbnailCount: maxThumbnailCount,
+            minThumbnailCount: nil,
+            maxThumbnailBytes: maxThumbnailBytes,
+            minThumbnailBytes: nil
+        )
+        let status = ThumbnailCacheStatus(
+            fileCount: candidates.count,
+            totalBytes: candidates.reduce(into: Int64(0)) { $0 += $1.bytes }
+        )
+        guard status.exceedsUpperBound(thresholds: thresholds) else { return nil }
         guard let candidate = candidates.first else { return nil }
 
         clearStoredThumbnailReference(filename: candidate.filename)
@@ -41,36 +74,44 @@ extension FeedCacheStore {
         minThumbnailBytes: Int64? = nil
     ) -> ThumbnailTrimResult? {
         var candidates = thumbnailEvictionCandidates(snapshot: loadSnapshot())
-        let totalBytes = candidates.reduce(into: Int64(0)) { $0 += $1.bytes }
-        let exceedsUpperCount = maxThumbnailCount.map { candidates.count > $0 } ?? false
-        let exceedsUpperBytes = maxThumbnailBytes.map { totalBytes > $0 } ?? false
-        guard exceedsUpperCount || exceedsUpperBytes else { return nil }
+        var status = ThumbnailCacheStatus(
+            fileCount: candidates.count,
+            totalBytes: candidates.reduce(into: Int64(0)) { $0 += $1.bytes }
+        )
+        let thresholds = ThumbnailCacheThresholds(
+            maxThumbnailCount: maxThumbnailCount,
+            minThumbnailCount: minThumbnailCount,
+            maxThumbnailBytes: maxThumbnailBytes,
+            minThumbnailBytes: minThumbnailBytes
+        )
+        guard status.exceedsUpperBound(thresholds: thresholds) else { return nil }
 
         var removedFilenames: [String] = []
         var removedBytes: Int64 = 0
-        var remainingCount = candidates.count
-        var remainingBytes = totalBytes
 
         while let candidate = candidates.first,
-              exceedsLowerBound(
-                count: remainingCount,
-                bytes: remainingBytes,
-                minThumbnailCount: minThumbnailCount,
-                maxThumbnailCount: maxThumbnailCount,
-                minThumbnailBytes: minThumbnailBytes,
-                maxThumbnailBytes: maxThumbnailBytes
-              ) {
+              status.exceedsLowerBound(thresholds: thresholds) {
             clearStoredThumbnailReference(filename: candidate.filename)
             removeThumbnailFile(filename: candidate.filename)
             removedFilenames.append(candidate.filename)
             removedBytes += candidate.bytes
             candidates.removeFirst()
-            remainingCount = candidates.count
-            remainingBytes -= candidate.bytes
+            status = ThumbnailCacheStatus(
+                fileCount: candidates.count,
+                totalBytes: status.totalBytes - candidate.bytes
+            )
         }
 
         guard !removedFilenames.isEmpty else { return nil }
         return ThumbnailTrimResult(removedFilenames: removedFilenames, removedBytes: removedBytes)
+    }
+
+    func currentThumbnailCacheStatus() -> ThumbnailCacheStatus {
+        let candidates = thumbnailEvictionCandidates(snapshot: loadSnapshot())
+        return ThumbnailCacheStatus(
+            fileCount: candidates.count,
+            totalBytes: candidates.reduce(into: Int64(0)) { $0 += $1.bytes }
+        )
     }
 
     private func thumbnailEvictionCandidates(snapshot: FeedCacheSnapshot) -> [ThumbnailEvictionCandidate] {
@@ -102,18 +143,4 @@ extension FeedCacheStore {
         }
     }
 
-    private func exceedsLowerBound(
-        count: Int,
-        bytes: Int64,
-        minThumbnailCount: Int?,
-        maxThumbnailCount: Int?,
-        minThumbnailBytes: Int64?,
-        maxThumbnailBytes: Int64?
-    ) -> Bool {
-        let targetCount = minThumbnailCount ?? maxThumbnailCount
-        let targetBytes = minThumbnailBytes ?? maxThumbnailBytes
-        let exceedsCount = targetCount.map { count > $0 } ?? false
-        let exceedsBytes = targetBytes.map { bytes > $0 } ?? false
-        return exceedsCount || exceedsBytes
-    }
 }
