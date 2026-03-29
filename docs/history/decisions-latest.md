@@ -1,4 +1,6 @@
 ## 2026/03/29
+- Issue 4 TODO 4として、サムネイル廃棄は上限超過時に開始し、下限を下回るまで最終アクセス時刻の古い順に削除を継続する。
+  - 上限超過時に1件だけ削除すると再超過が残りうるため、実装とテストが一致する低水位までの継続削除を定義した。
 - サムネイル廃棄の第1段階は FeedCacheStore の eviction helper として実装し、上限件数または上限容量を超えた時は最終アクセス時刻が最も古い1件だけを削除して oldest-first の順序を確定する。
   - Issue 4 の第3ToDoは削除順の定義が主題であり、下限までの連続削除を先に混ぜると第4ToDoとの境界が曖昧になるため、まずは単発 eviction で削除順位だけを独立に固定する。
 - `ThumbnailView` はローカル `thumbnailLocalFilename` を使う `AsyncImage` に `.task(id: filename)` を付け、view instance ごとに1回だけ FeedCacheStore へ参照通知して最終アクセス時刻を更新する。

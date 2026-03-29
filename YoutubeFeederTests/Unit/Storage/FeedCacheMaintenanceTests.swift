@@ -154,6 +154,58 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         }
     }
 
+    func testTrimThumbnailsIfNeededContinuesUntilBelowLowWatermark() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let filenames = ["video-1.jpg", "video-2.jpg", "video-3.jpg"]
+            let snapshot = FeedCacheSnapshot(
+                savedAt: now,
+                channels: [],
+                videos: filenames.enumerated().map { offset, filename in
+                    CachedVideo(
+                        id: "video-\(offset + 1)",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "video-\(offset + 1)",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=\(offset + 1)"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: filename,
+                        thumbnailLastAccessedAt: now.addingTimeInterval(TimeInterval(offset - 10)),
+                        fetchedAt: now,
+                        searchableText: "video-\(offset + 1)",
+                        durationSeconds: 1_500,
+                        viewCount: 100 + offset
+                    )
+                }
+            )
+
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(snapshot)
+            try Data("1".utf8).write(to: thumbnailsDirectory.appendingPathComponent(filenames[0]), options: .atomic)
+            try Data("22".utf8).write(to: thumbnailsDirectory.appendingPathComponent(filenames[1]), options: .atomic)
+            try Data("333".utf8).write(to: thumbnailsDirectory.appendingPathComponent(filenames[2]), options: .atomic)
+
+            let store = FeedCacheStore()
+            let result = await store.trimThumbnailsIfNeeded(maxThumbnailCount: 2, minThumbnailCount: 1)
+            let reloaded = database.loadFeedSnapshot()
+
+            XCTAssertEqual(result?.removedFilenames, [filenames[0], filenames[1]])
+            XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(filenames[0]).path))
+            XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(filenames[1]).path))
+            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(filenames[2]).path))
+            XCTAssertEqual(reloaded.videos.compactMap(\.thumbnailLocalFilename), [filenames[2]])
+        }
+    }
+
     func testRemoveChannelIDDeletesRegisteredChannel() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
