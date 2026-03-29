@@ -147,6 +147,26 @@ final class FeedCacheSQLiteDatabase {
         }
     }
 
+    func updateThumbnailLastAccessedAt(filename: String, accessedAt: Date) {
+        queue.sync {
+            let timestamp = accessedAt.timeIntervalSince1970
+            execute(
+                "UPDATE cached_videos SET thumbnail_last_accessed_at = ? WHERE thumbnail_local_filename = ?;",
+                binder: { statement in
+                    bind(timestamp, at: 1, in: statement)
+                    bind(filename, at: 2, in: statement)
+                }
+            )
+            execute(
+                "UPDATE remote_search_videos SET thumbnail_last_accessed_at = ? WHERE thumbnail_local_filename = ?;",
+                binder: { statement in
+                    bind(timestamp, at: 1, in: statement)
+                    bind(filename, at: 2, in: statement)
+                }
+            )
+        }
+    }
+
     func loadRegisteredChannels() -> [RegisteredChannel] {
         queue.sync {
             var channels: [RegisteredChannel] = []

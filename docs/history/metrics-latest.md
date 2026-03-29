@@ -1,4 +1,5 @@
 ## 2026/03/29
+- 2026-03-29 Issue 4 第2ToDo: xcodebuild test -scheme YoutubeFeeder -destination "platform=iOS Simulator,OS=26.3.1,name=iPhone 17" -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests/testRecordThumbnailReferenceUpdatesFeedAndRemoteSearchRows => passed (1 test, 0 failures).
 - 2026-03-29 Issue 4 第1ToDo: xcodebuild test -scheme YoutubeFeeder -destination "platform=iOS Simulator,OS=26.3.1,name=iPhone 17" -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests/testFeedSnapshotPersistsThumbnailLastAccessedAt -only-testing:YoutubeFeederTests/RemoteVideoSearchCacheStoreTests/testRemoteSearchCachePersistsThumbnailLastAccessedAt => passed (2 tests, 0 failures).
 - `python3 -m py_compile skills/history/append-history.py skills/history/rotate-latest.py`、`bash -n scripts/append-chat-history scripts/append-decision-history scripts/append-metrics-history scripts/rotate-history`、tempdir での `append-*` と `rotate-history` 実行確認を継続して利用した。
 - `python3 -m py_compile skills/history/rotate-latest.py` を実行し、構文確認は成功した。

@@ -52,6 +52,10 @@ actor FeedCacheStore {
         loadSnapshot().videos.count
     }
 
+    func recordThumbnailReference(filename: String, accessedAt: Date = .now) {
+        database.updateThumbnailLastAccessedAt(filename: filename, accessedAt: accessedAt)
+    }
+
     func totalThumbnailBytes() -> Int64 {
         let filenames = Set(loadSnapshot().videos.compactMap(\.thumbnailLocalFilename))
         return filenames.reduce(into: Int64(0)) { total, filename in

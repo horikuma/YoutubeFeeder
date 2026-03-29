@@ -1,4 +1,6 @@
 ## 2026/03/29
+- `ThumbnailView` はローカル `thumbnailLocalFilename` を使う `AsyncImage` に `.task(id: filename)` を付け、view instance ごとに1回だけ FeedCacheStore へ参照通知して最終アクセス時刻を更新する。
+  - Issue 4 の第2ToDoでは `AsyncImage` 生成時点をアプリ側で明示できる契機へ落とし込む必要があり、一覧ごとの個別実装へ散らさず ThumbnailView 1 箇所へ集約すると対象導線を漏れなく更新できるため。
 - サムネイル参照の最終アクセス時刻は cached_videos / remote_search_videos の thumbnail_local_filename と同じ管理単位に REAL 列で保持し、既存DBは起動時 ALTER TABLE で後方互換 migration する。
   - Issue 4 の第1ToDoは保持先追加だけを独立に完了させる必要があり、更新契機や廃棄ロジックより先に永続化と既存DB互換を確保すると段階的コミットとテストが成立するため。
 - `rules-commit.md` では、履歴更新 command を `chat` `decisions` `metrics` の各ファイルごとに明示し、完了条件でも対象ごとに分解して記述する方針にした。

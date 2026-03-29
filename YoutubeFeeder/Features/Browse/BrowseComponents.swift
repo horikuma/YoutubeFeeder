@@ -363,8 +363,11 @@ private struct VideoMetadataBadge: View {
 }
 
 struct ThumbnailView: View {
+    private static let referenceStore = FeedCacheStore()
+
     let video: CachedVideo
     var contentMode: ContentMode = .fill
+    @State private var lastTrackedFilename: String?
 
     var body: some View {
         Group {
@@ -373,6 +376,11 @@ struct ThumbnailView: View {
                     image.resizable().aspectRatio(contentMode: contentMode)
                 } placeholder: {
                     placeholder
+                }
+                .task(id: filename) {
+                    guard lastTrackedFilename != filename else { return }
+                    lastTrackedFilename = filename
+                    await Self.referenceStore.recordThumbnailReference(filename: filename)
                 }
             } else if let remoteURL = video.thumbnailRemoteURL {
                 AsyncImage(url: remoteURL) { image in
