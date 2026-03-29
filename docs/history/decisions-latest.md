@@ -1,4 +1,6 @@
 ## 2026/03/29
+- `rotate-history` skill では、`*-latest.md` の先頭行確認を外側で行わず、Python 実装内でローテート、空ファイル初期化、完了条件検証まで完結させる方針にした。
+  - セッション開始で本文を読んで先頭行を確認すると `chat-latest.md` の内容量ぶんトークン消費が増えるため。`scripts/rotate-history` から呼ばれる Python 実装が最終状態を保証すれば、外側はコマンド実行だけで完了判定できる。
 - `rules-commit.md` では、`docs/history/*-latest.md` 更新を本文だけでなくコミット定義と完了条件にも明記する方針にした。
   - `docs/history` という抽象語だけでは、`*-latest.md` 更新規則を移した事実が上位要約から読めず、移管意図が見えなくなるため。`*-latest.md` を要約部へ引き上げることで、責務境界と具体更新先を同時に読めるようにする。
 - `rules-commit.md`、`rules-document-sync.md`、`rules.md` では、`docs/history` は `コミット`、それ以外の `docs/` は `文書同期` と一意に読める責務境界へ揃える方針にした。

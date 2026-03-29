@@ -6,7 +6,7 @@
       "args": {
         "mode": "passthrough"
       },
-      "description": "Move previous-day history entries from *-latest.md files into the matching *-log.md files."
+      "description": "Rotate non-today sections from *-latest.md into matching *-log.md files, initialize empty latest files, and fail unless latest files end with only today's heading sections."
     }
   ]
 }
