@@ -20,7 +20,7 @@ node_modules/
 
 # Local secrets
 Config/LocalSecrets.xcconfig
-secrets/*
 
 llm-temp/
 llm-cache/
+__pycache__/
