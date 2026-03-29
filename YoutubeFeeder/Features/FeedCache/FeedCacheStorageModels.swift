@@ -11,6 +11,7 @@ struct CachedVideo: Identifiable, Hashable {
     let videoURL: URL?
     let thumbnailRemoteURL: URL?
     let thumbnailLocalFilename: String?
+    let thumbnailLastAccessedAt: Date?
     let fetchedAt: Date
     let searchableText: String
     let durationSeconds: Int?
@@ -28,6 +29,7 @@ struct CachedVideo: Identifiable, Hashable {
         videoURL: URL?,
         thumbnailRemoteURL: URL?,
         thumbnailLocalFilename: String?,
+        thumbnailLastAccessedAt: Date? = nil,
         fetchedAt: Date,
         searchableText: String,
         durationSeconds: Int?,
@@ -44,6 +46,7 @@ struct CachedVideo: Identifiable, Hashable {
         self.videoURL = videoURL
         self.thumbnailRemoteURL = thumbnailRemoteURL
         self.thumbnailLocalFilename = thumbnailLocalFilename
+        self.thumbnailLastAccessedAt = thumbnailLastAccessedAt
         self.fetchedAt = fetchedAt
         self.searchableText = searchableText
         self.durationSeconds = durationSeconds
@@ -151,6 +154,7 @@ extension CachedVideo: Codable {
         case videoURL
         case thumbnailRemoteURL
         case thumbnailLocalFilename
+        case thumbnailLastAccessedAt
         case fetchedAt
         case searchableText
         case durationSeconds
@@ -168,6 +172,7 @@ extension CachedVideo: Codable {
         let videoURL = try container.decodeIfPresent(URL.self, forKey: .videoURL)
         let thumbnailRemoteURL = try container.decodeIfPresent(URL.self, forKey: .thumbnailRemoteURL)
         let thumbnailLocalFilename = try container.decodeIfPresent(String.self, forKey: .thumbnailLocalFilename)
+        let thumbnailLastAccessedAt = try container.decodeIfPresent(Date.self, forKey: .thumbnailLastAccessedAt)
         let fetchedAt = try container.decode(Date.self, forKey: .fetchedAt)
         let searchableText = try container.decode(String.self, forKey: .searchableText)
         let durationSeconds = try container.decodeIfPresent(Int.self, forKey: .durationSeconds)
@@ -184,6 +189,7 @@ extension CachedVideo: Codable {
             videoURL: videoURL,
             thumbnailRemoteURL: thumbnailRemoteURL,
             thumbnailLocalFilename: thumbnailLocalFilename,
+            thumbnailLastAccessedAt: thumbnailLastAccessedAt,
             fetchedAt: fetchedAt,
             searchableText: searchableText,
             durationSeconds: durationSeconds,
@@ -204,6 +210,7 @@ extension CachedVideo: Codable {
         try container.encodeIfPresent(videoURL, forKey: .videoURL)
         try container.encodeIfPresent(thumbnailRemoteURL, forKey: .thumbnailRemoteURL)
         try container.encodeIfPresent(thumbnailLocalFilename, forKey: .thumbnailLocalFilename)
+        try container.encodeIfPresent(thumbnailLastAccessedAt, forKey: .thumbnailLastAccessedAt)
         try container.encode(fetchedAt, forKey: .fetchedAt)
         try container.encode(searchableText, forKey: .searchableText)
         try container.encodeIfPresent(durationSeconds, forKey: .durationSeconds)

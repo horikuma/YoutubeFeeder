@@ -31,8 +31,9 @@
 ### 制約
 
 - 追記は `*-latest.md` に対してだけ行わなければならない。
+- `docs/history/*-latest.md` の更新は、LLM の本文読込みや直接編集で行ってはならず、対応する `scripts/append-chat-history`、`scripts/append-decision-history`、`scripts/append-metrics-history` を通して行わなければならない。
 - `*-log.md` は追記対象にも LLM 読込対象にもしてはならない。
-- `*-latest.md` へ新しい項目を追加する場合は、対象の日付見出し行の次行へ挿入しなければならない。
+- `*-latest.md` へ新しい項目を追加する場合は、対応する `scripts/append-*` が対象の日付見出し行の次行へ挿入しなければならない。
 - `*-latest.md` は、先頭行を日付見出しから始め、先頭の説明文を置いてはならない。
 - 見出しと直後の列挙の間に空行を入れてはならない。
 - 箇条書きの項目同士の間に空行を入れてはならない。
@@ -44,6 +45,7 @@
 
 - ユーザー指示は、次の例外を除き、変更せずそのまま記録しなければならない。
 - LLM の回答および操作の概要は、ユーザー指示行の直後の次行に、行頭から1段だけインデントを下げて1行で記録しなければならない。
+- `docs/history/chat-latest.md` への追記は `scripts/append-chat-history` の成功で完了とし、LLM が本文を読んで追記位置を判断してはならない。
 - 制約である「記録する文字列に個人情報、APIキー、トークン、絶対パス、ホームディレクトリが含まれる場合は、除去しなければならない。」は、この節の規則より上位に適用しなければならない。
 - 1行の入力は、ユーザーが直接入力した指示として扱わなければならない。
 - ユーザーが貼り付ける入力は、必ず改行を含むものとして扱わなければならない。
@@ -55,19 +57,22 @@
 
 - `scripts/collect-metrics` の既定出力先は `docs/history/metrics-latest.md` にしなければならない。
 - 限定確認や部分集合の計測確認には `scripts/collect-test-metrics` を使わなければならない。
+- `scripts/collect-metrics` または `scripts/collect-test-metrics` が出力しない計測行を `docs/history/metrics-latest.md` に追加する場合は、`scripts/append-metrics-history` を使わなければならない。
 
 #### `docs/history/decisions-latest.md`
 
 - 設計変更が行われた場合は `docs/history/decisions-latest.md` に追記しなければならない。
-- `docs/history/decisions-latest.md` の新しい決定を追加する場合は、対象の日付見出し行の次行へ、その決定内容の箇条書き行を挿入しなければならない。
-- 各決定の理由は、その決定内容の箇条書き行の直後の次行に、行頭から1段だけインデントを下げて記述しなければならない。
+- `docs/history/decisions-latest.md` の新しい決定を追加する場合は、`scripts/append-decision-history` を使い、その成功により対象の日付見出し行の次行へ、その決定内容の箇条書き行を挿入しなければならない。
+- 各決定の理由は、`scripts/append-decision-history` により、その決定内容の箇条書き行の直後の次行に、行頭から1段だけインデントを下げて記述しなければならない。
 - 理由行の次行ではインデントを行頭へ戻し、空行を挿入せず、次の決定がある場合は次の箇条書き項目を記述しなければならない。
 
 ## 完了条件
 
 - コミット対象が、その時点で完了条件を満たした変更セットだけで構成されていること。
 - 必要な検証と、対応する `docs/history/*-latest.md` 更新が完了したうえでコミットされていること。
-- `docs/history/` の更新が必要な場合は、この文書の規則どおり対応する `*-latest.md` に反映されていること。
+- `docs/history/chat-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/append-chat-history` が成功し、その結果が `docs/history/chat-latest.md` に反映されていること。
+- `docs/history/decisions-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/append-decision-history` が成功し、その結果が `docs/history/decisions-latest.md` に反映されていること。
+- `docs/history/metrics-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/collect-metrics`、`scripts/collect-test-metrics`、`scripts/append-metrics-history` のうち今回実行すべき command が成功し、その結果が `docs/history/metrics-latest.md` に反映されていること。
 - コミットメッセージが日本語で記述されていること。
 - 変更と作業単位の対応関係が履歴から追跡できること。
 
@@ -76,5 +81,6 @@
 - 未完了の変更を含む差分を見切り発車でコミットしてはならない。
 - 関連のない複数タスクの差分を 1 つのコミットへまとめてはならない。
 - `docs/history/*-log.md` を直接更新してはならない。
+- `docs/history/*-latest.md` の本文を読んで追記位置を判断したり、LLM が直接編集したりしてはならない。
 - `docs/history/*-latest.md` の更新が必要なのに省略したままコミットしてはならない。
 - 英語や空文、変更内容と対応しない文言でコミットメッセージを書いてはならない。

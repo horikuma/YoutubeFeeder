@@ -43,6 +43,7 @@ final class FeedCacheSQLiteDatabase {
         queue.sync {
             openIfNeeded()
             createSchema()
+            migrateSchemaIfNeeded()
         }
     }
 
@@ -143,6 +144,43 @@ final class FeedCacheSQLiteDatabase {
             execute("DELETE FROM remote_search_videos;")
             execute("DELETE FROM remote_search_queries;")
             return count
+        }
+    }
+
+    func updateThumbnailLastAccessedAt(filename: String, accessedAt: Date) {
+        queue.sync {
+            let timestamp = accessedAt.timeIntervalSince1970
+            execute(
+                "UPDATE cached_videos SET thumbnail_last_accessed_at = ? WHERE thumbnail_local_filename = ?;",
+                binder: { statement in
+                    bind(timestamp, at: 1, in: statement)
+                    bind(filename, at: 2, in: statement)
+                }
+            )
+            execute(
+                "UPDATE remote_search_videos SET thumbnail_last_accessed_at = ? WHERE thumbnail_local_filename = ?;",
+                binder: { statement in
+                    bind(timestamp, at: 1, in: statement)
+                    bind(filename, at: 2, in: statement)
+                }
+            )
+        }
+    }
+
+    func clearThumbnailReference(filename: String) {
+        queue.sync {
+            execute(
+                "UPDATE cached_videos SET thumbnail_local_filename = NULL, thumbnail_last_accessed_at = NULL WHERE thumbnail_local_filename = ?;",
+                binder: { statement in
+                    bind(filename, at: 1, in: statement)
+                }
+            )
+            execute(
+                "UPDATE remote_search_videos SET thumbnail_local_filename = NULL, thumbnail_last_accessed_at = NULL WHERE thumbnail_local_filename = ?;",
+                binder: { statement in
+                    bind(filename, at: 1, in: statement)
+                }
+            )
         }
     }
 
@@ -265,6 +303,7 @@ final class FeedCacheSQLiteDatabase {
                 video_url TEXT,
                 thumbnail_remote_url TEXT,
                 thumbnail_local_filename TEXT,
+                thumbnail_last_accessed_at REAL,
                 fetched_at REAL NOT NULL,
                 searchable_text TEXT NOT NULL,
                 duration_seconds INTEGER,
@@ -293,6 +332,7 @@ final class FeedCacheSQLiteDatabase {
                 video_url TEXT,
                 thumbnail_remote_url TEXT,
                 thumbnail_local_filename TEXT,
+                thumbnail_last_accessed_at REAL,
                 fetched_at REAL NOT NULL,
                 searchable_text TEXT NOT NULL,
                 duration_seconds INTEGER,
@@ -314,6 +354,19 @@ final class FeedCacheSQLiteDatabase {
             "CREATE INDEX IF NOT EXISTS idx_remote_search_videos_channel_id ON remote_search_videos(channel_id);",
         ]
         statements.forEach { execute($0) }
+    }
+
+    private func migrateSchemaIfNeeded() {
+        addColumnIfMissing(
+            table: "cached_videos",
+            column: "thumbnail_last_accessed_at",
+            definition: "REAL"
+        )
+        addColumnIfMissing(
+            table: "remote_search_videos",
+            column: "thumbnail_last_accessed_at",
+            definition: "REAL"
+        )
     }
 
     private func loadCachedChannels() -> [CachedChannelState] {
@@ -394,7 +447,7 @@ final class FeedCacheSQLiteDatabase {
         let sql =
             """
             SELECT video_id, channel_id, channel_title, channel_display_title, title, published_at, published_at_text,
-                   video_url, thumbnail_remote_url, thumbnail_local_filename, fetched_at, searchable_text,
+                   video_url, thumbnail_remote_url, thumbnail_local_filename, thumbnail_last_accessed_at, fetched_at, searchable_text,
                    duration_seconds, view_count, metadata_badge_text
             FROM cached_videos
             ORDER BY CASE WHEN published_at IS NULL THEN 1 ELSE 0 END, published_at DESC, fetched_at DESC, video_id ASC;
@@ -438,9 +491,9 @@ final class FeedCacheSQLiteDatabase {
             """
             INSERT INTO cached_videos(
                 video_id, channel_id, channel_title, channel_display_title, title, published_at, published_at_text,
-                video_url, thumbnail_remote_url, thumbnail_local_filename, fetched_at, searchable_text,
+                video_url, thumbnail_remote_url, thumbnail_local_filename, thumbnail_last_accessed_at, fetched_at, searchable_text,
                 duration_seconds, view_count, metadata_badge_text
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """,
             binder: { statement in
                 bind(video.id, at: 1, in: statement)
@@ -453,11 +506,12 @@ final class FeedCacheSQLiteDatabase {
                 bind(video.videoURL?.absoluteString, at: 8, in: statement)
                 bind(video.thumbnailRemoteURL?.absoluteString, at: 9, in: statement)
                 bind(video.thumbnailLocalFilename, at: 10, in: statement)
-                bind(video.fetchedAt.timeIntervalSince1970, at: 11, in: statement)
-                bind(video.searchableText, at: 12, in: statement)
-                bind(video.durationSeconds, at: 13, in: statement)
-                bind(video.viewCount, at: 14, in: statement)
-                bind(video.metadataBadgeText, at: 15, in: statement)
+                bind(video.thumbnailLastAccessedAt?.timeIntervalSince1970, at: 11, in: statement)
+                bind(video.fetchedAt.timeIntervalSince1970, at: 12, in: statement)
+                bind(video.searchableText, at: 13, in: statement)
+                bind(video.durationSeconds, at: 14, in: statement)
+                bind(video.viewCount, at: 15, in: statement)
+                bind(video.metadataBadgeText, at: 16, in: statement)
             }
         )
     }
@@ -467,9 +521,9 @@ final class FeedCacheSQLiteDatabase {
             """
             INSERT INTO remote_search_videos(
                 keyword, sort_index, video_id, channel_id, channel_title, channel_display_title, title, published_at,
-                published_at_text, video_url, thumbnail_remote_url, thumbnail_local_filename, fetched_at,
+                published_at_text, video_url, thumbnail_remote_url, thumbnail_local_filename, thumbnail_last_accessed_at, fetched_at,
                 searchable_text, duration_seconds, view_count, metadata_badge_text
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """,
             binder: { statement in
                 bind(keyword, at: 1, in: statement)
@@ -484,11 +538,12 @@ final class FeedCacheSQLiteDatabase {
                 bind(video.videoURL?.absoluteString, at: 10, in: statement)
                 bind(video.thumbnailRemoteURL?.absoluteString, at: 11, in: statement)
                 bind(video.thumbnailLocalFilename, at: 12, in: statement)
-                bind(video.fetchedAt.timeIntervalSince1970, at: 13, in: statement)
-                bind(video.searchableText, at: 14, in: statement)
-                bind(video.durationSeconds, at: 15, in: statement)
-                bind(video.viewCount, at: 16, in: statement)
-                bind(video.metadataBadgeText, at: 17, in: statement)
+                bind(video.thumbnailLastAccessedAt?.timeIntervalSince1970, at: 13, in: statement)
+                bind(video.fetchedAt.timeIntervalSince1970, at: 14, in: statement)
+                bind(video.searchableText, at: 15, in: statement)
+                bind(video.durationSeconds, at: 16, in: statement)
+                bind(video.viewCount, at: 17, in: statement)
+                bind(video.metadataBadgeText, at: 18, in: statement)
             }
         )
     }
@@ -498,7 +553,7 @@ final class FeedCacheSQLiteDatabase {
         let sql =
             """
             SELECT video_id, channel_id, channel_title, channel_display_title, title, published_at, published_at_text,
-                   video_url, thumbnail_remote_url, thumbnail_local_filename, fetched_at, searchable_text,
+                   video_url, thumbnail_remote_url, thumbnail_local_filename, thumbnail_last_accessed_at, fetched_at, searchable_text,
                    duration_seconds, view_count, metadata_badge_text
             FROM remote_search_videos
             WHERE keyword = ?
@@ -612,6 +667,22 @@ final class FeedCacheSQLiteDatabase {
         return Int(sqlite3_column_int64(statement, 0))
     }
 
+    private func addColumnIfMissing(table: String, column: String, definition: String) {
+        guard !tableHasColumn(table: table, column: column) else { return }
+        execute("ALTER TABLE \(table) ADD COLUMN \(column) \(definition);")
+    }
+
+    private func tableHasColumn(table: String, column: String) -> Bool {
+        guard let statement = prepare("PRAGMA table_info(\(table));") else { return false }
+        defer { sqlite3_finalize(statement) }
+        while sqlite3_step(statement) == SQLITE_ROW {
+            if string(at: 1, in: statement) == column {
+                return true
+            }
+        }
+        return false
+    }
+
     private func cachedVideo(from statement: OpaquePointer) -> CachedVideo {
         CachedVideo(
             id: string(at: 0, in: statement) ?? "",
@@ -624,11 +695,12 @@ final class FeedCacheSQLiteDatabase {
             videoURL: URL(string: string(at: 7, in: statement) ?? ""),
             thumbnailRemoteURL: URL(string: string(at: 8, in: statement) ?? ""),
             thumbnailLocalFilename: string(at: 9, in: statement),
-            fetchedAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 10)),
-            searchableText: string(at: 11, in: statement) ?? "",
-            durationSeconds: sqlite3_column_type(statement, 12) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(statement, 12)),
-            viewCount: sqlite3_column_type(statement, 13) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(statement, 13)),
-            metadataBadgeText: string(at: 14, in: statement)
+            thumbnailLastAccessedAt: date(at: 10, in: statement),
+            fetchedAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 11)),
+            searchableText: string(at: 12, in: statement) ?? "",
+            durationSeconds: sqlite3_column_type(statement, 13) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(statement, 13)),
+            viewCount: sqlite3_column_type(statement, 14) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(statement, 14)),
+            metadataBadgeText: string(at: 15, in: statement)
         )
     }
 

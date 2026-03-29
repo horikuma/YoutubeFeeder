@@ -116,6 +116,45 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
         }
     }
 
+    func testRemoteSearchCachePersistsThumbnailLastAccessedAt() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let store = RemoteVideoSearchCacheStore()
+            let fetchedAt = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let lastAccessedAt = fetchedAt.addingTimeInterval(300)
+
+            await store.save(
+                keyword: "ゆっくり実況",
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "Channel One",
+                        title: "first",
+                        publishedAt: fetchedAt,
+                        videoURL: nil,
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: "video-1.jpg",
+                        thumbnailLastAccessedAt: lastAccessedAt,
+                        fetchedAt: fetchedAt,
+                        searchableText: "first",
+                        durationSeconds: 1_400,
+                        viewCount: 100
+                    )
+                ],
+                totalCount: 1,
+                fetchedAt: fetchedAt
+            )
+
+            let entry = await store.load(keyword: "ゆっくり実況")
+            XCTAssertEqual(entry?.videos.first?.thumbnailLastAccessedAt, lastAccessedAt)
+        }
+    }
+
     func testClearAllRemovesDefaultAndSanitizedSearchCacheFiles() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

@@ -1,12 +1,39 @@
 {
   "commands": [
     {
+      "name": "append-chat-history",
+      "entry_point": "append-history.py",
+      "fixed_args": ["chat"],
+      "args": {
+        "mode": "passthrough"
+      },
+      "description": "Append one validated user/assistant pair into chat-latest.md without reading the file in the caller."
+    },
+    {
+      "name": "append-decision-history",
+      "entry_point": "append-history.py",
+      "fixed_args": ["decision"],
+      "args": {
+        "mode": "passthrough"
+      },
+      "description": "Append one validated decision/reason pair into decisions-latest.md without reading the file in the caller."
+    },
+    {
+      "name": "append-metrics-history",
+      "entry_point": "append-history.py",
+      "fixed_args": ["metric"],
+      "args": {
+        "mode": "passthrough"
+      },
+      "description": "Append one validated metrics line into metrics-latest.md without reading the file in the caller."
+    },
+    {
       "name": "rotate-history",
       "entry_point": "rotate-latest.py",
       "args": {
         "mode": "passthrough"
       },
-      "description": "Move previous-day history entries from *-latest.md files into the matching *-log.md files."
+      "description": "Rotate non-today sections from *-latest.md into matching *-log.md files, initialize empty latest files, and fail unless latest files end with only today's heading sections."
     }
   ]
 }

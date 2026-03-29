@@ -68,6 +68,27 @@ def today_section(today: str) -> str:
     return f"## {today}"
 
 
+def heading_of(section: str) -> str:
+    return section.splitlines()[0].replace("## ", "", 1).strip()
+
+
+def render_sections(sections: list[str]) -> str:
+    return "\n\n".join(sections).rstrip() + "\n"
+
+
+def ensure_latest_ready(latest_path: Path, today: str) -> None:
+    latest_sections = split_sections(read_text(latest_path))
+    if not latest_sections:
+        raise SystemExit(f"{latest_path.name} is empty after rotation")
+
+    if first_heading(latest_sections) != today:
+        raise SystemExit(f"{latest_path.name} does not start with today's heading")
+
+    invalid_headings = [heading for heading in map(heading_of, latest_sections) if heading != today]
+    if invalid_headings:
+        raise SystemExit(f"{latest_path.name} still contains non-today headings")
+
+
 def rotate_pair(history_dir: Path, stem: str, today: str) -> None:
     latest_path = history_dir / f"{stem}-latest.md"
     log_path = history_dir / f"{stem}-log.md"
@@ -75,14 +96,13 @@ def rotate_pair(history_dir: Path, stem: str, today: str) -> None:
     latest_sections = split_sections(read_text(latest_path))
     if not latest_sections:
         write_text(latest_path, today_section(today) + "\n")
-        return
-    if first_heading(latest_sections) == today:
+        ensure_latest_ready(latest_path, today)
         return
 
     keep_sections: list[str] = []
     rotate_sections: list[str] = []
     for section in latest_sections:
-        heading = section.splitlines()[0].replace("## ", "", 1).strip()
+        heading = heading_of(section)
         if heading == today:
             keep_sections.append(section)
         else:
@@ -91,12 +111,14 @@ def rotate_pair(history_dir: Path, stem: str, today: str) -> None:
     if rotate_sections:
         log_sections = split_sections(read_text(log_path))
         merged_log = rotate_sections + log_sections
-        write_text(log_path, "\n\n".join(merged_log).rstrip() + "\n")
+        write_text(log_path, render_sections(merged_log))
 
     if keep_sections:
-        write_text(latest_path, "\n\n".join(keep_sections).rstrip() + "\n")
+        write_text(latest_path, render_sections(keep_sections))
     else:
         write_text(latest_path, today_section(today) + "\n")
+
+    ensure_latest_ready(latest_path, today)
 
 
 def main() -> int:
