@@ -56,6 +56,20 @@ actor FeedCacheStore {
         database.updateThumbnailLastAccessedAt(filename: filename, accessedAt: accessedAt)
     }
 
+    func clearStoredThumbnailReference(filename: String) {
+        database.clearThumbnailReference(filename: filename)
+    }
+
+    func removeThumbnailFile(filename: String) {
+        removeThumbnails(named: [filename])
+    }
+
+    func thumbnailFileSize(filename: String) -> Int64? {
+        let url = thumbnailsDirectory.appendingPathComponent(filename)
+        guard fileManager.fileExists(atPath: url.path) else { return nil }
+        return (try? fileManager.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
+    }
+
     func totalThumbnailBytes() -> Int64 {
         let filenames = Set(loadSnapshot().videos.compactMap(\.thumbnailLocalFilename))
         return filenames.reduce(into: Int64(0)) { total, filename in

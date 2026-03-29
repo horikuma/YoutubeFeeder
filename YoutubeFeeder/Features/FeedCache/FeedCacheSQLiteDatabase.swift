@@ -167,6 +167,23 @@ final class FeedCacheSQLiteDatabase {
         }
     }
 
+    func clearThumbnailReference(filename: String) {
+        queue.sync {
+            execute(
+                "UPDATE cached_videos SET thumbnail_local_filename = NULL, thumbnail_last_accessed_at = NULL WHERE thumbnail_local_filename = ?;",
+                binder: { statement in
+                    bind(filename, at: 1, in: statement)
+                }
+            )
+            execute(
+                "UPDATE remote_search_videos SET thumbnail_local_filename = NULL, thumbnail_last_accessed_at = NULL WHERE thumbnail_local_filename = ?;",
+                binder: { statement in
+                    bind(filename, at: 1, in: statement)
+                }
+            )
+        }
+    }
+
     func loadRegisteredChannels() -> [RegisteredChannel] {
         queue.sync {
             var channels: [RegisteredChannel] = []

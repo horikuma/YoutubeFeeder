@@ -87,6 +87,73 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         }
     }
 
+    func testEvictOldestThumbnailIfNeededRemovesLeastRecentlyAccessedFileFirst() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let oldFilename = "video-1.jpg"
+            let newFilename = "video-2.jpg"
+            let snapshot = FeedCacheSnapshot(
+                savedAt: now,
+                channels: [],
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "oldest",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=1"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: oldFilename,
+                        thumbnailLastAccessedAt: now.addingTimeInterval(-300),
+                        fetchedAt: now,
+                        searchableText: "oldest",
+                        durationSeconds: 1_500,
+                        viewCount: 101
+                    ),
+                    CachedVideo(
+                        id: "video-2",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "newest",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=2"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: newFilename,
+                        thumbnailLastAccessedAt: now,
+                        fetchedAt: now,
+                        searchableText: "newest",
+                        durationSeconds: 1_600,
+                        viewCount: 202
+                    ),
+                ]
+            )
+
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(snapshot)
+            try Data("old".utf8).write(to: thumbnailsDirectory.appendingPathComponent(oldFilename), options: .atomic)
+            try Data("new".utf8).write(to: thumbnailsDirectory.appendingPathComponent(newFilename), options: .atomic)
+
+            let store = FeedCacheStore()
+            let result = await store.evictOldestThumbnailIfNeeded(maxThumbnailCount: 1)
+            let reloaded = database.loadFeedSnapshot()
+
+            XCTAssertEqual(result?.filename, oldFilename)
+            XCTAssertFalse(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(oldFilename).path))
+            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(newFilename).path))
+            XCTAssertNil(reloaded.videos.first(where: { $0.id == "video-1" })?.thumbnailLocalFilename)
+            XCTAssertEqual(reloaded.videos.first(where: { $0.id == "video-2" })?.thumbnailLocalFilename, newFilename)
+        }
+    }
+
     func testRemoveChannelIDDeletesRegisteredChannel() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

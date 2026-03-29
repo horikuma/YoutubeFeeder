@@ -1,4 +1,6 @@
 ## 2026/03/29
+- サムネイル廃棄の第1段階は FeedCacheStore の eviction helper として実装し、上限件数または上限容量を超えた時は最終アクセス時刻が最も古い1件だけを削除して oldest-first の順序を確定する。
+  - Issue 4 の第3ToDoは削除順の定義が主題であり、下限までの連続削除を先に混ぜると第4ToDoとの境界が曖昧になるため、まずは単発 eviction で削除順位だけを独立に固定する。
 - `ThumbnailView` はローカル `thumbnailLocalFilename` を使う `AsyncImage` に `.task(id: filename)` を付け、view instance ごとに1回だけ FeedCacheStore へ参照通知して最終アクセス時刻を更新する。
   - Issue 4 の第2ToDoでは `AsyncImage` 生成時点をアプリ側で明示できる契機へ落とし込む必要があり、一覧ごとの個別実装へ散らさず ThumbnailView 1 箇所へ集約すると対象導線を漏れなく更新できるため。
 - サムネイル参照の最終アクセス時刻は cached_videos / remote_search_videos の thumbnail_local_filename と同じ管理単位に REAL 列で保持し、既存DBは起動時 ALTER TABLE で後方互換 migration する。
