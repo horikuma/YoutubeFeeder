@@ -1,4 +1,6 @@
 ## 2026/03/30
+- Issue詳細化のDescription正本を禁止事項とToDoに変更した。
+  - Issue #38 で実施時の禁止事項をDescriptionへ残す必要が生じ、詳細化コメントとの同期規則も同時に必要になったため。
 - Issue 詳細化コメントは、私の指示・その時点で行なった判断・最終的に最新になった ToDo を含み、ToDo は Issue / Issue詳細化 / Issue外に分け、Description には Issue の ToDo だけを反映する。
   - 詳細化の判断経路を失わずに保持しつつ、Description を実行用 ToDo に限定して管理境界を一意にするため。
 - Issue の Description は最終的な ToDo だけを残し、詳細化の過程出力と確定本文は Issue コメントへ集約する。
