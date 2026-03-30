@@ -55,6 +55,10 @@
       "args": {
         "mode": "passthrough"
       },
+      "body_file_contract": {
+        "file_option": "--body-file",
+        "inline_option": "--body"
+      },
       "required_inputs": {
         "all_of": [
           {
@@ -71,7 +75,7 @@
         "one_of": [
           {
             "name": "comment_body_markdown",
-            "sources": ["arg:--body", "arg:--body-file"],
+            "sources": ["arg:--body-file"],
             "description": "追加する Issue コメント本文"
           }
         ]

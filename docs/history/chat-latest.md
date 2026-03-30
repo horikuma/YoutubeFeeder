@@ -1,4 +1,6 @@
 ## 2026/03/30
+Issue38のTODOを実施せよ。[引用要約: ToDo5としてコメント本文をllm-tempの固定命名Markdownへ限定するよう指示。]
+  - `issue-comment-create` は `--body-file` のみを受け付け、`llm-temp/YYYYMMDD-HHMMSS-コマンド名-概要.md` 以外のコメント入力を拒否するようにした。
 Issue38のTODOを実施せよ。[引用要約: ToDo4としてDescription本文をllm-tempの固定命名Markdownへ限定するよう指示。]
   - `issue-creation` / `issue-description-update` / `pull-request-creation` は `--body-file` のみを受け付け、`llm-temp/YYYYMMDD-HHMMSS-コマンド名-概要.md` 以外を拒否するようにした。
 Issue38のTODOを実施せよ。[引用要約: ToDo3として新しいcommand名へ揃えるよう指示。]
