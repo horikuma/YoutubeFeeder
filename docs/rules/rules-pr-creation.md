@@ -19,6 +19,7 @@
 - Pull Request を Project へ自動登録してはならない。
 - Pull Request の body には、対応する Issue を GitHub の機能で連携クローズするため、`Closes #(Issue番号)` を明記しなければならない。
 - Pull Request の作成時は、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態にしなければならない。
+- Pull Request 作成・更新に必要な項目が 1 つでも未完了なら、開発シーケンスを完了扱いにしてはならず、不足項目として列挙して停止しなければならない。
 - GitHub Project に `LLM所要時間` の Number フィールドがある場合は、開発シーケンス終盤で実測した分数を対応する Issue 項目へ反映しなければならない。フィールドが無い場合は対応する skill / script で作成してから更新しなければならない。
 - LLM は Issue を直接 close してはならない。
 
@@ -28,6 +29,7 @@
 - Pull Request の base、assignee、関連付けが推測なしで解決されていること。
 - Pull Request の body に `Closes #(Issue番号)` が含まれ、対応 Issue と GitHub 上で連携されていること。
 - Pull Request を起点に、Issue、ブランチ、コミットとの対応関係を追跡できること。
+- Pull Request 作成・更新に必要な項目が未完了のまま、完了扱いにされていないこと。
 - Project 自動登録禁止と Issue 直接 close 禁止が守られていること。
 
 ## 禁止事項
@@ -37,4 +39,5 @@
 - rules に Assignee 名、Project 名、固定モードのようなプロダクト固有値を持ち込んではならない。
 - Pull Request を Project へ自動登録してはならない。
 - `Closes #(Issue番号)` を使わずに、別表現だけで Issue 連携を済ませてはならない。
+- Pull Request 作成・更新に必要な項目が未完了なのに、不足項目を列挙せず完了したと扱ってはならない。
 - LLM が Issue を直接 close してはならない。

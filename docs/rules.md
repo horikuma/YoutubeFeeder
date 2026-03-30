@@ -12,8 +12,6 @@
 ## タスク
 
 - [セッション開始 rules-session-start.md](./rules/rules-session-start.md)
-- [シーケンス開始 rules-sequence-start.md](./rules/rules-sequence-start.md)
-- [シーケンス終了 rules-sequence-end.md](./rules/rules-sequence-end.md)
 - [ユーザー指示の理解 rules-user-instruction-understanding.md](./rules/rules-user-instruction-understanding.md)
 - [Issue の詳細化 rules-issue-detailing.md](./rules/rules-issue-detailing.md)
 - [先行テストで期待固定 rules-test-expectation-freeze.md](./rules/rules-test-expectation-freeze.md)
