@@ -1,4 +1,6 @@
 ## 2026/03/30
+Issue38のTODOを実施せよ。[引用要約: ToDo9としてscripts shell wrapper が複雑化していないことを監査し、完了まで反映するよう指示。]
+  - shell wrapper 19本を対象に `bash -n`、分岐構文検索、行数確認を行い、全件 8 行で分岐構文なしの最小 wrapper のまま維持されていることを確認した。
 Issue38のTODOを実施せよ。[引用要約: ToDo8としてDescriptionとコメント本文の必須節をscripts側で固定するよう指示。]
   - `issue-creation` / `issue-description-update` / `issue-comment-create` / `pull-request-creation` に必須見出し・必須文字列の契約を持たせ、本文ファイルがその契約を満たさないと実行前に停止するようにした。
 Issue38のTODOを実施せよ。[引用要約: ToDo7としてタイトルやブランチ名はllm-tempではなく引数で渡す方針を固定するよう指示。]
