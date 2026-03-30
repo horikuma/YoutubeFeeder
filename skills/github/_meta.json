@@ -56,6 +56,7 @@
         "mode": "passthrough"
       },
       "body_file_contract": {
+        "content_format": "markdown",
         "file_option": "--body-file",
         "inline_option": "--body"
       },
@@ -93,6 +94,7 @@
         "mode": "passthrough"
       },
       "body_file_contract": {
+        "content_format": "markdown",
         "file_option": "--body-file",
         "inline_option": "--body"
       },
@@ -152,6 +154,7 @@
         "mode": "passthrough"
       },
       "body_file_contract": {
+        "content_format": "markdown",
         "file_option": "--body-file",
         "inline_option": "--body"
       },
@@ -189,6 +192,7 @@
         "mode": "passthrough"
       },
       "body_file_contract": {
+        "content_format": "markdown",
         "file_option": "--body-file",
         "inline_option": "--body"
       },

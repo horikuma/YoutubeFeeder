@@ -123,10 +123,13 @@ def validate_body_file_contract(command_name: str, command: dict, command_args: 
 
     file_option = contract.get("file_option")
     inline_option = contract.get("inline_option")
+    content_format = contract.get("content_format")
     if not isinstance(file_option, str) or not file_option:
         raise SystemExit("body_file_contract.file_option must be a non-empty string")
     if not isinstance(inline_option, str) or not inline_option:
         raise SystemExit("body_file_contract.inline_option must be a non-empty string")
+    if content_format != "markdown":
+        raise SystemExit("body_file_contract.content_format must be markdown")
 
     if inline_option in command_args:
         raise SystemExit(f"{command_name} must use {file_option}; {inline_option} is not allowed")

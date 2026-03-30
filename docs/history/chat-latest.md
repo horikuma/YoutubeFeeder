@@ -1,4 +1,6 @@
 ## 2026/03/30
+Issue38のTODOを実施せよ。[引用要約: ToDo6としてMarkdownで規定できる入力だけをllm-temp対象にするよう指示。]
+  - Description/コメント本文の llm-temp 契約に `content_format: markdown` を必須化し、Markdown 契約として定義した入力だけが llm-temp 対象になるよう明示した。
 Issue38のTODOを実施せよ。[引用要約: ToDo5としてコメント本文をllm-tempの固定命名Markdownへ限定するよう指示。]
   - `issue-comment-create` は `--body-file` のみを受け付け、`llm-temp/YYYYMMDD-HHMMSS-コマンド名-概要.md` 以外のコメント入力を拒否するようにした。
 Issue38のTODOを実施せよ。[引用要約: ToDo4としてDescription本文をllm-tempの固定命名Markdownへ限定するよう指示。]
