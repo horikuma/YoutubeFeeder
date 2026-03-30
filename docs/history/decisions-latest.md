@@ -1,4 +1,6 @@
 ## 2026/03/30
+- scripts の必須情報は各 command の `_meta.json` に `required_inputs` として固定する。
+  - 必須入力の正本を command 定義へ寄せ、shell wrapper を肥大化させずに共通実行基盤で定義欠落だけを検出できる構造にするため。
 - Issue詳細化のDescription正本を禁止事項とToDoに変更した。
   - Issue #38 で実施時の禁止事項をDescriptionへ残す必要が生じ、詳細化コメントとの同期規則も同時に必要になったため。
 - Issue 詳細化コメントは、私の指示・その時点で行なった判断・最終的に最新になった ToDo を含み、ToDo は Issue / Issue詳細化 / Issue外に分け、Description には Issue の ToDo だけを反映する。
