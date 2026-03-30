@@ -129,7 +129,7 @@
 - 画面駆動の型だけを `@MainActor` とし、永続化モデルや parser、store は UI 文脈へ固定しない。
 - 起動直後の MainActor を長時間塞ぐ file decode は避け、ホームの初期表示に不要な大きい cache decode を挟まない。
 - build 検証は `error 0` に加えて `warning 0` を成立条件とする。
-- 計測は `scripts/collect-metrics` を正本とし、同一の全体実行から build、test、起動性能を取得する。
+- 計測は `scripts/metrics-collect` を正本とし、同一の全体実行から build、test、起動性能を取得する。
 
 ## Observability
 

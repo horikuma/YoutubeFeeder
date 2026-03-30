@@ -1,4 +1,6 @@
 ## 2026/03/30
+- script 改名後の正本文書は現行の script 名参照へ同期する。
+  - command 名統一後も rules と specs の正本が旧入口を指したままだと運用手順が食い違うため。
 - scripts の shell wrapper は 8 行の最小入口に保ち、複雑な分岐を持ち込まない。
   - command 名変更や入力契約追加を進めても shell 層を肥大化させず、複雑な判定は共通実行基盤の Python 側へ閉じ込めるため。
 - Description とコメントの Markdown 本文は command ごとの必須節を満たさなければ受け付けない。

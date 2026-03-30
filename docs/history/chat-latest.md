@@ -1,4 +1,6 @@
 ## 2026/03/30
+では追加ToDoを今回のみ、Descriptionに追加して良い。禁止事項を無効とし、Docsを更新するタスクを追加し、実施し、コミットせよ。
+  - Issue #38 の禁止事項を無効化し、docs の旧 script 名参照を更新する追加ToDoを完了状態で反映した。あわせて rules/specs/metrics の現行文書を新 script 名へ同期した。
 Issue38のTODOを実施せよ。[引用要約: ToDo9としてscripts shell wrapper が複雑化していないことを監査し、完了まで反映するよう指示。]
   - shell wrapper 19本を対象に `bash -n`、分岐構文検索、行数確認を行い、全件 8 行で分岐構文なしの最小 wrapper のまま維持されていることを確認した。
 Issue38のTODOを実施せよ。[引用要約: ToDo8としてDescriptionとコメント本文の必須節をscripts側で固定するよう指示。]
