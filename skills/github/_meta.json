@@ -153,6 +153,7 @@
       "args": {
         "mode": "passthrough"
       },
+      "direct_arg_inputs": ["--title"],
       "body_file_contract": {
         "content_format": "markdown",
         "file_option": "--body-file",
@@ -191,6 +192,7 @@
       "args": {
         "mode": "passthrough"
       },
+      "direct_arg_inputs": ["--head", "--title"],
       "body_file_contract": {
         "content_format": "markdown",
         "file_option": "--body-file",
@@ -234,6 +236,7 @@
       "args": {
         "mode": "passthrough"
       },
+      "direct_arg_inputs": ["--branch"],
       "required_inputs": {
         "all_of": [
           {

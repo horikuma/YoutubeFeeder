@@ -80,6 +80,14 @@ def validate_required_inputs(meta_path: Path, command: dict) -> None:
                 )
 
 
+def validate_direct_arg_inputs(meta_path: Path, command: dict) -> None:
+    direct_arg_inputs = command.get("direct_arg_inputs")
+    if direct_arg_inputs is None:
+        return
+    if not isinstance(direct_arg_inputs, list) or not all(isinstance(item, str) and item for item in direct_arg_inputs):
+        raise SystemExit(f"direct_arg_inputs must be a list of non-empty strings: {meta_path}")
+
+
 def read_option_value(command_args: list[str], option_name: str) -> str | None:
     for index, value in enumerate(command_args):
         if value != option_name:
@@ -199,6 +207,7 @@ def main() -> int:
     repo_root = Path(args.repo_root).expanduser().resolve()
     meta_path, command = load_command_definition(repo_root, args.command)
     validate_required_inputs(meta_path, command)
+    validate_direct_arg_inputs(meta_path, command)
     validate_body_file_contract(args.command, command, args.command_args)
     entry_path = resolve_entry_point(meta_path, command)
 
