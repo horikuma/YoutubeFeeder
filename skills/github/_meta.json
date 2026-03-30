@@ -6,6 +6,16 @@
       "args": {
         "mode": "passthrough"
       },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          }
+        ],
+        "one_of": []
+      },
       "runtime": {
         "use_repo_venv": true,
         "required_modules": ["github"]
@@ -18,6 +28,21 @@
       "fixed_args": ["show"],
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "issue_number",
+            "sources": ["arg:--issue-number"],
+            "description": "読み取る Issue 番号"
+          }
+        ],
+        "one_of": []
       },
       "runtime": {
         "use_repo_venv": true,
@@ -32,6 +57,27 @@
       "args": {
         "mode": "passthrough"
       },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "issue_number",
+            "sources": ["arg:--issue-number"],
+            "description": "コメント対象の Issue 番号"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "comment_body_markdown",
+            "sources": ["arg:--body", "arg:--body-file"],
+            "description": "追加する Issue コメント本文"
+          }
+        ]
+      },
       "runtime": {
         "use_repo_venv": true,
         "required_modules": ["github"]
@@ -45,6 +91,27 @@
       "args": {
         "mode": "passthrough"
       },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "issue_number",
+            "sources": ["arg:--issue-number"],
+            "description": "更新対象の Issue 番号"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "updated_issue_content",
+            "sources": ["arg:--title", "arg:--body", "arg:--body-file"],
+            "description": "更新する Issue タイトルまたは本文"
+          }
+        ]
+      },
       "runtime": {
         "use_repo_venv": true,
         "required_modules": ["github"]
@@ -56,6 +123,16 @@
       "entry_point": "issue-defaults.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          }
+        ],
+        "one_of": []
       },
       "runtime": {
         "use_repo_venv": true,
@@ -69,6 +146,27 @@
       "args": {
         "mode": "passthrough"
       },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "title",
+            "sources": ["arg:--title"],
+            "description": "作成する Issue のタイトル"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "issue_body_markdown",
+            "sources": ["arg:--body", "arg:--body-file"],
+            "description": "作成する Issue の本文"
+          }
+        ]
+      },
       "runtime": {
         "use_repo_venv": true,
         "required_modules": ["github"]
@@ -80,6 +178,32 @@
       "entry_point": "pull-request.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "head",
+            "sources": ["arg:--head"],
+            "description": "Pull Request の head ブランチ"
+          },
+          {
+            "name": "title",
+            "sources": ["arg:--title"],
+            "description": "作成する Pull Request のタイトル"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "pull_request_body_markdown",
+            "sources": ["arg:--body", "arg:--body-file"],
+            "description": "作成する Pull Request の本文"
+          }
+        ]
       },
       "runtime": {
         "use_repo_venv": true,
@@ -93,6 +217,21 @@
       "args": {
         "mode": "passthrough"
       },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "issue_number",
+            "sources": ["arg:--issue-number"],
+            "description": "ブランチを記録する Issue 番号"
+          }
+        ],
+        "one_of": []
+      },
       "runtime": {
         "use_repo_venv": true,
         "required_modules": ["github"]
@@ -105,6 +244,27 @@
       "args": {
         "mode": "passthrough"
       },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "value",
+            "sources": ["arg:--value"],
+            "description": "設定する数値フィールド値"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "project_content_target",
+            "sources": ["arg:--content-url", "arg:--issue-number", "arg:--pull-request-number"],
+            "description": "フィールド更新対象の URL または Issue / Pull Request 番号"
+          }
+        ]
+      },
       "runtime": {
         "use_repo_venv": true,
         "required_modules": ["github"]
@@ -116,6 +276,27 @@
       "entry_point": "project-field.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "value",
+            "sources": ["arg:--value"],
+            "description": "設定する数値フィールド値"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "project_content_target",
+            "sources": ["arg:--content-url", "arg:--issue-number", "arg:--pull-request-number"],
+            "description": "フィールド更新対象の URL または Issue / Pull Request 番号"
+          }
+        ]
       },
       "runtime": {
         "use_repo_venv": true,

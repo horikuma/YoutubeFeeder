@@ -49,6 +49,33 @@ def resolve_entry_point(meta_path: Path, command: dict) -> Path:
     return entry_path
 
 
+def validate_required_inputs(meta_path: Path, command: dict) -> None:
+    required_inputs = command.get("required_inputs")
+    if not isinstance(required_inputs, dict):
+        raise SystemExit(f"Command metadata must define required_inputs: {meta_path}")
+
+    for group_name in ("all_of", "one_of"):
+        group = required_inputs.get(group_name)
+        if not isinstance(group, list):
+            raise SystemExit(f"required_inputs.{group_name} must be a list: {meta_path}")
+        for entry in group:
+            if not isinstance(entry, dict):
+                raise SystemExit(f"required_inputs.{group_name} entries must be objects: {meta_path}")
+            name = entry.get("name")
+            description = entry.get("description")
+            sources = entry.get("sources")
+            if not isinstance(name, str) or not name:
+                raise SystemExit(f"required_inputs.{group_name}.name must be a non-empty string: {meta_path}")
+            if not isinstance(description, str) or not description:
+                raise SystemExit(
+                    f"required_inputs.{group_name}.description must be a non-empty string: {meta_path}"
+                )
+            if not isinstance(sources, list) or not sources or not all(isinstance(item, str) and item for item in sources):
+                raise SystemExit(
+                    f"required_inputs.{group_name}.sources must be a non-empty list of strings: {meta_path}"
+                )
+
+
 def ensure_requirements(python_bin: Path, repo_root: Path, required_modules: list[str]) -> None:
     if not required_modules:
         return
@@ -106,6 +133,7 @@ def main() -> int:
     args = parse_args()
     repo_root = Path(args.repo_root).expanduser().resolve()
     meta_path, command = load_command_definition(repo_root, args.command)
+    validate_required_inputs(meta_path, command)
     entry_path = resolve_entry_point(meta_path, command)
 
     fixed_args = command.get("fixed_args", [])

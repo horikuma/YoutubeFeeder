@@ -5,6 +5,16 @@
       "entry_point": "collect-metrics.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "label",
+            "sources": ["arg:--label"],
+            "description": "計測結果へ残すラベル"
+          }
+        ],
+        "one_of": []
       }
     },
     {
@@ -12,6 +22,10 @@
       "entry_point": "collect-test-metrics.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
       }
     },
     {
@@ -19,6 +33,10 @@
       "entry_point": "health-barometer.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
       }
     },
     {
@@ -26,6 +44,16 @@
       "entry_point": "llm-elapsed.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "action",
+            "sources": ["arg:action"],
+            "description": "start / finish / status / reset のいずれかの操作"
+          }
+        ],
+        "one_of": []
       }
     },
     {
@@ -33,6 +61,10 @@
       "entry_point": "test-matrix.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
       }
     }
   ]
