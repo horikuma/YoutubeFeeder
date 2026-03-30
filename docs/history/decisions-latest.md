@@ -1,4 +1,6 @@
 ## 2026/03/30
+- scripts が複数回使う操作は command ごとに専用 Python entry point を持つ構成にする。
+  - 実際に呼ぶ入口単位で責務を固定し、共有 subcommand 依存を減らして後段の命名変更や入力契約強制を入れやすくするため。
 - scripts の必須情報は各 command の `_meta.json` に `required_inputs` として固定する。
   - 必須入力の正本を command 定義へ寄せ、shell wrapper を肥大化させずに共通実行基盤で定義欠落だけを検出できる構造にするため。
 - Issue詳細化のDescription正本を禁止事項とToDoに変更した。

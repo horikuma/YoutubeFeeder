@@ -24,8 +24,7 @@
     },
     {
       "name": "get-issue",
-      "entry_point": "issue.py",
-      "fixed_args": ["show"],
+      "entry_point": "get-issue.py",
       "args": {
         "mode": "passthrough"
       },
@@ -52,8 +51,7 @@
     },
     {
       "name": "comment-issue",
-      "entry_point": "issue.py",
-      "fixed_args": ["comment"],
+      "entry_point": "comment-issue.py",
       "args": {
         "mode": "passthrough"
       },
@@ -86,8 +84,7 @@
     },
     {
       "name": "update-issue-body",
-      "entry_point": "issue.py",
-      "fixed_args": ["update-body"],
+      "entry_point": "update-issue-body.py",
       "args": {
         "mode": "passthrough"
       },

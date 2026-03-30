@@ -2,8 +2,7 @@
   "commands": [
     {
       "name": "append-chat-history",
-      "entry_point": "append-history.py",
-      "fixed_args": ["chat"],
+      "entry_point": "append-chat-history.py",
       "args": {
         "mode": "passthrough"
       },
@@ -26,8 +25,7 @@
     },
     {
       "name": "append-decision-history",
-      "entry_point": "append-history.py",
-      "fixed_args": ["decision"],
+      "entry_point": "append-decision-history.py",
       "args": {
         "mode": "passthrough"
       },
@@ -50,8 +48,7 @@
     },
     {
       "name": "append-metrics-history",
-      "entry_point": "append-history.py",
-      "fixed_args": ["metric"],
+      "entry_point": "append-metrics-history.py",
       "args": {
         "mode": "passthrough"
       },

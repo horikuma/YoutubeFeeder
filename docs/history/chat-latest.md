@@ -1,4 +1,6 @@
 ## 2026/03/30
+Issue38のTODOを実施せよ。[引用要約: ToDo2としてscriptsごとに個別操作前提のentry point設計を進めるよう指示。]
+  - `get-issue` / `comment-issue` / `update-issue-body` と履歴追記3種に専用 Python entry point を追加し、実際に呼ぶ scripts ごとに個別入口を持つ構成へ移した。
 Issue38のTODOを実施せよ。[引用要約: scriptsのみの制約を緩め、ToDo1として各scriptの必須情報固定を進めるよう指示。]
   - Issue #38 の禁止事項を skills の command 定義と共通実行基盤まで許可する形へ更新し、各 command の必須入力を `_meta.json` の `required_inputs` として正本化した。共通実行基盤でも定義欠落を検出できるようにした。
 では、Issue38のTODOを実施せよ。[引用要約: TODO1項目毎にコミットし、Issue詳細化ルールを更新し、禁止事項にscripts以外を変更しないを追加した上で実行するよう指示。]
