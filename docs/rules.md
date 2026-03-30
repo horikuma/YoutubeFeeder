@@ -6,12 +6,12 @@
 - LLM は、読んだ文書の記載内容だけで判断しなければならず、推測、補完、慣習、文脈、先回りで意味を追加してはならない。
 - タスク規定が曖昧で、タスク遂行に推論を要すると判明した場合は、処理を中断し、その旨をユーザーへ報告しなければならない。
 - Git 操作は、同一リポジトリ内で常に 1 操作ずつ直列に実行しなければならない。
+- 既存ファイルの改名は、履歴を保持するため `git mv` を使わなければならない。
+- 既存ファイルを改名した後に同じファイルへ本文編集を加える場合は、改名と本文編集の間にコミットを挟まなければならない。
 
 ## タスク
 
 - [セッション開始 rules-session-start.md](./rules/rules-session-start.md)
-- [シーケンス開始 rules-sequence-start.md](./rules/rules-sequence-start.md)
-- [シーケンス終了 rules-sequence-end.md](./rules/rules-sequence-end.md)
 - [ユーザー指示の理解 rules-user-instruction-understanding.md](./rules/rules-user-instruction-understanding.md)
 - [Issue の詳細化 rules-issue-detailing.md](./rules/rules-issue-detailing.md)
 - [先行テストで期待固定 rules-test-expectation-freeze.md](./rules/rules-test-expectation-freeze.md)

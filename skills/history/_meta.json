@@ -1,37 +1,78 @@
 {
   "commands": [
     {
-      "name": "append-chat-history",
-      "entry_point": "append-history.py",
-      "fixed_args": ["chat"],
+      "name": "history-chat-append",
+      "entry_point": "history-chat-append.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "user_line",
+            "sources": ["arg:--user-line"],
+            "description": "記録するユーザー指示の1行"
+          },
+          {
+            "name": "assistant_line",
+            "sources": ["arg:--assistant-line"],
+            "description": "記録するLLM応答概要の1行"
+          }
+        ],
+        "one_of": []
       },
       "description": "Append one validated user/assistant pair into chat-latest.md without reading the file in the caller."
     },
     {
-      "name": "append-decision-history",
-      "entry_point": "append-history.py",
-      "fixed_args": ["decision"],
+      "name": "history-decision-append",
+      "entry_point": "history-decision-append.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "decision_line",
+            "sources": ["arg:--decision-line"],
+            "description": "記録する決定事項の1行"
+          },
+          {
+            "name": "reason_line",
+            "sources": ["arg:--reason-line"],
+            "description": "記録する決定理由の1行"
+          }
+        ],
+        "one_of": []
       },
       "description": "Append one validated decision/reason pair into decisions-latest.md without reading the file in the caller."
     },
     {
-      "name": "append-metrics-history",
-      "entry_point": "append-history.py",
-      "fixed_args": ["metric"],
+      "name": "history-metrics-append",
+      "entry_point": "history-metrics-append.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "metric_line",
+            "sources": ["arg:--metric-line"],
+            "description": "記録する計測結果の1行"
+          }
+        ],
+        "one_of": []
       },
       "description": "Append one validated metrics line into metrics-latest.md without reading the file in the caller."
     },
     {
-      "name": "rotate-history",
+      "name": "history-rotate",
       "entry_point": "rotate-latest.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
       },
       "description": "Rotate non-today sections from *-latest.md into matching *-log.md files, initialize empty latest files, and fail unless latest files end with only today's heading sections."
     }

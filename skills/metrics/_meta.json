@@ -1,38 +1,70 @@
 {
   "commands": [
     {
-      "name": "collect-metrics",
+      "name": "metrics-collect",
       "entry_point": "collect-metrics.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "label",
+            "sources": ["arg:--label"],
+            "description": "計測結果へ残すラベル"
+          }
+        ],
+        "one_of": []
       }
     },
     {
-      "name": "collect-test-metrics",
+      "name": "metrics-test-collect",
       "entry_point": "collect-test-metrics.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
       }
     },
     {
-      "name": "health-barometer",
+      "name": "metrics-health-check",
       "entry_point": "health-barometer.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
       }
     },
     {
-      "name": "llm-elapsed",
+      "name": "metrics-llm-elapsed",
       "entry_point": "llm-elapsed.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "action",
+            "sources": ["arg:action"],
+            "description": "start / finish / status / reset のいずれかの操作"
+          }
+        ],
+        "one_of": []
       }
     },
     {
-      "name": "test-matrix",
+      "name": "metrics-test-matrix",
       "entry_point": "test-matrix.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
       }
     }
   ]

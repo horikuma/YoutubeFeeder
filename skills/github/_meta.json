@@ -1,10 +1,20 @@
 {
   "commands": [
     {
-      "name": "list-issues",
+      "name": "issue-list",
       "entry_point": "list-issues.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          }
+        ],
+        "one_of": []
       },
       "runtime": {
         "use_repo_venv": true,
@@ -13,11 +23,25 @@
       "description": "Fetch repository issues through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "get-issue",
-      "entry_point": "issue.py",
-      "fixed_args": ["show"],
+      "name": "issue-read",
+      "entry_point": "issue-read.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "issue_number",
+            "sources": ["arg:--issue-number"],
+            "description": "読み取る Issue 番号"
+          }
+        ],
+        "one_of": []
       },
       "runtime": {
         "use_repo_venv": true,
@@ -26,11 +50,43 @@
       "description": "Read a GitHub issue through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "comment-issue",
-      "entry_point": "issue.py",
-      "fixed_args": ["comment"],
+      "name": "issue-comment-create",
+      "entry_point": "issue-comment-create.py",
       "args": {
         "mode": "passthrough"
+      },
+      "body_file_contract": {
+        "content_format": "markdown",
+        "file_option": "--body-file",
+        "inline_option": "--body",
+        "required_headings": [
+          "## 私の指示",
+          "## その時点で行なった判断",
+          "## 最終的に最新になった禁止事項",
+          "## 最終的に最新になった ToDo"
+        ],
+        "required_literals": []
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "issue_number",
+            "sources": ["arg:--issue-number"],
+            "description": "コメント対象の Issue 番号"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "comment_body_markdown",
+            "sources": ["arg:--body-file"],
+            "description": "追加する Issue コメント本文"
+          }
+        ]
       },
       "runtime": {
         "use_repo_venv": true,
@@ -39,11 +95,38 @@
       "description": "Create a GitHub issue comment through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "update-issue-body",
-      "entry_point": "issue.py",
-      "fixed_args": ["update-body"],
+      "name": "issue-description-update",
+      "entry_point": "issue-description-update.py",
       "args": {
         "mode": "passthrough"
+      },
+      "body_file_contract": {
+        "content_format": "markdown",
+        "file_option": "--body-file",
+        "inline_option": "--body",
+        "required_headings": ["## 禁止事項", "## ToDo"],
+        "required_literals": []
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "issue_number",
+            "sources": ["arg:--issue-number"],
+            "description": "コメント対象の Issue 番号"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "comment_body_markdown",
+            "sources": ["arg:--body-file"],
+            "description": "追加する Issue コメント本文"
+          }
+        ]
       },
       "runtime": {
         "use_repo_venv": true,
@@ -52,10 +135,20 @@
       "description": "Update a GitHub issue title/body through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "resolve-github-defaults",
+      "name": "github-defaults-resolve",
       "entry_point": "issue-defaults.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          }
+        ],
+        "one_of": []
       },
       "runtime": {
         "use_repo_venv": true,
@@ -64,10 +157,39 @@
       "description": "Resolve and cache the default GitHub assignee/project metadata used when creating issues."
     },
     {
-      "name": "create-issue",
+      "name": "issue-creation",
       "entry_point": "create-issue.py",
       "args": {
         "mode": "passthrough"
+      },
+      "direct_arg_inputs": ["--title"],
+      "body_file_contract": {
+        "content_format": "markdown",
+        "file_option": "--body-file",
+        "inline_option": "--body",
+        "required_headings": ["## ToDo"],
+        "required_literals": []
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "title",
+            "sources": ["arg:--title"],
+            "description": "作成する Issue のタイトル"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "issue_body_markdown",
+            "sources": ["arg:--body", "arg:--body-file"],
+            "description": "作成する Issue の本文"
+          }
+        ]
       },
       "runtime": {
         "use_repo_venv": true,
@@ -76,10 +198,44 @@
       "description": "Create GitHub issues with the default assignee and project, using cached metadata when available."
     },
     {
-      "name": "create-pr",
+      "name": "pull-request-creation",
       "entry_point": "pull-request.py",
       "args": {
         "mode": "passthrough"
+      },
+      "direct_arg_inputs": ["--head", "--title"],
+      "body_file_contract": {
+        "content_format": "markdown",
+        "file_option": "--body-file",
+        "inline_option": "--body",
+        "required_headings": [],
+        "required_literals": ["Closes #"]
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "head",
+            "sources": ["arg:--head"],
+            "description": "Pull Request の head ブランチ"
+          },
+          {
+            "name": "title",
+            "sources": ["arg:--title"],
+            "description": "作成する Pull Request のタイトル"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "pull_request_body_markdown",
+            "sources": ["arg:--body", "arg:--body-file"],
+            "description": "作成する Pull Request の本文"
+          }
+        ]
       },
       "runtime": {
         "use_repo_venv": true,
@@ -88,10 +244,26 @@
       "description": "Create pull requests through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "register-issue-branch",
+      "name": "issue-branch-register",
       "entry_point": "register-issue-branch.py",
       "args": {
         "mode": "passthrough"
+      },
+      "direct_arg_inputs": ["--branch"],
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "issue_number",
+            "sources": ["arg:--issue-number"],
+            "description": "ブランチを記録する Issue 番号"
+          }
+        ],
+        "one_of": []
       },
       "runtime": {
         "use_repo_venv": true,
@@ -105,6 +277,27 @@
       "args": {
         "mode": "passthrough"
       },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "value",
+            "sources": ["arg:--value"],
+            "description": "設定する数値フィールド値"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "project_content_target",
+            "sources": ["arg:--content-url", "arg:--issue-number", "arg:--pull-request-number"],
+            "description": "フィールド更新対象の URL または Issue / Pull Request 番号"
+          }
+        ]
+      },
       "runtime": {
         "use_repo_venv": true,
         "required_modules": ["github"]
@@ -112,10 +305,31 @@
       "description": "Ensure and update GitHub Project number fields for Issues or Pull Requests."
     },
     {
-      "name": "set-project-number-field",
+      "name": "project-field-set",
       "entry_point": "project-field.py",
       "args": {
         "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "value",
+            "sources": ["arg:--value"],
+            "description": "設定する数値フィールド値"
+          }
+        ],
+        "one_of": [
+          {
+            "name": "project_content_target",
+            "sources": ["arg:--content-url", "arg:--issue-number", "arg:--pull-request-number"],
+            "description": "フィールド更新対象の URL または Issue / Pull Request 番号"
+          }
+        ]
       },
       "runtime": {
         "use_repo_venv": true,
