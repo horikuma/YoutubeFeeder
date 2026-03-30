@@ -51,8 +51,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("repository must be in owner/repo format")
     if args.issue_number <= 0:
         parser.error("--issue-number must be positive")
-    if args.command == "update-body" and args.title is None and args.body is None and args.body_file is None:
-        parser.error("update-body requires --title and/or --body/--body-file")
+    if args.command == "update-body" and args.body is None and args.body_file is None:
+        parser.error("update-body requires --body/--body-file")
     return args
 
 

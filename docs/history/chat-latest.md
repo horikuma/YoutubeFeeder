@@ -1,4 +1,6 @@
 ## 2026/03/30
+Issue38のTODOを実施せよ。[引用要約: ToDo4としてDescription本文をllm-tempの固定命名Markdownへ限定するよう指示。]
+  - `issue-creation` / `issue-description-update` / `pull-request-creation` は `--body-file` のみを受け付け、`llm-temp/YYYYMMDD-HHMMSS-コマンド名-概要.md` 以外を拒否するようにした。
 Issue38のTODOを実施せよ。[引用要約: ToDo3として新しいcommand名へ揃えるよう指示。]
   - user-facing script 名と `_meta.json` の command 名を `issue-*` / `history-*` / `metrics-*` などの最終命名へ揃え、新命名の入口で help と構文確認が通ることを確認した。
 Issue38のTODOを実施せよ。[引用要約: ToDo2としてscriptsごとに個別操作前提のentry point設計を進めるよう指示。]

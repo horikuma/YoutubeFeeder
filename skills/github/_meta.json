@@ -88,6 +88,10 @@
       "args": {
         "mode": "passthrough"
       },
+      "body_file_contract": {
+        "file_option": "--body-file",
+        "inline_option": "--body"
+      },
       "required_inputs": {
         "all_of": [
           {
@@ -103,9 +107,9 @@
         ],
         "one_of": [
           {
-            "name": "updated_issue_content",
-            "sources": ["arg:--title", "arg:--body", "arg:--body-file"],
-            "description": "更新する Issue タイトルまたは本文"
+            "name": "updated_issue_description",
+            "sources": ["arg:--body-file"],
+            "description": "更新する Issue Description 本文"
           }
         ]
       },
@@ -143,6 +147,10 @@
       "args": {
         "mode": "passthrough"
       },
+      "body_file_contract": {
+        "file_option": "--body-file",
+        "inline_option": "--body"
+      },
       "required_inputs": {
         "all_of": [
           {
@@ -175,6 +183,10 @@
       "entry_point": "pull-request.py",
       "args": {
         "mode": "passthrough"
+      },
+      "body_file_contract": {
+        "file_option": "--body-file",
+        "inline_option": "--body"
       },
       "required_inputs": {
         "all_of": [

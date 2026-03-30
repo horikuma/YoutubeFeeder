@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+
+LLM_TEMP_FILENAME_PREFIX = re.compile(r"^\d{8}-\d{6}-")
 
 
 def parse_args() -> argparse.Namespace:
@@ -76,6 +80,64 @@ def validate_required_inputs(meta_path: Path, command: dict) -> None:
                 )
 
 
+def read_option_value(command_args: list[str], option_name: str) -> str | None:
+    for index, value in enumerate(command_args):
+        if value != option_name:
+            continue
+        if index + 1 >= len(command_args):
+            raise SystemExit(f"Option requires a value: {option_name}")
+        return command_args[index + 1]
+    return None
+
+
+def validate_llm_temp_markdown_path(path_text: str, *, command_name: str) -> None:
+    path = Path(path_text).expanduser()
+    if path.suffix != ".md":
+        raise SystemExit("llm-temp file must use .md extension")
+    if path.parent.name != "llm-temp":
+        raise SystemExit("llm-temp file must be placed directly under llm-temp/")
+
+    filename = path.name
+    prefix_match = LLM_TEMP_FILENAME_PREFIX.match(filename)
+    if prefix_match is None:
+        raise SystemExit("llm-temp filename must start with YYYYMMDD-HHMMSS-")
+
+    remainder = filename[prefix_match.end() :]
+    expected_prefix = f"{command_name}-"
+    if not remainder.startswith(expected_prefix):
+        raise SystemExit(f"llm-temp filename must include command name: {command_name}")
+    summary = remainder[len(expected_prefix) : -3]
+    if not summary:
+        raise SystemExit("llm-temp filename must include a non-empty summary before .md")
+
+
+def validate_body_file_contract(command_name: str, command: dict, command_args: list[str]) -> None:
+    if "--help" in command_args or "-h" in command_args:
+        return
+
+    contract = command.get("body_file_contract")
+    if contract is None:
+        return
+    if not isinstance(contract, dict):
+        raise SystemExit("body_file_contract must be an object")
+
+    file_option = contract.get("file_option")
+    inline_option = contract.get("inline_option")
+    if not isinstance(file_option, str) or not file_option:
+        raise SystemExit("body_file_contract.file_option must be a non-empty string")
+    if not isinstance(inline_option, str) or not inline_option:
+        raise SystemExit("body_file_contract.inline_option must be a non-empty string")
+
+    if inline_option in command_args:
+        raise SystemExit(f"{command_name} must use {file_option}; {inline_option} is not allowed")
+
+    file_value = read_option_value(command_args, file_option)
+    if file_value is None:
+        raise SystemExit(f"{command_name} requires {file_option}")
+
+    validate_llm_temp_markdown_path(file_value, command_name=command_name)
+
+
 def ensure_requirements(python_bin: Path, repo_root: Path, required_modules: list[str]) -> None:
     if not required_modules:
         return
@@ -134,6 +196,7 @@ def main() -> int:
     repo_root = Path(args.repo_root).expanduser().resolve()
     meta_path, command = load_command_definition(repo_root, args.command)
     validate_required_inputs(meta_path, command)
+    validate_body_file_contract(args.command, command, args.command_args)
     entry_path = resolve_entry_point(meta_path, command)
 
     fixed_args = command.get("fixed_args", [])
