@@ -119,6 +119,25 @@ def validate_llm_temp_markdown_path(path_text: str, *, command_name: str) -> Non
         raise SystemExit("llm-temp filename must include a non-empty summary before .md")
 
 
+def validate_markdown_body_format(path_text: str, contract: dict) -> None:
+    body = Path(path_text).read_text(encoding="utf-8")
+
+    required_headings = contract.get("required_headings", [])
+    if not isinstance(required_headings, list) or not all(isinstance(item, str) and item for item in required_headings):
+        raise SystemExit("body_file_contract.required_headings must be a list of non-empty strings")
+    for heading in required_headings:
+        pattern = re.compile(rf"^{re.escape(heading)}$", re.MULTILINE)
+        if pattern.search(body) is None:
+            raise SystemExit(f"Markdown body must contain heading: {heading}")
+
+    required_literals = contract.get("required_literals", [])
+    if not isinstance(required_literals, list) or not all(isinstance(item, str) and item for item in required_literals):
+        raise SystemExit("body_file_contract.required_literals must be a list of non-empty strings")
+    for literal in required_literals:
+        if literal not in body:
+            raise SystemExit(f"Markdown body must contain literal: {literal}")
+
+
 def validate_body_file_contract(command_name: str, command: dict, command_args: list[str]) -> None:
     if "--help" in command_args or "-h" in command_args:
         return
@@ -147,6 +166,7 @@ def validate_body_file_contract(command_name: str, command: dict, command_args: 
         raise SystemExit(f"{command_name} requires {file_option}")
 
     validate_llm_temp_markdown_path(file_value, command_name=command_name)
+    validate_markdown_body_format(file_value, contract)
 
 
 def ensure_requirements(python_bin: Path, repo_root: Path, required_modules: list[str]) -> None:

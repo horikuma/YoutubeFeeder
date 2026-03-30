@@ -58,7 +58,14 @@
       "body_file_contract": {
         "content_format": "markdown",
         "file_option": "--body-file",
-        "inline_option": "--body"
+        "inline_option": "--body",
+        "required_headings": [
+          "## 私の指示",
+          "## その時点で行なった判断",
+          "## 最終的に最新になった禁止事項",
+          "## 最終的に最新になった ToDo"
+        ],
+        "required_literals": []
       },
       "required_inputs": {
         "all_of": [
@@ -96,7 +103,9 @@
       "body_file_contract": {
         "content_format": "markdown",
         "file_option": "--body-file",
-        "inline_option": "--body"
+        "inline_option": "--body",
+        "required_headings": ["## 禁止事項", "## ToDo"],
+        "required_literals": []
       },
       "required_inputs": {
         "all_of": [
@@ -108,14 +117,14 @@
           {
             "name": "issue_number",
             "sources": ["arg:--issue-number"],
-            "description": "更新対象の Issue 番号"
+            "description": "コメント対象の Issue 番号"
           }
         ],
         "one_of": [
           {
-            "name": "updated_issue_description",
+            "name": "comment_body_markdown",
             "sources": ["arg:--body-file"],
-            "description": "更新する Issue Description 本文"
+            "description": "追加する Issue コメント本文"
           }
         ]
       },
@@ -157,7 +166,9 @@
       "body_file_contract": {
         "content_format": "markdown",
         "file_option": "--body-file",
-        "inline_option": "--body"
+        "inline_option": "--body",
+        "required_headings": ["## ToDo"],
+        "required_literals": []
       },
       "required_inputs": {
         "all_of": [
@@ -196,7 +207,9 @@
       "body_file_contract": {
         "content_format": "markdown",
         "file_option": "--body-file",
-        "inline_option": "--body"
+        "inline_option": "--body",
+        "required_headings": [],
+        "required_literals": ["Closes #"]
       },
       "required_inputs": {
         "all_of": [

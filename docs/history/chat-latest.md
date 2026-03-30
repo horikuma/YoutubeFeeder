@@ -1,4 +1,6 @@
 ## 2026/03/30
+Issue38のTODOを実施せよ。[引用要約: ToDo8としてDescriptionとコメント本文の必須節をscripts側で固定するよう指示。]
+  - `issue-creation` / `issue-description-update` / `issue-comment-create` / `pull-request-creation` に必須見出し・必須文字列の契約を持たせ、本文ファイルがその契約を満たさないと実行前に停止するようにした。
 Issue38のTODOを実施せよ。[引用要約: ToDo7としてタイトルやブランチ名はllm-tempではなく引数で渡す方針を固定するよう指示。]
   - `issue-creation` の `--title`、`pull-request-creation` の `--head` / `--title`、`issue-branch-register` の `--branch` を direct arg として metadata に固定した。
 Issue38のTODOを実施せよ。[引用要約: ToDo6としてMarkdownで規定できる入力だけをllm-temp対象にするよう指示。]
