@@ -1,9 +1,1 @@
-## 2026/03/29
-- xcodebuild test -project YoutubeFeeder.xcodeproj -scheme YoutubeFeeder -destination platform=iOS Simulator,OS=26.3.1,name=iPhone 17 -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests/testCurrentThumbnailCacheStatusReportsBytesAndThresholdJudgement を実行し、1件成功した。
-- xcodebuild test -project YoutubeFeeder.xcodeproj -scheme YoutubeFeeder -destination platform=iOS Simulator,OS=26.3.1,name=iPhone 17 -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests/testTrimThumbnailsIfNeededContinuesUntilBelowLowWatermark を実行し、1件成功した。
-- 2026-03-29 Issue 4 第3ToDo: xcodebuild test -scheme YoutubeFeeder -destination "platform=iOS Simulator,OS=26.3.1,name=iPhone 17" -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests/testEvictOldestThumbnailIfNeededRemovesLeastRecentlyAccessedFileFirst => passed (1 test, 0 failures).
-- 2026-03-29 Issue 4 第2ToDo: xcodebuild test -scheme YoutubeFeeder -destination "platform=iOS Simulator,OS=26.3.1,name=iPhone 17" -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests/testRecordThumbnailReferenceUpdatesFeedAndRemoteSearchRows => passed (1 test, 0 failures).
-- 2026-03-29 Issue 4 第1ToDo: xcodebuild test -scheme YoutubeFeeder -destination "platform=iOS Simulator,OS=26.3.1,name=iPhone 17" -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests/testFeedSnapshotPersistsThumbnailLastAccessedAt -only-testing:YoutubeFeederTests/RemoteVideoSearchCacheStoreTests/testRemoteSearchCachePersistsThumbnailLastAccessedAt => passed (2 tests, 0 failures).
-- `python3 -m py_compile skills/history/append-history.py skills/history/rotate-latest.py`、`bash -n scripts/append-chat-history scripts/append-decision-history scripts/append-metrics-history scripts/rotate-history`、tempdir での `append-*` と `rotate-history` 実行確認を継続して利用した。
-- `python3 -m py_compile skills/history/rotate-latest.py` を実行し、構文確認は成功した。
-- `scripts/rotate-history --history-dir <tempdir> --today 2026/03/29` を実行し、後段に古い見出しが残る `latest` の掃き出しと空 `latest` の当日見出し初期化を確認した。
+## 2026/03/30
