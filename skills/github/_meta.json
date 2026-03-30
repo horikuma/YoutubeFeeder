@@ -1,7 +1,7 @@
 {
   "commands": [
     {
-      "name": "list-issues",
+      "name": "issue-list",
       "entry_point": "list-issues.py",
       "args": {
         "mode": "passthrough"
@@ -23,8 +23,8 @@
       "description": "Fetch repository issues through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "get-issue",
-      "entry_point": "get-issue.py",
+      "name": "issue-read",
+      "entry_point": "issue-read.py",
       "args": {
         "mode": "passthrough"
       },
@@ -50,8 +50,8 @@
       "description": "Read a GitHub issue through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "comment-issue",
-      "entry_point": "comment-issue.py",
+      "name": "issue-comment-create",
+      "entry_point": "issue-comment-create.py",
       "args": {
         "mode": "passthrough"
       },
@@ -83,8 +83,8 @@
       "description": "Create a GitHub issue comment through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "update-issue-body",
-      "entry_point": "update-issue-body.py",
+      "name": "issue-description-update",
+      "entry_point": "issue-description-update.py",
       "args": {
         "mode": "passthrough"
       },
@@ -116,7 +116,7 @@
       "description": "Update a GitHub issue title/body through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "resolve-github-defaults",
+      "name": "github-defaults-resolve",
       "entry_point": "issue-defaults.py",
       "args": {
         "mode": "passthrough"
@@ -138,7 +138,7 @@
       "description": "Resolve and cache the default GitHub assignee/project metadata used when creating issues."
     },
     {
-      "name": "create-issue",
+      "name": "issue-creation",
       "entry_point": "create-issue.py",
       "args": {
         "mode": "passthrough"
@@ -171,7 +171,7 @@
       "description": "Create GitHub issues with the default assignee and project, using cached metadata when available."
     },
     {
-      "name": "create-pr",
+      "name": "pull-request-creation",
       "entry_point": "pull-request.py",
       "args": {
         "mode": "passthrough"
@@ -209,7 +209,7 @@
       "description": "Create pull requests through PyGithub using GitHub App credentials from local secrets."
     },
     {
-      "name": "register-issue-branch",
+      "name": "issue-branch-register",
       "entry_point": "register-issue-branch.py",
       "args": {
         "mode": "passthrough"
@@ -269,7 +269,7 @@
       "description": "Ensure and update GitHub Project number fields for Issues or Pull Requests."
     },
     {
-      "name": "set-project-number-field",
+      "name": "project-field-set",
       "entry_point": "project-field.py",
       "args": {
         "mode": "passthrough"

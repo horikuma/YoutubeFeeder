@@ -1,4 +1,6 @@
 ## 2026/03/30
+- ルール遂行に必要な command 名はターゲット-タスク形式の新命名へ統一する。
+  - 呼び出し対象と実施タスクが script 名から即座に判別でき、後段の入力契約やフォーマット強制を command ごとに掛けやすくするため。
 - scripts が複数回使う操作は command ごとに専用 Python entry point を持つ構成にする。
   - 実際に呼ぶ入口単位で責務を固定し、共有 subcommand 依存を減らして後段の命名変更や入力契約強制を入れやすくするため。
 - scripts の必須情報は各 command の `_meta.json` に `required_inputs` として固定する。

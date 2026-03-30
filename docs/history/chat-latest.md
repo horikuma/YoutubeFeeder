@@ -1,4 +1,6 @@
 ## 2026/03/30
+Issue38のTODOを実施せよ。[引用要約: ToDo3として新しいcommand名へ揃えるよう指示。]
+  - user-facing script 名と `_meta.json` の command 名を `issue-*` / `history-*` / `metrics-*` などの最終命名へ揃え、新命名の入口で help と構文確認が通ることを確認した。
 Issue38のTODOを実施せよ。[引用要約: ToDo2としてscriptsごとに個別操作前提のentry point設計を進めるよう指示。]
   - `get-issue` / `comment-issue` / `update-issue-body` と履歴追記3種に専用 Python entry point を追加し、実際に呼ぶ scripts ごとに個別入口を持つ構成へ移した。
 Issue38のTODOを実施せよ。[引用要約: scriptsのみの制約を緩め、ToDo1として各scriptの必須情報固定を進めるよう指示。]

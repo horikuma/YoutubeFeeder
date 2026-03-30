@@ -1,8 +1,8 @@
 {
   "commands": [
     {
-      "name": "append-chat-history",
-      "entry_point": "append-chat-history.py",
+      "name": "history-chat-append",
+      "entry_point": "history-chat-append.py",
       "args": {
         "mode": "passthrough"
       },
@@ -24,8 +24,8 @@
       "description": "Append one validated user/assistant pair into chat-latest.md without reading the file in the caller."
     },
     {
-      "name": "append-decision-history",
-      "entry_point": "append-decision-history.py",
+      "name": "history-decision-append",
+      "entry_point": "history-decision-append.py",
       "args": {
         "mode": "passthrough"
       },
@@ -47,8 +47,8 @@
       "description": "Append one validated decision/reason pair into decisions-latest.md without reading the file in the caller."
     },
     {
-      "name": "append-metrics-history",
-      "entry_point": "append-metrics-history.py",
+      "name": "history-metrics-append",
+      "entry_point": "history-metrics-append.py",
       "args": {
         "mode": "passthrough"
       },
@@ -65,7 +65,7 @@
       "description": "Append one validated metrics line into metrics-latest.md without reading the file in the caller."
     },
     {
-      "name": "rotate-history",
+      "name": "history-rotate",
       "entry_point": "rotate-latest.py",
       "args": {
         "mode": "passthrough"
