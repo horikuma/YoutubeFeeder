@@ -1,3 +1,9 @@
+## 2026/03/31
+では実施せよ。
+  - github-app 設定の正本名を github-app.json へ統一し、Issue/PR ルールの解決先を llm-cache 基準へ更新して検証した。
+Issue詳細化更新のみコミットせよ。
+  - rules-issue-detailing の更新だけを対象に、履歴更新を追加してコミット準備を進めた。
+
 ## 2026/03/30
 では追加ToDoを今回のみ、Descriptionに追加して良い。禁止事項を無効とし、Docsを更新するタスクを追加し、実施し、コミットせよ。
   - Issue #38 の禁止事項を無効化し、docs の旧 script 名参照を更新する追加ToDoを完了状態で反映した。あわせて rules/specs/metrics の現行文書を新 script 名へ同期した。
