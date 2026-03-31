@@ -11,6 +11,7 @@
 ## 実施内容
 
 - Issue の詳細化を始める時は、対象 Issue の現在のタイトル、Description、既存コメントを読み、未整理の指示と既存の整理結果を区別しなければならない。
+- Issue の読取りと更新の rules を定義または更新する時は、`./scripts/issue-read --repo {repo_slug} --issue-number {issue_number}`、`./scripts/issue-description-update --repo {repo_slug} --issue-number {issue_number} --body-file llm-temp/YYYYMMDD-HHMMSS-issue-description-update-summary.md`、`./scripts/issue-comment-create --repo {repo_slug} --issue-number {issue_number} --body-file llm-temp/YYYYMMDD-HHMMSS-issue-comment-create-summary.md`、`./scripts/issue-branch-register --repo {repo_slug} --issue-number {issue_number}` のように、そのまま実行できる形へ一意に展開できる形で書かなければならない。
 - チャット欄から作成した Issue の元のユーザー指示は、Description ではなく Issue コメントで参照できる状態へ移さなければならない。
 - Description には、禁止事項とチェックボックス付き ToDo だけを記載しなければならない。
 - 背景、目的、スコープ、実施タスク、完了条件、非対象、補足説明は、Issue コメントで整理しなければならない。
@@ -20,6 +21,7 @@
 - `最終的に最新になった禁止事項` は、Description に残す禁止事項の正本として記載しなければならない。
 - `最終的に最新になった ToDo` は、少なくとも `Issue の ToDo`、`Issue詳細化の ToDo`、`Issue外 ToDo` に分けて記載しなければならない。
 - `Issue の ToDo` は、新しいスレッドへ切り替わっても、同じ Issue コメントとそこに列挙した読取り対象だけを使えば、追加推論なしで着手できる粒度にしなければならない。
+- `Issue の ToDo` に command 例を含める場合は、`{repo_slug}`、`{issue_number}` のように変数であることが明確な記法だけを使い、山括弧による置換記法のような文字列そのものとして送信されうる表記を残してはならない。
 - `Issue の ToDo` に、`必要な`、`適切な`、`整理する` のように、判定基準を別途補完しなければ実施内容が確定しない評価語を、その判定基準を先行 ToDo または同一 ToDo 内の観測可能条件として明示しないまま残してはならない。
 - ある ToDo の実施内容を確定するために特定のファイル、Issue コメント、コード箇所、設定値の読取りが必要な場合は、その読取り対象を先に確定する ToDo を、後続の変更 ToDo より前へ置かなければならない。
 - 先行 ToDo で読取り対象を確定した場合は、その読取り対象だけを使えば後続 ToDo の判断基準が一意に確定する状態にしなければならない。
@@ -30,6 +32,7 @@
 - Issue を詳細化する時は、タイトルも内容に見合う具体度へ更新し、一覧から対象作業が判別できる状態へしなければならない。
 - 実装開始前に `issue-(IssueNo)` 形式の作業ブランチを作成し、そのブランチへ checkout しなければならない。
 - 作成した作業ブランチ名は対象 Issue の comment へ記録しなければならない。記録時は `scripts/issue-branch-register` を正規入口として使わなければならない。
+- `./scripts/issue-description-update` と `./scripts/issue-comment-create` に渡す本文ファイルは、それぞれ `llm-temp/YYYYMMDD-HHMMSS-issue-description-update-summary.md`、`llm-temp/YYYYMMDD-HHMMSS-issue-comment-create-summary.md` 形式でなければならない。
 - チャット起点で作成した Issue は、詳細化が完了した時点で通常の Issue 起点タスクと同じ扱いにしなければならない。
 - Issue の詳細化中に blocker が見つかった場合は、その時点で Issue コメントへ理由、確認した内容、現在の状況を書き残して停止しなければならない。
 
@@ -40,6 +43,7 @@
 - Description の ToDo が、直近の詳細化コメントで確定した `最終的に最新になった ToDo` と一致していること。
 - Description の ToDo が、直近の詳細化コメントで確定した `Issue の ToDo` と一致していること。
 - `Issue の ToDo` が、同じ Issue コメントとそこに列挙した読取り対象だけで、追加推論なしに着手できる粒度になっていること。
+- `Issue の ToDo` に command 例がある場合は、その例がそのまま実行できる形へ一意に展開できる形で記載されていること。
 - 後続 ToDo の判断基準が、対応する先行 ToDo または同一 ToDo 内で観測可能な条件として確定していること。
 - 背景、目的、スコープ、実施タスク、完了条件、非対象が Issue コメントで整理されていること。
 - 対象 Issue のタイトルが、一覧から作業内容を判別できる具体度になっていること。
@@ -55,5 +59,6 @@
 - 詳細化本文を Issue コメントではない別の場所へ分散してはならない。
 - 先行 ToDo で確定していない判定基準を、後続 ToDo の実施時に補完してはならない。
 - `Issue の ToDo` に、判定基準が未記載の評価語や、読取り対象が未記載のままでは具体的行動が確定しない表現を残してはならない。
+- `Issue の ToDo` に、山括弧形式の置換文字列や、`llm-cache` の値そのものを含む command 例を残してはならない。
 - `scripts/issue-branch-register` 以外の経路で、表記揺れしたブランチ記録 comment を残してはならない。
 - blocker を記録しないまま詳細化や後続作業を続けてはならない。
