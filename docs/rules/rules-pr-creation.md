@@ -9,13 +9,13 @@
 ## 実施内容
 
 - タスク完了時は、merge 先が通常の `main` かセッション限定の main かを問わず、必ず Pull Request を作成しなければならない。
-- Pull Request の既定 Assignee は `llm-cache/` 配下の local cache を正本として参照しなければならない。必要項目が無い時は処理を中断し、ユーザーへ確認しなければならない。推測で補完してはならない。
-- Pull Request の Assignee は rules へ直書きしてはならず、`llm-cache/` と secrets から解決しなければならない。
+- Pull Request の既定 Assignee は `llm-cache/issue-defaults.json` を正本として参照しなければならない。必要項目が無い時は処理を中断し、ユーザーへ確認しなければならない。推測で補完してはならない。
+- Pull Request の Assignee は rules へ直書きしてはならず、`llm-cache/issue-defaults.json` と `llm-cache/github-app.json` から解決しなければならない。
 - Pull Request の base は `llm-cache/session-context.json` に保持された session main を参照して決めなければならない。
-- GitHub 操作モードは secrets の `operationMode` で解決しなければならない。rules に固定モードを書いてはならない。
+- GitHub 操作モードは `llm-cache/github-app.json` の `operationMode` で解決しなければならない。rules に固定モードを書いてはならない。
 - `user` モードでは、Pull Request の repo 操作は GitHub App で行わなければならず、Projects 操作は `gh` で行わなければならない。
 - `organization` モードでは、Pull Request の repo 操作も Projects 操作も GitHub App で行わなければならない。
-- Pull Request の Assignee は `llm-cache/` と secrets から解決した値で設定しなければならない。
+- Pull Request の Assignee は `llm-cache/issue-defaults.json` と `llm-cache/github-app.json` から解決した値で設定しなければならない。
 - Pull Request を Project へ自動登録してはならない。
 - Pull Request の body には、対応する Issue を GitHub の機能で連携クローズするため、`Closes #(Issue番号)` を明記しなければならない。
 - Pull Request の作成時は、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態にしなければならない。

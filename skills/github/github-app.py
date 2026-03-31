@@ -11,7 +11,7 @@ from urllib.request import Request, urlopen
 
 from github import Auth, Github, GithubIntegration
 
-DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "llm-cache" / "github-app-bot.json"
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "llm-cache" / "github-app.json"
 
 
 def resolve_config_path(config_path: str | None = None) -> Path:

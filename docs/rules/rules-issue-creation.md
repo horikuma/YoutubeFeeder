@@ -9,9 +9,9 @@
 ## 実施内容
 
 - チャット欄から着手したタスクでは、作業開始前にユーザー指示を原文として残した Issue を作成しなければならない。
-- Issue の既定 Assignee と Project 一覧は `llm-cache/` 配下の local cache を正本として参照しなければならない。必要項目が無い時は処理を中断し、ユーザーへ確認しなければならない。推測で補完してはならない。
-- Issue の Assignee と Project の既定値は rules へ直書きしてはならず、`llm-cache/` と secrets から解決しなければならない。
-- GitHub 操作モードは secrets の `operationMode` で解決しなければならない。rules に固定モードを書いてはならない。
+- Issue の既定 Assignee と Project 一覧は `llm-cache/issue-defaults.json` を正本として参照しなければならない。必要項目が無い時は処理を中断し、ユーザーへ確認しなければならない。推測で補完してはならない。
+- Issue の Assignee と Project の既定値は rules へ直書きしてはならず、`llm-cache/issue-defaults.json` と `llm-cache/github-app.json` から解決しなければならない。
+- GitHub 操作モードは `llm-cache/github-app.json` の `operationMode` で解決しなければならない。rules に固定モードを書いてはならない。
 - `user` モードでは、Issue の repo 操作は GitHub App で行わなければならず、Projects 操作は `gh` で行わなければならない。
 - `organization` モードでは、Issue の repo 操作も Projects 操作も GitHub App で行わなければならない。
 - チャット欄から作成した Issue は、元の指示を `原文` として残したうえで、description にはチェックボックス付き ToDo だけを記載しなければならない。
