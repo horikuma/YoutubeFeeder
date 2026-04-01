@@ -7,11 +7,30 @@
 - Issue の詳細化とは、対象 Issue の Description を最終的な禁止事項と ToDo だけが残る状態へ整え、詳細化の過程出力と確定本文を Issue コメントへ集約し、作業ブランチ準備を含む実装前の正本として利用できる状態へ整えるタスクである。
 - このタスクでは、対象 Issue の読取り、Description の禁止事項と ToDo の整理、Issue コメント本文の整理、タイトル更新、作業ブランチ準備、blocker 時の停止までをこの文書だけで判断しなければならない。
 - この文書でいう推論とは、読んだ文書、Issue、コード、設定、ユーザー指示だけでは一意に確定していない具体的事項を、LLM が補完して決めることを指す。
+- この文書で使う usage 記法では、角括弧 `[...]` 内は省略可能部分を表す。
+- この文書で使う usage 記法では、角括弧の外にある要素は必須であり、左から右の順にそのまま指定しなければならない。
+- この文書で使う usage 記法では、山括弧 `<...>` 内は実行時に具体値へ置換して渡す値を表す。
 
 ## 実施内容
 
 - Issue の詳細化を始める時は、対象 Issue の現在のタイトル、Description、既存コメントを読み、未整理の指示と既存の整理結果を区別しなければならない。
-- Issue の読取りと更新の rules を定義または更新する時は、`./scripts/issue-read --repo {repo_slug} --issue-number {issue_number}`、`./scripts/issue-description-update --repo {repo_slug} --issue-number {issue_number} --body-file llm-temp/YYYYMMDD-HHMMSS-issue-description-update-summary.md`、`./scripts/issue-comment-create --repo {repo_slug} --issue-number {issue_number} --body-file llm-temp/YYYYMMDD-HHMMSS-issue-comment-create-summary.md`、`./scripts/issue-branch-register --repo {repo_slug} --issue-number {issue_number}` のように、そのまま実行できる形へ一意に展開できる形で書かなければならない。
+- Issue の読取りと更新の rules を定義または更新する時は、次の usage で記述しなければならない。
+  `./scripts/issue-read --repo '<repo_slug>' --issue-number '<issue_number>'[ --body-only]`
+    - `<repo_slug>` は、対象 repository の owner/repo 形式値である。
+    - `<issue_number>` は、対象 Issue 番号である。
+  `./scripts/issue-description-update --repo '<repo_slug>' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-description-update-summary.md'[ --title '<title>']`
+    - `<repo_slug>` は、対象 repository の owner/repo 形式値である。
+    - `<issue_number>` は、対象 Issue 番号である。
+    - `llm-temp/<date>-issue-description-update-summary.md` は、Description 更新本文ファイルである。
+    - `<title>` は、必要な場合にだけ指定する Issue title である。
+  `./scripts/issue-comment-create --repo '<repo_slug>' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-comment-create-summary.md'`
+    - `<repo_slug>` は、対象 repository の owner/repo 形式値である。
+    - `<issue_number>` は、対象 Issue 番号である。
+    - `llm-temp/<date>-issue-comment-create-summary.md` は、Issue comment 本文ファイルである。
+  `./scripts/issue-branch-register --repo '<repo_slug>' --issue-number '<issue_number>'[ --branch '<branch_name>']`
+    - `<repo_slug>` は、対象 repository の owner/repo 形式値である。
+    - `<issue_number>` は、対象 Issue 番号である。
+    - `<branch_name>` は、必要な場合にだけ指定する作業ブランチ名である。
 - チャット欄から作成した Issue の元のユーザー指示は、Description ではなく Issue コメントで参照できる状態へ移さなければならない。
 - Description には、禁止事項とチェックボックス付き ToDo だけを記載しなければならない。
 - 背景、目的、スコープ、実施タスク、完了条件、非対象、補足説明は、Issue コメントで整理しなければならない。
@@ -21,7 +40,7 @@
 - `最終的に最新になった禁止事項` は、Description に残す禁止事項の正本として記載しなければならない。
 - `最終的に最新になった ToDo` は、少なくとも `Issue の ToDo`、`Issue詳細化の ToDo`、`Issue外 ToDo` に分けて記載しなければならない。
 - `Issue の ToDo` は、新しいスレッドへ切り替わっても、同じ Issue コメントとそこに列挙した読取り対象だけを使えば、追加推論なしで着手できる粒度にしなければならない。
-- `Issue の ToDo` に command 例を含める場合は、`{repo_slug}`、`{issue_number}` のように変数であることが明確な記法だけを使い、山括弧による置換記法のような文字列そのものとして送信されうる表記を残してはならない。
+- `Issue の ToDo` に command 例を含める場合は、usage 記法と各置換値の説明だけを使い、文字列そのものとして送信されうる未説明の置換記法を残してはならない。
 - `Issue の ToDo` に、`必要な`、`適切な`、`整理する` のように、判定基準を別途補完しなければ実施内容が確定しない評価語を、その判定基準を先行 ToDo または同一 ToDo 内の観測可能条件として明示しないまま残してはならない。
 - ある ToDo の実施内容を確定するために特定のファイル、Issue コメント、コード箇所、設定値の読取りが必要な場合は、その読取り対象を先に確定する ToDo を、後続の変更 ToDo より前へ置かなければならない。
 - 先行 ToDo で読取り対象を確定した場合は、その読取り対象だけを使えば後続 ToDo の判断基準が一意に確定する状態にしなければならない。
@@ -59,6 +78,6 @@
 - 詳細化本文を Issue コメントではない別の場所へ分散してはならない。
 - 先行 ToDo で確定していない判定基準を、後続 ToDo の実施時に補完してはならない。
 - `Issue の ToDo` に、判定基準が未記載の評価語や、読取り対象が未記載のままでは具体的行動が確定しない表現を残してはならない。
-- `Issue の ToDo` に、山括弧形式の置換文字列や、`llm-cache` の値そのものを含む command 例を残してはならない。
+- `Issue の ToDo` に、説明なしの置換記法や、`llm-cache` の値そのものを含む command 例を残してはならない。
 - `scripts/issue-branch-register` 以外の経路で、表記揺れしたブランチ記録 comment を残してはならない。
 - blocker を記録しないまま詳細化や後続作業を続けてはならない。

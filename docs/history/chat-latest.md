@@ -1,4 +1,6 @@
 ## 2026/04/02
+- Issue #44 の残り TODO として、rules 内に残っていた command 記法を usage 記法へ統一する。
+  - user instruction understanding、issue detailing、PR creation、skill creation、verification の各 rule を usage 記法へ整理し、置換値説明を追加した。
 - ルール生成ルール更新と、コミットルール微調整を、併せてコミットせよ。
   - ルール生成ルールへusage記法ベースのcommand記述規則を追加し、コミットルールではchat user lineの既存行縛りを外す微調整を加えた変更を同一コミット対象として整理した。
 - コミットせよ。
