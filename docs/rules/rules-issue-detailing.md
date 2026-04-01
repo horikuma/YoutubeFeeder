@@ -16,21 +16,11 @@
 - Issue の詳細化を始める時は、対象 Issue の現在のタイトル、Description、既存コメントを読み、未整理の指示と既存の整理結果を区別しなければならない。
 - Issue の読取りと更新の rules を定義または更新する時は、次の usage で記述しなければならない。
   `./scripts/issue-read --repo '<repo_slug>' --issue-number '<issue_number>'[ --body-only]`
-    - `<repo_slug>` は、対象 repository の owner/repo 形式値である。
-    - `<issue_number>` は、対象 Issue 番号である。
   `./scripts/issue-description-update --repo '<repo_slug>' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-description-update-summary.md'[ --title '<title>']`
-    - `<repo_slug>` は、対象 repository の owner/repo 形式値である。
-    - `<issue_number>` は、対象 Issue 番号である。
     - `llm-temp/<date>-issue-description-update-summary.md` は、Description 更新本文ファイルである。
-    - `<title>` は、必要な場合にだけ指定する Issue title である。
   `./scripts/issue-comment-create --repo '<repo_slug>' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-comment-create-summary.md'`
-    - `<repo_slug>` は、対象 repository の owner/repo 形式値である。
-    - `<issue_number>` は、対象 Issue 番号である。
     - `llm-temp/<date>-issue-comment-create-summary.md` は、Issue comment 本文ファイルである。
   `./scripts/issue-branch-register --repo '<repo_slug>' --issue-number '<issue_number>'[ --branch '<branch_name>']`
-    - `<repo_slug>` は、対象 repository の owner/repo 形式値である。
-    - `<issue_number>` は、対象 Issue 番号である。
-    - `<branch_name>` は、必要な場合にだけ指定する作業ブランチ名である。
 - チャット欄から作成した Issue の元のユーザー指示は、Description ではなく Issue コメントで参照できる状態へ移さなければならない。
 - Description には、禁止事項とチェックボックス付き ToDo だけを記載しなければならない。
 - 背景、目的、スコープ、実施タスク、完了条件、非対象、補足説明は、Issue コメントで整理しなければならない。
@@ -62,7 +52,7 @@
 - Description の ToDo が、直近の詳細化コメントで確定した `最終的に最新になった ToDo` と一致していること。
 - Description の ToDo が、直近の詳細化コメントで確定した `Issue の ToDo` と一致していること。
 - `Issue の ToDo` が、同じ Issue コメントとそこに列挙した読取り対象だけで、追加推論なしに着手できる粒度になっていること。
-- `Issue の ToDo` に command 例がある場合は、その例がそのまま実行できる形へ一意に展開できる形で記載されていること。
+- `Issue の ToDo` に command 例がある場合は、usage と必要な補足だけで実行方法を確定できること。
 - 後続 ToDo の判断基準が、対応する先行 ToDo または同一 ToDo 内で観測可能な条件として確定していること。
 - 背景、目的、スコープ、実施タスク、完了条件、非対象が Issue コメントで整理されていること。
 - 対象 Issue のタイトルが、一覧から作業内容を判別できる具体度になっていること。

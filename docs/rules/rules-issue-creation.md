@@ -13,7 +13,6 @@
 
 - GitHub Issue を 1 件新規作成しなければならない。
   `./scripts/issue-creation --title '<title>' --body-file 'llm-temp/<date>-issue-creation-description.md'`
-    - `<title>` は、ユーザ指示で渡された Issue title である。
     - `<title>` がユーザ指示に存在しない場合は、処理を中断しなければならない。
     - `llm-temp/<date>-issue-creation-description.md` は、Issue Description ファイルとして常に生成し、指定しなければならない。
     - ユーザが Issue Description を出力せよと指示した場合は、その指示内容を Issue Description として `llm-temp/<date>-issue-creation-description.md` へ出力しなければならない。

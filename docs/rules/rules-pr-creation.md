@@ -18,13 +18,9 @@
 - GitHub 操作モードは `llm-cache/github-app.json` の `operationMode` で解決しなければならない。rules に固定モードや `llm-cache` の値を書いてはならない。
 - `user` モードでは、Pull Request の repo 操作は GitHub App で行わなければならず、Projects 操作は `gh` で行わなければならない。
 - `organization` モードでは、Pull Request の repo 操作も Projects 操作も GitHub App で行わなければならない。
-- Pull Request の Assignee は `llm-cache/issue-defaults.json` と `llm-cache/github-app.json` から解決した値で設定しなければならない。
 - rules や ToDo に command 例を書く場合は、次の usage で記載しなければならない。
   `./scripts/pull-request-creation --repo '<repo_slug>' --base '<session_main_branch>' --head '<head_branch>' --title '<pull_request_title_text>' --body-file 'llm-temp/<date>-pull-request-creation-summary.md'`
-    - `<repo_slug>` は、対象 repository の owner/repo 形式値である。
     - `<session_main_branch>` は、`llm-cache/session-context.json` の `sessionMainBranch` から解決した base branch である。
-    - `<head_branch>` は、Pull Request の head branch である。
-    - `<pull_request_title_text>` は、Pull Request title である。
     - `llm-temp/<date>-pull-request-creation-summary.md` は、Pull Request 本文ファイルである。
     - `<date>` は、`YYYYMMDD-HHMMSS` 形式でなければならない。
 - `./scripts/pull-request-creation` に渡す本文ファイルは `llm-temp/YYYYMMDD-HHMMSS-pull-request-creation-summary.md` 形式でなければならず、`Closes #{issue_number}` を含まなければならない。
@@ -43,7 +39,7 @@
 - Pull Request を起点に、Issue、ブランチ、コミットとの対応関係を追跡できること。
 - Pull Request 作成・更新に必要な項目が未完了のまま、完了扱いにされていないこと。
 - Project 自動登録禁止と Issue 直接 close 禁止が守られていること。
-- rules に Pull Request command 例を書く場合は、`sessionMainBranch`、`assignee.login`、`operationMode` の参照キー名と usage 記法だけで一意に展開できること。
+- rules に Pull Request command 例を書く場合は、`sessionMainBranch`、`assignee.login`、`operationMode` の参照キー名と usage と必要な補足だけで実行方法を確定できること。
 
 ## 禁止事項
 

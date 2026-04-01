@@ -17,7 +17,6 @@
 - 最終の全体テストでは、次の usage で `./scripts/metrics-collect` を使って build 時間、全体 test 時間、起動性能、`docs/metrics/metrics-test.md` を同じ 1 回の全体実行から取得しなければならない。
   `./scripts/metrics-collect --label '<label>'[ --change-kind '<change_kind>'][ --manual-retries '<manual_retries>'][ --auto-retry-limit '<auto_retry_limit>']`
     - `<label>` は、計測結果へ残すラベルであり、省略してはならない。
-    - `<change_kind>`、`<manual_retries>`、`<auto_retry_limit>` は、必要な場合にだけ指定すればよい。
 - 最終の全体テストを、別スクリプトで重複実行してはならない。
 - `tools`、`skills`、`scripts` だけを変更した場合は、アプリ本体の build や test は実施せず、対象ツールの構文確認と代表的な 1 経路の実行確認で検証しなければならない。
 - 機能追加、不具合対応、設計変更を含む場合は、変更内容に対応するテストと build 確認を省略してはならない。

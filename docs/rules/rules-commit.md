@@ -69,10 +69,8 @@
 - `docs/history/metrics-latest.md` 全体の計測更新には、次の usage で `./scripts/metrics-collect` を使わなければならない。
   `./scripts/metrics-collect --label '<label>'[ --change-kind '<change_kind>'][ --manual-retries '<manual_retries>'][ --auto-retry-limit '<auto_retry_limit>']`
     - `<label>` は、計測結果へ残すラベルであり、省略してはならない。
-    - `<change_kind>`、`<manual_retries>`、`<auto_retry_limit>` は、必要な場合にだけ指定すればよい。
 - 限定確認や部分集合の計測確認には、次の usage で `./scripts/metrics-test-collect` を使わなければならない。
   `./scripts/metrics-test-collect[ --logic-only-testing '<logic_only_testing>'][ --ui-only-testing '<ui_only_testing>']`
-    - `<logic_only_testing>` と `<ui_only_testing>` は、必要な場合にだけ指定すればよい。
 - `./scripts/metrics-collect` または `./scripts/metrics-test-collect` が出力しない計測行を追加する場合は、次の usage で `./scripts/history-metrics-append` を使わなければならない。
   `./scripts/history-metrics-append --metric-line '<metric_line>'[ --today '<today>']`
     - `<metric_line>` は、1行の計測結果であり、先頭を `- ` で始めなければならない。

@@ -26,11 +26,11 @@
 - ユーザー指示が文書配置や文書更新先の判断を含む場合は、`docs/rules/rules-document-sync.md` を読まなければならない。
 - ユーザー指示が `skills`、`scripts`、`tools` の変更に該当する場合は、`docs/rules/rules-skill-creation.md` を読まなければならない。
 - ユーザー指示がルール文書の作成または更新に該当する場合は、`docs/rules/rules-rule-creation.md` を読まなければならない。
-- ユーザー指示が、skill の呼び出し方、`scripts` 入口、`llm-cache` 参照キーの rules への固定に該当する場合は、対象 `docs/rules/*.md` に加えて、対応する `scripts/*`、`skills/*/_meta.json`、必要なら対応する Python 実装と `llm-cache/*.json` を読み、command 形式と参照キー名を一意に確定しなければならない。
+- ユーザー指示が、skill の呼び出し方、`scripts` 入口、`llm-cache` 参照キーの rules への固定に該当する場合は、対象 `docs/rules/*.md` に加えて、対応する `scripts/*`、`skills/*/_meta.json`、`llm-cache/*.json` を読み、command 形式と参照キー名を確定しなければならない。
 - Issue に基づいて着手する場合は、実装前に対象 Issue の Description を読み、作業単位、完了条件、非対象を確定しなければならない。
 - 上記のどの種別にも該当しない場合は、追加の文書を読まず、ユーザー指示と直接関係するコードや既存ファイルだけを確認しなければならない。
 - タスク規定が曖昧で、変更対象、完了条件、非対象、更新先のいずれかを確定できない場合は、処理を中断し、その旨をユーザーへ報告しなければならない。
-- rules に command 例や置換記法を追加する場合は、usage 記法で記述し、各置換値を箇条書きで説明したうえで、そのまま実行できる形へ一意に展開できる形にしなければならない。
+- rules に command 例や置換記法を追加する場合は、usage 記法で記述し、usage だけでは確定しない置換値や生成物だけを箇条書きで補足しなければならない。
 - `llm-cache` を参照する rules を更新する場合は、値を転記してはならず、`session-context.json` の `sessionMainBranch`、`github-app.json` の `operationMode`、`issue-defaults.json` の `assignee.login` のように、参照するキー名だけを記述しなければならない。
 
 ## 完了条件
@@ -39,7 +39,7 @@
 - 今回の指示に関係する用意済みタスクと、その実施前に読むルール文書が確定していること。
 - ユーザー指示の達成に必要なコードと文書だけを読んでいること。
 - 追加で読むべき文書がある場合は、この文書の条件に基づいて選択されていること。
-- command 形式や `llm-cache` 参照キーを rules へ固定する指示では、その判断に必要な `scripts`、`_meta.json`、Python 実装、`llm-cache` だけを読んでいること。
+- command 形式や `llm-cache` 参照キーを rules へ固定する指示では、その判断に必要な `scripts`、`_meta.json`、`llm-cache` だけを読んでいること。
 - 曖昧さが残る場合は、実装へ進まず中断報告していること。
 
 ## 禁止事項
@@ -49,4 +49,4 @@
 - 変更種別に該当しない `specs` や `rules` を慣習で読んではならない。
 - 変更対象や影響範囲を推測や慣習で補完してはならない。
 - 完了条件や非対象を確定しないまま後続タスクへ進んではならない。
-- rules に、そのまま実行できる形へ一意に展開できない command 例や、値を露出した `llm-cache` 記述を残してはならない。
+- rules に、usage と必要な補足だけで実行方法を確定できない command 例や、値を露出した `llm-cache` 記述を残してはならない。

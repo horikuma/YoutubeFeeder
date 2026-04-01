@@ -1,4 +1,6 @@
 ## 2026/04/02
+- 従来のルールで必要だった、ルール中でスクリプトの実装や、usageで自明な内容が残留していないかを調査し、削除せよ。
+  - rule creation を基準に、usageだけで確定する説明や不要な実装参照を rules 群から削除した。
 - Issue #44 の残り TODO として、rules 内に残っていた command 記法を usage 記法へ統一する。
   - user instruction understanding、issue detailing、PR creation、skill creation、verification の各 rule を usage 記法へ整理し、置換値説明を追加した。
 - ルール生成ルール更新と、コミットルール微調整を、併せてコミットせよ。
