@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 from pathlib import Path
 from urllib.error import HTTPError
@@ -15,7 +14,7 @@ DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "llm-cache" / "githu
 
 
 def resolve_config_path(config_path: str | None = None) -> Path:
-    raw_path = config_path or os.getenv("GITHUB_APP_CONFIG_PATH") or str(DEFAULT_CONFIG_PATH)
+    raw_path = config_path or str(DEFAULT_CONFIG_PATH)
     return Path(raw_path).expanduser().resolve()
 
 

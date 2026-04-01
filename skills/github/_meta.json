@@ -10,7 +10,7 @@
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           }
         ],
@@ -32,7 +32,7 @@
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           },
           {
@@ -71,7 +71,7 @@
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           },
           {
@@ -111,7 +111,7 @@
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           },
           {
@@ -144,7 +144,7 @@
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           }
         ],
@@ -163,18 +163,11 @@
         "mode": "passthrough"
       },
       "direct_arg_inputs": ["--title"],
-      "body_file_contract": {
-        "content_format": "markdown",
-        "file_option": "--body-file",
-        "inline_option": "--body",
-        "required_headings": ["## ToDo"],
-        "required_literals": []
-      },
       "required_inputs": {
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           },
           {
@@ -183,13 +176,7 @@
             "description": "作成する Issue のタイトル"
           }
         ],
-        "one_of": [
-          {
-            "name": "issue_body_markdown",
-            "sources": ["arg:--body", "arg:--body-file"],
-            "description": "作成する Issue の本文"
-          }
-        ]
+        "one_of": []
       },
       "runtime": {
         "use_repo_venv": true,
@@ -215,7 +202,7 @@
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           },
           {
@@ -254,7 +241,7 @@
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           },
           {
@@ -281,7 +268,7 @@
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           },
           {
@@ -314,7 +301,7 @@
         "all_of": [
           {
             "name": "repo",
-            "sources": ["arg:--repo", "env:GITHUB_REPOSITORY"],
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
             "description": "owner/repo 形式の対象リポジトリ"
           },
           {

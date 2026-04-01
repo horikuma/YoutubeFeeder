@@ -5,19 +5,18 @@
 ## Pull Request作成・更新
 
 - Pull Request作成・更新とは、GitHub Pull Request を新規作成し、または既存 Pull Request の title、body、assignee、base を更新して、開発シーケンスの完了条件を満たす状態へ整えるタスクである。
+- この文書で使う usage 記法では、角括弧 `[...]` 内は省略可能部分を表す。
+- この文書で使う usage 記法では、角括弧の外にある要素は必須であり、左から右の順にそのまま指定しなければならない。
+- この文書で使う usage 記法では、山括弧 `<...>` 内は実行時に具体値へ置換して渡す値を表す。
 
 ## 実施内容
 
 - タスク完了時は、merge 先が通常の `main` かセッション限定の main かを問わず、必ず Pull Request を作成しなければならない。
-- Pull Request の既定 Assignee は `llm-cache/issue-defaults.json` を正本として参照しなければならない。必要項目が無い時は処理を中断し、ユーザーへ確認しなければならない。推測で補完してはならない。
-- Pull Request の Assignee は rules へ直書きしてはならず、`llm-cache/issue-defaults.json` の `assignee.login` と `llm-cache/github-app.json` の `operationMode` から解決しなければならない。
-- Pull Request の base は `llm-cache/session-context.json` の `sessionMainBranch` を参照して決めなければならない。
-- GitHub 操作モードは `llm-cache/github-app.json` の `operationMode` で解決しなければならない。rules に固定モードや `llm-cache` の値を書いてはならない。
-- `user` モードでは、Pull Request の repo 操作は GitHub App で行わなければならず、Projects 操作は `gh` で行わなければならない。
-- `organization` モードでは、Pull Request の repo 操作も Projects 操作も GitHub App で行わなければならない。
-- Pull Request の Assignee は `llm-cache/issue-defaults.json` と `llm-cache/github-app.json` から解決した値で設定しなければならない。
-- rules や ToDo に command 例を書く場合は、`./scripts/pull-request-creation --repo {repo_slug} --base {session_main_branch} --head {head_branch} --title '{pull_request_title_text}' --body-file llm-temp/YYYYMMDD-HHMMSS-pull-request-creation-summary.md` のように、そのまま実行できる形へ一意に展開できる形で記載しなければならない。
-- `./scripts/pull-request-creation` に渡す本文ファイルは `llm-temp/YYYYMMDD-HHMMSS-pull-request-creation-summary.md` 形式でなければならず、`Closes #{issue_number}` を含む本文を生成できる形で記載しなければならない。
+- rules や ToDo に command 例を書く場合は、次の usage で記載しなければならない。
+  `./scripts/pull-request-creation --head '<head_branch>' --title '<pull_request_title_text>' --body-file 'llm-temp/<date>-pull-request-creation-summary.md'`
+    - `llm-temp/<date>-pull-request-creation-summary.md` は、Pull Request 本文ファイルである。
+    - `<date>` は、`YYYYMMDD-HHMMSS` 形式でなければならない。
+- `./scripts/pull-request-creation` に渡す本文ファイルは `llm-temp/YYYYMMDD-HHMMSS-pull-request-creation-summary.md` 形式でなければならず、`Closes #{issue_number}` を含まなければならない。
 - Pull Request を Project へ自動登録してはならない。
 - Pull Request の body には、対応する Issue を GitHub の機能で連携クローズするため、`Closes #{issue_number}` を明記しなければならない。
 - Pull Request の作成時は、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態にしなければならない。
@@ -33,12 +32,10 @@
 - Pull Request を起点に、Issue、ブランチ、コミットとの対応関係を追跡できること。
 - Pull Request 作成・更新に必要な項目が未完了のまま、完了扱いにされていないこと。
 - Project 自動登録禁止と Issue 直接 close 禁止が守られていること。
-- rules に Pull Request command 例を書く場合は、`sessionMainBranch`、`assignee.login`、`operationMode` の参照キー名だけで一意に展開できること。
 
 ## 禁止事項
 
 - Pull Request を作成せずに開発シーケンスを完了扱いにしてはならない。
-- Pull Request の Assignee、base、操作モード、その他の外部メタデータを推測で補完してはならない。
 - rules に Assignee 名、Project 名、固定モードのようなプロダクト固有値を持ち込んではならない。
 - rules に `llm-cache` の値そのものや、文字列として送信されうる山括弧形式の置換記法を持ち込んではならない。
 - Pull Request を Project へ自動登録してはならない。

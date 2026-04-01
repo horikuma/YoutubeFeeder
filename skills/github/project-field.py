@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -26,7 +25,7 @@ def load_module(filename: str, module_name: str):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Ensure or update a GitHub project number field for an Issue or PR.")
-    parser.add_argument("--repo", default=os.getenv("GITHUB_REPOSITORY"))
+    parser.add_argument("--repo")
     parser.add_argument("--field-name", default="LLM所要時間")
     parser.add_argument("--value", type=float, required=True)
     parser.add_argument("--assignee")
@@ -34,7 +33,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-owner")
     parser.add_argument("--cache-file", default=str(DEFAULT_CACHE_PATH))
     parser.add_argument("--refresh-defaults", action="store_true")
-    parser.add_argument("--config", default=os.getenv("GITHUB_APP_CONFIG_PATH"))
+    parser.add_argument("--config")
 
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--content-url")
@@ -42,8 +41,11 @@ def parse_args() -> argparse.Namespace:
     target.add_argument("--pull-request-number", type=int)
     args = parser.parse_args()
 
+    defaults_module = load_module("issue-defaults.py", "issue_defaults")
     if not args.repo:
-        parser.error("--repo or GITHUB_REPOSITORY is required")
+        args.repo = defaults_module.resolve_cached_repo(args.cache_file)
+    if not args.repo:
+        parser.error("--repo or cache-file repo is required")
     if "/" not in args.repo:
         parser.error("repository must be in owner/repo format")
     if args.issue_number is not None and args.issue_number <= 0:
@@ -67,10 +69,16 @@ def main() -> int:
     defaults_module = load_module("issue-defaults.py", "issue_defaults")
     github_app = load_module("github-app.py", "github_app")
 
-    assignee = args.assignee or github_app.get_default_assignee(args.repo, args.config)
+    assignee = args.assignee or defaults_module.resolve_cached_assignee_login(args.cache_file)
+    if not assignee:
+        assignee = github_app.get_default_assignee(args.repo, args.config)
+    project_owner = args.project_owner or defaults_module.resolve_cached_project_owner(args.cache_file)
+    project_title = args.project_title or defaults_module.resolve_cached_project_title(args.cache_file)
     project_defaults = github_app.get_project_settings(args.repo, args.config)
-    project_owner = args.project_owner or project_defaults["owner"]
-    project_title = args.project_title or project_defaults["title"]
+    if not project_owner:
+        project_owner = project_defaults["owner"]
+    if not project_title:
+        project_title = project_defaults["title"]
 
     defaults = defaults_module.resolve_defaults(
         repo=args.repo,
