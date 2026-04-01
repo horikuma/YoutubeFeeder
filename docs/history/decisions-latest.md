@@ -1,4 +1,6 @@
 ## 2026/04/02
+- default 解決される option の説明は個別 rule に残さない。
+  - usage から省いた option の既定値解決は skill 側の責務であり、個別 rule には実行時に追加指定が必要な情報だけを残すため。
 - llm-cache で解決できる既定 option は rule の usage から除外する。
   - command usage は実行時に追加指定が必要な引数だけを残し、既定値解決は skill 側で担保する方針に統一するため。
 - rules の command 補足は usage だけで確定しない情報に限定する。

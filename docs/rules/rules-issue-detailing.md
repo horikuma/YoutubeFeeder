@@ -16,15 +16,11 @@
 - Issue の詳細化を始める時は、対象 Issue の現在のタイトル、Description、既存コメントを読み、未整理の指示と既存の整理結果を区別しなければならない。
 - Issue の読取りと更新の rules を定義または更新する時は、次の usage で記述しなければならない。
   `./scripts/issue-read --issue-number '<issue_number>'[ --body-only]`
-    - `repo` は `llm-cache/issue-defaults.json` の `repo` から解決しなければならない。
   `./scripts/issue-description-update --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-description-update-summary.md'[ --title '<title>']`
-    - `repo` は `llm-cache/issue-defaults.json` の `repo` から解決しなければならない。
     - `llm-temp/<date>-issue-description-update-summary.md` は、Description 更新本文ファイルである。
   `./scripts/issue-comment-create --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-comment-create-summary.md'`
-    - `repo` は `llm-cache/issue-defaults.json` の `repo` から解決しなければならない。
     - `llm-temp/<date>-issue-comment-create-summary.md` は、Issue comment 本文ファイルである。
   `./scripts/issue-branch-register --issue-number '<issue_number>'[ --branch '<branch_name>']`
-    - `repo` は `llm-cache/issue-defaults.json` の `repo` から解決しなければならない。
 - チャット欄から作成した Issue の元のユーザー指示は、Description ではなく Issue コメントで参照できる状態へ移さなければならない。
 - Description には、禁止事項とチェックボックス付き ToDo だけを記載しなければならない。
 - 背景、目的、スコープ、実施タスク、完了条件、非対象、補足説明は、Issue コメントで整理しなければならない。

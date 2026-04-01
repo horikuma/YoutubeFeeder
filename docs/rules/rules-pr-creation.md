@@ -12,16 +12,8 @@
 ## 実施内容
 
 - タスク完了時は、merge 先が通常の `main` かセッション限定の main かを問わず、必ず Pull Request を作成しなければならない。
-- Pull Request の既定 Assignee は `llm-cache/issue-defaults.json` を正本として参照しなければならない。必要項目が無い時は処理を中断し、ユーザーへ確認しなければならない。推測で補完してはならない。
-- Pull Request の Assignee は rules へ直書きしてはならず、`llm-cache/issue-defaults.json` の `assignee.login` と `llm-cache/github-app.json` の `operationMode` から解決しなければならない。
-- Pull Request の base は `llm-cache/session-context.json` の `sessionMainBranch` を参照して決めなければならない。
-- GitHub 操作モードは `llm-cache/github-app.json` の `operationMode` で解決しなければならない。rules に固定モードや `llm-cache` の値を書いてはならない。
-- `user` モードでは、Pull Request の repo 操作は GitHub App で行わなければならず、Projects 操作は `gh` で行わなければならない。
-- `organization` モードでは、Pull Request の repo 操作も Projects 操作も GitHub App で行わなければならない。
 - rules や ToDo に command 例を書く場合は、次の usage で記載しなければならない。
   `./scripts/pull-request-creation --head '<head_branch>' --title '<pull_request_title_text>' --body-file 'llm-temp/<date>-pull-request-creation-summary.md'`
-    - `repo` は `llm-cache/issue-defaults.json` の `repo` から解決しなければならない。
-    - `base` は `llm-cache/session-context.json` の `sessionMainBranch` から解決しなければならない。
     - `llm-temp/<date>-pull-request-creation-summary.md` は、Pull Request 本文ファイルである。
     - `<date>` は、`YYYYMMDD-HHMMSS` 形式でなければならない。
 - `./scripts/pull-request-creation` に渡す本文ファイルは `llm-temp/YYYYMMDD-HHMMSS-pull-request-creation-summary.md` 形式でなければならず、`Closes #{issue_number}` を含まなければならない。
@@ -40,12 +32,10 @@
 - Pull Request を起点に、Issue、ブランチ、コミットとの対応関係を追跡できること。
 - Pull Request 作成・更新に必要な項目が未完了のまま、完了扱いにされていないこと。
 - Project 自動登録禁止と Issue 直接 close 禁止が守られていること。
-- rules に Pull Request command 例を書く場合は、`sessionMainBranch`、`assignee.login`、`operationMode` の参照キー名と usage と必要な補足だけで実行方法を確定できること。
 
 ## 禁止事項
 
 - Pull Request を作成せずに開発シーケンスを完了扱いにしてはならない。
-- Pull Request の Assignee、base、操作モード、その他の外部メタデータを推測で補完してはならない。
 - rules に Assignee 名、Project 名、固定モードのようなプロダクト固有値を持ち込んではならない。
 - rules に `llm-cache` の値そのものや、文字列として送信されうる山括弧形式の置換記法を持ち込んではならない。
 - Pull Request を Project へ自動登録してはならない。
