@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -20,23 +19,40 @@ def load_github_app_module():
     return module
 
 
+def load_issue_defaults_module():
+    module_path = Path(__file__).with_name("issue-defaults.py")
+    spec = importlib.util.spec_from_file_location("issue_defaults", module_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"Unable to load issue defaults module: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Fetch repository issues through PyGithub using GitHub App credentials."
     )
-    parser.add_argument("--repo", default=os.getenv("GITHUB_REPOSITORY"))
+    parser.add_argument("--repo")
     parser.add_argument("--state", default="open", choices=("open", "closed", "all"))
     parser.add_argument("--per-page", type=int, default=100)
     parser.add_argument("--page", type=int, default=1)
     parser.add_argument("--include-pulls", action="store_true")
     parser.add_argument(
         "--config",
-        default=os.getenv("GITHUB_APP_CONFIG_PATH"),
+        default=None,
+    )
+    parser.add_argument(
+        "--cache-file",
+        default=str(Path(__file__).resolve().parents[2] / "llm-cache" / "issue-defaults.json"),
     )
     args = parser.parse_args()
 
     if not args.repo:
-        parser.error("--repo or GITHUB_REPOSITORY is required")
+        defaults_module = load_issue_defaults_module()
+        args.repo = defaults_module.resolve_cached_repo(args.cache_file)
+    if not args.repo:
+        parser.error("--repo or cache-file repo is required")
     if "/" not in args.repo:
         parser.error("repository must be in owner/repo format")
     if args.per_page <= 0:

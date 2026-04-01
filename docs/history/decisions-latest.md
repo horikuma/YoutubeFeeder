@@ -1,4 +1,6 @@
 ## 2026/04/02
+- llm-cache で解決できる既定 option は rule の usage から除外する。
+  - command usage は実行時に追加指定が必要な引数だけを残し、既定値解決は skill 側で担保する方針に統一するため。
 - rules の command 補足は usage だけで確定しない情報に限定する。
   - usage で自明な説明や実装読解前提を残さず、command 実行方法だけを簡潔に読めるようにするため。
 - rules の command 記法は usage 記法と置換値説明で統一する。

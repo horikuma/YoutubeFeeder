@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
-import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,17 +28,19 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Resolve and cache default GitHub assignee/project settings."
     )
-    parser.add_argument("--repo", default=os.getenv("GITHUB_REPOSITORY"))
+    parser.add_argument("--repo")
     parser.add_argument("--assignee")
     parser.add_argument("--project-title")
     parser.add_argument("--project-owner")
     parser.add_argument("--cache-file", default=str(DEFAULT_CACHE_PATH))
     parser.add_argument("--refresh", action="store_true")
-    parser.add_argument("--config", default=os.getenv("GITHUB_APP_CONFIG_PATH"))
+    parser.add_argument("--config")
     args = parser.parse_args()
 
     if not args.repo:
-        parser.error("--repo or GITHUB_REPOSITORY is required")
+        args.repo = resolve_cached_repo(args.cache_file)
+    if not args.repo:
+        parser.error("--repo or cache-file repo is required")
     if "/" not in args.repo:
         parser.error("repository must be in owner/repo format")
     github_app = load_github_app_module()
@@ -85,6 +86,51 @@ def read_cache(path: Path) -> dict | None:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise SystemExit(f"GitHub defaults cache is invalid JSON: {path}: {exc}") from exc
+
+
+def read_cache_file(cache_file: str | Path | None = None) -> dict | None:
+    path = Path(cache_file or DEFAULT_CACHE_PATH).expanduser().resolve()
+    return read_cache(path)
+
+
+def resolve_cached_repo(cache_file: str | Path | None = None) -> str | None:
+    payload = read_cache_file(cache_file)
+    if not payload:
+        return None
+    repo = payload.get("repo")
+    if repo is None:
+        return None
+    return str(repo)
+
+
+def resolve_cached_assignee_login(cache_file: str | Path | None = None) -> str | None:
+    payload = read_cache_file(cache_file)
+    if not payload:
+        return None
+    login = payload.get("assignee", {}).get("login")
+    if login is None:
+        return None
+    return str(login)
+
+
+def resolve_cached_project_owner(cache_file: str | Path | None = None) -> str | None:
+    payload = read_cache_file(cache_file)
+    if not payload:
+        return None
+    owner = payload.get("project", {}).get("owner")
+    if owner is None:
+        return None
+    return str(owner)
+
+
+def resolve_cached_project_title(cache_file: str | Path | None = None) -> str | None:
+    payload = read_cache_file(cache_file)
+    if not payload:
+        return None
+    title = payload.get("project", {}).get("title")
+    if title is None:
+        return None
+    return str(title)
 
 
 def write_cache(path: Path, payload: dict) -> None:

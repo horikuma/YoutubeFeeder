@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -50,18 +49,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-owner")
     parser.add_argument("--cache-file", default=str(DEFAULT_CACHE_PATH))
     parser.add_argument("--refresh-defaults", action="store_true")
-    parser.add_argument("--config", default=os.getenv("GITHUB_APP_CONFIG_PATH"))
+    parser.add_argument("--config")
     args = parser.parse_args()
 
+    defaults_module = load_module("issue-defaults.py", "issue_defaults")
     if not args.repo:
-        args.repo = read_cached_repo(args.cache_file)
+        args.repo = defaults_module.resolve_cached_repo(args.cache_file)
     if not args.repo:
         parser.error("--repo or cache-file repo is required")
     if "/" not in args.repo:
         parser.error("repository must be in owner/repo format")
     github_app = load_module("github-app.py", "github_app")
     if not args.assignee:
+        args.assignee = defaults_module.resolve_cached_assignee_login(args.cache_file)
+    if not args.assignee:
         args.assignee = github_app.get_default_assignee(args.repo, args.config)
+    if not args.project_owner:
+        args.project_owner = defaults_module.resolve_cached_project_owner(args.cache_file)
+    if not args.project_title:
+        args.project_title = defaults_module.resolve_cached_project_title(args.cache_file)
     project_defaults = github_app.get_project_settings(args.repo, args.config)
     if not args.project_owner:
         args.project_owner = project_defaults["owner"]

@@ -20,6 +20,7 @@
 - `_meta.json` には各 command の名前、エントリポイントとして対応する Python ファイル、引数仕様を必須で記述しなければならない。
 - `_meta.json` を更新する時は、実行時に必要な command 名、対応する `scripts` 入口、呼び出される Python 実装、必要な引数や契約のような必須情報を同時に更新しなければならない。
 - `scripts` や `_meta.json` を rules で説明する場合は、usage 記法と、usage だけでは確定しない `_meta.json` や `llm-cache` のキー名だけを記述しなければならない。
+- `llm-cache` などで解決できる既定値を持つ option を rules の usage へ残すか削るかの判断はルール文書側の責務であり、skill 実装側の責務としては既定値解決だけを整えなければならない。
 - `skills` 内で必要になる補助ファイルは、可能な限り同じ skill ディレクトリ配下へ閉じ込める。
 - `skills` 配下の実装は Python のみとし、shell で再ラップしない。
 - 一時利用から再利用対象へ昇格した処理は、`tools` に留めず `skills` と `scripts` へ移す。
