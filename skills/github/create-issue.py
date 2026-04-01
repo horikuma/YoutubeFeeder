@@ -24,11 +24,25 @@ def load_module(filename: str, module_name: str):
     return module
 
 
+def read_cached_repo(cache_file: str) -> str | None:
+    path = Path(cache_file).expanduser().resolve()
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"GitHub defaults cache is invalid JSON: {path}: {exc}") from exc
+    repo = payload.get("repo")
+    if repo is None:
+        return None
+    return str(repo)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create a GitHub issue with cached default assignee/project.")
-    parser.add_argument("--repo", default=os.getenv("GITHUB_REPOSITORY"))
+    parser.add_argument("--repo")
     parser.add_argument("--title", required=True)
-    body_group = parser.add_mutually_exclusive_group(required=True)
+    body_group = parser.add_mutually_exclusive_group()
     body_group.add_argument("--body")
     body_group.add_argument("--body-file")
     parser.add_argument("--assignee")
@@ -40,7 +54,9 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
 
     if not args.repo:
-        parser.error("--repo or GITHUB_REPOSITORY is required")
+        args.repo = read_cached_repo(args.cache_file)
+    if not args.repo:
+        parser.error("--repo or cache-file repo is required")
     if "/" not in args.repo:
         parser.error("repository must be in owner/repo format")
     github_app = load_module("github-app.py", "github_app")
@@ -57,6 +73,8 @@ def parse_args() -> argparse.Namespace:
 def read_body(args: argparse.Namespace) -> str:
     if args.body is not None:
         return args.body
+    if args.body_file is None:
+        return ""
     return Path(args.body_file).read_text(encoding="utf-8")
 
 
