@@ -26,7 +26,7 @@ def parse_args() -> argparse.Namespace:
 
 def load_command_definition(repo_root: Path, command_name: str) -> tuple[Path, dict]:
     matches: list[tuple[Path, dict]] = []
-    for meta_path in sorted(repo_root.glob("skills/*/_meta.json")):
+    for meta_path in sorted(repo_root.glob("scripts/*/_meta.json")):
         payload = json.loads(meta_path.read_text(encoding="utf-8"))
         for command in payload.get("commands", []):
             if command.get("name") == command_name:
