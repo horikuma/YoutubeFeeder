@@ -5,4 +5,4 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMMAND_NAME="$(basename "$0")"
 
-exec python3 "$REPO_ROOT/skills/shared/command-runner.py" --repo-root "$REPO_ROOT" "$COMMAND_NAME" "$@"
+exec python3 "$REPO_ROOT/scripts/shared/command-runner.py" --repo-root "$REPO_ROOT" "$COMMAND_NAME" "$@"

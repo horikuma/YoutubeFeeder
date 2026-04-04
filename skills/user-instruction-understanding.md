@@ -26,7 +26,7 @@
 - ユーザー指示が文書配置や文書更新先の判断を含む場合は、`docs/rules/rules-document-sync.md` を読まなければならない。
 - ユーザー指示が `skills`、`scripts`、`tools` の変更に該当する場合は、`docs/rules/rules-skill-creation.md` を読まなければならない。
 - ユーザー指示がルール文書の作成または更新に該当する場合は、`docs/rules/rules-rule-creation.md` を読まなければならない。
-- ユーザー指示が、skill の呼び出し方、`scripts` 入口、`llm-cache` 参照キーの rules への固定に該当する場合は、対象 `docs/rules/*.md` に加えて、対応する `scripts/*`、`skills/*/_meta.json`、`llm-cache/*.json` を読み、command 形式と参照キー名を確定しなければならない。
+- ユーザー指示が、skill の呼び出し方、`scripts` 入口、`llm-cache` 参照キーの rules への固定に該当する場合は、対象 `docs/rules/*.md` に加えて、対応する `scripts/*`、`scripts/*/_meta.json`、`llm-cache/*.json` を読み、command 形式と参照キー名を確定しなければならない。
 - Issue に基づいて着手する場合は、実装前に対象 Issue の Description を読み、作業単位、完了条件、非対象を確定しなければならない。
 - 上記のどの種別にも該当しない場合は、追加の文書を読まず、ユーザー指示と直接関係するコードや既存ファイルだけを確認しなければならない。
 - タスク規定が曖昧で、変更対象、完了条件、非対象、更新先のいずれかを確定できない場合は、処理を中断し、その旨をユーザーへ報告しなければならない。
