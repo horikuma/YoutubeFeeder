@@ -37,7 +37,7 @@
 ### 制約
 
 - 追記は `*-latest.md` に対してだけ行わなければならない。
-- `docs/history/*-latest.md` の更新は、LLM の本文読込みや直接編集で行ってはならず、対応する `scripts/history-chat-append`、`scripts/history-decision-append`、`scripts/history-metrics-append` を通して行わなければならない。
+- `docs/history/*-latest.md` の更新は、LLM の本文読込みや直接編集で行ってはならず、対応する `scripts/command-runner.py 'history-chat-append'`、`scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'` を通して行わなければならない。
 - `*-log.md` は追記対象にも LLM 読込対象にもしてはならない。
 - `*-latest.md` へ新しい項目を追加する場合は、対応する `scripts/history-*-append` が対象の日付見出し行の次行へ挿入しなければならない。
 - `*-latest.md` は、先頭行を日付見出しから始め、先頭の説明文を置いてはならない。
@@ -51,9 +51,9 @@
 
 - ユーザー指示は、次の例外を除き、変更せずそのまま記録しなければならない。
 - LLM の回答および操作の概要は、ユーザー指示行の直後の次行に、行頭から1段だけインデントを下げて1行で記録しなければならない。
-- `docs/history/chat-latest.md` への追記は `scripts/history-chat-append` の成功で完了とし、LLM が本文を読んで追記位置を判断してはならない。
+- `docs/history/chat-latest.md` への追記は `scripts/command-runner.py 'history-chat-append'` の成功で完了とし、LLM が本文を読んで追記位置を判断してはならない。
 - `docs/history/chat-latest.md` へ追記する場合は、次の usage で実行しなければならない。
-  `./scripts/history-chat-append --user-line '<user_line>' --assistant-line '<assistant_line>'[ --today '<today>']`
+  `./scripts/command-runner.py 'history-chat-append' --user-line '<user_line>' --assistant-line '<assistant_line>'[ --today '<today>']`
     - `<user_line>` は、1行のユーザー指示であり、先頭を `- ` で始めなければならない。
     - `<assistant_line>` は、1行の LLM 応答概要であり、先頭を `  - ` で始めなければならない。
     - `<today>` は、省略時は当日値が使われ、指定する場合は `YYYY/MM/DD` または `YYYY-MM-DD` 形式でなければならない。
@@ -66,23 +66,23 @@
 
 #### `docs/history/metrics-latest.md`
 
-- `docs/history/metrics-latest.md` 全体の計測更新には、次の usage で `./scripts/metrics-collect` を使わなければならない。
-  `./scripts/metrics-collect --label '<label>'[ --change-kind '<change_kind>'][ --manual-retries '<manual_retries>'][ --auto-retry-limit '<auto_retry_limit>']`
+- `docs/history/metrics-latest.md` 全体の計測更新には、次の usage で `./scripts/command-runner.py 'metrics-collect'` を使わなければならない。
+  `./scripts/command-runner.py 'metrics-collect' --label '<label>'[ --change-kind '<change_kind>'][ --manual-retries '<manual_retries>'][ --auto-retry-limit '<auto_retry_limit>']`
     - `<label>` は、計測結果へ残すラベルであり、省略してはならない。
-- 限定確認や部分集合の計測確認には、次の usage で `./scripts/metrics-test-collect` を使わなければならない。
-  `./scripts/metrics-test-collect[ --logic-only-testing '<logic_only_testing>'][ --ui-only-testing '<ui_only_testing>']`
-- `./scripts/metrics-collect` または `./scripts/metrics-test-collect` が出力しない計測行を追加する場合は、次の usage で `./scripts/history-metrics-append` を使わなければならない。
-  `./scripts/history-metrics-append --metric-line '<metric_line>'[ --today '<today>']`
+- 限定確認や部分集合の計測確認には、次の usage で `./scripts/command-runner.py 'metrics-test-collect'` を使わなければならない。
+  `./scripts/command-runner.py 'metrics-test-collect'[ --logic-only-testing '<logic_only_testing>'][ --ui-only-testing '<ui_only_testing>']`
+- `./scripts/command-runner.py 'metrics-collect'` または `./scripts/command-runner.py 'metrics-test-collect'` が出力しない計測行を追加する場合は、次の usage で `./scripts/command-runner.py 'history-metrics-append'` を使わなければならない。
+  `./scripts/command-runner.py 'history-metrics-append' --metric-line '<metric_line>'[ --today '<today>']`
     - `<metric_line>` は、1行の計測結果であり、先頭を `- ` で始めなければならない。
     - `<today>` は、省略時は当日値が使われ、指定する場合は `YYYY/MM/DD` または `YYYY-MM-DD` 形式でなければならない。
 
 #### `docs/history/decisions-latest.md`
 
 - 設計変更が行われた場合は `docs/history/decisions-latest.md` に追記しなければならない。
-- `docs/history/decisions-latest.md` の新しい決定を追加する場合は、`scripts/history-decision-append` を使い、その成功により対象の日付見出し行の次行へ、その決定内容の箇条書き行を挿入しなければならない。
-- 各決定の理由は、`scripts/history-decision-append` により、その決定内容の箇条書き行の直後の次行に、行頭から1段だけインデントを下げて記述しなければならない。
+- `docs/history/decisions-latest.md` の新しい決定を追加する場合は、`scripts/command-runner.py 'history-decision-append'` を使い、その成功により対象の日付見出し行の次行へ、その決定内容の箇条書き行を挿入しなければならない。
+- 各決定の理由は、`scripts/command-runner.py 'history-decision-append'` により、その決定内容の箇条書き行の直後の次行に、行頭から1段だけインデントを下げて記述しなければならない。
 - `docs/history/decisions-latest.md` へ追記する場合は、次の usage で実行しなければならない。
-  `./scripts/history-decision-append --decision-line '<decision_line>' --reason-line '<reason_line>'[ --today '<today>']`
+  `./scripts/command-runner.py 'history-decision-append' --decision-line '<decision_line>' --reason-line '<reason_line>'[ --today '<today>']`
     - `<decision_line>` は、1行の決定事項であり、先頭を `- ` で始めなければならない。
     - `<reason_line>` は、1行の理由であり、先頭を `  - ` で始めなければならない。
     - `<today>` は、省略時は当日値が使われ、指定する場合は `YYYY/MM/DD` または `YYYY-MM-DD` 形式でなければならない。
@@ -92,9 +92,9 @@
 
 - コミット対象が、その時点で完了条件を満たした変更セットだけで構成されていること。
 - 必要な検証と、対応する `docs/history/*-latest.md` 更新が完了したうえでコミットされていること。
-- `docs/history/chat-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/history-chat-append` が成功し、その結果が `docs/history/chat-latest.md` に反映されていること。
-- `docs/history/decisions-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/history-decision-append` が成功し、その結果が `docs/history/decisions-latest.md` に反映されていること。
-- `docs/history/metrics-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/metrics-collect`、`scripts/metrics-test-collect`、`scripts/history-metrics-append` のうち今回実行すべき command が成功し、その結果が `docs/history/metrics-latest.md` に反映されていること。
+- `docs/history/chat-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'history-chat-append'` が成功し、その結果が `docs/history/chat-latest.md` に反映されていること。
+- `docs/history/decisions-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'history-decision-append'` が成功し、その結果が `docs/history/decisions-latest.md` に反映されていること。
+- `docs/history/metrics-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'`、`scripts/command-runner.py 'history-metrics-append'` のうち今回実行すべき command が成功し、その結果が `docs/history/metrics-latest.md` に反映されていること。
 - コミットメッセージが日本語で記述されていること。
 - 変更と作業単位の対応関係が履歴から追跡できること。
 
@@ -105,5 +105,5 @@
 - `docs/history/*-log.md` を直接更新してはならない。
 - `docs/history/*-latest.md` の本文を読んで追記位置を判断したり、LLM が直接編集したりしてはならない。
 - `docs/history/*-latest.md` の更新が必要なのに省略したままコミットしてはならない。
-- この文書で規定した usage 以外の形で `scripts/history-chat-append`、`scripts/history-decision-append`、`scripts/history-metrics-append`、`scripts/metrics-collect`、`scripts/metrics-test-collect` を使ってはならない。
+- この文書で規定した usage 以外の形で `scripts/command-runner.py 'history-chat-append'`、`scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'`、`scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'` を使ってはならない。
 - 英語や空文、変更内容と対応しない文言でコミットメッセージを書いてはならない。

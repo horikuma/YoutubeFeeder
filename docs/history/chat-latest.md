@@ -1,5 +1,7 @@
 ## 2026/04/05
 - Issue52に戻り、実施せよ。
+  - command-runner.py が repo root を自前解決するよう更新し、scripts 直下 shell を削除して skills の command usage を command-runner.py 入口へ統一した。
+- Issue52に戻り、実施せよ。
   - Issue #52 の改名ルールに合わせ、scripts/shared/command-runner.py を scripts/command-runner.py へ移動する変更だけを先に確定した。
 - 実施せよ。
   - Issue #50 として scripts ラッパー、command-runner、現行 skill 文書の参照を新しい scripts 配下実装へ更新し、代表経路の確認まで実施した。

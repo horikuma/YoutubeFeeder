@@ -1,4 +1,6 @@
 ## 2026/04/05
+- scripts の公開入口は command-runner.py のみに集約する。
+  - scripts 直下 shell を廃止しつつ usage の複雑度を上げないため、repo root 解決と command 解決を command-runner.py 自身へ集約する必要があるため。
 - command-runner.py の移動は、改名後編集の前にコミットを挟む。
   - Git 追跡中ファイルの改名後に同一ファイルを編集する場合は、改名と本文編集の間にコミットが必要なため。
 - command 実装の _meta.json と Python 実装は skills 配下ではなく scripts/<group>/ 配下を正本とする。

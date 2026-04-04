@@ -15,12 +15,12 @@
 
 - Issue の詳細化を始める時は、対象 Issue の現在のタイトル、Description、既存コメントを読み、未整理の指示と既存の整理結果を区別しなければならない。
 - Issue の読取りと更新の rules を定義または更新する時は、次の usage で記述しなければならない。
-  `./scripts/issue-read --issue-number '<issue_number>'[ --body-only]`
-  `./scripts/issue-description-update --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-description-update-summary.md'[ --title '<title>']`
+  `./scripts/command-runner.py 'issue-read' --issue-number '<issue_number>'[ --body-only]`
+  `./scripts/command-runner.py 'issue-description-update' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-description-update-summary.md'[ --title '<title>']`
     - `llm-temp/<date>-issue-description-update-summary.md` は、Description 更新本文ファイルである。
-  `./scripts/issue-comment-create --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-comment-create-summary.md'`
+  `./scripts/command-runner.py 'issue-comment-create' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-comment-create-summary.md'`
     - `llm-temp/<date>-issue-comment-create-summary.md` は、Issue comment 本文ファイルである。
-  `./scripts/issue-branch-register --issue-number '<issue_number>'[ --branch '<branch_name>']`
+  `./scripts/command-runner.py 'issue-branch-register' --issue-number '<issue_number>'[ --branch '<branch_name>']`
 - チャット欄から作成した Issue の元のユーザー指示は、Description ではなく Issue コメントで参照できる状態へ移さなければならない。
 - Description には、禁止事項とチェックボックス付き ToDo だけを記載しなければならない。
 - 背景、目的、スコープ、実施タスク、完了条件、非対象、補足説明は、Issue コメントで整理しなければならない。
@@ -40,8 +40,8 @@
 - 詳細化の途中で推論の余地がある箇所をユーザーへ返す時は、各曖昧点に連番を付け、個別に収束できる形で列挙しなければならない。
 - Issue を詳細化する時は、タイトルも内容に見合う具体度へ更新し、一覧から対象作業が判別できる状態へしなければならない。
 - 実装開始前に `issue-(IssueNo)` 形式の作業ブランチを作成し、そのブランチへ checkout しなければならない。
-- 作成した作業ブランチ名は対象 Issue の comment へ記録しなければならない。記録時は `scripts/issue-branch-register` を正規入口として使わなければならない。
-- `./scripts/issue-description-update` と `./scripts/issue-comment-create` に渡す本文ファイルは、それぞれ `llm-temp/YYYYMMDD-HHMMSS-issue-description-update-summary.md`、`llm-temp/YYYYMMDD-HHMMSS-issue-comment-create-summary.md` 形式でなければならない。
+- 作成した作業ブランチ名は対象 Issue の comment へ記録しなければならない。記録時は `scripts/command-runner.py 'issue-branch-register'` を正規入口として使わなければならない。
+- `./scripts/command-runner.py 'issue-description-update'` と `./scripts/command-runner.py 'issue-comment-create'` に渡す本文ファイルは、それぞれ `llm-temp/YYYYMMDD-HHMMSS-issue-description-update-summary.md`、`llm-temp/YYYYMMDD-HHMMSS-issue-comment-create-summary.md` 形式でなければならない。
 - チャット起点で作成した Issue は、詳細化が完了した時点で通常の Issue 起点タスクと同じ扱いにしなければならない。
 - Issue の詳細化中に blocker が見つかった場合は、その時点で Issue コメントへ理由、確認した内容、現在の状況を書き残して停止しなければならない。
 
@@ -69,5 +69,5 @@
 - 先行 ToDo で確定していない判定基準を、後続 ToDo の実施時に補完してはならない。
 - `Issue の ToDo` に、判定基準が未記載の評価語や、読取り対象が未記載のままでは具体的行動が確定しない表現を残してはならない。
 - `Issue の ToDo` に、説明なしの置換記法や、`llm-cache` の値そのものを含む command 例を残してはならない。
-- `scripts/issue-branch-register` 以外の経路で、表記揺れしたブランチ記録 comment を残してはならない。
+- `scripts/command-runner.py 'issue-branch-register'` 以外の経路で、表記揺れしたブランチ記録 comment を残してはならない。
 - blocker を記録しないまま詳細化や後続作業を続けてはならない。
