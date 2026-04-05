@@ -1,4 +1,6 @@
 ## 2026/04/05
+- docs/rules/*.md の導線を docs/rules.md の単一正本へ集約した。
+  - ルール読取り時の参照先を 1 ファイルへ固定し、完全一致する導線文言の重複を解消するため。
 - Issue詳細化 skill の Description ToDo を 3種固定へ更新した。
   - Issue53 で Issue詳細化ToDo・Issue外ToDo・IssueToDo と番号付き列挙を正本化する必要があったため。
 - scripts の公開入口は command-runner.py のみに集約する。
