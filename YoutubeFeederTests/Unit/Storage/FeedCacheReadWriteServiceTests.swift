@@ -2,6 +2,59 @@ import XCTest
 @testable import YoutubeFeeder
 
 final class FeedCacheReadWriteServiceTests: LoggedTestCase {
+    func testLoadRemoteSearchSnapshotReadsCacheWithoutMutatingEntries() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let fetchedAt = ISO8601DateFormatter().date(from: "2026-03-24T03:00:00Z")!
+        let channelID = "UC_REMOTE_READ"
+
+        try await withFeedCacheEnvironment(baseDirectory: temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let remoteCacheStore = RemoteVideoSearchCacheStore()
+            await remoteCacheStore.save(
+                keyword: "read-snapshot",
+                videos: [
+                    CachedVideo(
+                        id: "video-remote-read",
+                        channelID: channelID,
+                        channelTitle: "Remote Read",
+                        title: "read snapshot",
+                        publishedAt: fetchedAt,
+                        videoURL: URL(string: "https://example.com/watch?v=video-remote-read"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: nil,
+                        fetchedAt: fetchedAt,
+                        searchableText: "read snapshot",
+                        durationSeconds: 300,
+                        viewCount: 20
+                    )
+                ],
+                totalCount: 1,
+                fetchedAt: fetchedAt
+            )
+
+            let readService = FeedCacheReadService(
+                store: FeedCacheStore(),
+                remoteSearchCacheStore: remoteCacheStore
+            )
+
+            let entryBefore = await remoteCacheStore.load(keyword: "read-snapshot")
+            let snapshot = await readService.loadRemoteSearchSnapshot(
+                keyword: "read-snapshot",
+                limit: 20,
+                cacheLifetime: 60,
+                now: fetchedAt
+            )
+            let entryAfter = await remoteCacheStore.load(keyword: "read-snapshot")
+
+            XCTAssertEqual(snapshot?.videos.map(\.id), ["video-remote-read"])
+            XCTAssertEqual(snapshot?.source, .remoteCache)
+            XCTAssertEqual(entryAfter, entryBefore)
+        }
+    }
+
     func testLoadMergedVideosForChannelDoesNotMutateCaches() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -76,11 +129,7 @@ final class FeedCacheReadWriteServiceTests: LoggedTestCase {
 
             let readService = FeedCacheReadService(
                 store: FeedCacheStore(),
-                remoteSearchService: RemoteVideoSearchService(
-                    searchService: YouTubeSearchService(),
-                    cacheStore: remoteCacheStore,
-                    cacheLifetime: 60
-                )
+                remoteSearchCacheStore: remoteCacheStore
             )
 
             let snapshotBefore = database.loadFeedSnapshot()
@@ -149,11 +198,7 @@ final class FeedCacheReadWriteServiceTests: LoggedTestCase {
 
             let readService = FeedCacheReadService(
                 store: FeedCacheStore(),
-                remoteSearchService: RemoteVideoSearchService(
-                    searchService: YouTubeSearchService(),
-                    cacheStore: RemoteVideoSearchCacheStore(),
-                    cacheLifetime: 60
-                )
+                remoteSearchCacheStore: RemoteVideoSearchCacheStore()
             )
 
             let bootstrapURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
@@ -212,7 +257,10 @@ final class FeedCacheReadWriteServiceTests: LoggedTestCase {
         ]
 
         try await withFeedCacheEnvironment(baseDirectory: temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
-            let writeService = FeedCacheWriteService(store: FeedCacheStore())
+            let writeService = FeedCacheWriteService(
+                store: FeedCacheStore(),
+                remoteSearchCacheStore: RemoteVideoSearchCacheStore()
+            )
 
             await writeService.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
 
@@ -224,6 +272,35 @@ final class FeedCacheReadWriteServiceTests: LoggedTestCase {
             XCTAssertEqual(bootstrap.progress.totalChannels, 1)
             XCTAssertEqual(bootstrap.progress.cachedVideos, 3)
             XCTAssertEqual(bootstrap.maintenanceItems.map(\.channelID), ["UC_BOOTSTRAP"])
+        }
+    }
+
+    func testClearRemoteSearchRemovesPersistedCacheThroughWriteService() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let fetchedAt = ISO8601DateFormatter().date(from: "2026-03-25T03:00:00Z")!
+
+        try await withFeedCacheEnvironment(baseDirectory: temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let remoteCacheStore = RemoteVideoSearchCacheStore()
+            await remoteCacheStore.save(
+                keyword: "clear-target",
+                videos: [],
+                totalCount: 0,
+                fetchedAt: fetchedAt
+            )
+
+            let writeService = FeedCacheWriteService(
+                store: FeedCacheStore(),
+                remoteSearchCacheStore: remoteCacheStore
+            )
+
+            await writeService.clearRemoteSearch(keyword: "clear-target")
+
+            let entry = await remoteCacheStore.load(keyword: "clear-target")
+            XCTAssertNil(entry)
         }
     }
 

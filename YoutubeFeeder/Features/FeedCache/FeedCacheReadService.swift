@@ -9,7 +9,7 @@ struct FeedCacheRefreshState {
 
 struct FeedCacheReadService {
     let store: FeedCacheStore
-    let remoteSearchService: RemoteVideoSearchService
+    let remoteSearchCacheStore: RemoteVideoSearchCacheStore
 
     func loadSnapshot() async -> FeedCacheSnapshot {
         await store.loadSnapshot()
@@ -51,9 +51,37 @@ struct FeedCacheReadService {
             excludeShorts: true
         )
         let cachedVideos = await loadVideos(query: query)
-        let remoteVideos = await remoteSearchService.allVideos(channelID: channelID)
+        let remoteVideos = await remoteSearchCacheStore.allVideos(channelID: channelID)
         let mergedByID = Dictionary((cachedVideos + remoteVideos).map { ($0.id, $0) }, uniquingKeysWith: preferredVideo)
         return mergedByID.values.sorted(by: sortVideos)
+    }
+
+    func loadRemoteSearchSnapshot(
+        keyword: String,
+        limit: Int,
+        cacheLifetime: TimeInterval,
+        allowExpired: Bool = true,
+        now: Date = .now
+    ) async -> VideoSearchResult? {
+        guard let entry = await remoteSearchCacheStore.load(keyword: keyword) else { return nil }
+        let expiresAt = entry.fetchedAt.addingTimeInterval(cacheLifetime)
+        guard allowExpired || expiresAt > now else { return nil }
+        return VideoSearchResult(
+            keyword: entry.keyword,
+            videos: Array(entry.videos.prefix(limit)),
+            totalCount: entry.totalCount,
+            source: allowExpired && expiresAt <= now ? .staleRemoteCache : .remoteCache,
+            fetchedAt: entry.fetchedAt,
+            expiresAt: expiresAt
+        )
+    }
+
+    func loadRemoteSearchStatus(
+        keyword: String,
+        cacheLifetime: TimeInterval,
+        now: Date = .now
+    ) async -> RemoteSearchCacheStatus {
+        await remoteSearchCacheStore.status(keyword: keyword, ttl: cacheLifetime, now: now)
     }
 
     func searchVideos(keyword: String, limit: Int = 20) async -> VideoSearchResult {

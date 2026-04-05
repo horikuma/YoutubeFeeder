@@ -110,10 +110,20 @@
   - YouTube 検索の managed task の生成、再利用管理。
   - feed cache と検索 cache の動画を合流する際は、`video_id` 重複で落とさず、より新しい `publishedAt` / `fetchedAt` を優先して 1 件へ正規化する。
   - remote search 起点のチャンネル動画表示では、feed refresh 後も動画が `1 件以下` の場合に限って YouTube Data API の channel search fallback を実行し、右ペインが単一動画で止まらないようにする。
+  - `FeedCacheStore` への直接 mutation を持たず、FeedCache 系の副作用は `FeedCacheWriteService` または副作用専用 service へ委譲する。
 - [FeedChannelSyncService.swift](../../YoutubeFeeder/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、更新判定、store 反映を束ねる更新実行サービス。
+  - 依存先は `FeedCacheWriteService` と外部 feed service に限定し、`FeedCacheReadService` との相互依存を作らない。
 - [ChannelRegistryMaintenanceService.swift](../../YoutubeFeeder/Features/FeedCache/ChannelRegistryMaintenanceService.swift)
   - チャンネル登録、削除、バックアップ入出力、全設定リセット。
+  - 読取りが必要な場合だけ `FeedCacheReadService` を参照し、保存・削除・整合性メンテナンスは `FeedCacheWriteService` 経由に限定する。
+- [FeedCacheReadService.swift](../../YoutubeFeeder/Features/FeedCache/FeedCacheReadService.swift)
+  - FeedCache 系の読取り、検索結果のマージ、表示用の並べ替えを担う。
+  - store 書込み、thumbnail 保存、検索キャッシュ保存のような副作用を持たない。
+  - `Read` / `Write` 分離を理由に、動画・チャンネル・検索履歴のようなデータ軸で `FeedCacheReadService` と `FeedCacheWriteService` の共通 superclass を導入してはならない。
+- [FeedCacheWriteService.swift](../../YoutubeFeeder/Features/FeedCache/FeedCacheWriteService.swift)
+  - FeedCache 系の保存、削除、bootstrap 永続化、整合性メンテナンス、thumbnail 反映の単一入口を担う。
+  - `FeedCacheCoordinator`、`FeedChannelSyncService`、`ChannelRegistryMaintenanceService` からの書込み要求を受けても、`FeedCacheReadService` への逆依存を作らない。
 - [FeedCacheStore.swift](../../YoutubeFeeder/Features/FeedCache/FeedCacheStore.swift)
   - cache、snapshot、thumbnail、整合性メンテナンス。
   - ホーム表示に必要な件数・更新時刻・thumbnail 合計サイズの集約窓口。

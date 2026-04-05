@@ -2,8 +2,9 @@ import Foundation
 
 struct HomeSystemStatusService {
     let readService: FeedCacheReadService
-    let remoteSearchService: RemoteVideoSearchService
+    let apiKeyConfigured: Bool
     let homeSearchKeyword: String
+    let remoteSearchCacheLifetime: TimeInterval
 
     func loadStatus(snapshot: FeedCacheSnapshot? = nil, currentProgress: CacheProgress? = nil) async -> HomeSystemStatus {
         let startedAt = Date()
@@ -24,7 +25,10 @@ struct HomeSystemStatusService {
             }
             snapshotLoadedAt = Date()
         }
-        let cacheStatus = await remoteSearchService.status(keyword: homeSearchKeyword)
+        let cacheStatus = await readService.loadRemoteSearchStatus(
+            keyword: homeSearchKeyword,
+            cacheLifetime: remoteSearchCacheLifetime
+        )
         let cacheStatusLoadedAt = Date()
         let registeredChannelCount = ChannelRegistryStore.loadAllChannels().count
         let registeredChannelsLoadedAt = Date()
@@ -34,7 +38,7 @@ struct HomeSystemStatusService {
             cachedVideoCount: resolvedSummary.cachedVideoCount,
             cachedThumbnailBytes: resolvedSummary.cachedThumbnailBytes,
             cacheLastUpdatedAt: currentProgress?.lastUpdatedAt ?? resolvedSummary.savedAt,
-            apiKeyConfigured: remoteSearchService.isConfigured,
+            apiKeyConfigured: apiKeyConfigured,
             searchCacheStatus: cacheStatus
         )
         AppConsoleLogger.appLifecycle.notice(

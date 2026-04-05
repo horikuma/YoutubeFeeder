@@ -2,6 +2,7 @@ import Foundation
 
 struct FeedCacheWriteService {
     let store: FeedCacheStore
+    let remoteSearchCacheStore: RemoteVideoSearchCacheStore
 
     func recordFailure(channelID: String, checkedAt: Date = .now, error: String) async {
         await store.recordFailure(channelID: channelID, checkedAt: checkedAt, error: error)
@@ -48,5 +49,34 @@ struct FeedCacheWriteService {
 
     func resetAllStoredData() async -> (removedVideoCount: Int, removedThumbnailCount: Int) {
         await store.resetAllStoredData()
+    }
+
+    func mergeRemoteSearch(keyword: String, videos: [CachedVideo], fetchedAt: Date) async {
+        await remoteSearchCacheStore.merge(keyword: keyword, videos: videos, fetchedAt: fetchedAt)
+    }
+
+    func saveRemoteSearch(keyword: String, videos: [CachedVideo], totalCount: Int, fetchedAt: Date) async {
+        await remoteSearchCacheStore.save(keyword: keyword, videos: videos, totalCount: totalCount, fetchedAt: fetchedAt)
+    }
+
+    func saveRemoteSearchChannelVideos(channelID: String, videos: [CachedVideo], fetchedAt: Date) async {
+        await saveRemoteSearch(
+            keyword: Self.remoteSearchChannelKeyword(channelID: channelID),
+            videos: videos,
+            totalCount: videos.count,
+            fetchedAt: fetchedAt
+        )
+    }
+
+    func clearRemoteSearch(keyword: String) async {
+        await remoteSearchCacheStore.clear(keyword: keyword)
+    }
+
+    func clearAllRemoteSearch() async -> Int {
+        await remoteSearchCacheStore.clearAll()
+    }
+
+    private static func remoteSearchChannelKeyword(channelID: String) -> String {
+        "channel-videos-\(channelID)"
     }
 }
