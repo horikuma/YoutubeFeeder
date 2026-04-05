@@ -1,5 +1,7 @@
 ## 2026/04/05
 - 実施し、PRを作成せよ。
+  - Issue #56 のルール集約を実施し、rules.md への統合、参照更新、旧 rules ファイル削除、Issue 更新、PR 作成まで進めた。
+- 実施し、PRを作成せよ。
   - Issue53 の skill 更新、Issue ToDo 更新、検証、コミット、PR作成まで進める。
 - Issue52に戻り、実施せよ。
   - command-runner.py が repo root を自前解決するよう更新し、scripts 直下 shell を削除して skills の command usage を command-runner.py 入口へ統一した。

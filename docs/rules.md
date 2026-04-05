@@ -12,16 +12,57 @@
 
 ## タスク
 
-- [セッション開始 rules-session-start.md](./rules/rules-session-start.md)
-- [ユーザー指示の理解 rules-user-instruction-understanding.md](./rules/rules-user-instruction-understanding.md)
-- [Issue の詳細化 rules-issue-detailing.md](./rules/rules-issue-detailing.md)
-- [先行テストで期待固定 rules-test-expectation-freeze.md](./rules/rules-test-expectation-freeze.md)
-- [実装と健康度点検 rules-implementation-and-health.md](./rules/rules-implementation-and-health.md)
-- [検証 rules-verification.md](./rules/rules-verification.md)
-- [Issue作成・更新 rules-issue-creation.md](./rules/rules-issue-creation.md)
-- [Pull Request作成・更新 rules-pr-creation.md](./rules/rules-pr-creation.md)
-- [コミット rules-commit.md](./rules/rules-commit.md)
-- [文書同期 rules-document-sync.md](./rules/rules-document-sync.md)
-- [レポート作成・更新 rules-report-creation.md](./rules/rules-report-creation.md)
-- [スキル作成・更新 rules-skill-creation.md](./rules/rules-skill-creation.md)
-- [ルール作成・更新 rules-rule-creation.md](./rules/rules-rule-creation.md)
+- 各タスクの具体的手順は、この章で指定する対応 `skills/*.md` を開いて従わなければならない。
+- この文書では、各タスクの参照導線だけを定義し、具体的手順を重複記載してはならない。
+
+### セッション開始
+
+- セッション開始を行う時は、`skills/session-start.md` を開かなければならない。
+
+### ユーザー指示の理解
+
+- ユーザー指示の理解を行う時は、`skills/user-instruction-understanding.md` を開かなければならない。
+
+### Issue の詳細化
+
+- Issue の詳細化を行う時は、`skills/issue-detailing.md` を開かなければならない。
+
+### 先行テストで期待固定
+
+- 先行テストで期待固定を行う時は、`skills/test-expectation-freeze.md` を開かなければならない。
+
+### 実装と健康度点検
+
+- 実装と健康度点検を行う時は、`skills/implementation-and-health.md` を開かなければならない。
+
+### 検証
+
+- 検証を行う時は、`skills/verification.md` を開かなければならない。
+
+### Issue作成・更新
+
+- Issue作成・更新を行う時は、`skills/issue-creation.md` を開かなければならない。
+
+### Pull Request作成・更新
+
+- Pull Request作成・更新を行う時は、`skills/pr-creation.md` を開かなければならない。
+
+### コミット
+
+- コミットを行う時は、`skills/commit.md` を開かなければならない。
+
+### 文書同期
+
+- 文書同期を行う時は、`skills/document-sync.md` を開かなければならない。
+
+### レポート作成・更新
+
+- レポート作成・更新を行う時は、`skills/report-creation.md` を開かなければならない。
+
+### スキル作成
+
+- スキル作成を行う時は、`skills/skill-creation.md` を開かなければならない。
+
+### ルール作成・更新
+
+- ルール作成・更新を行う時は、`skills/rule-creation.md` を開かなければならない。
