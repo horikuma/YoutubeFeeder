@@ -1,4 +1,6 @@
 ## 2026/04/05
+- FeedCacheCoordinator は store や API 詳細を直接保持せず、Read/Write/RemoteSearch 系 service を合成して orchestration だけを担う。
+  - persistence 詳細を service 側へ閉じ込め、Coordinator の責務を Task 管理と進行制御へ限定するため。
 - FeedCacheReadService を副作用なしの read/整形層とし、FeedCacheCoordinator / HomeSystemStatusService / ChannelRegistryMaintenanceService の store 読み取りをここへ集約する。
   - 読み取り結果の整形を orchestration から分離し、Read 層の pure 性を維持するため。
 - FeedCacheStore への書き込みは FeedCacheWriteService へ集約し、FeedCacheCoordinator / FeedChannelSyncService / ChannelRegistryMaintenanceService は Writer 経由で副作用を起こす。
