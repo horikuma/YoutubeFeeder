@@ -30,8 +30,12 @@ final class FeedCacheCoordinator: ObservableObject {
 
     static let homeSearchKeyword = "ゆっくり実況"
 
+    private var writeService: FeedCacheWriteService {
+        FeedCacheWriteService(store: store)
+    }
+
     private var channelSyncService: FeedChannelSyncService {
-        FeedChannelSyncService(store: store, feedService: feedService)
+        FeedChannelSyncService(writer: writeService, feedService: feedService)
     }
 
     private var remoteSearchService: RemoteVideoSearchService {
@@ -53,6 +57,7 @@ final class FeedCacheCoordinator: ObservableObject {
     private var channelRegistryMaintenanceService: ChannelRegistryMaintenanceService {
         ChannelRegistryMaintenanceService(
             store: store,
+            writer: writeService,
             feedService: feedService,
             channelResolver: channelResolver,
             remoteSearchService: remoteSearchService
@@ -713,7 +718,7 @@ final class FeedCacheCoordinator: ObservableObject {
             activeCalls: 1,
             callsPerSecond: refreshProgress.thumbnailStage.callsPerSecond
         )
-        await store.cacheThumbnail(for: video)
+        await writeService.cacheThumbnail(for: video)
         RuntimeDiagnostics.shared.record(
             "channel_manual_refresh_thumbnail_finished",
             detail: "サムネイル取得を完了",
@@ -793,7 +798,7 @@ final class FeedCacheCoordinator: ObservableObject {
         await refreshHomeSystemStatus(snapshot: snapshot, currentProgress: nextProgress)
         let homeStatusUpdatedAt = Date()
 
-        await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
+        await writeService.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
         let persistedAt = Date()
 
         if includesVideos {
@@ -1058,7 +1063,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
     private func performConsistencyMaintenanceIfNeeded(force: Bool) async -> CacheConsistencyMaintenanceResult? {
         guard force || !channels.isEmpty else { return nil }
-        return await store.performConsistencyMaintenance(activeChannelIDs: channels, force: force)
+        return await writeService.performConsistencyMaintenance(activeChannelIDs: channels, force: force)
     }
 
     private func refreshHomeSystemStatus(snapshot: FeedCacheSnapshot? = nil, currentProgress: CacheProgress? = nil) async {

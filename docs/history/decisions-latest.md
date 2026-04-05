@@ -1,4 +1,6 @@
 ## 2026/04/05
+- FeedCacheStore への書き込みは FeedCacheWriteService へ集約し、FeedCacheCoordinator / FeedChannelSyncService / ChannelRegistryMaintenanceService は Writer 経由で副作用を起こす。
+  - store 書き込みの責務境界を単一化し、Coordinator からの直接書き込みを排除するため。
 - FeedCacheCoordinator の store 呼び出しは、write を cacheThumbnail / persistBootstrap / performConsistencyMaintenance、read を loadSnapshot / loadVideos / countVideos / loadChannelBrowseItems として Read/Write 境界へ固定する。
   - Coordinator を進行制御へ限定し、後続の FeedCacheWriteService と FeedCacheReadService へ追加推論なしで移譲できるようにするため。
 - Issue の ToDo を完了したコミットでは、focused verification 後かつ git add 前に IssueToDo をチェック済みに更新する。

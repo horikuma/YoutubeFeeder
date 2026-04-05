@@ -23,6 +23,7 @@ struct FeedChannelCSVImportExecution {
 
 struct ChannelRegistryMaintenanceService {
     let store: FeedCacheStore
+    let writer: FeedCacheWriteService
     let feedService: YouTubeFeedService
     let channelResolver: YouTubeChannelResolver
     let remoteSearchService: RemoteVideoSearchService
@@ -36,14 +37,11 @@ struct ChannelRegistryMaintenanceService {
         let cachedItem: ChannelBrowseItem?
         do {
             let result = try await feedService.fetchLatestFeed(for: resolvedChannel.channelID)
-            let uncachedVideos = await store.recordSuccess(
+            _ = await writer.recordSuccessCachingThumbnails(
                 channelID: resolvedChannel.channelID,
                 videos: result.videos,
                 metadata: result.metadata
             )
-            for video in uncachedVideos where video.thumbnailURL != nil {
-                await store.cacheThumbnail(for: video)
-            }
             latestFeedError = nil
         } catch {
             latestFeedError = error.localizedDescription
@@ -83,7 +81,7 @@ struct ChannelRegistryMaintenanceService {
         }
 
         let channels = ChannelRegistryStore.loadAllChannelIDs()
-        let cleanup = await store.performConsistencyMaintenance(activeChannelIDs: channels, force: true)
+        let cleanup = await writer.performConsistencyMaintenance(activeChannelIDs: channels, force: true)
         return FeedChannelRemovalExecution(
             channels: channels,
             feedback: ChannelRemovalFeedback(
@@ -147,7 +145,7 @@ struct ChannelRegistryMaintenanceService {
     func resetAllSettings() async throws -> LocalStateResetFeedback {
         let removedChannelCount = try ChannelRegistryStore.reset()
         let clearedSearchCacheCount = await remoteSearchService.clearAll()
-        let clearedCache = await store.resetAllStoredData()
+        let clearedCache = await writer.resetAllStoredData()
 
         return LocalStateResetFeedback(
             removedChannelCount: removedChannelCount,
