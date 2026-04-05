@@ -1,4 +1,6 @@
 ## 2026/04/05
+- skillsのcommand参照はcommit/verification/rule-creationまで具体例文付きへ揃える。
+  - docs/rules.mdの共通原則とIssue57の復元方針をskills全体へ不足なく適用するため。
 - rulesとskillsでusageに整合する具体command例文の併記を必須とする。
   - Git履歴748d7f0で確認できた具体例必須要件を6c73507以降のusage記法へ整合させて復元するため。
 - docs/rules/*.md の導線を docs/rules.md の単一正本へ集約した。
