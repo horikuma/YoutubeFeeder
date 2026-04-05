@@ -13,12 +13,12 @@
 
 - GitHub Issue を 1 件新規作成しなければならない。
   `./scripts/command-runner.py 'issue-creation' --title '<title>' --body-file 'llm-temp/<date>-issue-creation-description.md'`
+  例: `./scripts/command-runner.py 'issue-creation' --title 'Git履歴からサルベージして command 例文必須要件を rules / skills へ復元する' --body-file 'llm-temp/20260405-095752-issue-creation-description.md'`
     - `<title>` がユーザ指示に存在しない場合は、処理を中断しなければならない。
     - `llm-temp/<date>-issue-creation-description.md` は、Issue Description ファイルとして常に生成し、指定しなければならない。
     - ユーザが Issue Description を出力せよと指示した場合は、その指示内容を Issue Description として `llm-temp/<date>-issue-creation-description.md` へ出力しなければならない。
     - ユーザが Issue Description を出力せよと指示していない場合は、空ファイルを `llm-temp/<date>-issue-creation-description.md` に生成しなければならない。
     - `<date>` は、`YYYYMMDD-HHMMSS` 形式でなければならない。
-- Issue作成の rules や ToDo に command を記載する時は、前項の usage に加えて、例えば `./scripts/command-runner.py 'issue-creation' --title 'Git履歴からサルベージして command 例文必須要件を rules / skills へ復元する' --body-file 'llm-temp/20260405-095752-issue-creation-description.md'` のような具体的な command 例文も記載しなければならない。
 
 ## 完了条件
 

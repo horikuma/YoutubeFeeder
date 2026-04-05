@@ -30,7 +30,6 @@
 - Issue に基づいて着手する場合は、実装前に対象 Issue の Description を読み、作業単位、完了条件、非対象を確定しなければならない。
 - 上記のどの種別にも該当しない場合は、追加の文書を読まず、ユーザー指示と直接関係するコードや既存ファイルだけを確認しなければならない。
 - タスク規定が曖昧で、変更対象、完了条件、非対象、更新先のいずれかを確定できない場合は、処理を中断し、その旨をユーザーへ報告しなければならない。
-- rules に command 例や置換記法を追加する場合は、usage 記法で記述し、usage だけでは確定しない置換値や生成物だけを箇条書きで補足し、例えば `./scripts/command-runner.py 'issue-read' --issue-number '57'` や `./scripts/command-runner.py 'pull-request-creation' --head 'issue-57' --title 'Issue 57: command 例文必須要件を復元する' --body-file 'llm-temp/20260405-100500-pull-request-creation-summary.md'` のような具体的な command 例文も併記しなければならない。
 - `llm-cache` を参照する rules を更新する場合は、値を転記してはならず、`session-context.json` の `sessionMainBranch`、`github-app.json` の `operationMode`、`issue-defaults.json` の `assignee.login` のように、参照するキー名だけを記述しなければならない。
 
 ## 完了条件

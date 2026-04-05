@@ -16,12 +16,15 @@
 - Issue の詳細化を始める時は、対象 Issue の現在のタイトル、Description、既存コメントを読み、未整理の指示と既存の整理結果を区別しなければならない。
 - Issue の読取りと更新の rules を定義または更新する時は、次の usage で記述しなければならない。
   `./scripts/command-runner.py 'issue-read' --issue-number '<issue_number>'[ --body-only]`
+  例: `./scripts/command-runner.py 'issue-read' --issue-number '57' --body-only`
   `./scripts/command-runner.py 'issue-description-update' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-description-update-summary.md'[ --title '<title>']`
+  例: `./scripts/command-runner.py 'issue-description-update' --issue-number '57' --body-file 'llm-temp/20260405-095752-issue-description-update-summary.md' --title 'Git履歴からサルベージして command 例文必須要件を rules / skills へ復元する'`
     - `llm-temp/<date>-issue-description-update-summary.md` は、Description 更新本文ファイルである。
   `./scripts/command-runner.py 'issue-comment-create' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-comment-create-summary.md'`
+  例: `./scripts/command-runner.py 'issue-comment-create' --issue-number '57' --body-file 'llm-temp/20260405-095752-issue-comment-create-summary.md'`
     - `llm-temp/<date>-issue-comment-create-summary.md` は、Issue comment 本文ファイルである。
   `./scripts/command-runner.py 'issue-branch-register' --issue-number '<issue_number>'[ --branch '<branch_name>']`
-- Issue の読取りと更新の rules を定義または更新する時は、前項の usage に加えて、例えば `./scripts/command-runner.py 'issue-read' --issue-number '57' --body-only`、`./scripts/command-runner.py 'issue-description-update' --issue-number '57' --body-file 'llm-temp/20260405-095752-issue-description-update-summary.md' --title 'Git履歴からサルベージして command 例文必須要件を rules / skills へ復元する'`、`./scripts/command-runner.py 'issue-comment-create' --issue-number '57' --body-file 'llm-temp/20260405-095752-issue-comment-create-summary.md'`、`./scripts/command-runner.py 'issue-branch-register' --issue-number '57' --branch 'issue-57'` のような具体的な command 例文も記載しなければならない。
+  例: `./scripts/command-runner.py 'issue-branch-register' --issue-number '57' --branch 'issue-57'`
 - チャット欄から作成した Issue の元のユーザー指示は、Description ではなく Issue コメントで参照できる状態へ移さなければならない。
 - Description には、禁止事項と `Issue詳細化ToDo`、`Issue外ToDo`、`IssueToDo` の 3 種のチェックボックス付き ToDo だけを記載しなければならない。
 - Description の禁止事項と 3 種の ToDo は、番号付き箇条書きで記載しなければならない。

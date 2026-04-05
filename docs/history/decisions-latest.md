@@ -1,4 +1,6 @@
 ## 2026/04/05
+- command例文はメタルール化せずusage直下へ実記載する。
+  - Issue57ではrules総則より各skill本文だけで実行形を読める状態を正本とするため。
 - skillsのcommand参照はcommit/verification/rule-creationまで具体例文付きへ揃える。
   - docs/rules.mdの共通原則とIssue57の復元方針をskills全体へ不足なく適用するため。
 - rulesとskillsでusageに整合する具体command例文の併記を必須とする。

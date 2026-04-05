@@ -54,10 +54,10 @@
 - `docs/history/chat-latest.md` への追記は `scripts/command-runner.py 'history-chat-append'` の成功で完了とし、LLM が本文を読んで追記位置を判断してはならない。
 - `docs/history/chat-latest.md` へ追記する場合は、次の usage で実行しなければならない。
   `./scripts/command-runner.py 'history-chat-append' --user-line '<user_line>' --assistant-line '<assistant_line>'[ --today '<today>']`
+  例: `./scripts/command-runner.py 'history-chat-append' --user-line '- 実施し、PRを作成せよ。' --assistant-line '  - Issue57のskills内command参照をルール準拠へ更新し、PR更新まで進める。'`
     - `<user_line>` は、1行のユーザー指示であり、先頭を `- ` で始めなければならない。
     - `<assistant_line>` は、1行の LLM 応答概要であり、先頭を `  - ` で始めなければならない。
     - `<today>` は、省略時は当日値が使われ、指定する場合は `YYYY/MM/DD` または `YYYY-MM-DD` 形式でなければならない。
-- `docs/history/chat-latest.md` へ追記する規定を書く時は、前項の usage に加えて、例えば `./scripts/command-runner.py 'history-chat-append' --user-line '- 実施し、PRを作成せよ。' --assistant-line '  - Issue57のskills内command参照をルール準拠へ更新し、PR更新まで進める。'` のような具体的な command 例文も記載しなければならない。
 - 制約である「記録する文字列に個人情報、APIキー、トークン、絶対パス、ホームディレクトリが含まれる場合は、除去しなければならない。」は、この節の規則より上位に適用しなければならない。
 - 1行の入力は、ユーザーが直接入力した指示として扱わなければならない。
 - ユーザーが貼り付ける入力は、必ず改行を含むものとして扱わなければならない。
@@ -69,16 +69,16 @@
 
 - `docs/history/metrics-latest.md` 全体の計測更新には、次の usage で `./scripts/command-runner.py 'metrics-collect'` を使わなければならない。
   `./scripts/command-runner.py 'metrics-collect' --label '<label>'[ --change-kind '<change_kind>'][ --manual-retries '<manual_retries>'][ --auto-retry-limit '<auto_retry_limit>']`
+  例: `./scripts/command-runner.py 'metrics-collect' --label 'Issue57 skills command reference update' --change-kind 'docs'`
     - `<label>` は、計測結果へ残すラベルであり、省略してはならない。
-- `docs/history/metrics-latest.md` 全体の計測更新規定を書く時は、前項の usage に加えて、例えば `./scripts/command-runner.py 'metrics-collect' --label 'Issue57 skills command reference update' --change-kind 'docs'` のような具体的な command 例文も記載しなければならない。
 - 限定確認や部分集合の計測確認には、次の usage で `./scripts/command-runner.py 'metrics-test-collect'` を使わなければならない。
   `./scripts/command-runner.py 'metrics-test-collect'[ --logic-only-testing '<logic_only_testing>'][ --ui-only-testing '<ui_only_testing>']`
-- 限定確認や部分集合の計測確認規定を書く時は、前項の usage に加えて、例えば `./scripts/command-runner.py 'metrics-test-collect' --logic-only-testing 'true'` のような具体的な command 例文も記載しなければならない。
+  例: `./scripts/command-runner.py 'metrics-test-collect' --logic-only-testing 'true'`
 - `./scripts/command-runner.py 'metrics-collect'` または `./scripts/command-runner.py 'metrics-test-collect'` が出力しない計測行を追加する場合は、次の usage で `./scripts/command-runner.py 'history-metrics-append'` を使わなければならない。
   `./scripts/command-runner.py 'history-metrics-append' --metric-line '<metric_line>'[ --today '<today>']`
+  例: `./scripts/command-runner.py 'history-metrics-append' --metric-line '- docs only verification: issue-read --issue-number 57 --body-only'`
     - `<metric_line>` は、1行の計測結果であり、先頭を `- ` で始めなければならない。
     - `<today>` は、省略時は当日値が使われ、指定する場合は `YYYY/MM/DD` または `YYYY-MM-DD` 形式でなければならない。
-- 計測行の追加規定を書く時は、前項の usage に加えて、例えば `./scripts/command-runner.py 'history-metrics-append' --metric-line '- docs only verification: issue-read --issue-number 57 --body-only'` のような具体的な command 例文も記載しなければならない。
 
 #### `docs/history/decisions-latest.md`
 
@@ -87,10 +87,10 @@
 - 各決定の理由は、`scripts/command-runner.py 'history-decision-append'` により、その決定内容の箇条書き行の直後の次行に、行頭から1段だけインデントを下げて記述しなければならない。
 - `docs/history/decisions-latest.md` へ追記する場合は、次の usage で実行しなければならない。
   `./scripts/command-runner.py 'history-decision-append' --decision-line '<decision_line>' --reason-line '<reason_line>'[ --today '<today>']`
+  例: `./scripts/command-runner.py 'history-decision-append' --decision-line '- skills内のcommand参照にも具体例文を必須とする。' --reason-line '  - docs/rules.mdの共通原則と整合させるため。'`
     - `<decision_line>` は、1行の決定事項であり、先頭を `- ` で始めなければならない。
     - `<reason_line>` は、1行の理由であり、先頭を `  - ` で始めなければならない。
     - `<today>` は、省略時は当日値が使われ、指定する場合は `YYYY/MM/DD` または `YYYY-MM-DD` 形式でなければならない。
-- `docs/history/decisions-latest.md` へ追記する規定を書く時は、前項の usage に加えて、例えば `./scripts/command-runner.py 'history-decision-append' --decision-line '- skills内のcommand参照にも具体例文を必須とする。' --reason-line '  - docs/rules.mdの共通原則と整合させるため。'` のような具体的な command 例文も記載しなければならない。
 - 理由行の次行ではインデントを行頭へ戻し、空行を挿入せず、次の決定がある場合は次の箇条書き項目を記述しなければならない。
 
 ## 完了条件
