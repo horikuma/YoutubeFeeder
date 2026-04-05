@@ -1,7 +1,9 @@
 ## 2026/04/05
+- scripts の公開入口は command-runner.py のみに集約する。
+  - scripts 直下 shell を廃止しつつ usage の複雑度を上げないため、repo root 解決と command 解決を command-runner.py 自身へ集約する必要があるため。
+- command-runner.py の移動は、改名後編集の前にコミットを挟む。
+  - Git 追跡中ファイルの改名後に同一ファイルを編集する場合は、改名と本文編集の間にコミットが必要なため。
 - command 実装の _meta.json と Python 実装は skills 配下ではなく scripts/<group>/ 配下を正本とする。
   - scripts 直下 shell 入口、_meta.json、Python 実装の実配置を一致させることで、参照更新の範囲を局所化し、wrapper と実装の解決経路を同じ親ディレクトリ配下へ閉じ込められるため。
 - Issue45で残存するrules task定義をskillsへ分離しdocs/rulesは導線のみへ統一した。
   - rules-session-startの分離パターンを残る12本へ適用し、ruleとskillの責務境界を揃えるため。
-
-## 2026/04/04

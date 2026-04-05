@@ -18,10 +18,13 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Resolve a command through skill metadata and execute its Python entry point."
     )
-    parser.add_argument("--repo-root", required=True)
     parser.add_argument("command")
     parser.add_argument("command_args", nargs=argparse.REMAINDER)
     return parser.parse_args()
+
+
+def resolve_repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
 
 
 def load_command_definition(repo_root: Path, command_name: str) -> tuple[Path, dict]:
@@ -224,7 +227,7 @@ def resolve_python(repo_root: Path, command: dict) -> str:
 
 def main() -> int:
     args = parse_args()
-    repo_root = Path(args.repo_root).expanduser().resolve()
+    repo_root = resolve_repo_root()
     meta_path, command = load_command_definition(repo_root, args.command)
     validate_required_inputs(meta_path, command)
     validate_direct_arg_inputs(meta_path, command)
