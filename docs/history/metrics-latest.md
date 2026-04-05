@@ -1,4 +1,10 @@
 ## 2026/04/05
+### Issue68 README and human-view sync
+- 種別: docs
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- 計測: `skip`
+- 理由: ドキュメントのみの変更のため
+
 ### Issue62 verification
 - 種別: design
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

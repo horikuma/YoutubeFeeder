@@ -2,16 +2,20 @@
 
 この文書は、人間のエンジニア向けに `rules.md`、`specs-product.md`、`specs-architecture.md`、`specs-design.md` の内容を UML 風に読み替えた設計資料である。正本ではなく、関連する正本文書を人間が俯瞰しやすい形へ翻訳した `human-view` 文書として継続管理する。
 
-文書群の役割分担と文書運用ルールは [rules-update-documents.md](../rules/rules-update-documents.md) を参照する。
+文書群の役割分担は [rules.md](../rules.md) と [specs.md](../specs.md) を参照する。
 
 ## レイヤ構成
 
 ```mermaid
 flowchart LR
     View["SwiftUI View"] --> Coordinator["Coordinator / UI Orchestration"]
-    Coordinator --> Service["Service / Use Case"]
-    Service --> Store["Store"]
-    Service --> Infra["Infrastructure"]
+    Coordinator --> Read["Read Service"]
+    Coordinator --> Write["Write Service"]
+    Coordinator --> Domain["Domain Service"]
+    Read --> Store["Store"]
+    Write --> Store
+    Domain --> Store
+    Domain --> Infra["Infrastructure"]
     Store --> Files["Local Files / Cache / Registry"]
     Infra --> YouTube["YouTube API / Feed"]
 ```
@@ -23,12 +27,18 @@ classDiagram
     class ContentView
     class AppLayout
     class FeedCacheCoordinator
+    class FeedCacheReadService
+    class FeedCacheWriteService
+    class FeedChannelSyncService
+    class HomeSystemStatusService
     class ChannelBrowseView["ChannelBrowseView<br/>[Variants Host]"]
     class ChannelVideosView
     class AllVideosView
     class KeywordSearchResultsView
     class RemoteKeywordSearchResultsView["RemoteKeywordSearchResultsView<br/>[Variants Host]"]
-    class RemoteSearchResultsContentViews["RemoteSearchResultsContentViews<br/>[Variants]"]
+    class RemoteKeywordSearchResultsCompactView
+    class RemoteKeywordSearchResultsRegularView
+    class RemoteKeywordSearchResultsSplitDetailView
     class InteractiveListView
     class ChannelTile["ChannelTile<br/>[Shared UI Core]"]
     class VideoTile
@@ -59,21 +69,34 @@ classDiagram
 
     ChannelBrowseView --> InteractiveListView
     RemoteKeywordSearchResultsView --> InteractiveListView
-    RemoteKeywordSearchResultsView --> RemoteSearchResultsContentViews
+    RemoteKeywordSearchResultsView --> RemoteKeywordSearchResultsCompactView
+    RemoteKeywordSearchResultsView --> RemoteKeywordSearchResultsRegularView
+    RemoteKeywordSearchResultsRegularView --> RemoteKeywordSearchResultsSplitDetailView
     AllVideosView --> InteractiveListView
     KeywordSearchResultsView --> InteractiveListView
     ChannelVideosView --> VideoTile
     AllVideosView --> VideoTile
     KeywordSearchResultsView --> VideoTile
-    RemoteKeywordSearchResultsView --> VideoTile
+    RemoteKeywordSearchResultsCompactView --> VideoTile
+    RemoteKeywordSearchResultsRegularView --> VideoTile
+    RemoteKeywordSearchResultsSplitDetailView --> VideoTile
     ChannelBrowseView --> ChannelTile
 
-    FeedCacheCoordinator --> FeedCacheStore
+    FeedCacheCoordinator --> FeedCacheReadService
+    FeedCacheCoordinator --> FeedCacheWriteService
+    FeedCacheCoordinator --> FeedChannelSyncService
     FeedCacheCoordinator --> ChannelRegistryMaintenanceService
     FeedCacheCoordinator --> RemoteVideoSearchService
+    FeedCacheCoordinator --> HomeSystemStatusService
+    FeedCacheReadService --> FeedCacheStore
+    FeedCacheReadService --> RemoteVideoSearchService
+    FeedCacheWriteService --> FeedCacheStore
+    FeedChannelSyncService --> FeedCacheWriteService
     RemoteVideoSearchService --> RemoteVideoSearchCacheStore
     RemoteVideoSearchService --> YouTubeSearchService
-    FeedCacheCoordinator --> YouTubeFeed
+    ChannelRegistryMaintenanceService --> FeedCacheReadService
+    ChannelRegistryMaintenanceService --> FeedCacheWriteService
+    ChannelRegistryMaintenanceService --> YouTubeFeed
     YouTubeSearchService --> YouTubeSearchModels
     YouTubeSearchService --> YouTubeSearchListResponse
     YouTubeSearchService --> YouTubeVideoListResponse
@@ -92,17 +115,20 @@ sequenceDiagram
     participant Home as HomeScreenView
     participant Browse as ChannelBrowseView
     participant Coord as FeedCacheCoordinator
+    participant Read as FeedCacheReadService
     participant Store as FeedCacheStore
 
     User->>Home: チャンネル一覧を開く
     Home->>Browse: navigate
     Browse->>Coord: loadChannelBrowseItems()
-    Coord->>Store: read channel registry + cache
+    Coord->>Read: loadChannelBrowseItems()
+    Read->>Store: read channel registry + cache
     Store-->>Coord: ChannelBrowseItem[]
     Coord-->>Browse: items
     User->>Browse: チャンネルを選択
     Browse->>Coord: openChannelVideos(context)
-    Coord->>Store: load cached videos
+    Coord->>Read: loadMergedVideosForChannel()
+    Read->>Store: load cached videos
     Store-->>Coord: CachedVideo[]
     Coord-->>Browse: videos
 ```
@@ -135,11 +161,11 @@ sequenceDiagram
 ## 依存関係メモ
 
 - `View` は I/O を直接持たず、`FeedCacheCoordinator` 経由で状態と操作を受ける。
-- `AppLayout` は adaptive 判定を持つが、機能差分は持たない。
-- クラス枠内に `[Variants Host]` を付けた View は、内部に `CompactView` / `RegularView` / `SplitDetailView` などの表現差分を持つが、資料上は 1 つの機能 View として扱う。
-- `[Variants]` は、compact / regular / split detail などの表現差分群そのものをまとめた要素に付ける。
-- クラス枠内に `[Shared UI Core]` を付けた要素は、機能的に共通な表示責務だけを表し、遷移や選択などの操作差分を持つ wrapper は図から省略する。
-- `RemoteSearchPresentationState` は YouTube 検索結果の UI 状態を pure logic として切り出す。
-- `RemoteKeywordSearchResultsView` は state orchestration を持ち、compact / regular / split detail の表示本体は `RemoteSearchResultsContentViews` へ分けて扱う。
+- `AppLayout` は regular 幅かどうかを基準に split UI の有無、余白、一覧カラム数を切り替える。
+- `FeedCacheCoordinator` は画面オーケストレーションを担い、読取り・書込み・同期・検索・ホーム状況集計を専用 service へ委譲する。
+- `FeedCacheReadService` はキャッシュ読取り、動画検索、チャンネル動画マージをまとめる。
+- `FeedCacheWriteService` はキャッシュ保存、サムネイル保存、bootstrap 永続化、整合性メンテナンスの入口を担う。
+- `RemoteSearchPresentationState` は YouTube 検索結果の visibleCount、chip 状態、split 初期選択を pure logic としてまとめる。
+- `RemoteKeywordSearchResultsView` は state orchestration を持ち、compact / regular / split detail の表示本体は別 View へ分けて扱う。
 - `YouTubeSearchService` は API 呼び出しと error handling を担い、公開 model、decode DTO、結果整列 helper は別ファイルへ分けて扱う。
 - 正本を更新した時は、本書のクラス図、シーケンス図も同じ変更セットで同期する。
