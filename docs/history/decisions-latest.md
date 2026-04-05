@@ -1,4 +1,10 @@
 ## 2026/04/05
+- command例文はメタルール化せずusage直下へ実記載する。
+  - Issue57ではrules総則より各skill本文だけで実行形を読める状態を正本とするため。
+- skillsのcommand参照はcommit/verification/rule-creationまで具体例文付きへ揃える。
+  - docs/rules.mdの共通原則とIssue57の復元方針をskills全体へ不足なく適用するため。
+- rulesとskillsでusageに整合する具体command例文の併記を必須とする。
+  - Git履歴748d7f0で確認できた具体例必須要件を6c73507以降のusage記法へ整合させて復元するため。
 - docs/rules/*.md の導線を docs/rules.md の単一正本へ集約した。
   - ルール読取り時の参照先を 1 ファイルへ固定し、完全一致する導線文言の重複を解消するため。
 - Issue詳細化 skill の Description ToDo を 3種固定へ更新した。

@@ -1,4 +1,10 @@
 ## 2026/04/05
+- コミットおよびプッシュせよ。
+  - Issue57のcommand例文修正を履歴反映後にコミットし、issue-57ブランチをpushする。
+- ルールに従い、skillsで、コマンドを参照する箇所をアップデートせよ。ToDoを追加し、実施せよ。
+  - skills内で未更新だったcommit/verification/rule-creationのcommand参照へ具体例文を追加し、Issue57のToDoへ反映する。
+- 実施し、PRを作成せよ。
+  - Issue57のrules/skillsへ具体command例文必須要件を復元し、IssueのToDo完了とPR作成まで進める。
 - 実施し、PRを作成せよ。
   - Issue #56 のルール集約を実施し、rules.md への統合、参照更新、旧 rules ファイル削除、Issue 更新、PR 作成まで進めた。
 - 実施し、PRを作成せよ。

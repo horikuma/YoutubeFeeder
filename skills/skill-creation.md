@@ -19,7 +19,6 @@
 - `_meta.json` は実行に必須の宣言ファイルであり、公開 command を実行するために必要な情報を定義する唯一の正本としなければならない。
 - `_meta.json` には各 command の名前、エントリポイントとして対応する Python ファイル、引数仕様を必須で記述しなければならない。
 - `_meta.json` を更新する時は、実行時に必要な command 名、対応する `scripts` 入口、呼び出される Python 実装、必要な引数や契約のような必須情報を同時に更新しなければならない。
-- `scripts` や `_meta.json` を rules で説明する場合は、usage 記法と、usage だけでは確定しない `_meta.json` や `llm-cache` のキー名だけを記述しなければならない。
 - `llm-cache` などで解決できる既定値を持つ option を rules の usage へ残すか削るかの判断はルール文書側の責務であり、skill 実装側の責務としては既定値解決だけを整えなければならない。
 - command 実装内で必要になる補助ファイルは、可能な限り同じ `scripts/<group>/` 配下へ閉じ込める。
 - `scripts/<group>/` 配下の実装は Python と `_meta.json` のみに限定し、shell で再ラップしない。
@@ -51,7 +50,6 @@
 - 条件分岐や複雑な判定が必要になった時点で、`scripts/command-runner.py` に留めず `scripts/<group>/` 配下の Python 実装本体へ移さなければならない。
 - LLM は `scripts/command-runner.py` に業務ロジック、状態管理、ループ、再試行、フォールバック、文字列整形、JSON 組み立て、設定ファイル解釈、出力整形、サブコマンド選択、エラー分類を実装してはならない。
 - `scripts` は `_meta.json` に定義されていない command の推測、補完、動的解決を行ってはならない。
-- LLM は rules や Issue コメントに command 例を書く時、usage 記法と各置換値の説明を使わなければならず、説明なしの置換記法を残してはならない。
 
 ## Python と言語横断ルール
 

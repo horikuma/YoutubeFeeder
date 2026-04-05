@@ -16,11 +16,15 @@
 - Issue の詳細化を始める時は、対象 Issue の現在のタイトル、Description、既存コメントを読み、未整理の指示と既存の整理結果を区別しなければならない。
 - Issue の読取りと更新の rules を定義または更新する時は、次の usage で記述しなければならない。
   `./scripts/command-runner.py 'issue-read' --issue-number '<issue_number>'[ --body-only]`
+  例: `./scripts/command-runner.py 'issue-read' --issue-number '57' --body-only`
   `./scripts/command-runner.py 'issue-description-update' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-description-update-summary.md'[ --title '<title>']`
+  例: `./scripts/command-runner.py 'issue-description-update' --issue-number '57' --body-file 'llm-temp/20260405-095752-issue-description-update-summary.md' --title 'Git履歴からサルベージして command 例文必須要件を rules / skills へ復元する'`
     - `llm-temp/<date>-issue-description-update-summary.md` は、Description 更新本文ファイルである。
   `./scripts/command-runner.py 'issue-comment-create' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-comment-create-summary.md'`
+  例: `./scripts/command-runner.py 'issue-comment-create' --issue-number '57' --body-file 'llm-temp/20260405-095752-issue-comment-create-summary.md'`
     - `llm-temp/<date>-issue-comment-create-summary.md` は、Issue comment 本文ファイルである。
   `./scripts/command-runner.py 'issue-branch-register' --issue-number '<issue_number>'[ --branch '<branch_name>']`
+  例: `./scripts/command-runner.py 'issue-branch-register' --issue-number '57' --branch 'issue-57'`
 - チャット欄から作成した Issue の元のユーザー指示は、Description ではなく Issue コメントで参照できる状態へ移さなければならない。
 - Description には、禁止事項と `Issue詳細化ToDo`、`Issue外ToDo`、`IssueToDo` の 3 種のチェックボックス付き ToDo だけを記載しなければならない。
 - Description の禁止事項と 3 種の ToDo は、番号付き箇条書きで記載しなければならない。
@@ -33,7 +37,7 @@
 - Description の `## ToDo` 配下には、`### Issue詳細化ToDo`、`### Issue外ToDo`、`### IssueToDo` をこの順で記載しなければならない。
 - Description の `### Issue詳細化ToDo`、`### Issue外ToDo`、`### IssueToDo` は、アイテムが空の場合でも見出しを省略してはならない。
 - `Issue の ToDo` は、新しいスレッドへ切り替わっても、同じ Issue コメントとそこに列挙した読取り対象だけを使えば、追加推論なしで着手できる粒度にしなければならない。
-- `Issue の ToDo` に command 例を含める場合は、usage 記法と各置換値の説明だけを使い、文字列そのものとして送信されうる未説明の置換記法を残してはならない。
+- `Issue の ToDo` に command 例を含める場合は、usage 記法、各置換値の説明、具体的な command 例文を使い、文字列そのものとして送信されうる未説明の置換記法を残してはならない。
 - `Issue の ToDo` に、`必要な`、`適切な`、`整理する` のように、判定基準を別途補完しなければ実施内容が確定しない評価語を、その判定基準を先行 ToDo または同一 ToDo 内の観測可能条件として明示しないまま残してはならない。
 - ある ToDo の実施内容を確定するために特定のファイル、Issue コメント、コード箇所、設定値の読取りが必要な場合は、その読取り対象を先に確定する ToDo を、後続の変更 ToDo より前へ置かなければならない。
 - 先行 ToDo で読取り対象を確定した場合は、その読取り対象だけを使えば後続 ToDo の判断基準が一意に確定する状態にしなければならない。
@@ -56,7 +60,7 @@
 - Description の `Issue詳細化ToDo`、`Issue外ToDo`、`IssueToDo` が、直近の詳細化コメントで確定した `Issue詳細化の ToDo`、`Issue外 ToDo`、`Issue の ToDo` とそれぞれ一致していること。
 - Description の禁止事項と 3 種の ToDo が、番号付き箇条書きで記載されていること。
 - `Issue の ToDo` が、同じ Issue コメントとそこに列挙した読取り対象だけで、追加推論なしに着手できる粒度になっていること。
-- `Issue の ToDo` に command 例がある場合は、usage と必要な補足だけで実行方法を確定できること。
+- `Issue の ToDo` に command 例がある場合は、usage、必要な補足、具体的な command 例文だけで実行方法を確定できること。
 - 後続 ToDo の判断基準が、対応する先行 ToDo または同一 ToDo 内で観測可能な条件として確定していること。
 - 背景、目的、スコープ、実施タスク、完了条件、非対象が Issue コメントで整理されていること。
 - 対象 Issue のタイトルが、一覧から作業内容を判別できる具体度になっていること。
@@ -74,6 +78,6 @@
 - 詳細化本文を Issue コメントではない別の場所へ分散してはならない。
 - 先行 ToDo で確定していない判定基準を、後続 ToDo の実施時に補完してはならない。
 - `Issue の ToDo` に、判定基準が未記載の評価語や、読取り対象が未記載のままでは具体的行動が確定しない表現を残してはならない。
-- `Issue の ToDo` に、説明なしの置換記法や、`llm-cache` の値そのものを含む command 例を残してはならない。
+- `Issue の ToDo` に、具体例なしの command 記述、説明なしの置換記法、`llm-cache` の値そのものを含む command 例を残してはならない。
 - `scripts/command-runner.py 'issue-branch-register'` 以外の経路で、表記揺れしたブランチ記録 comment を残してはならない。
 - blocker を記録しないまま詳細化や後続作業を続けてはならない。

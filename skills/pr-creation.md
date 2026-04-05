@@ -14,6 +14,7 @@
 - タスク完了時は、merge 先が通常の `main` かセッション限定の main かを問わず、必ず Pull Request を作成しなければならない。
 - rules や ToDo に command 例を書く場合は、次の usage で記載しなければならない。
   `./scripts/command-runner.py 'pull-request-creation' --head '<head_branch>' --title '<pull_request_title_text>' --body-file 'llm-temp/<date>-pull-request-creation-summary.md'`
+  例: `./scripts/command-runner.py 'pull-request-creation' --head 'issue-57' --title 'Issue 57: command 例文必須要件を復元する' --body-file 'llm-temp/20260405-100500-pull-request-creation-summary.md'`
     - `llm-temp/<date>-pull-request-creation-summary.md` は、Pull Request 本文ファイルである。
     - `<date>` は、`YYYYMMDD-HHMMSS` 形式でなければならない。
 - `./scripts/command-runner.py 'pull-request-creation'` に渡す本文ファイルは `llm-temp/YYYYMMDD-HHMMSS-pull-request-creation-summary.md` 形式でなければならず、`Closes #{issue_number}` を含まなければならない。

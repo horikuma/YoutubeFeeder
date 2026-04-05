@@ -1,4 +1,5 @@
 ## 2026/04/05
+- Issue57 docs verification: rg check for removed meta example rules; python3 -m py_compile scripts/command-runner.py; issue-read --issue-number 57 --body-only ok
 - issue53 verification: issue-detailing skill assertions ok; issue-read representative path ok
 - Issue #52: python3 -m py_compile で scripts/command-runner.py を確認し、./scripts/command-runner.py issue-read --help、issue-creation --help、metrics-collect --help、issue-read --issue-number 52 --body-only の成功を確認した。
 - Issue #52: python3 -m py_compile で scripts/command-runner.py の改名後構文を確認した。
