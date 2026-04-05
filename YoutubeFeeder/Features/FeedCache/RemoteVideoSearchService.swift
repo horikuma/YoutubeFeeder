@@ -2,28 +2,12 @@ import Foundation
 
 struct RemoteVideoSearchService {
     let searchService: YouTubeSearchService
-    let cacheStore: RemoteVideoSearchCacheStore
-    let cacheLifetime: TimeInterval
 
     var isConfigured: Bool {
         searchService.isConfigured
     }
 
-    func loadSnapshot(keyword: String, limit: Int, allowExpired: Bool = true) async -> VideoSearchResult? {
-        guard let entry = await cacheStore.load(keyword: keyword) else { return nil }
-        let expiresAt = entry.fetchedAt.addingTimeInterval(cacheLifetime)
-        guard allowExpired || expiresAt > .now else { return nil }
-        return VideoSearchResult(
-            keyword: entry.keyword,
-            videos: Array(entry.videos.prefix(limit)),
-            totalCount: entry.totalCount,
-            source: allowExpired && expiresAt <= .now ? .staleRemoteCache : .remoteCache,
-            fetchedAt: entry.fetchedAt,
-            expiresAt: expiresAt
-        )
-    }
-
-    func refresh(keyword: String, limit: Int) async throws -> VideoSearchResult {
+    func refresh(keyword: String, limit: Int) async throws -> RemoteVideoSearchRefreshPayload {
         let logger = AppConsoleLogger.youtubeSearch
         let startedAt = Date()
         let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
@@ -36,31 +20,20 @@ struct RemoteVideoSearchService {
             logger: logger
         )
         let cachedVideos = cachedVideos(from: response)
-        await cacheStore.merge(keyword: keyword, videos: cachedVideos, fetchedAt: response.fetchedAt)
-        logger.debug(
-            "remote_cache_merged",
-            metadata: ["keyword": keywordPreview, "videos": String(cachedVideos.count)]
-        )
-
-        let result = await loadSnapshot(keyword: keyword, limit: limit, allowExpired: true)
-            ?? VideoSearchResult(
-                keyword: keyword,
-                videos: cachedVideos,
-                totalCount: cachedVideos.count,
-                source: .remoteAPI,
-                fetchedAt: response.fetchedAt,
-                expiresAt: response.fetchedAt.addingTimeInterval(cacheLifetime)
-            )
         logger.notice(
             "remote_refresh_complete",
             metadata: [
                 "keyword": keywordPreview,
-                "videos": String(result.videos.count),
-                "source": result.source.label,
+                "videos": String(cachedVideos.count),
+                "source": VideoSearchSource.remoteAPI.label,
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
             ]
         )
-        return result
+        return RemoteVideoSearchRefreshPayload(
+            videos: cachedVideos,
+            totalCount: response.totalCount,
+            fetchedAt: response.fetchedAt
+        )
     }
 
     private func loadRemoteRefreshResponse(
@@ -118,35 +91,19 @@ struct RemoteVideoSearchService {
         }
     }
 
-    func refreshChannelVideos(channelID: String, limit: Int = 50) async throws -> [CachedVideo] {
+    func refreshChannelVideos(channelID: String, limit: Int = 50) async throws -> RemoteVideoSearchRefreshPayload {
         let response = try await searchService.searchChannelVideos(channelID: channelID, limit: limit)
         let cachedVideos = cachedVideos(from: response)
-        await cacheStore.save(
-            keyword: channelCacheKeyword(channelID: channelID),
+        return RemoteVideoSearchRefreshPayload(
             videos: cachedVideos,
-            totalCount: cachedVideos.count,
+            totalCount: response.totalCount,
             fetchedAt: response.fetchedAt
         )
-        return cachedVideos
     }
+}
 
-    func clear(keyword: String) async {
-        await cacheStore.clear(keyword: keyword)
-    }
-
-    func status(keyword: String) async -> RemoteSearchCacheStatus {
-        await cacheStore.status(keyword: keyword, ttl: cacheLifetime)
-    }
-
-    func allVideos(channelID: String) async -> [CachedVideo] {
-        await cacheStore.allVideos(channelID: channelID)
-    }
-
-    func clearAll() async -> Int {
-        await cacheStore.clearAll()
-    }
-
-    private func channelCacheKeyword(channelID: String) -> String {
-        "channel-videos-\(channelID)"
-    }
+struct RemoteVideoSearchRefreshPayload: Hashable {
+    let videos: [CachedVideo]
+    let totalCount: Int
+    let fetchedAt: Date
 }
