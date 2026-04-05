@@ -15,6 +15,7 @@
 - コミット対象は、その時点で完了条件を満たした変更セット全体にしなければならない。
 - 未完了の別タスクの差分、関連のない差分、後続タスクで使う途中差分を同じコミットへ混在させてはならない。
 - Issue に実施タスクの ToDo がある場合は、ToDo を 1 つ完了するごとに対応する変更をコミットし、変更とタスクの対応関係が履歴から追える状態を保たなければならない。
+- Issue に実施タスクの ToDo がある場合は、対応する focused verification が完了した後、Git の staging 前かつ commit 前に、対象 Issue Description の対応する `IssueToDo` をチェック済みに更新しなければならない。
 - ToDo が複数ある場合でも、複数ステップを 1 つのコミットへまとめてはならない。
 - 意味のある変更がまとまるたびにコミットし、途中経過が再現できる粒度で履歴を残さなければならない。
 - コミット前には、変更セットに応じて必要な検証と、対応する `docs/history/*-latest.md` 更新が完了していることを確認しなければならない。
@@ -26,6 +27,11 @@
 - Git の commit は `git commit -m '<message>'` で行わなければならない。
 - `<message>` は、日本語で記述した commit message でなければならない。
 - Issue 駆動で進めたタスクは、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態を壊してはならない。
+- Issue の ToDo を完了として反映する場合は、次の usage で `./scripts/command-runner.py 'issue-todo-check'` を使わなければならない。
+  `./scripts/command-runner.py 'issue-todo-check' --issue-number '<issue_number>' --todo-section 'IssueToDo' --todo-number '<todo_number>'`
+  例: `./scripts/command-runner.py 'issue-todo-check' --issue-number '65' --todo-section 'IssueToDo' --todo-number '3'`
+    - `<issue_number>` は、更新対象の Issue 番号であり、省略してはならない。
+    - `<todo_number>` は、Issue Description の `### IssueToDo` 配下でチェック済みにする番号付き ToDo の番号であり、省略してはならない。
 
 ## `docs/history/`
 
@@ -102,6 +108,7 @@
 - `docs/history/metrics-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'`、`scripts/command-runner.py 'history-metrics-append'` のうち今回実行すべき command が成功し、その結果が `docs/history/metrics-latest.md` に反映されていること。
 - コミットメッセージが日本語で記述されていること。
 - 変更と作業単位の対応関係が履歴から追跡できること。
+- Issue に実施タスクの ToDo がある場合は、コミット対象の変更と対応する `IssueToDo` のチェック済み状態が Issue 上で追跡できること。
 
 ## 禁止事項
 
@@ -111,4 +118,5 @@
 - `docs/history/*-latest.md` の本文を読んで追記位置を判断したり、LLM が直接編集したりしてはならない。
 - `docs/history/*-latest.md` の更新が必要なのに省略したままコミットしてはならない。
 - この文書で規定した usage 以外の形で `scripts/command-runner.py 'history-chat-append'`、`scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'`、`scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'` を使ってはならない。
+- Issue に実施タスクの ToDo があるのに、対応する `IssueToDo` を未更新のままコミットしてはならない。
 - 英語や空文、変更内容と対応しない文言でコミットメッセージを書いてはならない。

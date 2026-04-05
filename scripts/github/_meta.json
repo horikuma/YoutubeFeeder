@@ -259,6 +259,44 @@
       "description": "Record the issue work branch in a standardized GitHub issue comment through PyGithub."
     },
     {
+      "name": "issue-todo-check",
+      "entry_point": "issue-todo-check.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "direct_arg_inputs": ["--todo-section", "--todo-number"],
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "repo",
+            "sources": ["arg:--repo", "file:llm-cache/issue-defaults.json#repo"],
+            "description": "owner/repo 形式の対象リポジトリ"
+          },
+          {
+            "name": "issue_number",
+            "sources": ["arg:--issue-number"],
+            "description": "更新対象の Issue 番号"
+          },
+          {
+            "name": "todo_section",
+            "sources": ["arg:--todo-section"],
+            "description": "更新対象の ToDo 区分"
+          },
+          {
+            "name": "todo_number",
+            "sources": ["arg:--todo-number"],
+            "description": "区分内で更新対象の ToDo 番号"
+          }
+        ],
+        "one_of": []
+      },
+      "runtime": {
+        "use_repo_venv": true,
+        "required_modules": ["github"]
+      },
+      "description": "Mark a checkbox item in a GitHub issue Description as completed through PyGithub."
+    },
+    {
       "name": "project-field",
       "entry_point": "project-field.py",
       "args": {
