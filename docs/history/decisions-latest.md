@@ -1,4 +1,6 @@
 ## 2026/04/05
+- FeedCacheReadServiceは読取時にfeed snapshotとremote search cacheを変化させないことをテストで固定する。
+  - Read層をpureに保ち、副作用はWriteService経由へ限定する完了条件を回帰から守るため。
 - FeedCacheCoordinator は store や API 詳細を直接保持せず、Read/Write/RemoteSearch 系 service を合成して orchestration だけを担う。
   - persistence 詳細を service 側へ閉じ込め、Coordinator の責務を Task 管理と進行制御へ限定するため。
 - FeedCacheReadService を副作用なしの read/整形層とし、FeedCacheCoordinator / HomeSystemStatusService / ChannelRegistryMaintenanceService の store 読み取りをここへ集約する。
