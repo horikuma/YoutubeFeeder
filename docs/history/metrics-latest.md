@@ -1,4 +1,5 @@
 ## 2026/04/05
+- Issue62 ToDo1 verification: issue-read --issue-number 62 --body-only と対象コード読取りで read/write/orchestration 境界を確定した。
 ### Issue63 verification
 - 種別: feature
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

@@ -1,4 +1,6 @@
 ## 2026/04/05
+- FeedCacheCoordinator の store 呼び出しは、write を cacheThumbnail / persistBootstrap / performConsistencyMaintenance、read を loadSnapshot / loadVideos / countVideos / loadChannelBrowseItems として Read/Write 境界へ固定する。
+  - Coordinator を進行制御へ限定し、後続の FeedCacheWriteService と FeedCacheReadService へ追加推論なしで移譲できるようにするため。
 - Issue の ToDo を完了したコミットでは、focused verification 後かつ git add 前に IssueToDo をチェック済みに更新する。
   - ToDo 完了反映とコミット粒度を同じコミット境界で追跡できるようにするため。
 - Issue Description の ToDo 完了反映は issue-todo-check command で 1 項目ずつ更新する。
