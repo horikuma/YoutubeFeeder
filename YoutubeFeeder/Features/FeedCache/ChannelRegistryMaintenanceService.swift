@@ -15,6 +15,12 @@ struct FeedChannelImportExecution {
     let feedback: ChannelRegistryTransferFeedback
 }
 
+struct FeedChannelCSVImportExecution {
+    let channels: [String]
+    let importedChannelIDs: [String]
+    let feedback: ChannelCSVImportFeedback
+}
+
 struct ChannelRegistryMaintenanceService {
     let store: FeedCacheStore
     let feedService: YouTubeFeedService
@@ -112,6 +118,26 @@ struct ChannelRegistryMaintenanceService {
                 action: .import,
                 backend: result.backend,
                 channelCount: result.channelCount,
+                path: result.fileURL.path(percentEncoded: false),
+                refreshMessage: refreshMessage
+            )
+        )
+    }
+
+    func importChannelsCSV(data: Data, fileURL: URL, usesMockData: Bool) throws -> FeedChannelCSVImportExecution {
+        let result = try ChannelRegistryCSVImportService.importChannels(data: data, fileURL: fileURL)
+        let channels = ChannelRegistryStore.loadAllChannelIDs()
+        let refreshMessage = usesMockData
+            ? "UI テストモードでは最新情報の再取得を省略しました。"
+            : "新規追加チャンネルの最新情報の再取得をバックグラウンドで開始しました。"
+
+        return FeedChannelCSVImportExecution(
+            channels: channels,
+            importedChannelIDs: result.importedChannelIDs,
+            feedback: ChannelCSVImportFeedback(
+                totalRowCount: result.totalRowCount,
+                importedCount: result.importedCount,
+                alreadyRegisteredCount: result.alreadyRegisteredCount,
                 path: result.fileURL.path(percentEncoded: false),
                 refreshMessage: refreshMessage
             )

@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ChannelRegistrationView: View {
     @ObservedObject var coordinator: FeedCacheCoordinator
@@ -7,6 +8,9 @@ struct ChannelRegistrationView: View {
     @State private var errorMessage: String?
     @State private var isSubmitting = false
     @State private var feedback: ChannelRegistrationFeedback?
+    @State private var isImportingCSV = false
+    @State private var importFeedback: ChannelCSVImportFeedback?
+    @State private var isCSVImporterPresented = false
 
     var body: some View {
         ScrollView {
@@ -39,6 +43,11 @@ struct ChannelRegistrationView: View {
                         .accessibilityIdentifier("channelRegistration.feedback")
                 }
 
+                if let importFeedback {
+                    csvImportFeedbackCard(importFeedback)
+                        .accessibilityIdentifier("channelRegistration.csvFeedback")
+                }
+
                 Button {
                     submit()
                 } label: {
@@ -56,6 +65,27 @@ struct ChannelRegistrationView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(isSubmitting || trimmedInput.isEmpty)
                 .accessibilityIdentifier("channelRegistration.submit")
+
+                Button {
+                    beginCSVImport()
+                } label: {
+                    HStack {
+                        if isImportingCSV {
+                            ProgressView()
+                        }
+                        Text(isImportingCSV ? "CSVを読み込み中..." : "登録チャンネルCSVを読み込む")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                }
+                .buttonStyle(.bordered)
+                .disabled(isSubmitting || isImportingCSV)
+                .accessibilityIdentifier("channelRegistration.importCSV")
+
+                Text("YouTube の登録チャンネル CSV を選ぶと、未登録の Channel ID だけを追加します。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
             .padding(20)
             .frame(maxWidth: 720, alignment: .leading)
@@ -64,6 +94,12 @@ struct ChannelRegistrationView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("チャンネル登録")
         .navigationBarTitleDisplayMode(.inline)
+        .fileImporter(
+            isPresented: $isCSVImporterPresented,
+            allowedContentTypes: [.commaSeparatedText, .plainText],
+            allowsMultipleSelection: false,
+            onCompletion: handleCSVImporterResult
+        )
     }
 
     private var trimmedInput: String {
@@ -75,6 +111,7 @@ struct ChannelRegistrationView: View {
 
         errorMessage = nil
         feedback = nil
+        importFeedback = nil
         isSubmitting = true
 
         Task {
@@ -89,6 +126,54 @@ struct ChannelRegistrationView: View {
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                     isSubmitting = false
+                }
+            }
+        }
+    }
+
+    private func beginCSVImport() {
+        guard !isImportingCSV else { return }
+        errorMessage = nil
+        feedback = nil
+        importFeedback = nil
+        isCSVImporterPresented = true
+    }
+
+    private func handleCSVImporterResult(_ result: Result<[URL], Error>) {
+        switch result {
+        case let .success(urls):
+            guard let url = urls.first else { return }
+            importCSV(from: url)
+        case let .failure(error):
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func importCSV(from url: URL) {
+        errorMessage = nil
+        feedback = nil
+        importFeedback = nil
+        isImportingCSV = true
+
+        Task {
+            let didAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if didAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            do {
+                let data = try Data(contentsOf: url)
+                let result = try await coordinator.importChannelCSV(data: data, fileURL: url)
+                await MainActor.run {
+                    importFeedback = result
+                    isImportingCSV = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    isImportingCSV = false
                 }
             }
         }
@@ -131,6 +216,31 @@ struct ChannelRegistrationView: View {
                 Text("最新情報の取得は完了していません: \(latestFeedError)")
                     .font(.footnote)
                     .foregroundStyle(.orange)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func csvImportFeedbackCard(_ feedback: ChannelCSVImportFeedback) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(feedback.title)
+                .font(.headline)
+
+            Text(feedback.detail)
+                .font(.subheadline)
+
+            Text(feedback.path)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+
+            if let refreshMessage = feedback.refreshMessage {
+                Text(refreshMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(16)

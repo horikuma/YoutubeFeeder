@@ -83,6 +83,22 @@ struct ChannelRegistrationFeedback: Hashable {
     let latestFeedError: String?
 }
 
+struct ChannelCSVImportFeedback: Hashable {
+    let totalRowCount: Int
+    let importedCount: Int
+    let alreadyRegisteredCount: Int
+    let path: String
+    let refreshMessage: String?
+
+    var title: String {
+        "CSV からチャンネルを取り込みました"
+    }
+
+    var detail: String {
+        "CSV \(totalRowCount) 件を読み込み、新規 \(importedCount) 件・既登録 \(alreadyRegisteredCount) 件を反映"
+    }
+}
+
 struct ChannelRemovalFeedback: Identifiable, Hashable {
     let channelID: String
     let channelTitle: String

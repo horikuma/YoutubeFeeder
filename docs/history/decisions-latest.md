@@ -1,4 +1,6 @@
 ## 2026/04/05
+- 登録チャンネルCSVの取込みはバックアップ復元ではなくチャンネル登録画面の一括追加として扱う。
+  - 既存のJSONバックアップ責務を維持しつつ、YouTube登録チャンネルCSVを未登録Channel IDの追加入力源として接続するため。
 - サムネイル候補順は maxresdefault, sddefault, hqdefault, mqdefault, default の順で固定する。
   - llm-temp での取得点検で高解像度から順に 200/404 を判定でき、Issue3 の禁止事項と整合するため。
 - command例文はメタルール化せずusage直下へ実記載する。
