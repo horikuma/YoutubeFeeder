@@ -450,16 +450,24 @@ final class FeedCacheCoordinator: ObservableObject {
             backend: backend,
             usesMockData: AppLaunchMode.current.usesMockData
         )
-        resetRemoteSearchSnapshotCache()
-        channels = execution.channels
-        freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
-        _ = await performConsistencyMaintenanceIfNeeded(force: true)
-        await bootstrapMaintenance()
+        await completeImportedChannelUpdate(
+            channels: execution.channels,
+            importedChannelIDs: execution.channels
+        )
 
-        if !AppLaunchMode.current.usesMockData {
-            scheduleImportedChannelRefresh(channelIDs: channels)
-        }
+        return execution.feedback
+    }
 
+    func importChannelCSV(data: Data, fileURL: URL) async throws -> ChannelCSVImportFeedback {
+        let execution = try channelRegistryMaintenanceService.importChannelsCSV(
+            data: data,
+            fileURL: fileURL,
+            usesMockData: AppLaunchMode.current.usesMockData
+        )
+        await completeImportedChannelUpdate(
+            channels: execution.channels,
+            importedChannelIDs: execution.importedChannelIDs
+        )
         return execution.feedback
     }
 
@@ -921,6 +929,18 @@ final class FeedCacheCoordinator: ObservableObject {
 
     private func freshness(for lastSuccessAt: Date?) -> ChannelFreshness {
         FeedOrdering.freshness(lastSuccessAt: lastSuccessAt, freshnessInterval: freshnessInterval)
+    }
+
+    private func completeImportedChannelUpdate(channels: [String], importedChannelIDs: [String]) async {
+        resetRemoteSearchSnapshotCache()
+        self.channels = channels
+        freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+        _ = await performConsistencyMaintenanceIfNeeded(force: true)
+        await bootstrapMaintenance()
+
+        if !AppLaunchMode.current.usesMockData {
+            scheduleImportedChannelRefresh(channelIDs: importedChannelIDs)
+        }
     }
 
     private func scheduleImportedChannelRefresh(channelIDs: [String]) {

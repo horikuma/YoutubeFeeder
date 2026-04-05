@@ -1,4 +1,10 @@
 ## 2026/04/05
+### Issue63 verification
+- 種別: feature
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- 計測: `skip`
+- 理由: ドキュメントのみの変更のため
+
 ### Issue3 verification
 - 種別: feature
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
