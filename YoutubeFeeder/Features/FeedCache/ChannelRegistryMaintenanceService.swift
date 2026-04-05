@@ -22,7 +22,7 @@ struct FeedChannelCSVImportExecution {
 }
 
 struct ChannelRegistryMaintenanceService {
-    let store: FeedCacheStore
+    let readService: FeedCacheReadService
     let writer: FeedCacheWriteService
     let feedService: YouTubeFeedService
     let channelResolver: YouTubeChannelResolver
@@ -48,7 +48,7 @@ struct ChannelRegistryMaintenanceService {
         }
 
         let registeredAtByChannelID = [resolvedChannel.channelID: ChannelRegistryStore.registrationDate(for: resolvedChannel.channelID)]
-        cachedItem = await store.loadChannelBrowseItems(
+        cachedItem = await readService.loadChannelBrowseItems(
             channelIDs: [resolvedChannel.channelID],
             registeredAtByChannelID: registeredAtByChannelID
         ).first

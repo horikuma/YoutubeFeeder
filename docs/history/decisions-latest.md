@@ -1,4 +1,6 @@
 ## 2026/04/05
+- FeedCacheReadService を副作用なしの read/整形層とし、FeedCacheCoordinator / HomeSystemStatusService / ChannelRegistryMaintenanceService の store 読み取りをここへ集約する。
+  - 読み取り結果の整形を orchestration から分離し、Read 層の pure 性を維持するため。
 - FeedCacheStore への書き込みは FeedCacheWriteService へ集約し、FeedCacheCoordinator / FeedChannelSyncService / ChannelRegistryMaintenanceService は Writer 経由で副作用を起こす。
   - store 書き込みの責務境界を単一化し、Coordinator からの直接書き込みを排除するため。
 - FeedCacheCoordinator の store 呼び出しは、write を cacheThumbnail / persistBootstrap / performConsistencyMaintenance、read を loadSnapshot / loadVideos / countVideos / loadChannelBrowseItems として Read/Write 境界へ固定する。
