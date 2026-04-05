@@ -449,7 +449,6 @@ final class YouTubeFeedParser: NSObject, XMLParserDelegate {
     private var currentChannelTitle = ""
     private var currentPublishedAt: Date?
     private var currentVideoURL: URL?
-    private var currentThumbnailURL: URL?
 
     private let dateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
@@ -481,15 +480,12 @@ final class YouTubeFeedParser: NSObject, XMLParserDelegate {
             currentChannelTitle = ""
             currentPublishedAt = nil
             currentVideoURL = nil
-            currentThumbnailURL = nil
         }
 
         guard inEntry else { return }
 
         if currentElement == "link", let href = attributeDict["href"] {
             currentVideoURL = URL(string: href)
-        } else if currentElement == "media:thumbnail", let urlString = attributeDict["url"] {
-            currentThumbnailURL = URL(string: urlString)
         }
     }
 
@@ -518,14 +514,15 @@ final class YouTubeFeedParser: NSObject, XMLParserDelegate {
         case "published":
             currentPublishedAt = parseDate(trimmedText)
         case "entry":
+            let parsedVideoID = currentVideoID
             videos.append(
                 YouTubeVideo(
-                    id: currentVideoID.isEmpty ? UUID().uuidString : currentVideoID,
+                    id: parsedVideoID.isEmpty ? UUID().uuidString : parsedVideoID,
                     title: currentTitle,
                     channelTitle: currentChannelTitle,
                     publishedAt: currentPublishedAt,
                     videoURL: currentVideoURL,
-                    thumbnailURL: currentThumbnailURL,
+                    thumbnailURL: YouTubeThumbnailCandidates.preferredURL(for: parsedVideoID),
                     durationSeconds: nil,
                     viewCount: nil
                 )
