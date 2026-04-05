@@ -39,7 +39,7 @@
 - 追記は `*-latest.md` に対してだけ行わなければならない。
 - `docs/history/*-latest.md` の更新は、LLM の本文読込みや直接編集で行ってはならず、対応する `scripts/command-runner.py 'history-chat-append'`、`scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'` を通して行わなければならない。
 - `*-log.md` は追記対象にも LLM 読込対象にもしてはならない。
-- `*-latest.md` へ新しい項目を追加する場合は、対応する `scripts/history-*-append` が対象の日付見出し行の次行へ挿入しなければならない。
+- `*-latest.md` へ新しい項目を追加する場合は、対応する `./scripts/command-runner.py 'history-chat-append'`、`./scripts/command-runner.py 'history-decision-append'`、`./scripts/command-runner.py 'history-metrics-append'` のいずれかが対象の日付見出し行の次行へ挿入しなければならない。
 - `*-latest.md` は、先頭行を日付見出しから始め、先頭の説明文を置いてはならない。
 - 見出しと直後の列挙の間に空行を入れてはならない。
 - 箇条書きの項目同士の間に空行を入れてはならない。
