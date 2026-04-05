@@ -1,4 +1,6 @@
 ## 2026/04/05
+- Issue詳細化 skill の Description ToDo を 3種固定へ更新した。
+  - Issue53 で Issue詳細化ToDo・Issue外ToDo・IssueToDo と番号付き列挙を正本化する必要があったため。
 - scripts の公開入口は command-runner.py のみに集約する。
   - scripts 直下 shell を廃止しつつ usage の複雑度を上げないため、repo root 解決と command 解決を command-runner.py 自身へ集約する必要があるため。
 - command-runner.py の移動は、改名後編集の前にコミットを挟む。
