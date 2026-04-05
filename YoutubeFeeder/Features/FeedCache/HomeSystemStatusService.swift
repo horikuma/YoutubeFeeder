@@ -1,7 +1,7 @@
 import Foundation
 
 struct HomeSystemStatusService {
-    let store: FeedCacheStore
+    let readService: FeedCacheReadService
     let remoteSearchService: RemoteVideoSearchService
     let homeSearchKeyword: String
 
@@ -10,17 +10,17 @@ struct HomeSystemStatusService {
         let resolvedSummary: FeedCacheSummary
         let snapshotLoadedAt: Date
         if let snapshot {
-            resolvedSummary = await store.summary(for: snapshot)
+            resolvedSummary = await readService.loadSummary(snapshot: snapshot) ?? .empty
             snapshotLoadedAt = Date()
-        } else if let summary = await store.loadSummary() {
+        } else if let summary = await readService.loadSummary() {
             resolvedSummary = summary
             snapshotLoadedAt = Date()
         } else {
-            let loadedSnapshot = await store.loadSnapshot()
-            if let summary = await store.loadSummary() {
+            let loadedSnapshot = await readService.loadSnapshot()
+            if let summary = await readService.loadSummary() {
                 resolvedSummary = summary
             } else {
-                resolvedSummary = await store.summary(for: loadedSnapshot)
+                resolvedSummary = await readService.loadSummary(snapshot: loadedSnapshot) ?? .empty
             }
             snapshotLoadedAt = Date()
         }

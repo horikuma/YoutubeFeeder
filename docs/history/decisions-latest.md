@@ -1,4 +1,14 @@
 ## 2026/04/05
+- FeedCacheReadServiceは読取時にfeed snapshotとremote search cacheを変化させないことをテストで固定する。
+  - Read層をpureに保ち、副作用はWriteService経由へ限定する完了条件を回帰から守るため。
+- FeedCacheCoordinator は store や API 詳細を直接保持せず、Read/Write/RemoteSearch 系 service を合成して orchestration だけを担う。
+  - persistence 詳細を service 側へ閉じ込め、Coordinator の責務を Task 管理と進行制御へ限定するため。
+- FeedCacheReadService を副作用なしの read/整形層とし、FeedCacheCoordinator / HomeSystemStatusService / ChannelRegistryMaintenanceService の store 読み取りをここへ集約する。
+  - 読み取り結果の整形を orchestration から分離し、Read 層の pure 性を維持するため。
+- FeedCacheStore への書き込みは FeedCacheWriteService へ集約し、FeedCacheCoordinator / FeedChannelSyncService / ChannelRegistryMaintenanceService は Writer 経由で副作用を起こす。
+  - store 書き込みの責務境界を単一化し、Coordinator からの直接書き込みを排除するため。
+- FeedCacheCoordinator の store 呼び出しは、write を cacheThumbnail / persistBootstrap / performConsistencyMaintenance、read を loadSnapshot / loadVideos / countVideos / loadChannelBrowseItems として Read/Write 境界へ固定する。
+  - Coordinator を進行制御へ限定し、後続の FeedCacheWriteService と FeedCacheReadService へ追加推論なしで移譲できるようにするため。
 - Issue の ToDo を完了したコミットでは、focused verification 後かつ git add 前に IssueToDo をチェック済みに更新する。
   - ToDo 完了反映とコミット粒度を同じコミット境界で追跡できるようにするため。
 - Issue Description の ToDo 完了反映は issue-todo-check command で 1 項目ずつ更新する。

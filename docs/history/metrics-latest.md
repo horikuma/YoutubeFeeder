@@ -1,4 +1,15 @@
 ## 2026/04/05
+### Issue62 verification
+- 種別: design
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- 計測: `skip`
+- 理由: ドキュメントのみの変更のため
+
+- Issue #62 ToDo 5: xcodebuild test -scheme YoutubeFeeder -destination 'platform=iOS Simulator,name=iPhone 12 mini' -only-testing:YoutubeFeederTests/FeedCacheReadWriteServiceTests -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests -only-testing:YoutubeFeederTests/FeedCacheCoordinatorRemoteSearchTests で 17 tests, 0 failures を確認した。
+- Issue62 ToDo4 verification: FeedCacheCoordinator.swift を 390 行へ分割し、xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 12 mini -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests -only-testing:YoutubeFeederTests/FeedCacheCoordinatorRemoteSearchTests => passed (14 tests, 0 failures).
+- Issue62 ToDo3 verification: xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 12 mini -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests -only-testing:YoutubeFeederTests/FeedCacheCoordinatorRemoteSearchTests => passed (14 tests, 0 failures).
+- Issue62 ToDo2 verification: xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 12 mini -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests -only-testing:YoutubeFeederTests/FeedCacheCoordinatorRemoteSearchTests => passed (14 tests, 0 failures).
+- Issue62 ToDo1 verification: issue-read --issue-number 62 --body-only と対象コード読取りで read/write/orchestration 境界を確定した。
 ### Issue63 verification
 - 種別: feature
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
