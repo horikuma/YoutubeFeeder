@@ -578,6 +578,86 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         }
     }
 
+    func testCacheThumbnailFallsBackToNextCandidateAndPersistsFilename() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let video = CachedVideo(
+                id: "video-1",
+                channelID: "UC111",
+                channelTitle: "one",
+                title: "video",
+                publishedAt: now,
+                videoURL: URL(string: "https://example.com/watch?v=1"),
+                thumbnailRemoteURL: nil,
+                thumbnailLocalFilename: nil,
+                fetchedAt: now,
+                searchableText: "video",
+                durationSeconds: 1_500,
+                viewCount: 101
+            )
+
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(FeedCacheSnapshot(savedAt: now, channels: [], videos: [video]))
+            database.saveRemoteSearchEntry(
+                RemoteVideoSearchCacheEntry(
+                    keyword: "keyword",
+                    videos: [video],
+                    totalCount: 1,
+                    fetchedAt: now
+                )
+            )
+
+            let store = FeedCacheStore()
+            var requestedURLs: [String] = []
+            let filename = await store.cacheThumbnail(videoID: "video-1") { url in
+                requestedURLs.append(url.absoluteString)
+                let statusCode: Int
+                switch url.lastPathComponent {
+                case "maxresdefault.jpg", "sddefault.jpg":
+                    statusCode = 404
+                case "hqdefault.jpg":
+                    statusCode = 200
+                default:
+                    XCTFail("unexpected fallback candidate: \(url.lastPathComponent)")
+                    statusCode = 500
+                }
+
+                let response = HTTPURLResponse(
+                    url: url,
+                    statusCode: statusCode,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "image/jpeg"]
+                )!
+                let data = statusCode == 200 ? Data("image".utf8) : Data()
+                return (data, response)
+            }
+
+            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            let snapshot = database.loadFeedSnapshot()
+            let remoteEntry = database.loadRemoteSearchEntry(keyword: "keyword")
+
+            XCTAssertEqual(filename, "video-1.jpg")
+            XCTAssertEqual(
+                requestedURLs,
+                [
+                    "https://i.ytimg.com/vi/video-1/maxresdefault.jpg",
+                    "https://i.ytimg.com/vi/video-1/sddefault.jpg",
+                    "https://i.ytimg.com/vi/video-1/hqdefault.jpg",
+                ]
+            )
+            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent("video-1.jpg").path))
+            XCTAssertEqual(snapshot.videos.first?.thumbnailLocalFilename, "video-1.jpg")
+            XCTAssertEqual(snapshot.videos.first?.thumbnailRemoteURL?.absoluteString, "https://i.ytimg.com/vi/video-1/hqdefault.jpg")
+            XCTAssertEqual(remoteEntry?.videos.first?.thumbnailLocalFilename, "video-1.jpg")
+            XCTAssertEqual(remoteEntry?.videos.first?.thumbnailRemoteURL?.absoluteString, "https://i.ytimg.com/vi/video-1/hqdefault.jpg")
+        }
+    }
+
     private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () async throws -> T) async throws -> T {
         let key = "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR"
         let previousValue = ProcessInfo.processInfo.environment[key]

@@ -1,4 +1,6 @@
 ## 2026/04/05
+- サムネイル候補順は maxresdefault, sddefault, hqdefault, mqdefault, default の順で固定する。
+  - llm-temp での取得点検で高解像度から順に 200/404 を判定でき、Issue3 の禁止事項と整合するため。
 - command例文はメタルール化せずusage直下へ実記載する。
   - Issue57ではrules総則より各skill本文だけで実行形を読める状態を正本とするため。
 - skillsのcommand参照はcommit/verification/rule-creationまで具体例文付きへ揃える。

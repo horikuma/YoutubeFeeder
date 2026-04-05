@@ -1,6 +1,8 @@
 import Foundation
 
 actor FeedCacheStore {
+    typealias ThumbnailFetchOperation = @Sendable (URL) async throws -> (Data, HTTPURLResponse)
+
     private let fileManager = FileManager.default
     private let encoder = FeedCachePersistenceCoders.makeEncoder()
     private let database = FeedCacheSQLiteDatabase.shared()
@@ -265,7 +267,7 @@ actor FeedCacheStore {
             title: video.title,
             publishedAt: video.publishedAt,
             videoURL: video.videoURL,
-            thumbnailRemoteURL: video.thumbnailURL,
+            thumbnailRemoteURL: existing?.thumbnailRemoteURL ?? video.thumbnailURL,
             thumbnailLocalFilename: existing?.thumbnailLocalFilename,
             thumbnailLastAccessedAt: existing?.thumbnailLastAccessedAt,
             fetchedAt: fetchedAt,
@@ -295,38 +297,47 @@ actor FeedCacheStore {
     }
 
     func cacheThumbnail(for video: YouTubeVideo) async {
-        guard let localThumbnailFilename = await cacheThumbnailIfNeeded(from: video.thumbnailURL, videoID: video.id) else {
-            return
+        _ = await cacheThumbnail(videoID: video.id)
+    }
+
+    func cacheThumbnail(for video: CachedVideo) async -> String? {
+        await cacheThumbnail(videoID: video.id)
+    }
+
+    func cacheThumbnail(
+        videoID: String,
+        fetch: ThumbnailFetchOperation = FeedCacheStore.fetchThumbnailResponse
+    ) async -> String? {
+        guard let filename = YouTubeThumbnailCandidates.cacheFilename(for: videoID) else {
+            return nil
         }
 
-        var snapshot = loadSnapshot()
-        guard let index = snapshot.videos.firstIndex(where: { $0.id == video.id }) else {
-            return
+        try? createDirectories()
+        let localURL = thumbnailsDirectory.appendingPathComponent(filename)
+
+        if fileManager.fileExists(atPath: localURL.path) {
+            database.updateThumbnailCache(videoID: videoID, remoteURL: nil, localFilename: filename)
+            return filename
         }
 
-        if snapshot.videos[index].thumbnailLocalFilename != localThumbnailFilename {
-            let existing = snapshot.videos[index]
-            snapshot.videos[index] = CachedVideo(
-                id: existing.id,
-                channelID: existing.channelID,
-                channelTitle: existing.channelTitle,
-                channelDisplayTitle: existing.channelDisplayTitle,
-                title: existing.title,
-                publishedAt: existing.publishedAt,
-                publishedAtText: existing.publishedAtText,
-                videoURL: existing.videoURL,
-                thumbnailRemoteURL: existing.thumbnailRemoteURL,
-                thumbnailLocalFilename: localThumbnailFilename,
-                thumbnailLastAccessedAt: existing.thumbnailLastAccessedAt,
-                fetchedAt: existing.fetchedAt,
-                searchableText: existing.searchableText,
-                durationSeconds: existing.durationSeconds,
-                viewCount: existing.viewCount,
-                metadataBadgeText: existing.metadataBadgeText
-            )
-            snapshot.savedAt = .now
-            persist(snapshot)
+        for remoteURL in YouTubeThumbnailCandidates.urls(for: videoID) {
+            do {
+                let (data, response) = try await fetch(remoteURL)
+                guard (200 ..< 300).contains(response.statusCode) else { continue }
+                if let contentType = response.value(forHTTPHeaderField: "Content-Type"),
+                   !contentType.lowercased().hasPrefix("image/")
+                {
+                    continue
+                }
+                try data.write(to: localURL, options: .atomic)
+                database.updateThumbnailCache(videoID: videoID, remoteURL: remoteURL, localFilename: filename)
+                return filename
+            } catch {
+                continue
+            }
         }
+
+        return nil
     }
 
     func performConsistencyMaintenance(activeChannelIDs: [String], force: Bool = false, now: Date = .now) -> CacheConsistencyMaintenanceResult? {
@@ -433,28 +444,6 @@ actor FeedCacheStore {
         return (removedVideoCount, removedThumbnailCount)
     }
 
-    private func cacheThumbnailIfNeeded(from remoteURL: URL?, videoID: String) async -> String? {
-        guard let remoteURL else { return nil }
-
-        try? createDirectories()
-
-        let ext = remoteURL.pathExtension.isEmpty ? "jpg" : remoteURL.pathExtension
-        let filename = "\(videoID).\(ext)"
-        let localURL = thumbnailsDirectory.appendingPathComponent(filename)
-
-        if fileManager.fileExists(atPath: localURL.path) {
-            return filename
-        }
-
-        do {
-            let (data, _) = try await URLSession.shared.data(from: remoteURL)
-            try data.write(to: localURL, options: .atomic)
-            return filename
-        } catch {
-            return nil
-        }
-    }
-
     private func persist(_ snapshot: FeedCacheSnapshot) {
         try? createDirectories()
         database.replaceFeedSnapshot(snapshot)
@@ -478,6 +467,14 @@ actor FeedCacheStore {
     private func createDirectories() throws {
         try fileManager.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+    }
+
+    nonisolated private static func fetchThumbnailResponse(from remoteURL: URL) async throws -> (Data, HTTPURLResponse) {
+        let (data, response) = try await URLSession.shared.data(from: remoteURL)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        return (data, httpResponse)
     }
 
     private func removeDatabaseFiles() {

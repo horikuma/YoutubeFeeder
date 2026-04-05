@@ -184,6 +184,37 @@ final class FeedCacheSQLiteDatabase {
         }
     }
 
+    func updateThumbnailCache(videoID: String, remoteURL: URL?, localFilename: String) {
+        queue.sync {
+            execute(
+                """
+                UPDATE cached_videos
+                SET thumbnail_remote_url = COALESCE(?, thumbnail_remote_url),
+                    thumbnail_local_filename = ?
+                WHERE video_id = ?;
+                """,
+                binder: { statement in
+                    bind(remoteURL?.absoluteString, at: 1, in: statement)
+                    bind(localFilename, at: 2, in: statement)
+                    bind(videoID, at: 3, in: statement)
+                }
+            )
+            execute(
+                """
+                UPDATE remote_search_videos
+                SET thumbnail_remote_url = COALESCE(?, thumbnail_remote_url),
+                    thumbnail_local_filename = ?
+                WHERE video_id = ?;
+                """,
+                binder: { statement in
+                    bind(remoteURL?.absoluteString, at: 1, in: statement)
+                    bind(localFilename, at: 2, in: statement)
+                    bind(videoID, at: 3, in: statement)
+                }
+            )
+        }
+    }
+
     func loadRegisteredChannels() -> [RegisteredChannel] {
         queue.sync {
             var channels: [RegisteredChannel] = []

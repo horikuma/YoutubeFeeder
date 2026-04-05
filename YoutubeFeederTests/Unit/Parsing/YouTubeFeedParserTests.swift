@@ -37,6 +37,6 @@ final class YouTubeFeedParserTests: LoggedTestCase {
         XCTAssertEqual(videos.first?.title, "Example Title")
         XCTAssertEqual(videos.first?.channelTitle, "Example Channel")
         XCTAssertEqual(videos.first?.videoURL?.absoluteString, "https://www.youtube.com/watch?v=video-1")
-        XCTAssertEqual(videos.first?.thumbnailURL?.absoluteString, "https://i.ytimg.com/vi/video-1/hqdefault.jpg")
+        XCTAssertEqual(videos.first?.thumbnailURL?.absoluteString, "https://i.ytimg.com/vi/video-1/maxresdefault.jpg")
     }
 }

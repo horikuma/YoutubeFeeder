@@ -1,4 +1,10 @@
 ## 2026/04/05
+### Issue3 verification
+- 種別: feature
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- 計測: `skip`
+- 理由: ドキュメントのみの変更のため
+
 - skills only verification: history-rotate and history-rotate --help succeeded; history command references updated in session-start and commit skills
 - Issue57 docs verification: rg check for removed meta example rules; python3 -m py_compile scripts/command-runner.py; issue-read --issue-number 57 --body-only ok
 - issue53 verification: issue-detailing skill assertions ok; issue-read representative path ok
