@@ -1,4 +1,6 @@
 ## 2026/04/05
+- Issue Description の ToDo 完了反映は issue-todo-check command で 1 項目ずつ更新する。
+  - Issue 実施中の完了反映を Issue Description 上のチェック状態と 1 対 1 で追跡できるようにするため。
 - 登録チャンネルCSVの取込みはバックアップ復元ではなくチャンネル登録画面の一括追加として扱う。
   - 既存のJSONバックアップ責務を維持しつつ、YouTube登録チャンネルCSVを未登録Channel IDの追加入力源として接続するため。
 - サムネイル候補順は maxresdefault, sddefault, hqdefault, mqdefault, default の順で固定する。
