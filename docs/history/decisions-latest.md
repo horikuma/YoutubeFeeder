@@ -1,4 +1,6 @@
 ## 2026/04/05
+- rulesとskillsでusageに整合する具体command例文の併記を必須とする。
+  - Git履歴748d7f0で確認できた具体例必須要件を6c73507以降のusage記法へ整合させて復元するため。
 - docs/rules/*.md の導線を docs/rules.md の単一正本へ集約した。
   - ルール読取り時の参照先を 1 ファイルへ固定し、完全一致する導線文言の重複を解消するため。
 - Issue詳細化 skill の Description ToDo を 3種固定へ更新した。
