@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -17,8 +18,7 @@ PROJECT = REPO_ROOT / "YoutubeFeeder.xcodeproj"
 SCHEME = "YoutubeFeeder"
 DERIVED_DATA_BASE = Path.home() / "Library" / "Caches" / "Codex" / "YoutubeFeeder"
 DERIVED_DATA = DERIVED_DATA_BASE / "DerivedData"
-DESTINATION = "platform=iOS Simulator,name=iPhone 12 mini"
-DEVICE_NAME = "iPhone 12 mini"
+PREFERRED_DEVICE_NAMES = ["iPhone 17", "iPhone 12 mini"]
 OUTPUT_DOC = REPO_ROOT / "docs" / "metrics" / "metrics-test.md"
 
 
@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def find_device_uuid() -> str:
+def resolve_device() -> tuple[str, str]:
     result = subprocess.run(
         ["xcrun", "simctl", "list", "devices", "available"],
         capture_output=True,
@@ -40,13 +40,36 @@ def find_device_uuid() -> str:
         stderr = result.stderr.strip() or result.stdout.strip()
         raise SystemExit(f"Failed to list simulators: {stderr}")
 
+    current_runtime: tuple[int, ...] | None = None
+    candidates: dict[str, tuple[tuple[int, ...], str]] = {}
+    runtime_pattern = re.compile(r"-- iOS ([0-9.]+) --")
+    device_pattern = re.compile(r"^\s+(?P<name>.+?) \((?P<uuid>[A-F0-9-]+)\) \((Shutdown|Booted)\)\s*$")
+
     for line in result.stdout.splitlines():
-        if DEVICE_NAME in line and "(" in line and ")" in line:
-            start = line.rfind("(")
-            end = line.rfind(")")
-            if start >= 0 and end > start:
-                return line[start + 1 : end]
-    raise SystemExit(f"Simulator not installed: {DEVICE_NAME}")
+        runtime_match = runtime_pattern.match(line.strip())
+        if runtime_match:
+            current_runtime = tuple(int(part) for part in runtime_match.group(1).split("."))
+            continue
+
+        device_match = device_pattern.match(line)
+        if not device_match or current_runtime is None:
+            continue
+
+        name = device_match.group("name")
+        uuid = device_match.group("uuid")
+        if name not in PREFERRED_DEVICE_NAMES:
+            continue
+
+        existing = candidates.get(name)
+        if existing is None or current_runtime > existing[0]:
+            candidates[name] = (current_runtime, uuid)
+
+    for name in PREFERRED_DEVICE_NAMES:
+        if name in candidates:
+            _, uuid = candidates[name]
+            return name, uuid
+
+    raise SystemExit(f"No preferred simulator available: {', '.join(PREFERRED_DEVICE_NAMES)}")
 
 
 def run_logged(command: list[str], log_path: Path, *, env: dict[str, str] | None = None) -> None:
@@ -69,14 +92,15 @@ def main() -> int:
         unit_log = tmp_root / "unit.log"
         ui_log = tmp_root / "ui.log"
 
-        device_uuid = find_device_uuid()
+        device_name, device_uuid = resolve_device()
+        destination = f"platform=iOS Simulator,id={device_uuid}"
         subprocess.run(["xcrun", "simctl", "shutdown", device_uuid], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["xcrun", "simctl", "boot", device_uuid], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         boot = subprocess.run(["xcrun", "simctl", "bootstatus", device_uuid, "-b"], check=False)
         if boot.returncode != 0:
             raise SystemExit(boot.returncode)
 
-        print("Building tests...")
+        print(f"Building tests on {device_name}...")
         run_logged(
             [
                 "xcodebuild",
@@ -86,7 +110,7 @@ def main() -> int:
                 "-scheme",
                 SCHEME,
                 "-destination",
-                DESTINATION,
+                destination,
                 "-derivedDataPath",
                 str(DERIVED_DATA),
                 "CODE_SIGNING_ALLOWED=NO",
@@ -95,7 +119,7 @@ def main() -> int:
             build_log,
         )
 
-        print("Running unit tests...")
+        print(f"Running unit tests on {device_name}...")
         unit_args = [f"-only-testing:{test_id}" for test_id in args.logic_only_testing] or ["-only-testing:YoutubeFeederTests"]
         run_logged(
             [
@@ -106,7 +130,7 @@ def main() -> int:
                 "-scheme",
                 SCHEME,
                 "-destination",
-                DESTINATION,
+                destination,
                 "-derivedDataPath",
                 str(DERIVED_DATA),
                 *unit_args,
@@ -117,7 +141,7 @@ def main() -> int:
             env={**dict(os.environ), "YOUTUBEFEEDER_TEST_METRICS_DIR": str(metrics_dir)},
         )
 
-        print("Running UI tests...")
+        print(f"Running UI tests on {device_name}...")
         ui_args = [f"-only-testing:{test_id}" for test_id in args.ui_only_testing] or ["-only-testing:YoutubeFeederUITests"]
         run_logged(
             [
@@ -128,7 +152,7 @@ def main() -> int:
                 "-scheme",
                 SCHEME,
                 "-destination",
-                DESTINATION,
+                destination,
                 "-derivedDataPath",
                 str(DERIVED_DATA),
                 *ui_args,

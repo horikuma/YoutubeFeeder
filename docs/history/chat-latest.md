@@ -1,4 +1,6 @@
 ## 2026/04/07
+- 更新せよ。[引用要約: Utilities で No App Category is set for target 'YoutubeFeeder' 警告が出ているため更新する。]
+  - metrics scripts の simulator 解決を現行 Xcode 環境へ合わせ、Utilities カテゴリ設定で Mac Catalyst validate 警告を解消する。
 - 実施し、PRを作成せよ。
   - Issue75で擬似Mac分岐を除去し、UI testのrefresh補助導線を維持したまま記録・コミット・PR作成まで進める。
 - コミットせよ。

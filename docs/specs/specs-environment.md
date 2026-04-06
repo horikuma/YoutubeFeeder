@@ -36,6 +36,11 @@
 - GitHub Projects に `LLM所要時間` の Number フィールドを使う場合は、[project-field-set](../../scripts/project-field-set) を使って対象 Issue または Pull Request の project item へ分数を反映する。
 - [project-field-set](../../scripts/project-field-set) は、フィールドが未作成なら `LLM所要時間` の Number フィールドを作成し、その後に値を更新する。
 
+## iOS 計測 Simulator
+
+- [metrics-collect](../../scripts/metrics/collect-metrics.py)、[collect-test-metrics](../../scripts/metrics/collect-test-metrics.py)、[test-matrix](../../scripts/metrics/test-matrix.py) は、利用可能な iOS Simulator のうち `iPhone 17` を優先し、未導入環境では `iPhone 12 mini` へフォールバックしなければならない。
+- 上記 scripts は、固定 OS 名ではなく、その時点でインストール済みの最新 runtime に属する対象 simulator を解決して使わなければならない。
+
 ## 更新ルール
 
 - Mermaid 検証用の Node.js 版や依存を更新する場合は、[.node-version](../../.node-version)、[package.json](../../package.json)、[package-lock.json](../../package-lock.json)、この文書を同じ変更セットで更新する。
