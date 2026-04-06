@@ -1,4 +1,6 @@
 ## 2026/04/07
+- 全てコミットしプッシュせよ。
+  - 残っていたXcode更新差分も含めて一括コミットし、issue-75へpushする。
 - 更新せよ。[引用要約: Utilities で No App Category is set for target 'YoutubeFeeder' 警告が出ているため更新する。]
   - metrics scripts の simulator 解決を現行 Xcode 環境へ合わせ、Utilities カテゴリ設定で Mac Catalyst validate 警告を解消する。
 - 実施し、PRを作成せよ。
