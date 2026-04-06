@@ -56,6 +56,7 @@
 - [HomeScreenView.swift](../../YoutubeFeeder/Features/Home/HomeScreenView.swift)
   - ホーム画面本体。
   - 手動更新、検索導線、バックアップ、全設定リセット、システム状況表示。
+  - ホーム画面の更新操作は `refreshFeed()` 相当のドメインアクションへ束ね、UI はその起動アダプタだけを担う。
   - YouTube検索タイル選択の runtime diagnostics 記録。
   - ホーム表示と YouTube検索タイル選択の lifecycle ログ。
   - ホーム表示中に YouTube検索用 snapshot を low priority で prewarm し、その後 hidden host で検索画面を事前描画して初回遷移時の待ちを抑える。
@@ -74,6 +75,7 @@
 - [ChannelBrowseViews.swift](../../YoutubeFeeder/Features/Browse/ChannelBrowseViews.swift)
   - `ChannelBrowseView`、全動画一覧、分割チャンネル閲覧。
   - `Tips` タイル、並び順反映、削除導線。
+  - チャンネルタイルの削除メニューは `openTileMenu(item:)` 相当の共通アクションへ寄せ、`iPhone` / `iPad` の長押しと `Mac` の左クリックは UI アダプタ差分として扱う。
 - [SearchResultsViews.swift](../../YoutubeFeeder/Features/Browse/SearchResultsViews.swift)
   - 固定キーワード検索結果と共通チップ UI。
   - ローカルキャッシュ検索結果の UI 写像。
@@ -83,7 +85,7 @@
   - 先に prewarm 済み snapshot があれば、それを優先して初回表示へ使う。
   - `visible` と `prewarm` を分けて root 描画、split 初期読込、画面出入りをログで観測する。
   - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
-  - `refreshable` は trigger のみを担い、検索本体は coordinator の managed task へ委譲する。
+  - `refreshable` や `Refresh` コマンドは trigger のみを担い、検索本体はドメインアクション経由で coordinator の managed task へ委譲する。
   - iPad split では初期右ペイン読込を短く遅延させ、遷移直後はプレースホルダを表示する。
   - iPad split のチャンネル切替では、選択文脈の更新、古い動画タイルの退避、右ペイン再読込の開始を親 View で同時に管理し、タイトルと動画タイルが別チャンネルを指す中間状態を作らない。
   - iPad split の初期右ペイン読込について、予約・開始・完了を runtime diagnostics へ記録する。
@@ -94,18 +96,21 @@
   - remote search 起点でチャンネル一覧へ遷移する時は、`ChannelVideosRouteContext.routeSource = .remoteSearch` を必ず引き継ぐ。
 - [BrowseViews.swift](../../YoutubeFeeder/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
+  - 単独チャンネル更新は `refreshFeed()` 相当のドメインアクションへ束ね、UI からはジェスチャー種別を持ち込まない。
   - 自動 feed 更新時の上部進行表示。
 - [BrowseComponents.swift](../../YoutubeFeeder/Features/Browse/BrowseComponents.swift)
   - 一覧系共通コンテナ `InteractiveListView`。
   - `ChannelTile` を機能共通核とし、`ChannelNavigationTile` と `ChannelSelectionTile` へ操作差分を分離する。
   - `VideoTile`、戻るスワイプ modifier。
-  - `VideoTile` の長押しメニューに `共有` を持ち、動画 URL を `UIActivityViewController` へ渡す共通 share sheet を提供する。
+  - `VideoTile` のメニュー操作は共通 menu model と UI アダプタへ分離し、`iPhone` / `iPad` は長押し、`Mac` は左クリックで同一メニューアクションへ到達させる。
+  - `VideoTile` のメニューに `共有` を持ち、動画 URL を `UIActivityViewController` へ渡す共通 share sheet を提供する。
 
 ### Features/FeedCache
 
 - [FeedCacheCoordinator.swift](../../YoutubeFeeder/Features/FeedCache/FeedCacheCoordinator.swift)
   - UI と永続化の仲介。
   - bootstrap 読込、一覧データ読込、手動更新、単独チャンネル更新、検索結果読込。
+  - 更新アクションは `FeedRefreshAction` のようなドメイン単位で受け、UI イベント種別には依存しない。
   - YouTube 検索の snapshot hit / miss、refresh failure fallback、cancel fallback の境界ログ。
   - YouTube 検索の managed task の生成、再利用管理。
   - feed cache と検索 cache の動画を合流する際は、`video_id` 重複で落とさず、より新しい `publishedAt` / `fetchedAt` を優先して 1 件へ正規化する。
@@ -197,14 +202,17 @@
 - `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面局所の UI 状態は `SearchResultsViews.swift` / `RemoteSearchResultsViews.swift` と `RemoteSearchPresentationState` に閉じ込める。
 - `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択を pure logic として持つ。
 - `RemoteSearchPresentationState` の split 初期選択は `routeSource = .remoteSearch` を含む `ChannelVideosRouteContext` を返し、後続の自動 refresh / fallback 判定へ文脈を引き渡す。
+- アクションは `refreshFeed()` や `openTileMenu(item:)` のようなドメイン単位で定義し、UI イベント単位の共通入口を作らない。
+- UI はドメインアクションを呼び出すアダプタとして扱い、プラットフォーム差分は UI 層で吸収してアクション層へ持ち込まない。
 - YouTube 検索 split 右ペインのチャンネル動画一覧は、初回 20 件を表示し、末尾到達で 20 件ずつ継ぎ足して全件表示する。
 - YouTube 検索 split 詳細の `channel title` と動画タイルは、選択変更時に同じ state transition で切り替わるようにし、片方だけ先に更新される状態を残してはならない。
 - YouTube 検索 split 右ペインで feed refresh 後も `1 件以下` に留まる時は、検索結果由来のチャンネルであるとみなし、channel-specific API fallback の取得結果を追加して一覧を復元する。
 - 短尺動画マスクは `ShortVideoMaskPolicy` へ集約し、`Shorts URL/title` と `durationSeconds < 240` の両方を同じ基準で扱う。
 - `AppLayout` は機能差分を持たず、画面表現の差だけを返す。
 - `InteractiveListView` は一覧系画面のタイトル、余白、背景、pull-to-refresh、戻るスワイプの共通コンテナとして使う。
+- `InteractiveListView` の更新 UI は gesture や command の違いを持たず、現在画面の refresh action を command 層へ登録するアダプタとして振る舞う。
 - チャンネル一覧のタイルでは、`channel title`、件数、最新投稿日、サムネイルの表示責務を `ChannelTile` へ集約し、遷移か選択かという操作モデルの差は外側の wrapper で表現する。
-- `VideoTile` は画面ごとの差分があっても長押し共有だけは共通で持ち、YouTube検索、チャンネル動画、動画一覧、キャッシュ検索のどこからでも同じ share sheet を開ける。
+- `VideoTile` は画面ごとの差分があっても共有や削除の action 定義は共通で持ち、YouTube検索、チャンネル動画、動画一覧、キャッシュ検索のどこからでも同じ share sheet と menu action を開ける。
 
 ## 命名規則
 

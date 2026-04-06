@@ -190,6 +190,20 @@ final class FeedCacheCoordinator: ObservableObject {
         }
     }
 
+    func performRefreshAction(_ action: FeedRefreshAction) async -> FeedRefreshResult {
+        switch action {
+        case .home:
+            await refreshCacheManually()
+            return .home
+        case let .channel(context):
+            await refreshChannelManually(context.channelID)
+            return .channelVideos(await loadVideosForChannel(context.channelID))
+        case let .remoteSearch(keyword, limit):
+            let result = await searchRemoteVideos(keyword: keyword, limit: limit, forceRefresh: true)
+            return .remoteSearch(result)
+        }
+    }
+
     func loadVideosFromCache() {
         Task {
             videos = await readService.loadVideos(query: videoQuery)

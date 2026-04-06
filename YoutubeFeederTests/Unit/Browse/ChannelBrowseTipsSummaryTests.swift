@@ -29,6 +29,18 @@ final class ChannelBrowseTipsSummaryTests: LoggedTestCase {
         XCTAssertEqual(summary.sortText, "動画投稿日時 ↓")
     }
 
+    func testBuildUsesDesktopMenuHintWhenMacInteractionOverrideIsSet() {
+        setenv("YOUTUBEFEEDER_UI_TEST_INTERACTION_PLATFORM", "mac", 1)
+        defer { unsetenv("YOUTUBEFEEDER_UI_TEST_INTERACTION_PLATFORM") }
+
+        let summary = ChannelBrowseTipsSummary.build(
+            items: [makeItem(channelID: "UC001", title: "Alpha")],
+            sortDescriptor: .default
+        )
+
+        XCTAssertEqual(summary.secondaryHint, "クリックでメニュー")
+    }
+
     func testRemoteSearchPresentationBuildShowsChipWhenFetchedAtExists() {
         let fetchedAt = Date(timeIntervalSince1970: 1_742_000_000)
         let result = VideoSearchResult(

@@ -65,6 +65,15 @@ struct ContentView: View {
                     LaunchScreenView()
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                if AppInteractionPlatform.current.usesMenuCommandForRefresh {
+                    UITestAsyncActionTrigger(identifier: "test.refresh.command") {
+                        await RefreshCommandCenter.shared.performCurrentRefresh()
+                    }
+                    .padding(.top, 8)
+                    .padding(.trailing, 8)
+                }
+            }
         }
         .background(Color(.systemGroupedBackground))
         .attachDiagnosticsProbe()

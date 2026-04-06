@@ -7,6 +7,7 @@ struct RemoteKeywordSearchResultsCompactView: View {
     let keyword: String
     let result: VideoSearchResult
     let visibleCount: Int
+    let allowsRefreshCommandBinding: Bool
     let onRefresh: () async -> Void
     let onDismissChip: () -> Void
     let onLoadMore: () -> Void
@@ -21,7 +22,8 @@ struct RemoteKeywordSearchResultsCompactView: View {
             layout: layout,
             onRefresh: {
                 await onRefresh()
-            }
+            },
+            allowsRefreshCommandBinding: allowsRefreshCommandBinding
         ) {
             if result.fetchedAt == nil, result.videos.isEmpty, result.errorMessage == nil {
                 MetricTile(
@@ -100,7 +102,8 @@ struct RemoteKeywordSearchResultsRegularView: View {
                 layout: layout,
                 onRefresh: {
                     await onRefresh()
-                }
+                },
+                allowsRefreshCommandBinding: presentationMode == .visible
             ) {
                 if result.fetchedAt == nil, result.videos.isEmpty, result.errorMessage == nil {
                     MetricTile(
@@ -253,9 +256,10 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
         }
         .refreshable {
             guard let splitContext else { return }
-            await coordinator.refreshChannelManually(splitContext.channelID)
-            splitVideos = await coordinator.openChannelVideos(splitContext)
-            splitVisibleCount = min(20, splitVideos.count)
+            if case let .channelVideos(reloadedVideos) = await coordinator.performRefreshAction(.channel(splitContext)) {
+                splitVideos = reloadedVideos
+                splitVisibleCount = min(20, splitVideos.count)
+            }
         }
     }
 

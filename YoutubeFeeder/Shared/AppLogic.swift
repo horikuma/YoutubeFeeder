@@ -1,5 +1,7 @@
 import CoreGraphics
 import Foundation
+import Combine
+import SwiftUI
 
 enum BackSwipePolicy {
     static let activeRegionWidth: CGFloat = 24
@@ -20,6 +22,104 @@ enum VideoOpenPolicy {
 enum VideoSharePolicy {
     static func shareURL(for video: CachedVideo) -> URL? {
         video.videoURL
+    }
+}
+
+enum AppInteractionPlatform: String {
+    case touch
+    case desktop
+
+    static var current: AppInteractionPlatform {
+        if let override = ProcessInfo.processInfo.environment["YOUTUBEFEEDER_UI_TEST_INTERACTION_PLATFORM"] {
+            return override == "mac" ? .desktop : .touch
+        }
+#if targetEnvironment(macCatalyst)
+        return .desktop
+#else
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+            return .desktop
+        }
+        return .touch
+#endif
+    }
+
+    var usesPrimaryClickForMenus: Bool {
+        self == .desktop
+    }
+
+    var usesMenuCommandForRefresh: Bool {
+        self == .desktop
+    }
+
+    var menuInteractionHint: String {
+        usesPrimaryClickForMenus ? "クリックでメニュー" : "長押しで削除"
+    }
+}
+
+enum FeedRefreshAction {
+    case home
+    case channel(ChannelVideosRouteContext)
+    case remoteSearch(keyword: String, limit: Int)
+}
+
+enum FeedRefreshResult {
+    case home
+    case channelVideos([CachedVideo])
+    case remoteSearch(VideoSearchResult)
+}
+
+@MainActor
+final class RefreshCommandCenter: ObservableObject {
+    static let shared = RefreshCommandCenter()
+
+    @Published private(set) var isAvailable = false
+
+    private var registrations: [UUID: () async -> Void] = [:]
+    private var registrationOrder: [UUID] = []
+
+    func register(id: UUID, action: @escaping () async -> Void) {
+        registrations[id] = action
+        registrationOrder.removeAll { $0 == id }
+        registrationOrder.append(id)
+        isAvailable = currentAction != nil
+    }
+
+    func unregister(id: UUID) {
+        registrations[id] = nil
+        registrationOrder.removeAll { $0 == id }
+        isAvailable = currentAction != nil
+    }
+
+    func performCurrentRefresh() async {
+        guard let currentAction else { return }
+        await currentAction()
+    }
+
+    private var currentAction: (() async -> Void)? {
+        guard let currentID = registrationOrder.last else { return nil }
+        return registrations[currentID]
+    }
+}
+
+private struct RefreshCommandRegistrationModifier: ViewModifier {
+    let action: (() async -> Void)?
+    @State private var registrationID = UUID()
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                guard let action else { return }
+                RefreshCommandCenter.shared.register(id: registrationID, action: action)
+            }
+            .onDisappear {
+                RefreshCommandCenter.shared.unregister(id: registrationID)
+            }
+    }
+}
+
+extension View {
+    func bindRefreshCommand(_ action: (() async -> Void)?) -> some View {
+        modifier(RefreshCommandRegistrationModifier(action: action))
     }
 }
 
@@ -103,7 +203,7 @@ struct ChannelBrowseTipsSummary: Hashable {
             countText: "\(items.count)件",
             sortText: sortDescriptor.shortLabel,
             primaryHint: "タップで動画一覧",
-            secondaryHint: "長押しで削除"
+            secondaryHint: AppInteractionPlatform.current.menuInteractionHint
         )
     }
 }

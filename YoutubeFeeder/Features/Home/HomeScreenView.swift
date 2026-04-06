@@ -70,7 +70,10 @@ struct HomeScreenView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
         .refreshable {
-            await coordinator.refreshCacheManually()
+            _ = await coordinator.performRefreshAction(.home)
+        }
+        .bindRefreshCommand {
+            _ = await coordinator.performRefreshAction(.home)
         }
         .onAppear {
             diagnostics.mark("maintenanceShown")
