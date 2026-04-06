@@ -193,7 +193,13 @@ struct RemoteKeywordSearchResultsView: View {
             presentationState.beginRefresh()
             await Task.yield()
         }
-        result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: forceRefresh)
+        if forceRefresh {
+            if case let .remoteSearch(refreshedResult) = await coordinator.performRefreshAction(.remoteSearch(keyword: keyword, limit: 100)) {
+                result = refreshedResult
+            }
+        } else {
+            result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: false)
+        }
         logger.notice(
             "screen_refresh_complete",
             metadata: [
@@ -478,6 +484,7 @@ struct RemoteKeywordSearchResultsView: View {
                 keyword: keyword,
                 result: result,
                 visibleCount: presentationState.visibleCount,
+                allowsRefreshCommandBinding: presentationMode == .visible,
                 onRefresh: { await reloadResults(forceRefresh: true) },
                 onDismissChip: dismissChip,
                 onLoadMore: loadMoreIfNeeded,

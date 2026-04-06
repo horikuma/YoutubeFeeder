@@ -121,6 +121,10 @@ private struct ChannelBrowseCompactView: View {
     let tipsSummary: ChannelBrowseTipsSummary
     let onRequestRemoval: (ChannelBrowseItem) -> Void
 
+    private var usesDesktopMenus: Bool {
+        AppInteractionPlatform.current.usesPrimaryClickForMenus
+    }
+
     var body: some View {
         InteractiveListView(
             title: "チャンネル一覧",
@@ -128,7 +132,8 @@ private struct ChannelBrowseCompactView: View {
             coordinator: coordinator,
             path: $path,
             layout: layout,
-            onRefresh: nil
+            onRefresh: nil,
+            allowsRefreshCommandBinding: true
         ) {
             ChannelBrowseTipsTile(summary: tipsSummary)
 
@@ -137,29 +142,51 @@ private struct ChannelBrowseCompactView: View {
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
-                        NavigationLink(
-                            value: MaintenanceRoute.channelVideos(
-                                ChannelVideosRouteContext(
-                                    channelID: item.channelID,
-                                    preferredChannelTitle: item.channelTitle
-                                )
-                            )
-                        ) {
+                        if usesDesktopMenus {
                             ChannelNavigationTile(item: item, index: offset + 1)
+                                .tileActionMenu(
+                                    menu: channelMenu(for: item),
+                                    accessibilityIdentifier: "channel.tile.\(item.channelID)"
+                                )
+                        } else {
+                            NavigationLink(
+                                value: MaintenanceRoute.channelVideos(
+                                    ChannelVideosRouteContext(
+                                        channelID: item.channelID,
+                                        preferredChannelTitle: item.channelTitle
+                                    )
+                                )
+                            ) {
+                                ChannelNavigationTile(item: item, index: offset + 1)
+                                    .accessibilityIdentifier("channel.tile.\(item.channelID)")
+                            }
+                            .buttonStyle(.plain)
+                            .tileActionMenu(menu: channelMenu(for: item))
                         }
-                        .buttonStyle(.plain)
-                        .tileActionMenu(
-                            actions: [
-                                TileMenuAction(title: "チャンネルを削除", role: .destructive) {
-                                    onRequestRemoval(item)
-                                }
-                            ]
-                        )
-                        .accessibilityIdentifier("channel.tile.\(item.channelID)")
                     }
                 }
             }
         }
+    }
+
+    private func channelMenu(for item: ChannelBrowseItem) -> TileMenuConfiguration {
+        TileMenuConfiguration(
+            primaryAction: usesDesktopMenus ? TileMenuAction(title: "動画一覧を開く", role: nil) {
+                path.append(
+                    MaintenanceRoute.channelVideos(
+                        ChannelVideosRouteContext(
+                            channelID: item.channelID,
+                            preferredChannelTitle: item.channelTitle
+                        )
+                    )
+                )
+            } : nil,
+            secondaryActions: [
+                TileMenuAction(title: "チャンネルを削除", role: .destructive) {
+                    onRequestRemoval(item)
+                }
+            ]
+        )
     }
 }
 
@@ -174,6 +201,10 @@ private struct ChannelBrowseRegularView: View {
 
     @State private var selectedChannelID: String?
     @State private var videosByChannelID: [String: [CachedVideo]] = [:]
+
+    private var usesDesktopMenus: Bool {
+        AppInteractionPlatform.current.usesPrimaryClickForMenus
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -213,16 +244,13 @@ private struct ChannelBrowseRegularView: View {
                                 index: offset + 1
                             )
                             .onTapGesture {
+                                guard !usesDesktopMenus else { return }
                                 selectChannel(item.channelID)
                             }
                             .tileActionMenu(
-                                actions: [
-                                    TileMenuAction(title: "チャンネルを削除", role: .destructive) {
-                                        onRequestRemoval(item)
-                                    }
-                                ]
+                                menu: selectionMenu(for: item),
+                                accessibilityIdentifier: "channel.tile.\(item.channelID)"
                             )
-                            .accessibilityIdentifier("channel.tile.\(item.channelID)")
                         }
                     }
                 }
@@ -369,6 +397,19 @@ private struct ChannelBrowseRegularView: View {
     private var tipsSummary: ChannelBrowseTipsSummary {
         ChannelBrowseTipsSummary.build(items: items, sortDescriptor: sortDescriptor)
     }
+
+    private func selectionMenu(for item: ChannelBrowseItem) -> TileMenuConfiguration {
+        TileMenuConfiguration(
+            primaryAction: usesDesktopMenus ? TileMenuAction(title: "このチャンネルを表示", role: nil) {
+                selectChannel(item.channelID)
+            } : nil,
+            secondaryActions: [
+                TileMenuAction(title: "チャンネルを削除", role: .destructive) {
+                    onRequestRemoval(item)
+                }
+            ]
+        )
+    }
 }
 
 struct AllVideosView: View {
@@ -386,7 +427,8 @@ struct AllVideosView: View {
             coordinator: coordinator,
             path: $path,
             layout: layout,
-            onRefresh: nil
+            onRefresh: nil,
+            allowsRefreshCommandBinding: true
         ) {
             if coordinator.videos.isEmpty {
                 MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を表示します")

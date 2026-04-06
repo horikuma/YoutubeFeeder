@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct YoutubeFeederApp: App {
+    @ObservedObject private var refreshCommandCenter = RefreshCommandCenter.shared
+
     init() {
         UITestFixtureSeeder.seedIfNeeded()
         StartupDiagnostics.shared.mark("appLaunched")
@@ -26,5 +28,18 @@ struct YoutubeFeederApp: App {
         WindowGroup {
             ContentView()
         }
+#if targetEnvironment(macCatalyst)
+        .commands {
+            CommandMenu("Refresh") {
+                Button("Refresh") {
+                    Task {
+                        await refreshCommandCenter.performCurrentRefresh()
+                    }
+                }
+                .disabled(!refreshCommandCenter.isAvailable)
+                .keyboardShortcut("r", modifiers: [.command])
+            }
+        }
+#endif
     }
 }

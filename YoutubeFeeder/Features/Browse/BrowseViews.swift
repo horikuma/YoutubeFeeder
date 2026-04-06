@@ -31,8 +31,9 @@ struct ChannelVideosView: View {
                         "screen": "channelVideos"
                     ]
                 )
-                await coordinator.refreshChannelManually(context.channelID)
-                await reloadVideos()
+                if case let .channelVideos(reloadedVideos) = await coordinator.performRefreshAction(.channel(context)) {
+                    videos = reloadedVideos
+                }
                 RuntimeDiagnostics.shared.record(
                     "channel_refresh_view_reload_finished",
                     detail: "チャンネル動画一覧リロード完了",
@@ -41,7 +42,8 @@ struct ChannelVideosView: View {
                         "videoCount": String(videos.count)
                     ]
                 )
-            }
+            },
+            allowsRefreshCommandBinding: true
         ) {
             if AppLaunchMode.current.usesMockData {
                 UITestMarker(

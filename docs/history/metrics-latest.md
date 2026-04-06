@@ -1,4 +1,10 @@
 ## 2026/04/06
+### Issue73 verification
+- 種別: feature
+- 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`
+- 計測: `skip`
+- 理由: ドキュメントのみの変更のため
+
 ### Issue72 FeedCache read write boundary verification
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 12 mini`

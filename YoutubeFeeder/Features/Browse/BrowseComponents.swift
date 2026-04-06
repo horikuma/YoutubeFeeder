@@ -8,7 +8,15 @@ struct InteractiveListView<Content: View>: View {
     @Binding var path: NavigationPath
     let layout: AppLayout
     let onRefresh: (() async -> Void)?
+    let allowsRefreshCommandBinding: Bool
     @ViewBuilder let content: () -> Content
+
+    private var refreshCommandAction: (() async -> Void)? {
+        if allowsRefreshCommandBinding {
+            return onRefresh
+        }
+        return nil
+    }
 
     var body: some View {
         ScrollView {
@@ -35,6 +43,7 @@ struct InteractiveListView<Content: View>: View {
             guard let onRefresh else { return }
             await onRefresh()
         }
+        .bindRefreshCommand(refreshCommandAction)
         .onAppear {
             coordinator.suspendLiveUpdates()
         }
@@ -50,36 +59,83 @@ struct TileMenuAction {
     let action: () -> Void
 }
 
+struct TileMenuConfiguration {
+    let primaryAction: TileMenuAction?
+    let secondaryActions: [TileMenuAction]
+
+    init(primaryAction: TileMenuAction? = nil, secondaryActions: [TileMenuAction]) {
+        self.primaryAction = primaryAction
+        self.secondaryActions = secondaryActions
+    }
+
+    var hasActions: Bool {
+        primaryAction != nil || !secondaryActions.isEmpty
+    }
+
+    func presentedActions(for platform: AppInteractionPlatform) -> [TileMenuAction] {
+        if platform.usesPrimaryClickForMenus, let primaryAction {
+            return [primaryAction] + secondaryActions
+        }
+        return secondaryActions
+    }
+}
+
 private struct TileActionMenuModifier: ViewModifier {
-    let actions: [TileMenuAction]
+    let menu: TileMenuConfiguration
+    let accessibilityIdentifier: String?
     @State private var isShowingMenu = false
 
+    private var platform: AppInteractionPlatform {
+        AppInteractionPlatform.current
+    }
+
     func body(content: Content) -> some View {
-        content
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.5)
-                    .onEnded { _ in
-                        isShowingMenu = true
-                    }
-            )
+        let presentedActions = menu.presentedActions(for: platform)
+
+        if platform.usesPrimaryClickForMenus, menu.hasActions {
+            Button {
+                isShowingMenu = true
+            } label: {
+                content
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(accessibilityIdentifier ?? "")
             .confirmationDialog("", isPresented: $isShowingMenu, titleVisibility: .hidden) {
-                if actions.isEmpty {
-                    Button("未定義") {}
-                } else {
-                    ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
-                        Button(action.title, role: action.role) {
-                            action.action()
-                        }
+                ForEach(Array(presentedActions.enumerated()), id: \.offset) { _, action in
+                    Button(action.title, role: action.role) {
+                        action.action()
                     }
                 }
                 Button("キャンセル", role: .cancel) {}
             }
+        } else {
+            content
+                .accessibilityIdentifier(accessibilityIdentifier ?? "")
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: 0.5)
+                        .onEnded { _ in
+                            isShowingMenu = true
+                        }
+                )
+                .confirmationDialog("", isPresented: $isShowingMenu, titleVisibility: .hidden) {
+                    if presentedActions.isEmpty {
+                        Button("未定義") {}
+                    } else {
+                        ForEach(Array(presentedActions.enumerated()), id: \.offset) { _, action in
+                            Button(action.title, role: action.role) {
+                                action.action()
+                            }
+                        }
+                    }
+                    Button("キャンセル", role: .cancel) {}
+                }
+        }
     }
 }
 
 extension View {
-    func tileActionMenu(actions: [TileMenuAction]) -> some View {
-        modifier(TileActionMenuModifier(actions: actions))
+    func tileActionMenu(menu: TileMenuConfiguration, accessibilityIdentifier: String? = nil) -> some View {
+        modifier(TileActionMenuModifier(menu: menu, accessibilityIdentifier: accessibilityIdentifier))
     }
 }
 
@@ -92,10 +148,10 @@ struct VideoTile: View {
     @State private var shareURL: URL?
 
     var body: some View {
-        let menuActions = buildMenuActions()
+        let menu = buildMenuConfiguration()
         let tile = VideoHeroTile(video: video, index: index)
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .tileActionMenu(actions: menuActions)
+            .tileActionMenu(menu: menu)
             .sheet(
                 isPresented: Binding(
                     get: { shareURL != nil },
@@ -107,10 +163,12 @@ struct VideoTile: View {
                 }
             }
             .accessibilityAddTraits(.isButton)
-            .accessibilityHint("長押しでメニューを開きます")
+            .accessibilityHint(AppInteractionPlatform.current.usesPrimaryClickForMenus ? "クリックでメニューを開きます" : "長押しでメニューを開きます")
             .accessibilityIdentifier("video.tile.\(video.id)")
 
-        if let tapAction {
+        if AppInteractionPlatform.current.usesPrimaryClickForMenus, menu.hasActions {
+            tile
+        } else if let tapAction {
             Button(action: tapAction) {
                 tile
             }
@@ -120,7 +178,7 @@ struct VideoTile: View {
         }
     }
 
-    private func buildMenuActions() -> [TileMenuAction] {
+    private func buildMenuConfiguration() -> TileMenuConfiguration {
         var actions: [TileMenuAction] = []
 
         if let shareURL = VideoSharePolicy.shareURL(for: video) {
@@ -147,7 +205,16 @@ struct VideoTile: View {
             )
         }
 
-        return actions
+        let primaryAction: TileMenuAction?
+        if AppInteractionPlatform.current.usesPrimaryClickForMenus, let tapAction {
+            primaryAction = TileMenuAction(title: "チャンネル動画を開く", role: nil) {
+                tapAction()
+            }
+        } else {
+            primaryAction = nil
+        }
+
+        return TileMenuConfiguration(primaryAction: primaryAction, secondaryActions: actions)
     }
 }
 

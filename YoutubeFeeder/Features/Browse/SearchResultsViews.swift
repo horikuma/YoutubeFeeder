@@ -19,7 +19,8 @@ struct KeywordSearchResultsView: View {
             layout: layout,
             onRefresh: {
                 await reloadResults()
-            }
+            },
+            allowsRefreshCommandBinding: true
         ) {
             if result.videos.isEmpty {
                 MetricTile(title: "検索結果", value: "0件", detail: "一致する動画がキャッシュにありません")
