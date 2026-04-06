@@ -38,6 +38,7 @@
 - `Coordinator / ViewModel` は `1 画面` もしくは `1 機能の orchestration` に責務を寄せ、画面描画専用の細かな値変換や単純な表示状態まで過剰に抱え込まない。
 - `Coordinator / ViewModel` の健全性改善では、警告を消すためだけに private 状態や内部 helper を外へ公開せず、まず値型、表示部品、DTO、純粋補助ロジックの順に外出しする。
 - `Service / Use Case` は UI 文脈から独立して成立する判定、状態遷移、マージ、更新フローを持つ。
+- `Service / Use Case` を `Read` / `Write` で分ける場合は、依存方向と副作用境界を固定するための分解として扱い、同じデータを扱うことだけを根拠に共通 superclass や抽象親型へ再統合してはならない。
 - `Store / Infrastructure` はデータの保存、読込、問い合わせ、外部接続の詳細を閉じ込める。
 - 固定パス、永続ファイル、検索キャッシュ、秘密情報解決のような `スコープの広いリソース` は、専用の `Paths` / `Store` / `Service` 型へ閉じ込め、View や汎用 model ファイルへ散らしてはならない。
 - ホームのように `件数` や `鮮度` だけが欲しい導線では、動画配列を含む大きい永続本体を毎回 decode せず、summary 用の軽量永続物から先に読む。
@@ -62,6 +63,10 @@
 - `FeedCache`
   - データ更新、キャッシュ保守、初期表示用データ、状態集約を担う。
   - 値型は storage / progress / channel / remote search のように意味単位で分け、巨大な model ファイルへ再集約しない。
+  - `FeedCacheCoordinator` から見た service 依存は `ユースケースService -> ReadService / WriteService` に固定し、`ReadService <-> WriteService` や `ユースケースService` 同士の循環依存を作ってはならない。
+  - `FeedCacheReadService` は読取り、検索結果のマージ、表示用の整形だけを担い、保存・削除・整合性メンテナンス・thumbnail 反映のような副作用を持たない。
+  - `FeedCacheWriteService` は FeedCache 系の保存、削除、bootstrap 永続化、整合性メンテナンス、thumbnail 反映の単一入口として扱い、書込み境界を coordinator や他 service へ分散させてはならない。
+  - `Read` / `Write` 分解後も、両者を動画・チャンネル・検索履歴などデータ種別ごとの共通 superclass で束ねて依存方向を曖昧にしてはならない。
 
 ### Infrastructure
 

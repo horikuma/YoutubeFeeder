@@ -37,12 +37,16 @@ final class FeedCacheCoordinator: ObservableObject {
         freshnessInterval: TimeInterval? = nil
     ) {
         let remoteSearchService = RemoteVideoSearchService(
-            searchService: dependencies.searchService,
-            cacheStore: dependencies.remoteSearchCacheStore,
-            cacheLifetime: 12 * 60 * 60
+            searchService: dependencies.searchService
         )
-        let readService = FeedCacheReadService(store: dependencies.store, remoteSearchService: remoteSearchService)
-        let writeService = FeedCacheWriteService(store: dependencies.store)
+        let readService = FeedCacheReadService(
+            store: dependencies.store,
+            remoteSearchCacheStore: dependencies.remoteSearchCacheStore
+        )
+        let writeService = FeedCacheWriteService(
+            store: dependencies.store,
+            remoteSearchCacheStore: dependencies.remoteSearchCacheStore
+        )
         self.channels = channels
         self.readService = readService
         self.writeService = writeService
@@ -50,15 +54,15 @@ final class FeedCacheCoordinator: ObservableObject {
         self.remoteSearchService = remoteSearchService
         self.homeSystemStatusService = HomeSystemStatusService(
             readService: readService,
-            remoteSearchService: remoteSearchService,
-            homeSearchKeyword: Self.homeSearchKeyword
+            apiKeyConfigured: remoteSearchService.isConfigured,
+            homeSearchKeyword: Self.homeSearchKeyword,
+            remoteSearchCacheLifetime: remoteSearchCacheLifetime
         )
         self.channelRegistryMaintenanceService = ChannelRegistryMaintenanceService(
             readService: readService,
             writer: writeService,
             feedService: dependencies.feedService,
-            channelResolver: dependencies.channelResolver,
-            remoteSearchService: remoteSearchService
+            channelResolver: dependencies.channelResolver
         )
         self.freshnessInterval = freshnessInterval ?? TimeInterval(max(channels.count, 1) * 60)
         let bootstrap = FeedBootstrapStore.load(channels: channels)

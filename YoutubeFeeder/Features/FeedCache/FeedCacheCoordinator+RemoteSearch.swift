@@ -31,7 +31,12 @@ extension FeedCacheCoordinator {
         let logger = AppConsoleLogger.youtubeSearch
 
         if AppLaunchMode.current.usesMockData {
-            if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+            if let cached = await readService.loadRemoteSearchSnapshot(
+                keyword: normalizedKeyword,
+                limit: limit,
+                cacheLifetime: remoteSearchCacheLifetime,
+                allowExpired: true
+            ) {
                 remoteSearchSnapshotCache[normalizedKeyword] = cached
                 logger.info(
                     "snapshot_hit",
@@ -56,7 +61,12 @@ extension FeedCacheCoordinator {
             return result
         }
 
-        if let cached = await remoteSearchService.loadSnapshot(keyword: normalizedKeyword, limit: limit, allowExpired: true) {
+        if let cached = await readService.loadRemoteSearchSnapshot(
+            keyword: normalizedKeyword,
+            limit: limit,
+            cacheLifetime: remoteSearchCacheLifetime,
+            allowExpired: true
+        ) {
             remoteSearchSnapshotCache[normalizedKeyword] = cached
             logger.info(
                 "snapshot_hit",
@@ -117,7 +127,7 @@ extension FeedCacheCoordinator {
     }
 
     func clearRemoteSearchHistory(keyword: String) async {
-        await remoteSearchService.clear(keyword: keyword)
+        await writeService.clearRemoteSearch(keyword: keyword)
         clearRemoteSearchSnapshot(keyword: keyword)
         await refreshHomeSystemStatus()
     }
@@ -140,7 +150,12 @@ extension FeedCacheCoordinator {
         )
 
         do {
-            _ = try await remoteSearchService.refreshChannelVideos(channelID: context.channelID, limit: 50)
+            let payload = try await remoteSearchService.refreshChannelVideos(channelID: context.channelID, limit: 50)
+            await writeService.saveRemoteSearchChannelVideos(
+                channelID: context.channelID,
+                videos: payload.videos,
+                fetchedAt: payload.fetchedAt
+            )
             let reloadedVideos = await loadVideosForChannel(context.channelID)
             AppConsoleLogger.youtubeSearch.notice(
                 "channel_fallback_complete",
@@ -176,16 +191,35 @@ extension FeedCacheCoordinator {
         if let existingTask = remoteSearchTasks[key] {
             task = existingTask
         } else {
-            task = Task { [remoteSearchService] in
+            task = Task { [remoteSearchService, readService, writeService, remoteSearchCacheLifetime] in
                 do {
-                    return try await remoteSearchService.refresh(keyword: keyword, limit: limit)
+                    let payload = try await remoteSearchService.refresh(keyword: keyword, limit: limit)
+                    await writeService.mergeRemoteSearch(
+                        keyword: keyword,
+                        videos: payload.videos,
+                        fetchedAt: payload.fetchedAt
+                    )
+                    return await readService.loadRemoteSearchSnapshot(
+                        keyword: keyword,
+                        limit: limit,
+                        cacheLifetime: remoteSearchCacheLifetime,
+                        allowExpired: true
+                    ) ?? VideoSearchResult(
+                        keyword: keyword,
+                        videos: payload.videos,
+                        totalCount: payload.totalCount,
+                        source: .remoteAPI,
+                        fetchedAt: payload.fetchedAt,
+                        expiresAt: payload.fetchedAt.addingTimeInterval(remoteSearchCacheLifetime)
+                    )
                 } catch {
                     return await Self.resolveRemoteRefreshFailure(
                         error: error,
                         keyword: keyword,
                         limit: limit,
                         logger: logger,
-                        remoteSearchService: remoteSearchService,
+                        readService: readService,
+                        remoteSearchCacheLifetime: remoteSearchCacheLifetime,
                         fallbackOnFailure: fallbackOnFailure
                     )
                 }
@@ -232,7 +266,8 @@ extension FeedCacheCoordinator {
         keyword: String,
         limit: Int,
         logger: AppConsoleLogger,
-        remoteSearchService: RemoteVideoSearchService,
+        readService: FeedCacheReadService,
+        remoteSearchCacheLifetime: TimeInterval,
         fallbackOnFailure: String
     ) async -> VideoSearchResult {
         let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
@@ -243,11 +278,17 @@ extension FeedCacheCoordinator {
                 limit: limit,
                 keywordPreview: keywordPreview,
                 logger: logger,
-                remoteSearchService: remoteSearchService
+                readService: readService,
+                remoteSearchCacheLifetime: remoteSearchCacheLifetime
             )
         }
 
-        if let cached = await remoteSearchService.loadSnapshot(keyword: keyword, limit: limit, allowExpired: true) {
+        if let cached = await readService.loadRemoteSearchSnapshot(
+            keyword: keyword,
+            limit: limit,
+            cacheLifetime: remoteSearchCacheLifetime,
+            allowExpired: true
+        ) {
             logger.error(
                 "refresh_failed",
                 message: AppConsoleLogger.errorSummary(error),
@@ -288,9 +329,15 @@ extension FeedCacheCoordinator {
         limit: Int,
         keywordPreview: String,
         logger: AppConsoleLogger,
-        remoteSearchService: RemoteVideoSearchService
+        readService: FeedCacheReadService,
+        remoteSearchCacheLifetime: TimeInterval
     ) async -> VideoSearchResult {
-        if let cached = await remoteSearchService.loadSnapshot(keyword: keyword, limit: limit, allowExpired: true) {
+        if let cached = await readService.loadRemoteSearchSnapshot(
+            keyword: keyword,
+            limit: limit,
+            cacheLifetime: remoteSearchCacheLifetime,
+            allowExpired: true
+        ) {
             logger.notice("refresh_cancelled", metadata: cancelledRefreshMetadata(
                 keywordPreview: keywordPreview,
                 fallback: cached.source == .staleRemoteCache ? "stale_cache" : "cache",

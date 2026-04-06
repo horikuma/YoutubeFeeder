@@ -26,7 +26,6 @@ struct ChannelRegistryMaintenanceService {
     let writer: FeedCacheWriteService
     let feedService: YouTubeFeedService
     let channelResolver: YouTubeChannelResolver
-    let remoteSearchService: RemoteVideoSearchService
 
     func addChannel(input: String) async throws -> FeedChannelRegistrationExecution {
         let resolvedChannel = try await channelResolver.resolve(input: input)
@@ -144,7 +143,7 @@ struct ChannelRegistryMaintenanceService {
 
     func resetAllSettings() async throws -> LocalStateResetFeedback {
         let removedChannelCount = try ChannelRegistryStore.reset()
-        let clearedSearchCacheCount = await remoteSearchService.clearAll()
+        let clearedSearchCacheCount = await writer.clearAllRemoteSearch()
         let clearedCache = await writer.resetAllStoredData()
 
         return LocalStateResetFeedback(
