@@ -29,16 +29,16 @@ final class ChannelBrowseTipsSummaryTests: LoggedTestCase {
         XCTAssertEqual(summary.sortText, "動画投稿日時 ↓")
     }
 
-    func testBuildUsesDesktopMenuHintWhenMacInteractionOverrideIsSet() {
-        setenv("YOUTUBEFEEDER_UI_TEST_INTERACTION_PLATFORM", "mac", 1)
-        defer { unsetenv("YOUTUBEFEEDER_UI_TEST_INTERACTION_PLATFORM") }
+    func testDesktopInteractionPlatformUsesDesktopHints() {
+        XCTAssertTrue(AppInteractionPlatform.desktop.usesPrimaryClickForMenus)
+        XCTAssertTrue(AppInteractionPlatform.desktop.usesMenuCommandForRefresh)
+        XCTAssertEqual(AppInteractionPlatform.desktop.menuInteractionHint, "クリックでメニュー")
+    }
 
-        let summary = ChannelBrowseTipsSummary.build(
-            items: [makeItem(channelID: "UC001", title: "Alpha")],
-            sortDescriptor: .default
-        )
-
-        XCTAssertEqual(summary.secondaryHint, "クリックでメニュー")
+    func testTouchInteractionPlatformUsesTouchHints() {
+        XCTAssertFalse(AppInteractionPlatform.touch.usesPrimaryClickForMenus)
+        XCTAssertFalse(AppInteractionPlatform.touch.usesMenuCommandForRefresh)
+        XCTAssertEqual(AppInteractionPlatform.touch.menuInteractionHint, "長押しで削除")
     }
 
     func testRemoteSearchPresentationBuildShowsChipWhenFetchedAtExists() {

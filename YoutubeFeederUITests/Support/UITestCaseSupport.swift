@@ -119,6 +119,12 @@ class UITestCaseSupport: XCTestCase {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 
+    func tapAsyncTrigger(_ identifier: String, in app: XCUIApplication, timeout: TimeInterval = 3) {
+        let trigger = element(identifier, in: app)
+        XCTAssertTrue(trigger.waitForExistence(timeout: timeout))
+        trigger.tap()
+    }
+
     func waitForHomeScreen(in app: XCUIApplication, timeout: TimeInterval = 5) {
         XCTAssertTrue(element("screen.home", in: app).waitForExistence(timeout: timeout))
     }
