@@ -59,9 +59,7 @@ final class BrowseScreenUITests: UITestCaseSupport {
         let refreshPhase = element("search.refreshPhase", in: app)
         XCTAssertTrue(refreshPhase.waitForExistence(timeout: 5))
 
-        let refreshTrigger = element("test.remoteSearch.refresh", in: app)
-        XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
-        refreshTrigger.tap()
+        tapAsyncTrigger("test.remoteSearch.refresh", in: app)
 
         XCTAssertTrue(eventually(timeout: 3) {
             refreshPhase.label == "refreshing"
@@ -78,9 +76,7 @@ final class BrowseScreenUITests: UITestCaseSupport {
     func testRemoteSearchChipDismissesOnUserInteraction() throws {
         let app = launchApp(extraEnvironment: ["YOUTUBEFEEDER_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
 
-        let refreshTrigger = element("test.remoteSearch.refresh", in: app)
-        XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
-        refreshTrigger.tap()
+        tapAsyncTrigger("test.remoteSearch.refresh", in: app)
 
         let chip = element("search.resultChip", in: app)
         XCTAssertTrue(chip.waitForExistence(timeout: 3))
@@ -93,9 +89,7 @@ final class BrowseScreenUITests: UITestCaseSupport {
     func testRemoteSearchTapShowsChannelTitleAndTriggersAutomaticRefresh() throws {
         let app = launchApp(extraEnvironment: ["YOUTUBEFEEDER_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
 
-        let refreshTrigger = element("test.remoteSearch.refresh", in: app)
-        XCTAssertTrue(refreshTrigger.waitForExistence(timeout: 3))
-        refreshTrigger.tap()
+        tapAsyncTrigger("test.remoteSearch.refresh", in: app)
 
         let remoteTile = element("video.tile.remote-refresh-001", in: app)
         XCTAssertTrue(remoteTile.waitForExistence(timeout: 3))

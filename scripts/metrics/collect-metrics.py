@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -22,7 +23,53 @@ TEST_METRICS_DOC = REPO_ROOT / "docs" / "metrics" / "metrics-test.md"
 STARTUP_JSON = METRICS_DIR / "startup-metrics.json"
 BUILD_LOG = METRICS_DIR / "build-for-testing.log"
 TEST_LOG = METRICS_DIR / "test-without-building.log"
-DESTINATION = "platform=iOS Simulator,name=iPhone 12 mini"
+PREFERRED_DEVICE_NAMES = ["iPhone 17", "iPhone 12 mini"]
+
+
+def resolve_destination() -> tuple[str, str]:
+    result = subprocess.run(
+        ["xcrun", "simctl", "list", "devices", "available"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        stderr = result.stderr.strip() or result.stdout.strip()
+        raise SystemExit(f"Failed to list simulators: {stderr}")
+
+    current_runtime: tuple[int, ...] | None = None
+    candidates: dict[str, tuple[tuple[int, ...], str, str]] = {}
+    runtime_pattern = re.compile(r"-- iOS ([0-9.]+) --")
+    device_pattern = re.compile(r"^\s+(?P<name>.+?) \((?P<uuid>[A-F0-9-]+)\) \(Shutdown\)\s*$")
+    booted_pattern = re.compile(r"^\s+(?P<name>.+?) \((?P<uuid>[A-F0-9-]+)\) \(Booted\)\s*$")
+
+    for line in result.stdout.splitlines():
+        runtime_match = runtime_pattern.match(line.strip())
+        if runtime_match:
+            current_runtime = tuple(int(part) for part in runtime_match.group(1).split("."))
+            continue
+
+        device_match = device_pattern.match(line) or booted_pattern.match(line)
+        if not device_match or current_runtime is None:
+            continue
+
+        name = device_match.group("name")
+        uuid = device_match.group("uuid")
+        if name not in PREFERRED_DEVICE_NAMES:
+            continue
+
+        existing = candidates.get(name)
+        if existing is None or current_runtime > existing[0]:
+            destination = f"platform=iOS Simulator,id={uuid}"
+            display = f"platform=iOS Simulator,name={name},OS={'.'.join(str(part) for part in current_runtime)}"
+            candidates[name] = (current_runtime, destination, display)
+
+    for name in PREFERRED_DEVICE_NAMES:
+        if name in candidates:
+            _, destination, display = candidates[name]
+            return destination, display
+
+    raise SystemExit(f"No preferred simulator available: {', '.join(PREFERRED_DEVICE_NAMES)}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -83,6 +130,7 @@ def update_metrics_doc(
     today: str,
     label: str,
     change_kind: str,
+    destination_display: str,
     build_duration: float,
     test_duration: float,
     total_duration: float,
@@ -95,7 +143,7 @@ def update_metrics_doc(
     entry_lines = [
         f"### {label}",
         f"- 種別: {change_kind}",
-        f"- 実行環境: `{DESTINATION}`",
+        f"- 実行環境: `{destination_display}`",
     ]
     if change_kind == "source":
         entry_lines.extend(
@@ -134,6 +182,8 @@ def main() -> int:
         if path.exists():
             path.unlink()
 
+    destination, destination_display = resolve_destination()
+
     build_start = now_seconds()
     run_command(
         [
@@ -144,7 +194,7 @@ def main() -> int:
             "-scheme",
             SCHEME,
             "-destination",
-            DESTINATION,
+            destination,
             "-derivedDataPath",
             str(DERIVED_DATA),
             "CODE_SIGNING_ALLOWED=NO",
@@ -170,7 +220,7 @@ def main() -> int:
                     "-scheme",
                     SCHEME,
                     "-destination",
-                    DESTINATION,
+                    destination,
                     "-derivedDataPath",
                     str(DERIVED_DATA),
                     "CODE_SIGNING_ALLOWED=NO",
@@ -198,6 +248,7 @@ def main() -> int:
         today=today,
         label=args.label,
         change_kind=args.change_kind,
+        destination_display=destination_display,
         build_duration=build_duration,
         test_duration=test_duration,
         total_duration=total_duration,

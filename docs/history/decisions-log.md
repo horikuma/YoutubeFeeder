@@ -1,3 +1,9 @@
+## 2026/04/06
+- 擬似Mac UIテストは停止し、Mac標準操作の確認は別Issueで実機系へ分離する。
+  - iPhoneシミュレータ上の疑似分岐では実ランタイム差の検証が不安定で、Issue73では実装本体を優先して確定するため。
+- FeedCacheのremote search cacheはReadServiceが読取り、WriteServiceが保存・削除を担う構成に固定する。
+  - ユースケースServiceからRead/Write境界への依存方向を維持し、読取り層へ副作用を残さないため。
+
 ## 2026/04/05
 - FeedCacheReadServiceは読取時にfeed snapshotとremote search cacheを変化させないことをテストで固定する。
   - Read層をpureに保ち、副作用はWriteService経由へ限定する完了条件を回帰から守るため。

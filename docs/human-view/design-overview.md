@@ -145,7 +145,7 @@ sequenceDiagram
     participant Cache as RemoteVideoSearchCacheStore
     participant API as YouTubeSearchService
 
-    User->>View: pull-to-refresh
+    User->>View: pull-to-refresh / Refresh command
     View->>Coord: searchRemoteVideos(keyword, forceRefresh: true)
     Coord->>Search: searchRemoteVideos()
     Search->>API: request
@@ -161,11 +161,14 @@ sequenceDiagram
 ## 依存関係メモ
 
 - `View` は I/O を直接持たず、`FeedCacheCoordinator` 経由で状態と操作を受ける。
+- `View` は `refreshFeed()` やメニュー起動のようなドメインアクションを呼ぶ UI アダプタとして振る舞い、`iPhone` / `iPad` / `Mac` の操作差分は View 側で吸収する。
 - `AppLayout` は regular 幅かどうかを基準に split UI の有無、余白、一覧カラム数を切り替える。
 - `FeedCacheCoordinator` は画面オーケストレーションを担い、読取り・書込み・同期・検索・ホーム状況集計を専用 service へ委譲する。
 - `FeedCacheReadService` はキャッシュ読取り、動画検索、チャンネル動画マージをまとめる。
 - `FeedCacheWriteService` はキャッシュ保存、サムネイル保存、bootstrap 永続化、整合性メンテナンスの入口を担う。
 - `RemoteSearchPresentationState` は YouTube 検索結果の visibleCount、chip 状態、split 初期選択を pure logic としてまとめる。
 - `RemoteKeywordSearchResultsView` は state orchestration を持ち、compact / regular / split detail の表示本体は別 View へ分けて扱う。
+- `InteractiveListView` は画面ごとの refresh action を受ける共通コンテナであり、gesture や command の違いそのものは抱え込まない。
+- `VideoTile` と `ChannelTile` の操作は共通 menu action を持ち、表示デバイスごとの差は menu を開く操作だけへ閉じ込める。
 - `YouTubeSearchService` は API 呼び出しと error handling を担い、公開 model、decode DTO、結果整列 helper は別ファイルへ分けて扱う。
 - 正本を更新した時は、本書のクラス図、シーケンス図も同じ変更セットで同期する。

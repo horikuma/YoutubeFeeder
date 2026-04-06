@@ -30,9 +30,6 @@ enum AppInteractionPlatform: String {
     case desktop
 
     static var current: AppInteractionPlatform {
-        if let override = ProcessInfo.processInfo.environment["YOUTUBEFEEDER_UI_TEST_INTERACTION_PLATFORM"] {
-            return override == "mac" ? .desktop : .touch
-        }
 #if targetEnvironment(macCatalyst)
         return .desktop
 #else

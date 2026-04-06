@@ -1,3 +1,5 @@
-## 2026/04/06
-- FeedCacheのremote search cacheはReadServiceが読取り、WriteServiceが保存・削除を担う構成に固定する。
-  - ユースケースServiceからRead/Write境界への依存方向を維持し、読取り層へ副作用を残さないため。
+## 2026/04/07
+- metrics scripts は固定 simulator 名ではなく、導入済み最新 runtime 上の優先 simulator を解決して使う。
+  - Xcode / Simulator 更新で固定 destination が壊れても Issue 検証を継続できるようにするため。
+- UI testのrefresh補助導線は維持しつつ、擬似Mac判定だけをAppInteractionPlatformから除去する。
+  - test.remoteSearch.refreshは不安定なpull-to-refresh回避用であり、YOUTUBEFEEDER_UI_TEST_INTERACTION_PLATFORMによる擬似Mac分岐とは責務が異なるため。

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -11,7 +12,7 @@ PROJECT = REPO_ROOT / "YoutubeFeeder.xcodeproj"
 SCHEME = "YoutubeFeeder"
 DERIVED_DATA_BASE = Path.home() / "Library" / "Caches" / "Codex" / "YoutubeFeeder"
 DERIVED_DATA = DERIVED_DATA_BASE / "DerivedData"
-DESTINATIONS = ["iPhone 12 mini"]
+PREFERRED_DESTINATIONS = ["iPhone 17", "iPhone 12 mini"]
 
 
 def available_devices() -> str:
@@ -27,24 +28,48 @@ def available_devices() -> str:
     return result.stdout
 
 
-def resolve_uuid(devices_text: str, device_name: str) -> str | None:
+def resolve_destinations(devices_text: str) -> list[tuple[str, str]]:
+    current_runtime: tuple[int, ...] | None = None
+    candidates: dict[str, tuple[tuple[int, ...], str]] = {}
+    runtime_pattern = re.compile(r"-- iOS ([0-9.]+) --")
+    device_pattern = re.compile(r"^\s+(?P<name>.+?) \((?P<uuid>[A-F0-9-]+)\) \((Shutdown|Booted)\)\s*$")
+
     for line in devices_text.splitlines():
-        if device_name in line and "(" in line and ")" in line:
-            start = line.rfind("(")
-            end = line.rfind(")")
-            if start >= 0 and end > start:
-                return line[start + 1 : end]
-    return None
+        runtime_match = runtime_pattern.match(line.strip())
+        if runtime_match:
+            current_runtime = tuple(int(part) for part in runtime_match.group(1).split("."))
+            continue
+
+        device_match = device_pattern.match(line)
+        if not device_match or current_runtime is None:
+            continue
+
+        name = device_match.group("name")
+        uuid = device_match.group("uuid")
+        if name not in PREFERRED_DESTINATIONS:
+            continue
+
+        existing = candidates.get(name)
+        if existing is None or current_runtime > existing[0]:
+            candidates[name] = (current_runtime, uuid)
+
+    resolved: list[tuple[str, str]] = []
+    for device_name in PREFERRED_DESTINATIONS:
+        if device_name in candidates:
+            _, uuid = candidates[device_name]
+            resolved.append((device_name, uuid))
+    return resolved
 
 
 def main() -> int:
     DERIVED_DATA_BASE.mkdir(parents=True, exist_ok=True)
     devices_text = available_devices()
-    for device_name in DESTINATIONS:
-        uuid = resolve_uuid(devices_text, device_name)
-        if not uuid:
-            print(f"Skipping {device_name}: simulator not installed")
-            continue
+    destinations = resolve_destinations(devices_text)
+    if not destinations:
+        print(f"Skipping test matrix: no preferred simulator installed ({', '.join(PREFERRED_DESTINATIONS)})")
+        return 0
+
+    for device_name, uuid in destinations:
 
         print(f"Running tests on {device_name} ({uuid})")
         subprocess.run(["xcrun", "simctl", "bootstatus", uuid, "-b"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

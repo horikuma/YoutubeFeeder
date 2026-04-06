@@ -1,3 +1,13 @@
-## 2026/04/06
-- コミットし、PRを作成せよ。
-  - Issue72のFeedCache read/write境界整理と文書更新を履歴反映し、コミットとPR作成へ進める。
+## 2026/04/07
+- 全てコミットしプッシュせよ。
+  - 残っていたXcode更新差分も含めて一括コミットし、issue-75へpushする。
+- 更新せよ。[引用要約: Utilities で No App Category is set for target 'YoutubeFeeder' 警告が出ているため更新する。]
+  - metrics scripts の simulator 解決を現行 Xcode 環境へ合わせ、Utilities カテゴリ設定で Mac Catalyst validate 警告を解消する。
+- 実施し、PRを作成せよ。
+  - Issue75で擬似Mac分岐を除去し、UI testのrefresh補助導線を維持したまま記録・コミット・PR作成まで進める。
+- コミットせよ。
+  - human-view更新と会話履歴反映をステージングし、日本語メッセージでコミットする。
+- human-viewを更新せよ。
+  - gui.mdとdesign-overview.mdを現行仕様へ同期し、メニュー操作とMacのRefresh導線を反映した。
+- セッションを開始せよ。
+  - mainを最新化し、history-rotateを実行して履歴ローテーション差分をコミット対象へ整理した。
