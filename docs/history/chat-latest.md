@@ -1,4 +1,8 @@
 ## 2026/04/07
+- 実施せよ。
+  - Issue80のsession-start skillへmain最新化後のgit fetch --pruneとgit branch -dによるローカルブランチ掃除を追加し、IssueToDoを完了した。
+- 1で進めよ。
+  - Issue80のToDo書式に合わせてissue-todo-checkと関連skillsを更新し、新書式でToDo完了反映が通るようにする。
 - ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
   - Issue71のIssueToDo4として、stableなllm-temp本文ファイル名とissue-todo-checkのbody-file前提をskillsのusageと具体例へ同期し、Issue71のIssueToDoを全件完了した。
 - ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
