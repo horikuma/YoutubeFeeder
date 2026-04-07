@@ -1,4 +1,6 @@
 ## 2026/04/07
+- 微調整したので、差分を全てコミットし、Pushし、PRを作成せよ。
+  - docs/rules.mdとmetrics文書の差分を確認し、検証後にcommit・push・PR作成まで進める。
 - ルールに、Issue実施タスクのどう線を追加せよ。
   - Issue実施用skillを追加し、docs/rules.mdへIssue実施 / Issueを実施する / 実施する の導線を追加する。
 - rules.mdに参照を書くとき、エイリアスとして Issueを実施する 実施する があることを追記せよ。というToDOを追加し、実施せよ。
