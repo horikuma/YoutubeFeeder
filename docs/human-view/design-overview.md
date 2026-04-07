@@ -25,6 +25,13 @@ flowchart LR
 ```mermaid
 classDiagram
     class ContentView
+    class BasicGUIRootView
+    class BasicGUIHomeScreen
+    class BasicGUIChannelBrowseScreen
+    class BasicGUIRemoteSearchScreen
+    class BasicGUIRouteAssembly
+    class BasicGUILayoutBranching
+    class BasicGUIBrowsePresentation
     class AppLayout
     class FeedCacheCoordinator
     class FeedCacheReadService
@@ -56,10 +63,20 @@ classDiagram
 
     ContentView --> AppLayout : computes
     ContentView --> FeedCacheCoordinator : owns
-    ContentView --> ChannelBrowseView
-    ContentView --> AllVideosView
-    ContentView --> KeywordSearchResultsView
-    ContentView --> RemoteKeywordSearchResultsView
+    ContentView --> BasicGUIRootView
+    BasicGUIRootView --> BasicGUIHomeScreen
+    BasicGUIRootView --> BasicGUIChannelBrowseScreen
+    BasicGUIRootView --> AllVideosView
+    BasicGUIRootView --> KeywordSearchResultsView
+    BasicGUIRootView --> BasicGUIRemoteSearchScreen
+    BasicGUIRouteAssembly --> BasicGUIRootView : route mapping
+    BasicGUILayoutBranching --> BasicGUIChannelBrowseScreen : decides
+    BasicGUILayoutBranching --> BasicGUIRemoteSearchScreen : decides
+    BasicGUILayoutBranching --> BasicGUIBrowsePresentation
+
+    BasicGUIHomeScreen --> HomeScreenView
+    BasicGUIChannelBrowseScreen --> ChannelBrowseView
+    BasicGUIRemoteSearchScreen --> RemoteKeywordSearchResultsView
 
     ChannelBrowseView --> FeedCacheCoordinator
     ChannelVideosView --> FeedCacheCoordinator
@@ -161,9 +178,12 @@ sequenceDiagram
 ## 依存関係メモ
 
 - `View` は I/O を直接持たず、`FeedCacheCoordinator` 経由で状態と操作を受ける。
+- `ContentView` は bootstrap と launch 直後の入口に集中し、basic GUI の route 組み立ては `BasicGUIRootView` / `BasicGUIRouteAssembly` 側へ分離する。
+- `BasicGUILayoutBranching` と `BasicGUIBrowsePresentation` は、`AppLayout` の split 判定を browse 系画面向けの composition 境界へ写し替える。
 - `View` は `refreshFeed()` やメニュー起動のようなドメインアクションを呼ぶ UI アダプタとして振る舞い、`iPhone` / `iPad` / `Mac` の操作差分は View 側で吸収する。
 - `AppLayout` は regular 幅かどうかを基準に split UI の有無、余白、一覧カラム数を切り替える。
 - `FeedCacheCoordinator` は画面オーケストレーションを担い、読取り・書込み・同期・検索・ホーム状況集計を専用 service へ委譲する。
+- `HomeScreenView` はホーム表示中に hidden host として `BasicGUIRemoteSearchScreen` を prewarm し、YouTube検索の初回遷移待ちを抑える。
 - `FeedCacheReadService` はキャッシュ読取り、動画検索、チャンネル動画マージをまとめる。
 - `FeedCacheWriteService` はキャッシュ保存、サムネイル保存、bootstrap 永続化、整合性メンテナンスの入口を担う。
 - `RemoteSearchPresentationState` は YouTube 検索結果の visibleCount、chip 状態、split 初期選択を pure logic としてまとめる。

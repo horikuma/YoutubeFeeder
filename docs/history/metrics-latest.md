@@ -1,4 +1,5 @@
 ## 2026/04/08
+- docs verification: node scripts/check-mermaid.mjs docs/human-view/design-overview.md
 ### Issue85 verification
 - 種別: design
 - 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
