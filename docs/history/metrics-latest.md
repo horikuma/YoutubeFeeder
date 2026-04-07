@@ -1,4 +1,5 @@
 ## 2026/04/08
+- focused verification: xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 17,OS=26.4 -only-testing:YoutubeFeederTests/BasicGUICompositionTests -only-testing:YoutubeFeederTests/AppLayoutTests (after contract test expansion)
 - focused verification: xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 17,OS=26.4 -only-testing:YoutubeFeederTests/BasicGUICompositionTests -only-testing:YoutubeFeederTests/AppLayoutTests (after screen wrapper migration)
 - focused verification: xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 17,OS=26.4 -only-testing:YoutubeFeederTests/BasicGUICompositionTests -only-testing:YoutubeFeederTests/AppLayoutTests (after route migration)
 - focused verification: xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 17,OS=26.4 -only-testing:YoutubeFeederTests/BasicGUICompositionTests -only-testing:YoutubeFeederTests/AppLayoutTests

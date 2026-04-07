@@ -25,6 +25,12 @@ final class BasicGUICompositionTests: LoggedTestCase {
         XCTAssertEqual(screen, .channelVideos(context: context))
     }
 
+    func testRouteAssemblyPreservesRemoteSearchKeyword() {
+        let screen = BasicGUIRouteAssembly.screen(for: .remoteKeywordSearchResults("ゆっくり実況"))
+
+        XCTAssertEqual(screen, .remoteKeywordSearchResults(keyword: "ゆっくり実況"))
+    }
+
     func testCompactLayoutUsesCompactBasicGUIPresentation() {
         let layout = AppLayout.current(
             size: CGSize(width: 844, height: 390),
@@ -43,5 +49,10 @@ final class BasicGUICompositionTests: LoggedTestCase {
 
         XCTAssertEqual(BasicGUILayoutBranching.channelBrowsePresentation(for: layout), .split)
         XCTAssertEqual(BasicGUILayoutBranching.remoteSearchPresentation(for: layout), .split)
+    }
+
+    func testBrowsePresentationFlagMatchesPresentationKind() {
+        XCTAssertFalse(BasicGUIBrowsePresentation.compact.usesSplitLayout)
+        XCTAssertTrue(BasicGUIBrowsePresentation.split.usesSplitLayout)
     }
 }
