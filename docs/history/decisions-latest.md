@@ -1,4 +1,6 @@
 ## 2026/04/07
+- Issue DescriptionのToDo更新は、ローカルのissue-description-update本文ファイルをissue-todo-checkが更新し、その同一ファイルでremoteへ反映する。
+  - Description更新手順を1本に固定し、ToDoチェック反映のばらつきとトークン消費を減らすため。
 - Issue実施指示でblockerに当たった時は、以後のIssueToDoを中断して報告する。
   - IssueToDoを最後まで直列反復する規則に、停止条件をrules側で明示するため。
 - Issue実施指示では、issue-executionの1件処理を未完了IssueToDoがなくなるまで直列反復する。

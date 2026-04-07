@@ -1,5 +1,7 @@
 ## 2026/04/07
 - ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
+  - Issue71のIssueToDo4として、stableなllm-temp本文ファイル名とissue-todo-checkのbody-file前提をskillsのusageと具体例へ同期し、Issue71のIssueToDoを全件完了した。
+- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
   - Issue71のIssueToDo3として、issue-todo-checkがローカルDescription Markdownを更新し、その同一ファイルでremoteへ反映する経路へ切り替え、stable名のbody-fileでToDo3更新まで通した。
 - ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
   - Issue71のIssueToDo2として、llm-temp本文ファイルのvalidatorを日時接頭辞不要の<command_name>-<summary>.md形式へ切り替え、stable名でissue-description-updateが通ることを確認した。
