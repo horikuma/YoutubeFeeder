@@ -27,6 +27,10 @@
 
 - Issue の詳細化を行う時は、`skills/issue-detailing.md` を開かなければならない。
 
+### Issue実施
+
+- Issueを実施する時は、`skills/issue-execution.md` を開かなければならない。
+
 ### 先行テストで期待固定
 
 - 先行テストで期待固定を行う時は、`skills/test-expectation-freeze.md` を開かなければならない。

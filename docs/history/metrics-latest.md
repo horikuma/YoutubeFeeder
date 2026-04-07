@@ -1,4 +1,10 @@
 ## 2026/04/07
+### Issue69 issue execution skill conduit
+- 種別: docs
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- 計測: `skip`
+- 理由: ドキュメントのみの変更のため
+
 ### Issue75 verification
 - 種別: source
 - 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
@@ -12,5 +18,4 @@
 - 起動からホーム表示まで: `630ms`
 - 起動から bootstrap 読込完了まで: `546ms`
 - 起動からホーム遷移開始まで: `627ms`
-
 - Issue75 focused verification blocked: iOS 26.4 runtime unavailable and Mac Catalyst test target requires macOS 26.4 while host is macOS 26.3.1
