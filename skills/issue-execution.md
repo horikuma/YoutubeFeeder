@@ -18,10 +18,12 @@
 - 実装中は、対象 ToDo に直接必要な変更だけを行い、後続 ToDo のための途中差分を同じ変更セットへ混在させてはならない。
 - focused verification は、変更が `tools`、`skills`、`scripts` だけに閉じる場合は対象ファイルの構文確認と代表的な 1 経路の確認に限定し、アプリ本体へ影響する場合は対応するテストと build 確認へ広げなければならない。
 - focused verification が完了した後、Git の staging 前かつ commit 前に、次の usage で対象 Issue の `IssueToDo` を 1 件だけチェック済みに更新しなければならない。
-  `./scripts/command-runner.py 'issue-todo-check' --issue-number '<issue_number>' --todo-section 'IssueToDo' --todo-number '<todo_number>'`
-  例: `./scripts/command-runner.py 'issue-todo-check' --issue-number '69' --todo-section 'IssueToDo' --todo-number '7'`
+  `./scripts/command-runner.py 'issue-todo-check' --issue-number '<issue_number>' --todo-section 'IssueToDo' --todo-number '<todo_number>' --body-file 'llm-temp/issue-description-update-<summary>.md'`
+  例: `./scripts/command-runner.py 'issue-todo-check' --issue-number '69' --todo-section 'IssueToDo' --todo-number '7' --body-file 'llm-temp/issue-description-update-current.md'`
     - `<issue_number>` は、今回実施中の Issue 番号であり、省略してはならない。
     - `<todo_number>` は、今回完了した `### IssueToDo` 配下の番号であり、省略してはならない。
+    - `llm-temp/issue-description-update-<summary>.md` は、現在の Issue Description と一致しているローカル Markdown であり、更新後はそのまま GitHub へ反映される。
+    - `<summary>` は、`.md` の前に入る空でない要約文字列であり、省略してはならない。
 - コミットは、focused verification と `IssueToDo` 更新が完了した後に、今回完了した 1 件分の変更セットだけを対象として行わなければならない。
 - コミット前には、今回の変更セットに必要な `docs/history/*-latest.md` 更新を、対応する `scripts/command-runner.py` の command だけで完了させなければならない。
 - `IssueToDo` が完了条件を満たせない blocker に当たった場合は、変更を広げず、確認した内容と停止理由をユーザーへ報告して停止しなければならない。

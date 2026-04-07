@@ -28,10 +28,12 @@
 - `<message>` は、日本語で記述した commit message でなければならない。
 - Issue 駆動で進めたタスクは、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態を壊してはならない。
 - Issue の ToDo を完了として反映する場合は、次の usage で `./scripts/command-runner.py 'issue-todo-check'` を使わなければならない。
-  `./scripts/command-runner.py 'issue-todo-check' --issue-number '<issue_number>' --todo-section 'IssueToDo' --todo-number '<todo_number>'`
-  例: `./scripts/command-runner.py 'issue-todo-check' --issue-number '65' --todo-section 'IssueToDo' --todo-number '3'`
+  `./scripts/command-runner.py 'issue-todo-check' --issue-number '<issue_number>' --todo-section 'IssueToDo' --todo-number '<todo_number>' --body-file 'llm-temp/issue-description-update-<summary>.md'`
+  例: `./scripts/command-runner.py 'issue-todo-check' --issue-number '65' --todo-section 'IssueToDo' --todo-number '3' --body-file 'llm-temp/issue-description-update-current.md'`
     - `<issue_number>` は、更新対象の Issue 番号であり、省略してはならない。
     - `<todo_number>` は、Issue Description の `### IssueToDo` 配下でチェック済みにする番号付き ToDo の番号であり、省略してはならない。
+    - `llm-temp/issue-description-update-<summary>.md` は、現在の Issue Description と一致しているローカル Markdown であり、更新後はそのまま GitHub へ反映される。
+    - `<summary>` は、`.md` の前に入る空でない要約文字列であり、省略してはならない。
 
 ## `docs/history/`
 

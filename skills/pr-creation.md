@@ -13,11 +13,11 @@
 
 - タスク完了時は、merge 先が通常の `main` かセッション限定の main かを問わず、必ず Pull Request を作成しなければならない。
 - rules や ToDo に command 例を書く場合は、次の usage で記載しなければならない。
-  `./scripts/command-runner.py 'pull-request-creation' --head '<head_branch>' --title '<pull_request_title_text>' --body-file 'llm-temp/<date>-pull-request-creation-summary.md'`
-  例: `./scripts/command-runner.py 'pull-request-creation' --head 'issue-57' --title 'Issue 57: command 例文必須要件を復元する' --body-file 'llm-temp/20260405-100500-pull-request-creation-summary.md'`
-    - `llm-temp/<date>-pull-request-creation-summary.md` は、Pull Request 本文ファイルである。
-    - `<date>` は、`YYYYMMDD-HHMMSS` 形式でなければならない。
-- `./scripts/command-runner.py 'pull-request-creation'` に渡す本文ファイルは `llm-temp/YYYYMMDD-HHMMSS-pull-request-creation-summary.md` 形式でなければならず、`Closes #{issue_number}` を含まなければならない。
+  `./scripts/command-runner.py 'pull-request-creation' --head '<head_branch>' --title '<pull_request_title_text>' --body-file 'llm-temp/pull-request-creation-<summary>.md'`
+  例: `./scripts/command-runner.py 'pull-request-creation' --head 'issue-57' --title 'Issue 57: command 例文必須要件を復元する' --body-file 'llm-temp/pull-request-creation-summary.md'`
+    - `llm-temp/pull-request-creation-<summary>.md` は、Pull Request 本文ファイルである。
+    - `<summary>` は、`.md` の前に入る空でない要約文字列であり、省略してはならない。
+- `./scripts/command-runner.py 'pull-request-creation'` に渡す本文ファイルは `llm-temp/pull-request-creation-<summary>.md` 形式でなければならず、`<summary>` は空であってはならず、`Closes #{issue_number}` を含まなければならない。
 - Pull Request を Project へ自動登録してはならない。
 - Pull Request の body には、対応する Issue を GitHub の機能で連携クローズするため、`Closes #{issue_number}` を明記しなければならない。
 - Pull Request の作成時は、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態にしなければならない。
