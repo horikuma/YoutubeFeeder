@@ -40,6 +40,7 @@
 
 - [metrics-collect](../../scripts/metrics/collect-metrics.py)、[collect-test-metrics](../../scripts/metrics/collect-test-metrics.py)、[test-matrix](../../scripts/metrics/test-matrix.py) は、利用可能な iOS Simulator のうち `iPhone 17` を優先し、未導入環境では `iPhone 12 mini` へフォールバックしなければならない。
 - 上記 scripts は、固定 OS 名ではなく、その時点でインストール済みの最新 runtime に属する対象 simulator を解決して使わなければならない。
+- [metrics-collect](../../scripts/metrics/collect-metrics.py) の startup metrics は、`YoutubeFeederUITests/Home/HomeScreenUITests.swift` の `testHomeStartupMetrics` だけを実行する最小 UI test 経路から取得しなければならない。
 
 ## 更新ルール
 

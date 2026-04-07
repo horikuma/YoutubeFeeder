@@ -7,7 +7,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -19,11 +18,11 @@ DERIVED_DATA_BASE = Path.home() / "Library" / "Caches" / "Codex" / "YoutubeFeede
 DERIVED_DATA = DERIVED_DATA_BASE / "DerivedData"
 METRICS_DIR = REPO_ROOT / ".metrics"
 METRICS_DOC = REPO_ROOT / "docs" / "history" / "metrics-latest.md"
-TEST_METRICS_DOC = REPO_ROOT / "docs" / "metrics" / "metrics-test.md"
 STARTUP_JSON = METRICS_DIR / "startup-metrics.json"
 BUILD_LOG = METRICS_DIR / "build-for-testing.log"
-TEST_LOG = METRICS_DIR / "test-without-building.log"
+STARTUP_TEST_LOG = METRICS_DIR / "startup-test.log"
 PREFERRED_DEVICE_NAMES = ["iPhone 17", "iPhone 12 mini"]
+STARTUP_ONLY_TEST_ID = "YoutubeFeederUITests/HomeScreenUITests/testHomeStartupMetrics"
 
 
 def resolve_destination() -> tuple[str, str]:
@@ -98,28 +97,39 @@ def run_command(command: list[str], *, log_path: Path, env: dict[str, str] | Non
         raise SystemExit(f"Command failed. See {log_path}")
 
 
-def render_test_metrics(log_paths: list[Path]) -> None:
-    command = [
-        sys.executable,
-        str(Path(__file__).with_name("render-test-metrics.py")),
-        str(REPO_ROOT),
-        str(TEST_METRICS_DOC),
-        *[str(path) for path in log_paths],
-    ]
-    process = subprocess.run(command, check=False)
-    if process.returncode != 0:
-        raise SystemExit(process.returncode)
+def run_startup_metrics_test(*, destination: str) -> float:
+    start_at = now_seconds()
+    run_command(
+        [
+            "xcodebuild",
+            "test-without-building",
+            "-project",
+            str(PROJECT),
+            "-scheme",
+            SCHEME,
+            "-destination",
+            destination,
+            "-derivedDataPath",
+            str(DERIVED_DATA),
+            f"-only-testing:{STARTUP_ONLY_TEST_ID}",
+            "CODE_SIGNING_ALLOWED=NO",
+            "CODE_SIGNING_REQUIRED=NO",
+        ],
+        log_path=STARTUP_TEST_LOG,
+        env={**os.environ, "YOUTUBEFEEDER_STARTUP_METRICS_OUTPUT": str(STARTUP_JSON)},
+    )
+    return now_seconds() - start_at
 
 
 def read_startup_payload() -> dict:
     if STARTUP_JSON.exists():
         return json.loads(STARTUP_JSON.read_text(encoding="utf-8"))
 
-    if not TEST_LOG.exists():
+    if not STARTUP_TEST_LOG.exists():
         return {}
 
     marker = "YOUTUBEFEEDER_STARTUP_METRICS "
-    for line in reversed(TEST_LOG.read_text(encoding="utf-8", errors="ignore").splitlines()):
+    for line in reversed(STARTUP_TEST_LOG.read_text(encoding="utf-8", errors="ignore").splitlines()):
         if marker in line:
             return json.loads(line.split(marker, 1)[1].strip())
     return {}
@@ -132,7 +142,7 @@ def update_metrics_doc(
     change_kind: str,
     destination_display: str,
     build_duration: float,
-    test_duration: float,
+    startup_test_duration: float,
     total_duration: float,
     manual_retries: int,
     auto_retries: int,
@@ -149,7 +159,7 @@ def update_metrics_doc(
         entry_lines.extend(
             [
                 f"- build-for-testing: `{build_duration:.3f}s`",
-                f"- test-without-building: `{test_duration:.3f}s`",
+                f"- startup test-without-building: `{startup_test_duration:.3f}s`",
                 f"- 検証合計時間: `{total_duration:.3f}s`",
                 f"- 手修正後の再試行回数: `{manual_retries}`",
                 f"- 同一コマンド内の自動再試行回数: `{auto_retries}`",
@@ -178,71 +188,52 @@ def main() -> int:
     args = parse_args()
     METRICS_DIR.mkdir(parents=True, exist_ok=True)
     DERIVED_DATA_BASE.mkdir(parents=True, exist_ok=True)
-    for path in (STARTUP_JSON, BUILD_LOG, TEST_LOG):
+    for path in (STARTUP_JSON, BUILD_LOG, STARTUP_TEST_LOG):
         if path.exists():
             path.unlink()
 
-    destination, destination_display = resolve_destination()
-
-    build_start = now_seconds()
-    run_command(
-        [
-            "xcodebuild",
-            "build-for-testing",
-            "-project",
-            str(PROJECT),
-            "-scheme",
-            SCHEME,
-            "-destination",
-            destination,
-            "-derivedDataPath",
-            str(DERIVED_DATA),
-            "CODE_SIGNING_ALLOWED=NO",
-            "CODE_SIGNING_REQUIRED=NO",
-        ],
-        log_path=BUILD_LOG,
-    )
-    build_end = now_seconds()
-
     auto_retries = 0
-    test_start = test_end = now_seconds()
-    while auto_retries <= args.auto_retry_limit:
-        if STARTUP_JSON.exists():
-            STARTUP_JSON.unlink()
-        test_start = now_seconds()
-        with TEST_LOG.open("w", encoding="utf-8") as handle:
-            process = subprocess.run(
-                [
-                    "xcodebuild",
-                    "test-without-building",
-                    "-project",
-                    str(PROJECT),
-                    "-scheme",
-                    SCHEME,
-                    "-destination",
-                    destination,
-                    "-derivedDataPath",
-                    str(DERIVED_DATA),
-                    "CODE_SIGNING_ALLOWED=NO",
-                    "CODE_SIGNING_REQUIRED=NO",
-                ],
-                stdout=handle,
-                stderr=subprocess.STDOUT,
-                env={**os.environ, "YOUTUBEFEEDER_STARTUP_METRICS_OUTPUT": str(STARTUP_JSON)},
-                check=False,
-            )
-        test_end = now_seconds()
-        if process.returncode == 0:
-            break
-        auto_retries += 1
-    else:
-        raise SystemExit(f"test-without-building failed. See {TEST_LOG}")
+    build_duration = 0.0
+    startup_test_duration = 0.0
 
-    render_test_metrics([TEST_LOG])
+    destination = ""
+    destination_display = "skip"
+    if args.change_kind != "docs":
+        destination, destination_display = resolve_destination()
+        build_start = now_seconds()
+        run_command(
+            [
+                "xcodebuild",
+                "build-for-testing",
+                "-project",
+                str(PROJECT),
+                "-scheme",
+                SCHEME,
+                "-destination",
+                destination,
+                "-derivedDataPath",
+                str(DERIVED_DATA),
+                "CODE_SIGNING_ALLOWED=NO",
+                "CODE_SIGNING_REQUIRED=NO",
+            ],
+            log_path=BUILD_LOG,
+        )
+        build_duration = now_seconds() - build_start
 
-    build_duration = build_end - build_start
-    test_duration = test_end - test_start
-    total_duration = build_duration + test_duration
+        while auto_retries <= args.auto_retry_limit:
+            if STARTUP_JSON.exists():
+                STARTUP_JSON.unlink()
+            try:
+                startup_test_duration = run_startup_metrics_test(destination=destination)
+                break
+            except SystemExit:
+                auto_retries += 1
+                if auto_retries > args.auto_retry_limit:
+                    raise
+        else:
+            raise SystemExit(f"startup metrics test failed. See {STARTUP_TEST_LOG}")
+
+    total_duration = build_duration + startup_test_duration
     today = datetime.now().astimezone().strftime("%Y/%m/%d")
     update_metrics_doc(
         today=today,
@@ -250,14 +241,14 @@ def main() -> int:
         change_kind=args.change_kind,
         destination_display=destination_display,
         build_duration=build_duration,
-        test_duration=test_duration,
+        startup_test_duration=startup_test_duration,
         total_duration=total_duration,
         manual_retries=args.manual_retries,
         auto_retries=auto_retries,
     )
     print(f"Updated {METRICS_DOC}")
     print(f"build-for-testing: {build_duration:.3f}s")
-    print(f"test-without-building: {test_duration:.3f}s")
+    print(f"startup test-without-building: {startup_test_duration:.3f}s")
     print(f"verification total: {total_duration:.3f}s")
     return 0
 
