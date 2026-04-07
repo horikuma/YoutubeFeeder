@@ -1,4 +1,5 @@
 ## 2026/04/08
+- Issue1 focused verification: project.pbxproj still sets ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon and Assets.xcassets contains only AppIcon.appiconset.
 - Issue1 focused verification: Contents.json maps light/dark/tinted slots to app-icon-light/dark/tinted.png and remains valid JSON.
 - Issue1 focused verification: copied app-icon-light/dark/tinted.png into AppIcon.appiconset and verified all three remain 1024x1024.
 - Issue1 focused verification: image.png=1024x1024, AppIcon.appiconset has light/dark/tinted slots, project.pbxproj keeps ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
