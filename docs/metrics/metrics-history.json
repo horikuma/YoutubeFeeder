@@ -1,0 +1,107 @@
+{
+  "days": [
+    {
+      "date": "2026/04/07",
+      "items": [
+        {
+          "kind": "metrics_entry",
+          "label": "Issue81 todo3 focused verification retry",
+          "change_kind": "source",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 2.7481319904327393,
+          "startup_test_duration_seconds": 8.252877950668335,
+          "total_duration_seconds": 11.001009941101074,
+          "startup_metrics": {
+            "app_launch_to_bootstrap_ms": 549,
+            "app_launch_to_home_ms": 634,
+            "app_launch_to_maintenance_enter_ms": 631,
+            "app_launch_to_splash_ms": 471,
+            "bootstrap_to_home_ms": 85,
+            "splash_to_home_ms": 163
+          }
+        },
+        {
+          "kind": "metrics_entry",
+          "label": "Issue81 todo3 focused verification",
+          "change_kind": "source",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 2.707965850830078,
+          "startup_test_duration_seconds": 3.165519952774048,
+          "total_duration_seconds": 5.873485803604126,
+          "startup_metrics": {}
+        },
+        {
+          "kind": "metrics_entry",
+          "label": "Issue81 todo2 focused verification",
+          "extra_lines": [],
+          "change_kind": "source",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "build_duration_seconds": 4.202,
+          "startup_test_duration_seconds": 30.673,
+          "total_duration_seconds": 34.874,
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "startup_metrics": {
+            "app_launch_to_splash_ms": 531,
+            "splash_to_home_ms": 326,
+            "app_launch_to_home_ms": 857,
+            "app_launch_to_bootstrap_ms": 634,
+            "app_launch_to_maintenance_enter_ms": 853
+          }
+        },
+        {
+          "kind": "note",
+          "text": "session-start focused verification: skills/session-start.md updated for git fetch --prune and git branch -d ordering"
+        },
+        {
+          "kind": "note",
+          "text": "session-start focused verification: skills/session-start.md updated for git fetch --prune and git branch -d ordering"
+        },
+        {
+          "kind": "note",
+          "text": "session-start focused verification: skills/session-start.md updated for git fetch --prune and git branch -d ordering"
+        },
+        {
+          "kind": "note",
+          "text": "issue-todo-check focused verification: python3 -m py_compile scripts/github/issue-todo-check.py && issue-todo-check issue#80 todo 1/2"
+        },
+        {
+          "kind": "metrics_entry",
+          "label": "Issue69 issue execution skill conduit",
+          "extra_lines": [],
+          "change_kind": "docs",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "measurement": "skip",
+          "reason": "ドキュメントのみの変更のため"
+        },
+        {
+          "kind": "metrics_entry",
+          "label": "Issue75 verification",
+          "extra_lines": [
+            "Issue75 focused verification blocked: iOS 26.4 runtime unavailable and Mac Catalyst test target requires macOS 26.4 while host is macOS 26.3.1"
+          ],
+          "change_kind": "source",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "build_duration_seconds": 11.472,
+          "test_duration_seconds": 143.382,
+          "total_duration_seconds": 154.854,
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "startup_metrics": {
+            "app_launch_to_splash_ms": 464,
+            "splash_to_home_ms": 166,
+            "app_launch_to_home_ms": 630,
+            "app_launch_to_bootstrap_ms": 546,
+            "app_launch_to_maintenance_enter_ms": 627
+          }
+        }
+      ]
+    }
+  ]
+}
