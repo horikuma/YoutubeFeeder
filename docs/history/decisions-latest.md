@@ -1,4 +1,6 @@
 ## 2026/04/07
+- Issue実施指示でblockerに当たった時は、以後のIssueToDoを中断して報告する。
+  - IssueToDoを最後まで直列反復する規則に、停止条件をrules側で明示するため。
 - Issue実施指示では、issue-executionの1件処理を未完了IssueToDoがなくなるまで直列反復する。
   - 1 ToDoずつのskill粒度は維持しつつ、ユーザー指示単位ではIssueToDoを最後まで完了させるため。
 - Issue実施タスクのrules導線は、実際に使う表現として Issueを実施する を正本に残す。

@@ -1,4 +1,6 @@
 ## 2026/04/07
+- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
+  - docs/rules.mdのIssue実施節へblocker発生時は以後のIssueToDoを中断して報告する規則を追加し、その後に更新済みルール前提でIssue71の残りToDoへ進む。
 - 実施するルールを変更する。ToDO1つずつ進めるのはそのままで、IssueToDoを最後までやり切ることを追加せよ。スキルは1つずつのままで、最後までやり切るのはルールとせよ。
   - docs/rules.mdのIssue実施節へ、issue-executionの1件処理をblockerがない限り未完了IssueToDoが尽きるまで直列反復する規則を追加した。
 - 実施せよ。

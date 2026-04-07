@@ -31,6 +31,7 @@
 
 - Issueを実施する時は、`skills/issue-execution.md` を開かなければならない。
 - Issueを実施する指示を受けた時は、`skills/issue-execution.md` が規定する「未完了 `IssueToDo` を 1 件だけ処理する」手順を 1 回で終わらせてはならず、blocker がない限り、未完了 `IssueToDo` がなくなるまで同じ手順を直列に繰り返して最後まで完了させなければならない。
+- Issueを実施する指示を受けた時に、いずれかの `IssueToDo` が完了条件を満たせない blocker に当たった場合は、その時点で以後の `IssueToDo` への進行を中断し、blocker の内容をユーザーへ報告しなければならない。
 
 ### 先行テストで期待固定
 
