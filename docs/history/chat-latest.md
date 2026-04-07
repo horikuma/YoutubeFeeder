@@ -1,4 +1,6 @@
 ## 2026/04/07
+- 実施するルールを変更する。ToDO1つずつ進めるのはそのままで、IssueToDoを最後までやり切ることを追加せよ。スキルは1つずつのままで、最後までやり切るのはルールとせよ。
+  - docs/rules.mdのIssue実施節へ、issue-executionの1件処理をblockerがない限り未完了IssueToDoが尽きるまで直列反復する規則を追加した。
 - 実施せよ。
   - Issue71のIssueToDo1として、llm-temp日時接頭辞を実際に強制する箇所と同期対象skillsを確定し、IssueコメントとDescriptionへ反映した。
 - 微調整したので、差分を全てコミットし、Pushし、PRを作成せよ。
