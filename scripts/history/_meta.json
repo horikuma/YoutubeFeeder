@@ -12,16 +12,11 @@
             "name": "user_line",
             "sources": ["arg:--user-line"],
             "description": "記録するユーザー指示の1行"
-          },
-          {
-            "name": "assistant_line",
-            "sources": ["arg:--assistant-line"],
-            "description": "記録するLLM応答概要の1行"
           }
         ],
         "one_of": []
       },
-      "description": "Append one validated user/assistant pair into chat-latest.md without reading the file in the caller."
+      "description": "Append one validated user line into chat-latest.md without reading the file in the caller."
     },
     {
       "name": "history-decision-append",
