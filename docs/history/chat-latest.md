@@ -1,4 +1,6 @@
 ## 2026/04/07
+- rules.mdに参照を書くとき、エイリアスとして Issueを実施する 実施する があることを追記せよ。というToDOを追加し、実施せよ。
+  - Issue69へToDo6を追加し、docs/rules.mdのIssue実施タスク参照導線へエイリアス要件を追記する。
 - 全てコミットしプッシュせよ。
   - 残っていたXcode更新差分も含めて一括コミットし、issue-75へpushする。
 - 更新せよ。[引用要約: Utilities で No App Category is set for target 'YoutubeFeeder' 警告が出ているため更新する。]
