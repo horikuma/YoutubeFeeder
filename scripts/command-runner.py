@@ -11,9 +11,6 @@ import sys
 from pathlib import Path
 
 
-LLM_TEMP_FILENAME_PREFIX = re.compile(r"^\d{8}-\d{6}-")
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Resolve a command through skill metadata and execute its Python entry point."
@@ -109,15 +106,10 @@ def validate_llm_temp_markdown_path(path_text: str, *, command_name: str) -> Non
         raise SystemExit("llm-temp file must be placed directly under llm-temp/")
 
     filename = path.name
-    prefix_match = LLM_TEMP_FILENAME_PREFIX.match(filename)
-    if prefix_match is None:
-        raise SystemExit("llm-temp filename must start with YYYYMMDD-HHMMSS-")
-
-    remainder = filename[prefix_match.end() :]
     expected_prefix = f"{command_name}-"
-    if not remainder.startswith(expected_prefix):
+    if not filename.startswith(expected_prefix):
         raise SystemExit(f"llm-temp filename must include command name: {command_name}")
-    summary = remainder[len(expected_prefix) : -3]
+    summary = filename[len(expected_prefix) : -3]
     if not summary:
         raise SystemExit("llm-temp filename must include a non-empty summary before .md")
 

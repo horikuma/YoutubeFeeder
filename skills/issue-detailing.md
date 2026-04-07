@@ -17,12 +17,14 @@
 - Issue の読取りと更新の rules を定義または更新する時は、次の usage で記述しなければならない。
   `./scripts/command-runner.py 'issue-read' --issue-number '<issue_number>'[ --body-only]`
   例: `./scripts/command-runner.py 'issue-read' --issue-number '57' --body-only`
-  `./scripts/command-runner.py 'issue-description-update' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-description-update-summary.md'[ --title '<title>']`
-  例: `./scripts/command-runner.py 'issue-description-update' --issue-number '57' --body-file 'llm-temp/20260405-095752-issue-description-update-summary.md' --title 'Git履歴からサルベージして command 例文必須要件を rules / skills へ復元する'`
-    - `llm-temp/<date>-issue-description-update-summary.md` は、Description 更新本文ファイルである。
-  `./scripts/command-runner.py 'issue-comment-create' --issue-number '<issue_number>' --body-file 'llm-temp/<date>-issue-comment-create-summary.md'`
-  例: `./scripts/command-runner.py 'issue-comment-create' --issue-number '57' --body-file 'llm-temp/20260405-095752-issue-comment-create-summary.md'`
-    - `llm-temp/<date>-issue-comment-create-summary.md` は、Issue comment 本文ファイルである。
+  `./scripts/command-runner.py 'issue-description-update' --issue-number '<issue_number>' --body-file 'llm-temp/issue-description-update-<summary>.md'[ --title '<title>']`
+  例: `./scripts/command-runner.py 'issue-description-update' --issue-number '57' --body-file 'llm-temp/issue-description-update-summary.md' --title 'Git履歴からサルベージして command 例文必須要件を rules / skills へ復元する'`
+    - `llm-temp/issue-description-update-<summary>.md` は、Description 更新本文ファイルである。
+    - `<summary>` は、`.md` の前に入る空でない要約文字列であり、省略してはならない。
+  `./scripts/command-runner.py 'issue-comment-create' --issue-number '<issue_number>' --body-file 'llm-temp/issue-comment-create-<summary>.md'`
+  例: `./scripts/command-runner.py 'issue-comment-create' --issue-number '57' --body-file 'llm-temp/issue-comment-create-summary.md'`
+    - `llm-temp/issue-comment-create-<summary>.md` は、Issue comment 本文ファイルである。
+    - `<summary>` は、`.md` の前に入る空でない要約文字列であり、省略してはならない。
   `./scripts/command-runner.py 'issue-branch-register' --issue-number '<issue_number>'[ --branch '<branch_name>']`
   例: `./scripts/command-runner.py 'issue-branch-register' --issue-number '57' --branch 'issue-57'`
 - チャット欄から作成した Issue の元のユーザー指示は、Description ではなく Issue コメントで参照できる状態へ移さなければならない。
@@ -48,7 +50,7 @@
 - Issue を詳細化する時は、タイトルも内容に見合う具体度へ更新し、一覧から対象作業が判別できる状態へしなければならない。
 - 実装開始前に `issue-(IssueNo)` 形式の作業ブランチを作成し、そのブランチへ checkout しなければならない。
 - 作成した作業ブランチ名は対象 Issue の comment へ記録しなければならない。記録時は `scripts/command-runner.py 'issue-branch-register'` を正規入口として使わなければならない。
-- `./scripts/command-runner.py 'issue-description-update'` と `./scripts/command-runner.py 'issue-comment-create'` に渡す本文ファイルは、それぞれ `llm-temp/YYYYMMDD-HHMMSS-issue-description-update-summary.md`、`llm-temp/YYYYMMDD-HHMMSS-issue-comment-create-summary.md` 形式でなければならない。
+- `./scripts/command-runner.py 'issue-description-update'` と `./scripts/command-runner.py 'issue-comment-create'` に渡す本文ファイルは、それぞれ `llm-temp/issue-description-update-<summary>.md`、`llm-temp/issue-comment-create-<summary>.md` 形式でなければならず、`<summary>` は空であってはならない。
 - チャット起点で作成した Issue は、詳細化が完了した時点で通常の Issue 起点タスクと同じ扱いにしなければならない。
 - Issue の詳細化中に blocker が見つかった場合は、その時点で Issue コメントへ理由、確認した内容、現在の状況を書き残して停止しなければならない。
 

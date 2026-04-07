@@ -1,4 +1,16 @@
 ## 2026/04/07
+- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
+  - Issue71のIssueToDo4として、stableなllm-temp本文ファイル名とissue-todo-checkのbody-file前提をskillsのusageと具体例へ同期し、Issue71のIssueToDoを全件完了した。
+- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
+  - Issue71のIssueToDo3として、issue-todo-checkがローカルDescription Markdownを更新し、その同一ファイルでremoteへ反映する経路へ切り替え、stable名のbody-fileでToDo3更新まで通した。
+- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
+  - Issue71のIssueToDo2として、llm-temp本文ファイルのvalidatorを日時接頭辞不要の<command_name>-<summary>.md形式へ切り替え、stable名でissue-description-updateが通ることを確認した。
+- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
+  - docs/rules.mdのIssue実施節へblocker発生時は以後のIssueToDoを中断して報告する規則を追加し、その後に更新済みルール前提でIssue71の残りToDoへ進む。
+- 実施するルールを変更する。ToDO1つずつ進めるのはそのままで、IssueToDoを最後までやり切ることを追加せよ。スキルは1つずつのままで、最後までやり切るのはルールとせよ。
+  - docs/rules.mdのIssue実施節へ、issue-executionの1件処理をblockerがない限り未完了IssueToDoが尽きるまで直列反復する規則を追加した。
+- 実施せよ。
+  - Issue71のIssueToDo1として、llm-temp日時接頭辞を実際に強制する箇所と同期対象skillsを確定し、IssueコメントとDescriptionへ反映した。
 - 微調整したので、差分を全てコミットし、Pushし、PRを作成せよ。
   - docs/rules.mdとmetrics文書の差分を確認し、検証後にcommit・push・PR作成まで進める。
 - ルールに、Issue実施タスクのどう線を追加せよ。

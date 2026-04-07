@@ -1,4 +1,10 @@
 ## 2026/04/07
+- Issue DescriptionのToDo更新は、ローカルのissue-description-update本文ファイルをissue-todo-checkが更新し、その同一ファイルでremoteへ反映する。
+  - Description更新手順を1本に固定し、ToDoチェック反映のばらつきとトークン消費を減らすため。
+- Issue実施指示でblockerに当たった時は、以後のIssueToDoを中断して報告する。
+  - IssueToDoを最後まで直列反復する規則に、停止条件をrules側で明示するため。
+- Issue実施指示では、issue-executionの1件処理を未完了IssueToDoがなくなるまで直列反復する。
+  - 1 ToDoずつのskill粒度は維持しつつ、ユーザー指示単位ではIssueToDoを最後まで完了させるため。
 - Issue実施タスクのrules導線は、実際に使う表現として Issueを実施する を正本に残す。
   - rules上の参照語を過不足なく保ち、ユーザーが採用した表現に合わせるため。
 - Issue実施タスクは skills/issue-execution.md を正本skillとし、rulesでは Issue実施 / Issueを実施する / 実施する の導線を同じskillへ向ける。
