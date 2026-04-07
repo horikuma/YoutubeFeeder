@@ -1,4 +1,5 @@
 ## 2026/04/08
+- focused verification: xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 17,OS=26.4 -only-testing:YoutubeFeederTests/BasicGUICompositionTests -only-testing:YoutubeFeederTests/AppLayoutTests (after screen wrapper migration)
 - focused verification: xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 17,OS=26.4 -only-testing:YoutubeFeederTests/BasicGUICompositionTests -only-testing:YoutubeFeederTests/AppLayoutTests (after route migration)
 - focused verification: xcodebuild test -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 17,OS=26.4 -only-testing:YoutubeFeederTests/BasicGUICompositionTests -only-testing:YoutubeFeederTests/AppLayoutTests
 - Issue1 focused verification: user visually confirmed the icon on the Home screen and in Settings, so additional automated checks were skipped by instruction.

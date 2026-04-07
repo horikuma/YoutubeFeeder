@@ -1,4 +1,6 @@
 ## 2026/04/08
+- basic GUI のホーム・チャンネル一覧・YouTube検索は composition wrapper 経由で組み立てる。
+  - prewarm を含む screen assembly を BasicGUIComposition に集約し、公開契約を保ったまま差し替え単位を揃えるため。
 - basic GUI の route switch と画面 presentation 選択を BasicGUIComposition へ移す。
   - ContentView と Browse 親 View から route / layout 判定を外し、basic GUI の組み立て責務を 1 箇所に寄せるため。
 - basic GUI の route と layout の責務境界を BasicGUIComposition で固定する。

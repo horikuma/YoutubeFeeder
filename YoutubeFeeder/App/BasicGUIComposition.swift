@@ -58,7 +58,7 @@ struct BasicGUIRootView: View {
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            HomeScreenView(
+            BasicGUIHomeScreen(
                 coordinator: coordinator,
                 layout: layout,
                 diagnostics: diagnostics,
@@ -77,6 +77,78 @@ struct BasicGUIRootView: View {
     }
 }
 
+struct BasicGUIHomeScreen: View {
+    let coordinator: FeedCacheCoordinator
+    let layout: AppLayout
+    let diagnostics: StartupDiagnostics
+    @Binding var navigationPath: NavigationPath
+
+    var body: some View {
+        HomeScreenView(
+            coordinator: coordinator,
+            layout: layout,
+            diagnostics: diagnostics,
+            navigationPath: $navigationPath
+        )
+    }
+}
+
+struct BasicGUIChannelBrowseScreen: View {
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+    @Binding var path: NavigationPath
+    let layout: AppLayout
+    let sortDescriptor: ChannelBrowseSortDescriptor
+
+    var body: some View {
+        ChannelBrowseView(
+            coordinator: coordinator,
+            openVideo: openVideo,
+            path: $path,
+            layout: layout,
+            sortDescriptor: sortDescriptor,
+            presentation: BasicGUILayoutBranching.channelBrowsePresentation(for: layout)
+        )
+    }
+}
+
+struct BasicGUIRemoteSearchScreen: View {
+    let keyword: String
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+    @Binding var path: NavigationPath
+    let layout: AppLayout
+    let presentationMode: RemoteSearchPresentationMode
+
+    init(
+        keyword: String,
+        coordinator: FeedCacheCoordinator,
+        openVideo: @escaping (CachedVideo) -> Void,
+        path: Binding<NavigationPath>,
+        layout: AppLayout,
+        presentationMode: RemoteSearchPresentationMode = .visible
+    ) {
+        self.keyword = keyword
+        self.coordinator = coordinator
+        self.openVideo = openVideo
+        _path = path
+        self.layout = layout
+        self.presentationMode = presentationMode
+    }
+
+    var body: some View {
+        RemoteKeywordSearchResultsView(
+            keyword: keyword,
+            coordinator: coordinator,
+            openVideo: openVideo,
+            path: $path,
+            layout: layout,
+            browsePresentation: BasicGUILayoutBranching.remoteSearchPresentation(for: layout),
+            presentationMode: presentationMode
+        )
+    }
+}
+
 private struct BasicGUIDestinationView: View {
     let route: MaintenanceRoute
     let coordinator: FeedCacheCoordinator
@@ -87,33 +159,31 @@ private struct BasicGUIDestinationView: View {
     var body: some View {
         switch BasicGUIRouteAssembly.screen(for: route) {
         case let .channelList(sortDescriptor):
-            ChannelBrowseView(
+            BasicGUIChannelBrowseScreen(
                 coordinator: coordinator,
                 openVideo: openVideo,
                 path: $path,
                 layout: layout,
-                sortDescriptor: sortDescriptor,
-                presentation: BasicGUILayoutBranching.channelBrowsePresentation(for: layout)
+                sortDescriptor: sortDescriptor
             )
         case .allVideos:
             AllVideosView(coordinator: coordinator, openVideo: openVideo, path: $path, layout: layout)
         case let .keywordSearchResults(keyword):
             KeywordSearchResultsView(keyword: keyword, coordinator: coordinator, openVideo: openVideo, path: $path, layout: layout)
         case let .remoteKeywordSearchResults(keyword):
-            RemoteKeywordSearchResultsView(
+            BasicGUIRemoteSearchScreen(
                 keyword: keyword,
                 coordinator: coordinator,
                 openVideo: openVideo,
                 path: $path,
-                layout: layout,
-                browsePresentation: BasicGUILayoutBranching.remoteSearchPresentation(for: layout)
+                layout: layout
             )
         case .channelRegistration:
             ChannelRegistrationView(coordinator: coordinator)
         case let .channelVideos(context):
             ChannelVideosView(context: context, coordinator: coordinator, openVideo: openVideo, path: $path, layout: layout)
         case .home:
-            HomeScreenView(
+            BasicGUIHomeScreen(
                 coordinator: coordinator,
                 layout: layout,
                 diagnostics: StartupDiagnostics.shared,
