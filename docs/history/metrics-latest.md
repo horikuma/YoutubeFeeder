@@ -1,4 +1,5 @@
 ## 2026/04/07
+- issue-todo-check focused verification: python3 -m py_compile scripts/github/issue-todo-check.py && issue-todo-check issue#80 todo 1/2
 ### Issue69 issue execution skill conduit
 - 種別: docs
 - 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`

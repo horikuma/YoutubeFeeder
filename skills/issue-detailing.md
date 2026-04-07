@@ -28,10 +28,11 @@
   `./scripts/command-runner.py 'issue-branch-register' --issue-number '<issue_number>'[ --branch '<branch_name>']`
   例: `./scripts/command-runner.py 'issue-branch-register' --issue-number '57' --branch 'issue-57'`
 - チャット欄から作成した Issue の元のユーザー指示は、Description ではなく Issue コメントで参照できる状態へ移さなければならない。
-- Description には、禁止事項と `Issue詳細化ToDo`、`Issue外ToDo`、`IssueToDo` の 3 種のチェックボックス付き ToDo だけを記載しなければならない。
-- Description の禁止事項と 3 種の ToDo は、番号付き箇条書きで記載しなければならない。
+- Description には、禁止事項と `Issue詳細化ToDo`、`Issue外ToDo`、`IssueToDo` だけを記載しなければならない。
+- Description の禁止事項は、チェックボックスを付けない番号付き箇条書きで記載しなければならない。
+- Description の 3 種の ToDo は、チェックボックス付き箇条書きで記載し、各 ToDo の番号は GitHub の自動連番に依存せず本文テキストとして表現しなければならない。
 - 背景、目的、スコープ、実施タスク、完了条件、非対象、補足説明は、Issue コメントで整理しなければならない。
-- `Issue-x を詳細化せよ` と指示された場合も、Description は禁止事項とチェックボックス付き ToDo だけへ整えなければならない。
+- `Issue-x を詳細化せよ` と指示された場合も、Description は禁止事項と ToDo だけへ整えなければならない。
 - Issue コメントへ追加した詳細化本文は、そのコメント以後の実装上の正本として扱わなければならない。
 - 詳細化で Issue コメントを追加または更新する時は、少なくとも `私の指示` の原文、`その時点で行なった判断`、`最終的に最新になった禁止事項`、`最終的に最新になった ToDo` の 4 点を含めなければならない。
 - `最終的に最新になった禁止事項` は、Description に残す禁止事項の正本として記載しなければならない。
@@ -56,11 +57,12 @@
 
 ## 完了条件
 
-- Description に、禁止事項と `Issue詳細化ToDo`、`Issue外ToDo`、`IssueToDo` の実施単位を表すチェックボックス付き ToDo だけが残っていること。
+- Description に、禁止事項と `Issue詳細化ToDo`、`Issue外ToDo`、`IssueToDo` だけが残っていること。
 - Description の禁止事項が、直近の詳細化コメントで確定した `最終的に最新になった禁止事項` と一致していること。
 - Description の ToDo が、直近の詳細化コメントで確定した `最終的に最新になった ToDo` と一致していること。
 - Description の `Issue詳細化ToDo`、`Issue外ToDo`、`IssueToDo` が、直近の詳細化コメントで確定した `Issue詳細化の ToDo`、`Issue外 ToDo`、`Issue の ToDo` とそれぞれ一致していること。
-- Description の禁止事項と 3 種の ToDo が、番号付き箇条書きで記載されていること。
+- Description の禁止事項が、チェックボックスを付けない番号付き箇条書きで記載されていること。
+- Description の 3 種の ToDo が、チェックボックス付き箇条書きで記載され、各 ToDo の番号が本文テキストとして表現されていること。
 - `Issue の ToDo` が、同じ Issue コメントとそこに列挙した読取り対象だけで、追加推論なしに着手できる粒度になっていること。
 - `Issue の ToDo` に command 例がある場合は、usage、必要な補足、具体的な command 例文だけで実行方法を確定できること。
 - 後続 ToDo の判断基準が、対応する先行 ToDo または同一 ToDo 内で観測可能な条件として確定していること。

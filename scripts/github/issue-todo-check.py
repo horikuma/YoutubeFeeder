@@ -12,6 +12,7 @@ from pathlib import Path
 
 
 CHECKBOX_PATTERN = re.compile(r"^(\d+)\.\s+\[([ xX])\]\s+(.*)$")
+BULLET_CHECKBOX_PATTERN = re.compile(r"^-\s+\[([ xX])\]\s+(\d+)\.\s+(.*)$")
 SECTION_NAMES = ("Issue詳細化ToDo", "Issue外ToDo", "IssueToDo")
 
 
@@ -92,15 +93,26 @@ def mark_todo_completed(lines: list[str], *, section_name: str, todo_number: int
 
     for index in range(start_index, end_index):
         match = CHECKBOX_PATTERN.match(lines[index])
-        if match is None:
+        bullet_match = BULLET_CHECKBOX_PATTERN.match(lines[index])
+        if match is None and bullet_match is None:
             continue
         seen_items += 1
-        if seen_items != todo_number:
+        if match is not None:
+            parsed_number = int(match.group(1))
+            updated_line = f"{match.group(1)}. [x] {match.group(3)}"
+            parsed_state = match.group(2).lower()
+        else:
+            assert bullet_match is not None
+            parsed_number = int(bullet_match.group(2))
+            updated_line = f"- [x] {bullet_match.group(2)}. {bullet_match.group(3)}"
+            parsed_state = bullet_match.group(1).lower()
+
+        if parsed_number != todo_number and seen_items != todo_number:
             continue
         found_index = index
         found_line = lines[index]
-        found_state = match.group(2).lower()
-        lines[index] = f"{match.group(1)}. [x] {match.group(3)}"
+        found_state = parsed_state
+        lines[index] = updated_line
         break
 
     if found_index is None or found_line is None or found_state is None:
