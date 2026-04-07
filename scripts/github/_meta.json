@@ -264,6 +264,13 @@
       "args": {
         "mode": "passthrough"
       },
+      "body_file_contract": {
+        "content_format": "markdown",
+        "file_option": "--body-file",
+        "inline_option": "--body",
+        "required_headings": ["## 禁止事項", "## ToDo"],
+        "required_literals": []
+      },
       "direct_arg_inputs": ["--todo-section", "--todo-number"],
       "required_inputs": {
         "all_of": [
@@ -286,6 +293,11 @@
             "name": "todo_number",
             "sources": ["arg:--todo-number"],
             "description": "区分内で更新対象の ToDo 番号"
+          },
+          {
+            "name": "issue_body_markdown",
+            "sources": ["arg:--body-file"],
+            "description": "ローカルで更新して反映する Issue Description Markdown"
           }
         ],
         "one_of": []

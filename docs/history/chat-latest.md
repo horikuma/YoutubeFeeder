@@ -1,5 +1,9 @@
 ## 2026/04/07
 - ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
+  - Issue71のIssueToDo3として、issue-todo-checkがローカルDescription Markdownを更新し、その同一ファイルでremoteへ反映する経路へ切り替え、stable名のbody-fileでToDo3更新まで通した。
+- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
+  - Issue71のIssueToDo2として、llm-temp本文ファイルのvalidatorを日時接頭辞不要の<command_name>-<summary>.md形式へ切り替え、stable名でissue-description-updateが通ることを確認した。
+- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
   - docs/rules.mdのIssue実施節へblocker発生時は以後のIssueToDoを中断して報告する規則を追加し、その後に更新済みルール前提でIssue71の残りToDoへ進む。
 - 実施するルールを変更する。ToDO1つずつ進めるのはそのままで、IssueToDoを最後までやり切ることを追加せよ。スキルは1つずつのままで、最後までやり切るのはルールとせよ。
   - docs/rules.mdのIssue実施節へ、issue-executionの1件処理をblockerがない限り未完了IssueToDoが尽きるまで直列反復する規則を追加した。

@@ -6,6 +6,7 @@ import argparse
 import importlib.util
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -42,6 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--issue-number", type=int, required=True)
     parser.add_argument("--todo-section", choices=SECTION_NAMES, required=True)
     parser.add_argument("--todo-number", type=int, required=True)
+    parser.add_argument("--body-file", required=True)
     parser.add_argument(
         "--cache-file",
         default=str(Path(__file__).resolve().parents[2] / "llm-cache" / "issue-defaults.json"),
@@ -125,15 +127,53 @@ def dump_payload(*, issue_number: int, issue, change: dict) -> int:
     return 0
 
 
+def read_body_file(path_text: str) -> tuple[Path, str]:
+    path = Path(path_text).expanduser()
+    return path, path.read_text(encoding="utf-8")
+
+
+def write_body_file(path: Path, body: str) -> None:
+    path.write_text(body, encoding="utf-8")
+
+
+def update_issue_body_via_body_file(args: argparse.Namespace) -> object:
+    command = [
+        sys.executable,
+        str(Path(__file__).with_name("issue-description-update.py")),
+        "--issue-number",
+        str(args.issue_number),
+        "--body-file",
+        args.body_file,
+        "--cache-file",
+        args.cache_file,
+    ]
+    if args.repo:
+        command.extend(["--repo", args.repo])
+    if args.config:
+        command.extend(["--config", args.config])
+
+    process = subprocess.run(command, capture_output=True, text=True, check=False)
+    if process.returncode != 0:
+        stderr = process.stderr.strip() or process.stdout.strip()
+        raise SystemExit(stderr or "Failed to update issue body from body file")
+
+    return json.loads(process.stdout)
+
+
 def main() -> int:
     args = parse_args()
     github_app = load_github_app_module()
     repository = github_app.get_repository(args.repo, config_path=args.config)
     issue = repository.get_issue(number=args.issue_number)
 
-    body = issue.body
+    body_path, body = read_body_file(args.body_file)
     if not body:
+        raise SystemExit("Issue body file is empty")
+    remote_body = issue.body
+    if remote_body is None:
         raise SystemExit("Issue body is empty")
+    if body != remote_body:
+        raise SystemExit("Issue body file does not match current remote issue body")
 
     trailing_newline = body.endswith("\n")
     updated_lines, change = mark_todo_completed(
@@ -144,10 +184,11 @@ def main() -> int:
     updated_body = "\n".join(updated_lines)
     if trailing_newline:
         updated_body += "\n"
+    write_body_file(body_path, updated_body)
 
     if updated_body != body:
-        issue.edit(body=updated_body)
-        issue = repository.get_issue(number=args.issue_number)
+        issue_payload = update_issue_body_via_body_file(args)
+        issue = type("IssuePayload", (), issue_payload)
 
     return dump_payload(issue_number=args.issue_number, issue=issue, change=change)
 
