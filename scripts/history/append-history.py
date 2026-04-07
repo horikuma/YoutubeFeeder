@@ -22,7 +22,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--today", default=date.today().strftime("%Y/%m/%d"))
     parser.add_argument("--user-line")
-    parser.add_argument("--assistant-line")
     parser.add_argument("--decision-line")
     parser.add_argument("--reason-line")
     parser.add_argument("--metric-line")
@@ -87,18 +86,15 @@ def validate_no_secrets(line: str) -> None:
             raise SystemExit(f"History line contains banned fragment: {fragment}")
 
 
-def validate_chat_lines(user_line: str, assistant_line: str) -> list[str]:
-    if not user_line or not assistant_line:
-        raise SystemExit("chat history requires --user-line and --assistant-line")
-    if "\n" in user_line or "\n" in assistant_line:
-        raise SystemExit("chat history lines must be single-line")
-    if not assistant_line.startswith("  - "):
-        raise SystemExit("--assistant-line must start with two spaces, hyphen, and space")
-    if user_line.startswith(" ") or assistant_line.startswith("   "):
-        raise SystemExit("chat history indentation is invalid")
+def validate_chat_line(user_line: str) -> list[str]:
+    if not user_line:
+        raise SystemExit("chat history requires --user-line")
+    if "\n" in user_line:
+        raise SystemExit("chat history line must be single-line")
+    if not user_line.startswith("- "):
+        raise SystemExit("--user-line must start with hyphen and space")
     validate_no_secrets(user_line)
-    validate_no_secrets(assistant_line)
-    return [user_line, assistant_line]
+    return [user_line]
 
 
 def validate_decision_lines(decision_line: str, reason_line: str) -> list[str]:
@@ -128,7 +124,7 @@ def validate_metric_line(metric_line: str) -> list[str]:
 
 def build_entry(args: argparse.Namespace) -> list[str]:
     if args.kind == "chat":
-        return validate_chat_lines(args.user_line, args.assistant_line)
+        return validate_chat_line(args.user_line)
     if args.kind == "decision":
         return validate_decision_lines(args.decision_line, args.reason_line)
     return validate_metric_line(args.metric_line)
@@ -174,13 +170,12 @@ def validate_latest(kind: str, latest_path: Path, today: str) -> None:
         validate_no_secrets(line)
 
     if kind == "chat":
-        if len(today_lines) % 2 != 0:
-            raise SystemExit("chat latest must contain pairs of user and assistant lines")
-        for index in range(0, len(today_lines), 2):
-            if today_lines[index].startswith(" "):
-                raise SystemExit("chat user line must not be indented")
-            if not today_lines[index + 1].startswith("  - "):
-                raise SystemExit("chat assistant line must start with two spaces, hyphen, and space")
+        for line in today_lines:
+            if line.startswith("- "):
+                continue
+            if line.startswith("  - "):
+                continue
+            raise SystemExit("chat latest lines must start with hyphen and space or two spaces, hyphen, and space")
     elif kind == "decision":
         if len(today_lines) % 2 != 0:
             raise SystemExit("decisions latest must contain pairs of decision and reason lines")

@@ -1,39 +1,9 @@
-## 2026/04/07
-- 実施せよ。
-  - Issue81のToDo3として metrics の JSON 正本と Markdown renderer を追加し、focused verification を完了した。
-- 実施せよ。
-  - Issue81のToDo2として startup metrics 専用UI test と metrics-collect の分離を実装し、focused verification を完了した。
-- 実施せよ。
-  - Issue80のsession-start skillへmain最新化後のgit fetch --pruneとgit branch -dによるローカルブランチ掃除を追加し、IssueToDoを完了した。
-- 1で進めよ。
-  - Issue80のToDo書式に合わせてissue-todo-checkと関連skillsを更新し、新書式でToDo完了反映が通るようにする。
-- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
-  - Issue71のIssueToDo4として、stableなllm-temp本文ファイル名とissue-todo-checkのbody-file前提をskillsのusageと具体例へ同期し、Issue71のIssueToDoを全件完了した。
-- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
-  - Issue71のIssueToDo3として、issue-todo-checkがローカルDescription Markdownを更新し、その同一ファイルでremoteへ反映する経路へ切り替え、stable名のbody-fileでToDo3更新まで通した。
-- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
-  - Issue71のIssueToDo2として、llm-temp本文ファイルのvalidatorを日時接頭辞不要の<command_name>-<summary>.md形式へ切り替え、stable名でissue-description-updateが通ることを確認した。
-- ToDoがBlockingした場合は中断する旨を追加せよ。その上で、ルールを再読み込みし、Issue71を実施せよ。
-  - docs/rules.mdのIssue実施節へblocker発生時は以後のIssueToDoを中断して報告する規則を追加し、その後に更新済みルール前提でIssue71の残りToDoへ進む。
-- 実施するルールを変更する。ToDO1つずつ進めるのはそのままで、IssueToDoを最後までやり切ることを追加せよ。スキルは1つずつのままで、最後までやり切るのはルールとせよ。
-  - docs/rules.mdのIssue実施節へ、issue-executionの1件処理をblockerがない限り未完了IssueToDoが尽きるまで直列反復する規則を追加した。
-- 実施せよ。
-  - Issue71のIssueToDo1として、llm-temp日時接頭辞を実際に強制する箇所と同期対象skillsを確定し、IssueコメントとDescriptionへ反映した。
-- 微調整したので、差分を全てコミットし、Pushし、PRを作成せよ。
-  - docs/rules.mdとmetrics文書の差分を確認し、検証後にcommit・push・PR作成まで進める。
-- ルールに、Issue実施タスクのどう線を追加せよ。
-  - Issue実施用skillを追加し、docs/rules.mdへIssue実施 / Issueを実施する / 実施する の導線を追加する。
-- rules.mdに参照を書くとき、エイリアスとして Issueを実施する 実施する があることを追記せよ。というToDOを追加し、実施せよ。
-  - Issue69へToDo6を追加し、docs/rules.mdのIssue実施タスク参照導線へエイリアス要件を追記する。
-- 全てコミットしプッシュせよ。
-  - 残っていたXcode更新差分も含めて一括コミットし、issue-75へpushする。
-- 更新せよ。[引用要約: Utilities で No App Category is set for target 'YoutubeFeeder' 警告が出ているため更新する。]
-  - metrics scripts の simulator 解決を現行 Xcode 環境へ合わせ、Utilities カテゴリ設定で Mac Catalyst validate 警告を解消する。
+## 2026/04/08
 - 実施し、PRを作成せよ。
-  - Issue75で擬似Mac分岐を除去し、UI testのrefresh補助導線を維持したまま記録・コミット・PR作成まで進める。
-- コミットせよ。
-  - human-view更新と会話履歴反映をステージングし、日本語メッセージでコミットする。
-- human-viewを更新せよ。
-  - gui.mdとdesign-overview.mdを現行仕様へ同期し、メニュー操作とMacのRefresh導線を反映した。
-- セッションを開始せよ。
-  - mainを最新化し、history-rotateを実行して履歴ローテーション差分をコミット対象へ整理した。
+  - Issue82を未完了ToDoから順に実施し、各ToDoごとにIssue更新とコミットを行ったうえでPR作成まで進める。
+- コミットは、ユーザ指示のみを起点とするとは限らない。たとえばToDoを1つ実施するたびにコミットする、というルールがあるはずだ。[引用要約: commitスキルが責務を持ちすぎているので、コミットに必要な機能とそれ以外を分離し、chat記録の移動はその一例としてIssueへ反映するよう求めた。]
+  - Issue82の主題をcommitスキル責務分離へ広げ、ToDoを責務分類から再配置までの流れに組み直した。
+- chat-latestの責務そのものを、コミットからユーザ指示理解へ移動せよ。というのをIssueに反映せよ。
+  - Issue82の禁止事項とToDoを更新し、chat-latest責務の移設を主語として詳細化し直した。
+- というのを、詳細化してIssueのToDoに反映せよ。
+  - Issue82のToDoへ導線調整要件を追加し、詳細化コメントへ反映した。
