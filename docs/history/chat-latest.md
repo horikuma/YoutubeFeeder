@@ -1,4 +1,6 @@
 ## 2026/04/07
+- 実施せよ。
+  - Issue71のIssueToDo1として、llm-temp日時接頭辞を実際に強制する箇所と同期対象skillsを確定し、IssueコメントとDescriptionへ反映した。
 - 微調整したので、差分を全てコミットし、Pushし、PRを作成せよ。
   - docs/rules.mdとmetrics文書の差分を確認し、検証後にcommit・push・PR作成まで進める。
 - ルールに、Issue実施タスクのどう線を追加せよ。
