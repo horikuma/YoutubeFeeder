@@ -59,6 +59,7 @@ struct HomeScreenView: View {
                     openVideo: { _ in },
                     path: $remoteSearchPrewarmPath,
                     layout: layout,
+                    browsePresentation: BasicGUILayoutBranching.remoteSearchPresentation(for: layout),
                     presentationMode: .prewarm
                 )
                 .opacity(0.001)

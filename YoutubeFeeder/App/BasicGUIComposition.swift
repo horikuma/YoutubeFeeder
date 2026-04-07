@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 enum BasicGUIScreen: Equatable {
     case home
@@ -13,6 +14,10 @@ enum BasicGUIScreen: Equatable {
 enum BasicGUIBrowsePresentation: String, Equatable {
     case compact
     case split
+
+    var usesSplitLayout: Bool {
+        self == .split
+    }
 }
 
 enum BasicGUIRouteAssembly {
@@ -41,5 +46,79 @@ enum BasicGUILayoutBranching {
 
     static func remoteSearchPresentation(for layout: AppLayout) -> BasicGUIBrowsePresentation {
         layout.usesSplitChannelBrowser ? .split : .compact
+    }
+}
+
+struct BasicGUIRootView: View {
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+    let layout: AppLayout
+    let diagnostics: StartupDiagnostics
+    @Binding var navigationPath: NavigationPath
+
+    var body: some View {
+        NavigationStack(path: $navigationPath) {
+            HomeScreenView(
+                coordinator: coordinator,
+                layout: layout,
+                diagnostics: diagnostics,
+                navigationPath: $navigationPath
+            )
+            .navigationDestination(for: MaintenanceRoute.self) { route in
+                BasicGUIDestinationView(
+                    route: route,
+                    coordinator: coordinator,
+                    openVideo: openVideo,
+                    path: $navigationPath,
+                    layout: layout
+                )
+            }
+        }
+    }
+}
+
+private struct BasicGUIDestinationView: View {
+    let route: MaintenanceRoute
+    let coordinator: FeedCacheCoordinator
+    let openVideo: (CachedVideo) -> Void
+    @Binding var path: NavigationPath
+    let layout: AppLayout
+
+    var body: some View {
+        switch BasicGUIRouteAssembly.screen(for: route) {
+        case let .channelList(sortDescriptor):
+            ChannelBrowseView(
+                coordinator: coordinator,
+                openVideo: openVideo,
+                path: $path,
+                layout: layout,
+                sortDescriptor: sortDescriptor,
+                presentation: BasicGUILayoutBranching.channelBrowsePresentation(for: layout)
+            )
+        case .allVideos:
+            AllVideosView(coordinator: coordinator, openVideo: openVideo, path: $path, layout: layout)
+        case let .keywordSearchResults(keyword):
+            KeywordSearchResultsView(keyword: keyword, coordinator: coordinator, openVideo: openVideo, path: $path, layout: layout)
+        case let .remoteKeywordSearchResults(keyword):
+            RemoteKeywordSearchResultsView(
+                keyword: keyword,
+                coordinator: coordinator,
+                openVideo: openVideo,
+                path: $path,
+                layout: layout,
+                browsePresentation: BasicGUILayoutBranching.remoteSearchPresentation(for: layout)
+            )
+        case .channelRegistration:
+            ChannelRegistrationView(coordinator: coordinator)
+        case let .channelVideos(context):
+            ChannelVideosView(context: context, coordinator: coordinator, openVideo: openVideo, path: $path, layout: layout)
+        case .home:
+            HomeScreenView(
+                coordinator: coordinator,
+                layout: layout,
+                diagnostics: StartupDiagnostics.shared,
+                navigationPath: $path
+            )
+        }
     }
 }

@@ -11,6 +11,7 @@ struct RemoteKeywordSearchResultsView: View {
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let layout: AppLayout
+    let browsePresentation: BasicGUIBrowsePresentation
     let presentationMode: RemoteSearchPresentationMode
 
     @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
@@ -32,6 +33,7 @@ struct RemoteKeywordSearchResultsView: View {
         openVideo: @escaping (CachedVideo) -> Void,
         path: Binding<NavigationPath>,
         layout: AppLayout,
+        browsePresentation: BasicGUIBrowsePresentation,
         presentationMode: RemoteSearchPresentationMode = .visible
     ) {
         self.keyword = keyword
@@ -39,6 +41,7 @@ struct RemoteKeywordSearchResultsView: View {
         self.openVideo = openVideo
         _path = path
         self.layout = layout
+        self.browsePresentation = browsePresentation
         self.presentationMode = presentationMode
     }
 
@@ -104,7 +107,7 @@ struct RemoteKeywordSearchResultsView: View {
                     detail: "YouTube検索画面を表示",
                     metadata: [
                         "keyword": keyword,
-                        "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                        "layout": browsePresentation.rawValue,
                         "mode": presentationMode.rawValue,
                     ]
                 )
@@ -233,16 +236,16 @@ struct RemoteKeywordSearchResultsView: View {
     private func applyPresentationState() {
         presentationState = RemoteSearchPresentationState.build(
             result: result,
-            usesSplitChannelBrowser: layout.usesSplitChannelBrowser,
+            usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
             previousSplitContext: splitContext
         )
-        if layout.usesSplitChannelBrowser {
+        if browsePresentation.usesSplitLayout {
             applyDefaultSplitSelectionIfNeeded()
         }
     }
 
     private func applyDefaultSplitSelectionIfNeeded() {
-        guard layout.usesSplitChannelBrowser else { return }
+        guard browsePresentation.usesSplitLayout else { return }
         guard let context = presentationState.splitContext else {
             splitLoadTask?.cancel()
             splitContext = nil
@@ -440,7 +443,7 @@ struct RemoteKeywordSearchResultsView: View {
     private func recordRenderProbe(_ phase: String) {
         let metadata = [
             "phase": phase,
-            "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+            "layout": browsePresentation.rawValue,
             "mode": presentationMode.rawValue,
             "videos": String(result.videos.count),
         ]
@@ -454,7 +457,7 @@ struct RemoteKeywordSearchResultsView: View {
 
     @ViewBuilder
     private var content: some View {
-        if layout.usesSplitChannelBrowser {
+        if browsePresentation.usesSplitLayout {
             RemoteKeywordSearchResultsRegularView(
                 keyword: keyword,
                 coordinator: coordinator,

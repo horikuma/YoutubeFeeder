@@ -31,36 +31,13 @@ struct ContentView: View {
 
             Group {
                 if hasEnteredMaintenance {
-                    NavigationStack(path: $navigationPath) {
-                        HomeScreenView(
-                            coordinator: coordinator,
-                            layout: layout,
-                            diagnostics: diagnostics,
-                            navigationPath: $navigationPath
-                        )
-                        .navigationDestination(for: MaintenanceRoute.self) { route in
-                            switch route {
-                            case let .channelList(sortDescriptor):
-                                ChannelBrowseView(
-                                    coordinator: coordinator,
-                                    openVideo: openVideo,
-                                    path: $navigationPath,
-                                    layout: layout,
-                                    sortDescriptor: sortDescriptor
-                                )
-                            case .allVideos:
-                                AllVideosView(coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
-                            case let .keywordSearchResults(keyword):
-                                KeywordSearchResultsView(keyword: keyword, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
-                            case let .remoteKeywordSearchResults(keyword):
-                                RemoteKeywordSearchResultsView(keyword: keyword, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
-                            case .channelRegistration:
-                                ChannelRegistrationView(coordinator: coordinator)
-                            case let .channelVideos(context):
-                                ChannelVideosView(context: context, coordinator: coordinator, openVideo: openVideo, path: $navigationPath, layout: layout)
-                            }
-                        }
-                    }
+                    BasicGUIRootView(
+                        coordinator: coordinator,
+                        openVideo: openVideo,
+                        layout: layout,
+                        diagnostics: diagnostics,
+                        navigationPath: $navigationPath
+                    )
                 } else {
                     LaunchScreenView()
                 }
