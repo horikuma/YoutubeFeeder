@@ -14,6 +14,7 @@ struct ChannelBrowseView: View {
     @Binding var path: NavigationPath
     let layout: AppLayout
     let sortDescriptor: ChannelBrowseSortDescriptor
+    let presentation: BasicGUIBrowsePresentation
 
     @State private var items: [ChannelBrowseItem] = []
     @State private var pendingChannelRemoval: PendingChannelRemoval?
@@ -21,7 +22,8 @@ struct ChannelBrowseView: View {
 
     var body: some View {
         Group {
-            if layout.usesSplitChannelBrowser {
+            switch presentation {
+            case .split:
                 ChannelBrowseRegularView(
                     coordinator: coordinator,
                     openVideo: openVideo,
@@ -31,7 +33,7 @@ struct ChannelBrowseView: View {
                     items: items,
                     onRequestRemoval: requestRemoval
                 )
-            } else {
+            case .compact:
                 ChannelBrowseCompactView(
                     coordinator: coordinator,
                     layout: layout,

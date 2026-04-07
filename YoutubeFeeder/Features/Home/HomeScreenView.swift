@@ -53,7 +53,7 @@ struct HomeScreenView: View {
             }
 
             if shouldMountRemoteSearchPrewarmHost {
-                RemoteKeywordSearchResultsView(
+                BasicGUIRemoteSearchScreen(
                     keyword: FeedCacheCoordinator.homeSearchKeyword,
                     coordinator: coordinator,
                     openVideo: { _ in },

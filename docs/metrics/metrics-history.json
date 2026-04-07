@@ -1,6 +1,31 @@
 {
   "days": [
     {
+      "date": "2026/04/08",
+      "items": [
+        {
+          "kind": "metrics_entry",
+          "label": "Issue85 verification",
+          "change_kind": "design",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 12.591263055801392,
+          "startup_test_duration_seconds": 18.33498477935791,
+          "total_duration_seconds": 30.9262478351593,
+          "startup_metrics": {
+            "app_launch_to_bootstrap_ms": 607,
+            "app_launch_to_home_ms": 852,
+            "app_launch_to_maintenance_enter_ms": 849,
+            "app_launch_to_splash_ms": 520,
+            "bootstrap_to_home_ms": 245,
+            "splash_to_home_ms": 332
+          }
+        }
+      ]
+    },
+    {
       "date": "2026/04/07",
       "items": [
         {
