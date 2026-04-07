@@ -1,4 +1,6 @@
 ## 2026/04/07
+- セッション開始では、main最新化の直後にgit fetch --pruneとgit branch -dでローカルブランチを掃除する。
+  - session-start skillの正規手順として、main最新化後のブランチ掃除を固定するため。
 - Issue詳細化Descriptionでは、禁止事項を連番、ToDoを本文番号付きチェックボックス箇条書きとして扱う。
   - GitHub表示とissue-todo-checkの機械処理を同じ書式へ揃えるため。
 - Issue DescriptionのToDo更新は、ローカルのissue-description-update本文ファイルをissue-todo-checkが更新し、その同一ファイルでremoteへ反映する。

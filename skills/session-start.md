@@ -5,25 +5,35 @@
 ## タスク定義
 
 - セッション開始とは、作業開始前の基準状態を整えるタスクである。
-- ブランチに関しては、`main` へ checkout し、その `main` を最新化することだけを目的とする。
+- ブランチに関しては、`main` へ checkout し、その `main` を最新化した後、`git fetch --prune` と `git branch -d` でローカルブランチを掃除することだけを目的とする。
 - セッション開始におけるブランチ解釈は上記のみとし、他ブランチを session main とみなす等の別解釈を含めてはならない。
-- セッション開始タスクは、次の 3 条件を満たした時だけ完了とみなす。
+- ローカルブランチ掃除では、次の command だけを正規手順として使わなければならない。
+  `git fetch --prune`
+  例: `git fetch --prune`
+  - `--prune` は、remote に存在しなくなった remote-tracking branch を掃除する目的で使わなければならない。
+  `git branch -d <branch_name>`
+  例: `git branch -d issue-80`
+  - `<branch_name>` は、`main` 以外の local branch のうち、`git branch -d` で削除できる fully merged branch 名でなければならない。
+- セッション開始タスクは、次の 4 条件を満たした時だけ完了とみなす。
 
 ## 完了条件
 
 - `main` へ checkout したうえで、その `main` が最新化されていること。
+- `main` の最新化直後に、`git fetch --prune` が成功し、その後に `git branch -d` で削除できる `main` 以外の local branch の掃除が完了していること。
 - `./scripts/command-runner.py 'history-rotate'` が成功終了し、その成功により次を保証していること。
   `./scripts/command-runner.py 'history-rotate'`
   例: `./scripts/command-runner.py 'history-rotate'`
   - 本日以外の日付見出しを含む内容は、対応する `*-log.md` へ掃き出されていること。
   - `*-latest.md` の 1 行目が本日の日付見出しであること。
-- 上記 2 条件を満たした結果として差分が残る場合は、その差分をコミットしていること。
+- 上記 3 条件を満たした結果として差分が残る場合は、その差分をコミットしていること。
 
 ## 禁止事項
 
-- 上記 2 条件以外の作業を、この文書の対象へ含めてはならない。
+- 上記 3 条件以外の作業を、この文書の対象へ含めてはならない。
 - セッション開始タスクが未完了のまま、以後の開発タスクへ進んではならない。
 - `main` 以外のブランチを、セッション開始時の基準ブランチとして扱ってはならない。
+- ローカルブランチ掃除で、`git fetch --prune` と `git branch -d` 以外の方法を正規手順として扱ってはならない。
+- `git branch -D` や、`git branch -d` で削除できない local branch の強制削除をセッション開始へ含めてはならない。
 - `*-latest.md` および `*-log.md` の本文を、完了判定のために直接読み込んではならない。
 - `*-log.md` を直接読み込んではならない。
 - 履歴移動を手作業や別経路で行ってはならず、`./scripts/command-runner.py 'history-rotate'` を使わなければならない。

@@ -168,6 +168,8 @@ def validate_latest(kind: str, latest_path: Path, today: str) -> None:
     today_lines = sections[0].splitlines()[1:]
     for line in today_lines:
         if not line:
+            if kind == "metric":
+                continue
             raise SystemExit(f"{latest_path.name} contains empty lines in today's section")
         validate_no_secrets(line)
 
@@ -189,8 +191,13 @@ def validate_latest(kind: str, latest_path: Path, today: str) -> None:
                 raise SystemExit("decision reason must start with two spaces, hyphen, and space")
     else:
         for line in today_lines:
+            if not line:
+                continue
+            if line.startswith("### "):
+                validate_no_secrets(line)
+                continue
             if not line.startswith("- "):
-                raise SystemExit("metrics latest lines must start with hyphen and space")
+                raise SystemExit("metrics latest lines must start with hyphen and space or metrics entry headings")
 
 
 def main() -> int:
