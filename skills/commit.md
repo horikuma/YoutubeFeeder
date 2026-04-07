@@ -75,11 +75,11 @@
 
 #### `docs/history/metrics-latest.md`
 
-- `docs/history/metrics-latest.md` 全体の計測更新には、次の usage で `./scripts/command-runner.py 'metrics-collect'` を使わなければならない。
+- `docs/history/metrics-latest.md` の build / startup metrics 更新には、次の usage で `./scripts/command-runner.py 'metrics-collect'` を使わなければならない。
   `./scripts/command-runner.py 'metrics-collect' --label '<label>'[ --change-kind '<change_kind>'][ --manual-retries '<manual_retries>'][ --auto-retry-limit '<auto_retry_limit>']`
   例: `./scripts/command-runner.py 'metrics-collect' --label 'Issue57 skills command reference update' --change-kind 'docs'`
     - `<label>` は、計測結果へ残すラベルであり、省略してはならない。
-- 限定確認や部分集合の計測確認には、次の usage で `./scripts/command-runner.py 'metrics-test-collect'` を使わなければならない。
+- `docs/metrics/metrics-test.md` の test metrics 更新や、限定確認や部分集合の計測確認には、次の usage で `./scripts/command-runner.py 'metrics-test-collect'` を使わなければならない。
   `./scripts/command-runner.py 'metrics-test-collect'[ --logic-only-testing '<logic_only_testing>'][ --ui-only-testing '<ui_only_testing>']`
   例: `./scripts/command-runner.py 'metrics-test-collect' --logic-only-testing 'true'`
 - `./scripts/command-runner.py 'metrics-collect'` または `./scripts/command-runner.py 'metrics-test-collect'` が出力しない計測行を追加する場合は、次の usage で `./scripts/command-runner.py 'history-metrics-append'` を使わなければならない。
@@ -107,7 +107,7 @@
 - 必要な検証と、対応する `docs/history/*-latest.md` 更新が完了したうえでコミットされていること。
 - `docs/history/chat-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'history-chat-append'` が成功し、その結果が `docs/history/chat-latest.md` に反映されていること。
 - `docs/history/decisions-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'history-decision-append'` が成功し、その結果が `docs/history/decisions-latest.md` に反映されていること。
-- `docs/history/metrics-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'`、`scripts/command-runner.py 'history-metrics-append'` のうち今回実行すべき command が成功し、その結果が `docs/history/metrics-latest.md` に反映されていること。
+- `docs/history/metrics-latest.md` または `docs/metrics/metrics-test.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'`、`scripts/command-runner.py 'history-metrics-append'` のうち今回実行すべき command が成功し、その結果が対応する文書へ反映されていること。
 - コミットメッセージが日本語で記述されていること。
 - 変更と作業単位の対応関係が履歴から追跡できること。
 - Issue に実施タスクの ToDo がある場合は、コミット対象の変更と対応する `IssueToDo` のチェック済み状態が Issue 上で追跡できること。

@@ -81,18 +81,7 @@ def parse_iso8601(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def main() -> int:
-    if len(sys.argv) < 4:
-        print(
-            "Usage: render-test-metrics.py <repo_root> <output_doc> <log_path> [<log_path> ...]",
-            file=sys.stderr,
-        )
-        return 1
-
-    repo_root = Path(sys.argv[1])
-    output_doc = Path(sys.argv[2])
-    log_paths = [Path(path) for path in sys.argv[3:]]
-
+def build_payload(repo_root: Path, log_paths: list[Path]) -> dict[str, object]:
     definitions = {}
     definitions.update(collect_definitions(repo_root, repo_root / "YoutubeFeederTests", "logic"))
     definitions.update(collect_definitions(repo_root, repo_root / "YoutubeFeederUITests", "ui"))
@@ -105,14 +94,14 @@ def main() -> int:
             marker = "YOUTUBEFEEDER_TEST_METRIC "
             if marker not in line:
                 continue
-            payload = json.loads(line.split(marker, 1)[1])
-            test_id = normalize_test_id(payload["testID"])
+            raw_payload = json.loads(line.split(marker, 1)[1])
+            test_id = normalize_test_id(raw_payload["testID"])
             event = events_by_test_id[test_id]
-            if payload["kind"] == "start":
-                event["started_at"] = payload.get("startedAt")
-            elif payload["kind"] == "finish":
-                event["finished_at"] = payload.get("finishedAt")
-                event["duration_seconds"] = payload.get("durationSeconds")
+            if raw_payload["kind"] == "start":
+                event["started_at"] = raw_payload.get("startedAt")
+            elif raw_payload["kind"] == "finish":
+                event["finished_at"] = raw_payload.get("finishedAt")
+                event["duration_seconds"] = raw_payload.get("durationSeconds")
 
     records: list[dict[str, object]] = []
     for unique_id, definition in definitions.items():
@@ -129,51 +118,85 @@ def main() -> int:
                 "area": definition.area,
                 "file_path": definition.file_path,
                 "overview": definition.overview,
-                "started_at": started_at,
-                "finished_at": finished_at,
+                "started_at": started_at.isoformat() if started_at else None,
+                "finished_at": finished_at.isoformat() if finished_at else None,
                 "duration_seconds": float(duration_seconds) if duration_seconds is not None else None,
             }
         )
 
     records.sort(key=lambda item: (item["target_kind"], item["area"], item["unique_id"]))
 
-    summary = defaultdict(lambda: {"count": 0, "duration": 0.0})
+    summary = defaultdict(lambda: {"count": 0, "duration_seconds": 0.0})
     for record in records:
         key = record["target_kind"]
         summary[key]["count"] += 1
-        summary[key]["duration"] += record["duration_seconds"] or 0.0
+        summary[key]["duration_seconds"] += record["duration_seconds"] or 0.0
         area_key = f"{record['target_kind']}::{record['area']}"
         summary[area_key]["count"] += 1
-        summary[area_key]["duration"] += record["duration_seconds"] or 0.0
+        summary[area_key]["duration_seconds"] += record["duration_seconds"] or 0.0
 
-    today = datetime.now(timezone.utc).astimezone().strftime("%Y/%m/%d")
-    lines: list[str] = [
-        f"## {today}",
-        "",
-        "### Summary",
-        f"- logic tests: {summary['logic']['count']} cases / {summary['logic']['duration']:.3f}s",
-        f"- ui tests: {summary['ui']['count']} cases / {summary['ui']['duration']:.3f}s",
+    logic_areas = [
+        {
+            "area": key.split("::", 1)[1],
+            "count": summary[key]["count"],
+            "duration_seconds": summary[key]["duration_seconds"],
+        }
+        for key in sorted(summary)
+        if key.startswith("logic::")
+    ]
+    ui_areas = [
+        {
+            "area": key.split("::", 1)[1],
+            "count": summary[key]["count"],
+            "duration_seconds": summary[key]["duration_seconds"],
+        }
+        for key in sorted(summary)
+        if key.startswith("ui::")
     ]
 
-    logic_areas = sorted(key for key in summary if key.startswith("logic::"))
-    ui_areas = sorted(key for key in summary if key.startswith("ui::"))
+    today = datetime.now(timezone.utc).astimezone().strftime("%Y/%m/%d")
+    return {
+        "date": today,
+        "summary": {
+            "logic": summary["logic"],
+            "ui": summary["ui"],
+            "logic_areas": logic_areas,
+            "ui_areas": ui_areas,
+        },
+        "records": records,
+    }
+
+
+def render_payload(payload: dict[str, object]) -> str:
+    summary = payload["summary"]
+    logic = summary["logic"]
+    ui = summary["ui"]
+    lines: list[str] = [
+        f"## {payload['date']}",
+        "",
+        "### Summary",
+        f"- logic tests: {logic['count']} cases / {logic['duration_seconds']:.3f}s",
+        f"- ui tests: {ui['count']} cases / {ui['duration_seconds']:.3f}s",
+    ]
+
+    logic_areas = summary["logic_areas"]
+    ui_areas = summary["ui_areas"]
     if logic_areas:
         lines.append("- logic areas:")
-        for key in logic_areas:
-            area = key.split("::", 1)[1]
-            lines.append(f"  - {area}: {summary[key]['count']} cases / {summary[key]['duration']:.3f}s")
+        for area in logic_areas:
+            lines.append(f"  - {area['area']}: {area['count']} cases / {area['duration_seconds']:.3f}s")
     if ui_areas:
         lines.append("- ui areas:")
-        for key in ui_areas:
-            area = key.split("::", 1)[1]
-            lines.append(f"  - {area}: {summary[key]['count']} cases / {summary[key]['duration']:.3f}s")
+        for area in ui_areas:
+            lines.append(f"  - {area['area']}: {area['count']} cases / {area['duration_seconds']:.3f}s")
 
+    records = payload["records"]
     for target_kind, title in (("logic", "Logic Tests"), ("ui", "UI Tests")):
         lines.extend(["", f"### {title}"])
         filtered = [record for record in records if record["target_kind"] == target_kind]
         for record in filtered:
-            started_at = record["started_at"]
-            finished_at = record["finished_at"]
+            started_at = parse_iso8601(record["started_at"])
+            finished_at = parse_iso8601(record["finished_at"])
             start_text = started_at.astimezone().strftime("%H:%M:%S") if started_at else "n/a"
             end_text = finished_at.astimezone().strftime("%H:%M:%S") if finished_at else "n/a"
             duration_text = (
@@ -192,8 +215,26 @@ def main() -> int:
 
     if lines[-1] == "":
         lines.pop()
+    return "\n".join(lines) + "\n"
 
-    output_doc.write_text("\n".join(lines) + "\n")
+
+def main() -> int:
+    if len(sys.argv) < 4:
+        print(
+            "Usage: render-test-metrics.py <repo_root> <output_doc> <log_path> [<log_path> ...]",
+            file=sys.stderr,
+        )
+        return 1
+
+    repo_root = Path(sys.argv[1])
+    output_doc = Path(sys.argv[2])
+    output_json = output_doc.with_suffix(".json")
+    log_paths = [Path(path) for path in sys.argv[3:]]
+
+    payload = build_payload(repo_root, log_paths)
+    output_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    output_doc.write_text(render_payload(payload), encoding="utf-8")
+    print(f"Updated {output_json}")
     print(f"Updated {output_doc}")
     return 0
 

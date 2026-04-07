@@ -1,5 +1,9 @@
 ## 2026/04/07
 - 実施せよ。
+  - Issue81のToDo3として metrics の JSON 正本と Markdown renderer を追加し、focused verification を完了した。
+- 実施せよ。
+  - Issue81のToDo2として startup metrics 専用UI test と metrics-collect の分離を実装し、focused verification を完了した。
+- 実施せよ。
   - Issue80のsession-start skillへmain最新化後のgit fetch --pruneとgit branch -dによるローカルブランチ掃除を追加し、IssueToDoを完了した。
 - 1で進めよ。
   - Issue80のToDo書式に合わせてissue-todo-checkと関連skillsを更新し、新書式でToDo完了反映が通るようにする。

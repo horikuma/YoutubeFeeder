@@ -1,6 +1,13 @@
 import XCTest
 
 final class HomeScreenUITests: UITestCaseSupport {
+    func testHomeStartupMetrics() throws {
+        let app = launchApp()
+
+        waitForHomeScreen(in: app)
+        try captureStartupMetricsIfRequested(in: app)
+    }
+
     func testHomePrimaryNavigationAndFeedbackFlow() throws {
         let app = launchApp()
 
@@ -15,22 +22,8 @@ final class HomeScreenUITests: UITestCaseSupport {
         XCTAssertTrue(element("home.systemStatus", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["バックアップ"].waitForExistence(timeout: 3))
 
-        let timeline = try timelinePayload(in: app)
-        XCTAssertLessThan(try offset(for: "bootstrapLoaded", in: timeline), 2000)
-        XCTAssertLessThan(try offset(for: "maintenanceShown", in: timeline), 2500)
-        let startupMetrics = try startupMetrics(from: timeline)
-        let payload = [
-            "timeline": timeline,
-            "startup_metrics": startupMetrics,
-        ] as [String : Any]
-        if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]),
-           let text = String(data: data, encoding: .utf8) {
-            print("YOUTUBEFEEDER_STARTUP_METRICS \(text)")
-        }
-        try writeJSONIfRequested(
-            payload,
-            environmentKey: "YOUTUBEFEEDER_STARTUP_METRICS_OUTPUT"
-        )
+        try captureStartupMetricsIfRequested(in: app)
+
         element("nav.channels", in: app).tap()
 
         XCTAssertTrue(app.buttons["動画投稿日時 ↓"].waitForExistence(timeout: 3))
@@ -71,5 +64,24 @@ final class HomeScreenUITests: UITestCaseSupport {
             }
             return timeline["manualRefreshFinished"] != nil
         })
+    }
+
+    private func captureStartupMetricsIfRequested(in app: XCUIApplication) throws {
+        let timeline = try timelinePayload(in: app)
+        XCTAssertLessThan(try offset(for: "bootstrapLoaded", in: timeline), 2000)
+        XCTAssertLessThan(try offset(for: "maintenanceShown", in: timeline), 2500)
+        let startupMetrics = try startupMetrics(from: timeline)
+        let payload = [
+            "timeline": timeline,
+            "startup_metrics": startupMetrics,
+        ] as [String : Any]
+        if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]),
+           let text = String(data: data, encoding: .utf8) {
+            print("YOUTUBEFEEDER_STARTUP_METRICS \(text)")
+        }
+        try writeJSONIfRequested(
+            payload,
+            environmentKey: "YOUTUBEFEEDER_STARTUP_METRICS_OUTPUT"
+        )
     }
 }

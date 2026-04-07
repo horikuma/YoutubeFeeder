@@ -1,0 +1,994 @@
+{
+  "date": "2026/04/07",
+  "summary": {
+    "logic": {
+      "count": 83,
+      "duration_seconds": 5.51773464679718
+    },
+    "ui": {
+      "count": 10,
+      "duration_seconds": 112.33769524097443
+    },
+    "logic_areas": [
+      {
+        "area": "Browse",
+        "count": 9,
+        "duration_seconds": 0.005509853363037109
+      },
+      {
+        "area": "Formatting",
+        "count": 5,
+        "duration_seconds": 0.004144072532653809
+      },
+      {
+        "area": "Layout",
+        "count": 4,
+        "duration_seconds": 0.0034590959548950195
+      },
+      {
+        "area": "Ordering",
+        "count": 5,
+        "duration_seconds": 0.0014340877532958984
+      },
+      {
+        "area": "Parsing",
+        "count": 25,
+        "duration_seconds": 0.042389512062072754
+      },
+      {
+        "area": "Policies",
+        "count": 11,
+        "duration_seconds": 0.005379080772399902
+      },
+      {
+        "area": "Storage",
+        "count": 24,
+        "duration_seconds": 5.455418944358826
+      }
+    ],
+    "ui_areas": [
+      {
+        "area": "Browse",
+        "count": 7,
+        "duration_seconds": 68.72654914855957
+      },
+      {
+        "area": "Home",
+        "count": 3,
+        "duration_seconds": 43.611146092414856
+      }
+    ]
+  },
+  "records": [
+    {
+      "unique_id": "ChannelBrowseTipsSummaryTests.testBuildHandlesEmptyList",
+      "target_kind": "logic",
+      "area": "Browse",
+      "file_path": "YoutubeFeederTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift",
+      "overview": "Build Handles Empty List",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.000599980354309082
+    },
+    {
+      "unique_id": "ChannelBrowseTipsSummaryTests.testBuildSummarizesChannelCountAndSort",
+      "target_kind": "logic",
+      "area": "Browse",
+      "file_path": "YoutubeFeederTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift",
+      "overview": "Build Summarizes Channel Count And Sort",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0004379749298095703
+    },
+    {
+      "unique_id": "ChannelBrowseTipsSummaryTests.testDesktopInteractionPlatformUsesDesktopHints",
+      "target_kind": "logic",
+      "area": "Browse",
+      "file_path": "YoutubeFeederTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift",
+      "overview": "Desktop Interaction Platform Uses Desktop Hints",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0017910003662109375
+    },
+    {
+      "unique_id": "ChannelBrowseTipsSummaryTests.testRemoteSearchPresentationBeginRefreshShowsRefreshingChip",
+      "target_kind": "logic",
+      "area": "Browse",
+      "file_path": "YoutubeFeederTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift",
+      "overview": "Remote Search Presentation Begin Refresh Shows Refreshing Chip",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0003039836883544922
+    },
+    {
+      "unique_id": "ChannelBrowseTipsSummaryTests.testRemoteSearchPresentationBuildFallsBackToFirstVideoForSplitSelection",
+      "target_kind": "logic",
+      "area": "Browse",
+      "file_path": "YoutubeFeederTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift",
+      "overview": "Remote Search Presentation Build Falls Back To First Video For Split Selection",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0009049177169799805
+    },
+    {
+      "unique_id": "ChannelBrowseTipsSummaryTests.testRemoteSearchPresentationBuildPreservesExistingSplitSelectionWhenChannelStillExists",
+      "target_kind": "logic",
+      "area": "Browse",
+      "file_path": "YoutubeFeederTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift",
+      "overview": "Remote Search Presentation Build Preserves Existing Split Selection When Channel Still Exists",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.00038802623748779297
+    },
+    {
+      "unique_id": "ChannelBrowseTipsSummaryTests.testRemoteSearchPresentationBuildShowsChipWhenFetchedAtExists",
+      "target_kind": "logic",
+      "area": "Browse",
+      "file_path": "YoutubeFeederTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift",
+      "overview": "Remote Search Presentation Build Shows Chip When Fetched At Exists",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0003279447555541992
+    },
+    {
+      "unique_id": "ChannelBrowseTipsSummaryTests.testRemoteSearchPresentationDismissChipAndLoadMore",
+      "target_kind": "logic",
+      "area": "Browse",
+      "file_path": "YoutubeFeederTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift",
+      "overview": "Remote Search Presentation Dismiss Chip And Load More",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0003859996795654297
+    },
+    {
+      "unique_id": "ChannelBrowseTipsSummaryTests.testTouchInteractionPlatformUsesTouchHints",
+      "target_kind": "logic",
+      "area": "Browse",
+      "file_path": "YoutubeFeederTests/Unit/Browse/ChannelBrowseTipsSummaryTests.swift",
+      "overview": "Touch Interaction Platform Uses Touch Hints",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.000370025634765625
+    },
+    {
+      "unique_id": "AppConsoleLoggerTests.testErrorSummaryIncludesDecodingPathForMissingKey",
+      "target_kind": "logic",
+      "area": "Formatting",
+      "file_path": "YoutubeFeederTests/Unit/Formatting/AppConsoleLoggerTests.swift",
+      "overview": "Error Summary Includes Decoding Path For Missing Key",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.002274036407470703
+    },
+    {
+      "unique_id": "AppConsoleLoggerTests.testResponsePreviewCondensesNewlinesAndTruncates",
+      "target_kind": "logic",
+      "area": "Formatting",
+      "file_path": "YoutubeFeederTests/Unit/Formatting/AppConsoleLoggerTests.swift",
+      "overview": "Response Preview Condenses Newlines And Truncates",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0005590915679931641
+    },
+    {
+      "unique_id": "AppConsoleLoggerTests.testSanitizedKeywordCollapsesWhitespaceAndTruncates",
+      "target_kind": "logic",
+      "area": "Formatting",
+      "file_path": "YoutubeFeederTests/Unit/Formatting/AppConsoleLoggerTests.swift",
+      "overview": "Sanitized Keyword Collapses Whitespace And Truncates",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0004140138626098633
+    },
+    {
+      "unique_id": "AppFormattingTests.testVideoTileBadgeTextHandlesMissingDurationAndViewCount",
+      "target_kind": "logic",
+      "area": "Formatting",
+      "file_path": "YoutubeFeederTests/Unit/Formatting/AppFormattingTests.swift",
+      "overview": "Video Tile Badge Text Handles Missing Duration And View Count",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.000308990478515625
+    },
+    {
+      "unique_id": "AppFormattingTests.testVideoTileBadgeTextRoundsDurationToMinutesAndFormatsViewCount",
+      "target_kind": "logic",
+      "area": "Formatting",
+      "file_path": "YoutubeFeederTests/Unit/Formatting/AppFormattingTests.swift",
+      "overview": "Video Tile Badge Text Rounds Duration To Minutes And Formats View Count",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0005879402160644531
+    },
+    {
+      "unique_id": "AppLayoutTests.testCompactWidthNeverUsesSplitChannelBrowser",
+      "target_kind": "logic",
+      "area": "Layout",
+      "file_path": "YoutubeFeederTests/Unit/Layout/AppLayoutTests.swift",
+      "overview": "Compact Width Never Uses Split Channel Browser",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0022439956665039062
+    },
+    {
+      "unique_id": "AppLayoutTests.testRegularWidthUsesReadableContentWidthForSingleColumnLists",
+      "target_kind": "logic",
+      "area": "Layout",
+      "file_path": "YoutubeFeederTests/Unit/Layout/AppLayoutTests.swift",
+      "overview": "Regular Width Uses Readable Content Width For Single Column Lists",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0004069805145263672
+    },
+    {
+      "unique_id": "AppLayoutTests.testRegularWidthUsesSplitChannelBrowserInLandscape",
+      "target_kind": "logic",
+      "area": "Layout",
+      "file_path": "YoutubeFeederTests/Unit/Layout/AppLayoutTests.swift",
+      "overview": "Regular Width Uses Split Channel Browser In Landscape",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.00048804283142089844
+    },
+    {
+      "unique_id": "AppLayoutTests.testRegularWidthUsesSplitChannelBrowserInPortrait",
+      "target_kind": "logic",
+      "area": "Layout",
+      "file_path": "YoutubeFeederTests/Unit/Layout/AppLayoutTests.swift",
+      "overview": "Regular Width Uses Split Channel Browser In Portrait",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.00032007694244384766
+    },
+    {
+      "unique_id": "FeedOrderingTests.testFreshnessClassifiesAge",
+      "target_kind": "logic",
+      "area": "Ordering",
+      "file_path": "YoutubeFeederTests/Unit/Ordering/FeedOrderingTests.swift",
+      "overview": "Freshness Classifies Age",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0002690553665161133
+    },
+    {
+      "unique_id": "FeedOrderingTests.testPrioritizesLatestPublishedThenOldestChecked",
+      "target_kind": "logic",
+      "area": "Ordering",
+      "file_path": "YoutubeFeederTests/Unit/Ordering/FeedOrderingTests.swift",
+      "overview": "Prioritizes Latest Published Then Oldest Checked",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00028192996978759766
+    },
+    {
+      "unique_id": "FeedOrderingTests.testPrioritizesRecentlySuccessfulChannelsWhenLatestPublishedMatches",
+      "target_kind": "logic",
+      "area": "Ordering",
+      "file_path": "YoutubeFeederTests/Unit/Ordering/FeedOrderingTests.swift",
+      "overview": "Prioritizes Recently Successful Channels When Latest Published Matches",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00031495094299316406
+    },
+    {
+      "unique_id": "FeedOrderingTests.testSortBrowseItemsByRegistrationDateAscending",
+      "target_kind": "logic",
+      "area": "Ordering",
+      "file_path": "YoutubeFeederTests/Unit/Ordering/FeedOrderingTests.swift",
+      "overview": "Sort Browse Items By Registration Date Ascending",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00029408931732177734
+    },
+    {
+      "unique_id": "FeedOrderingTests.testSortBrowseItemsByRegistrationDateDescending",
+      "target_kind": "logic",
+      "area": "Ordering",
+      "file_path": "YoutubeFeederTests/Unit/Ordering/FeedOrderingTests.swift",
+      "overview": "Sort Browse Items By Registration Date Descending",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0002740621566772461
+    },
+    {
+      "unique_id": "ChannelRegistryCSVImportTests.testParserExtractsChannelIDsFromYouTubeExportCSV",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistryCSVImportTests.swift",
+      "overview": "Parser Extracts Channel I Ds From YouTube Export CSV",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.003198981285095215
+    },
+    {
+      "unique_id": "ChannelRegistryCSVImportTests.testParserRejectsEmptyFile",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistryCSVImportTests.swift",
+      "overview": "Parser Rejects Empty File",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0011810064315795898
+    },
+    {
+      "unique_id": "ChannelRegistryCSVImportTests.testParserRejectsInvalidUTF8",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistryCSVImportTests.swift",
+      "overview": "Parser Rejects Invalid UTF8",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0003319978713989258
+    },
+    {
+      "unique_id": "ChannelRegistryCSVImportTests.testParserRejectsMissingChannelID",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistryCSVImportTests.swift",
+      "overview": "Parser Rejects Missing Channel ID",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0002980232238769531
+    },
+    {
+      "unique_id": "ChannelRegistryCSVImportTests.testParserRejectsUnexpectedHeader",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistryCSVImportTests.swift",
+      "overview": "Parser Rejects Unexpected Header",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.00034308433532714844
+    },
+    {
+      "unique_id": "ChannelRegistrySnapshotTests.testDecodeSupportsCurrentRegistryFormat",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift",
+      "overview": "Decode Supports Current Registry Format",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0015239715576171875
+    },
+    {
+      "unique_id": "ChannelRegistrySnapshotTests.testExportIncludesRegisteredChannels",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift",
+      "overview": "Export Includes Registered Channels",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.008007049560546875
+    },
+    {
+      "unique_id": "ChannelRegistrySnapshotTests.testImportRestoresRegisteredChannels",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift",
+      "overview": "Import Restores Registered Channels",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.007423043251037598
+    },
+    {
+      "unique_id": "ChannelRegistrySnapshotTests.testLoadAllChannelIDsDoesNotRestoreFromLegacyCacheWhenRegistryIsMissing",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift",
+      "overview": "Load All Channel I Ds Does Not Restore From Legacy Cache When Registry Is Missing",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.008265972137451172
+    },
+    {
+      "unique_id": "ChannelRegistrySnapshotTests.testTransferDocumentDecodesCurrentFormat",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift",
+      "overview": "Transfer Document Decodes Current Format",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0005639791488647461
+    },
+    {
+      "unique_id": "ChannelRegistrySnapshotTests.testTransferRuntimeUsesOnDeviceBackupOnly",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift",
+      "overview": "Transfer Runtime Uses On Device Backup Only",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0004519224166870117
+    },
+    {
+      "unique_id": "ChannelRegistrySnapshotTests.testTransferStoreUsesLocalDocumentsFixedPath",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/ChannelRegistrySnapshotTests.swift",
+      "overview": "Transfer Store Uses Local Documents Fixed Path",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0003540515899658203
+    },
+    {
+      "unique_id": "YouTubeChannelResolverTests.testChannelURLReturnsEmbeddedChannelID",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeChannelResolverTests.swift",
+      "overview": "Channel URL Returns Embedded Channel ID",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0008270740509033203
+    },
+    {
+      "unique_id": "YouTubeChannelResolverTests.testDirectChannelIDReturnsAsIs",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeChannelResolverTests.swift",
+      "overview": "Direct Channel ID Returns As Is",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00029206275939941406
+    },
+    {
+      "unique_id": "YouTubeChannelResolverTests.testExtractChannelIDReadsBrowseIDFromHTML",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeChannelResolverTests.swift",
+      "overview": "Extract Channel ID Reads Browse ID From HTML",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00034999847412109375
+    },
+    {
+      "unique_id": "YouTubeChannelResolverTests.testExtractChannelIDReadsExternalIDFromHTML",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeChannelResolverTests.swift",
+      "overview": "Extract Channel ID Reads External ID From HTML",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0003120899200439453
+    },
+    {
+      "unique_id": "YouTubeChannelResolverTests.testLookupURLTreatsPlainTextAsHandle",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeChannelResolverTests.swift",
+      "overview": "Lookup URL Treats Plain Text As Handle",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00028204917907714844
+    },
+    {
+      "unique_id": "YouTubeChannelResolverTests.testNormalizedVideoURLExtractsWatchURL",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeChannelResolverTests.swift",
+      "overview": "Normalized Video URL Extracts Watch URL",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.000308990478515625
+    },
+    {
+      "unique_id": "YouTubeFeedParserTests.testUploadsPlaylistIDConvertsChannelID",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeFeedParserTests.swift",
+      "overview": "Uploads Playlist ID Converts Channel ID",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00028705596923828125
+    },
+    {
+      "unique_id": "YouTubeFeedParserTests.testYouTubeFeedParserParsesEntryMetadata",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeFeedParserTests.swift",
+      "overview": "YouTube Feed Parser Parses Entry Metadata",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.001242995262145996
+    },
+    {
+      "unique_id": "YouTubeSearchServiceTests.testFilterPlayableVideosExcludesLiveEntries",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeSearchServiceTests.swift",
+      "overview": "Filter Playable Videos Excludes Live Entries",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.003690004348754883
+    },
+    {
+      "unique_id": "YouTubeSearchServiceTests.testMergeCandidatesKeepsLatestPublishedAtAndSortsDescending",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeSearchServiceTests.swift",
+      "overview": "Merge Candidates Keeps Latest Published At And Sorts Descending",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0007790327072143555
+    },
+    {
+      "unique_id": "YouTubeSearchServiceTests.testVideoDetailsPartIncludesStatistics",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeSearchServiceTests.swift",
+      "overview": "Video Details Part Includes Statistics",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0003230571746826172
+    },
+    {
+      "unique_id": "YouTubeThumbnailCandidatesTests.testCandidateURLsFollowHighestToLowestOrder",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeThumbnailCandidatesTests.swift",
+      "overview": "Candidate UR Ls Follow Highest To Lowest Order",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0003590583801269531
+    },
+    {
+      "unique_id": "YouTubeThumbnailCandidatesTests.testFilterPlayableVideosUsesVideoIDBasedThumbnailInsteadOfResponseThumbnail",
+      "target_kind": "logic",
+      "area": "Parsing",
+      "file_path": "YoutubeFeederTests/Unit/Parsing/YouTubeThumbnailCandidatesTests.swift",
+      "overview": "Filter Playable Videos Uses Video ID Based Thumbnail Instead Of Response Thumbnail",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.001392960548400879
+    },
+    {
+      "unique_id": "BackSwipePolicyTests.testAcceptsHorizontalSwipeFromLeftEdge",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/BackSwipePolicyTests.swift",
+      "overview": "Accepts Horizontal Swipe From Left Edge",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0003609657287597656
+    },
+    {
+      "unique_id": "BackSwipePolicyTests.testRejectsVerticalOrFarRightSwipe",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/BackSwipePolicyTests.swift",
+      "overview": "Rejects Vertical Or Far Right Swipe",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.00038695335388183594
+    },
+    {
+      "unique_id": "ChannelVideosAutoRefreshPolicyTests.testRemoteSearchRequiresRefreshWhenOnlyOneCachedVideoExists",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/ChannelVideosAutoRefreshPolicyTests.swift",
+      "overview": "Remote Search Requires Refresh When Only One Cached Video Exists",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0003110170364379883
+    },
+    {
+      "unique_id": "ChannelVideosAutoRefreshPolicyTests.testRequiresRefreshWhenChannelHasNoCachedVideosYet",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/ChannelVideosAutoRefreshPolicyTests.swift",
+      "overview": "Requires Refresh When Channel Has No Cached Videos Yet",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0003470182418823242
+    },
+    {
+      "unique_id": "ChannelVideosAutoRefreshPolicyTests.testRequiresRefreshWhenSelectedVideoIsMissingFromChannelCache",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/ChannelVideosAutoRefreshPolicyTests.swift",
+      "overview": "Requires Refresh When Selected Video Is Missing From Channel Cache",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.00033605098724365234
+    },
+    {
+      "unique_id": "ChannelVideosAutoRefreshPolicyTests.testSkipsRefreshWhenSelectedVideoAlreadyExistsInChannelCache",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/ChannelVideosAutoRefreshPolicyTests.swift",
+      "overview": "Skips Refresh When Selected Video Already Exists In Channel Cache",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.0002809762954711914
+    },
+    {
+      "unique_id": "RemoteSearchErrorPolicyTests.testDiagnosticReasonRecognizesURLSessionCancellation",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/RemoteSearchErrorPolicyTests.swift",
+      "overview": "Diagnostic Reason Recognizes URL Session Cancellation",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0011960268020629883
+    },
+    {
+      "unique_id": "RemoteSearchErrorPolicyTests.testUserMessagePreservesOrdinaryErrorDescription",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/RemoteSearchErrorPolicyTests.swift",
+      "overview": "User Message Preserves Ordinary Error Description",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0003610849380493164
+    },
+    {
+      "unique_id": "RemoteSearchErrorPolicyTests.testUserMessageSuppressesCancellationError",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/RemoteSearchErrorPolicyTests.swift",
+      "overview": "User Message Suppresses Cancellation Error",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0010989904403686523
+    },
+    {
+      "unique_id": "VideoSharePolicyTests.testShareURLReturnsNilWhenVideoURLIsMissing",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/VideoSharePolicyTests.swift",
+      "overview": "Share URL Returns Nil When Video URL Is Missing",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00034999847412109375
+    },
+    {
+      "unique_id": "VideoSharePolicyTests.testShareURLReturnsVideoURLWhenAvailable",
+      "target_kind": "logic",
+      "area": "Policies",
+      "file_path": "YoutubeFeederTests/Unit/Policies/VideoSharePolicyTests.swift",
+      "overview": "Share URL Returns Video URL When Available",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00034999847412109375
+    },
+    {
+      "unique_id": "ChannelRegistryCSVImportServiceTests.testImportAppendsOnlyNewChannelIDsAndReportsCounts",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/ChannelRegistryCSVImportServiceTests.swift",
+      "overview": "Import Appends Only New Channel I Ds And Reports Counts",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:37+00:00",
+      "duration_seconds": 0.008880019187927246
+    },
+    {
+      "unique_id": "FeedCacheCoordinatorRemoteSearchTests.testForceRefreshPersistsEvenIfCallerTaskIsCancelled",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheCoordinatorRemoteSearchTests.swift",
+      "overview": "Force Refresh Persists Even If Caller Task Is Cancelled",
+      "started_at": "2026-04-07T10:16:37+00:00",
+      "finished_at": "2026-04-07T10:16:39+00:00",
+      "duration_seconds": 2.267241954803467
+    },
+    {
+      "unique_id": "FeedCacheCoordinatorRemoteSearchTests.testForceRefreshPersistsRemoteSearchResultToCache",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheCoordinatorRemoteSearchTests.swift",
+      "overview": "Force Refresh Persists Remote Search Result To Cache",
+      "started_at": "2026-04-07T10:16:39+00:00",
+      "finished_at": "2026-04-07T10:16:40+00:00",
+      "duration_seconds": 1.0154169797897339
+    },
+    {
+      "unique_id": "FeedCacheCoordinatorRemoteSearchTests.testLoadVideosForChannelDeduplicatesSameVideoIDAcrossFeedCacheAndRemoteSearch",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheCoordinatorRemoteSearchTests.swift",
+      "overview": "Load Videos For Channel Deduplicates Same Video ID Across Feed Cache And Remote Search",
+      "started_at": "2026-04-07T10:16:40+00:00",
+      "finished_at": "2026-04-07T10:16:40+00:00",
+      "duration_seconds": 0.006852984428405762
+    },
+    {
+      "unique_id": "FeedCacheCoordinatorRemoteSearchTests.testOpenChannelVideosUsesChannelFallbackWhenRemoteSearchHasOnlyOneVideo",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheCoordinatorRemoteSearchTests.swift",
+      "overview": "Open Channel Videos Uses Channel Fallback When Remote Search Has Only One Video",
+      "started_at": "2026-04-07T10:16:40+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 2.0466500520706177
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testCacheThumbnailFallsBackToNextCandidateAndPersistsFilename",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Cache Thumbnail Falls Back To Next Candidate And Persists Filename",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.007522940635681152
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testConsistencyMaintenanceRemovesDetachedVideosAndThumbnails",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Consistency Maintenance Removes Detached Videos And Thumbnails",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.007917046546936035
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testCurrentThumbnailCacheStatusReportsBytesAndThresholdJudgement",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Current Thumbnail Cache Status Reports Bytes And Threshold Judgement",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.006801009178161621
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testEvictOldestThumbnailIfNeededRemovesLeastRecentlyAccessedFileFirst",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Evict Oldest Thumbnail If Needed Removes Least Recently Accessed File First",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0060700178146362305
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testFeedSnapshotPersistsThumbnailLastAccessedAt",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Feed Snapshot Persists Thumbnail Last Accessed At",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.00465703010559082
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testLoadVideosMasksUnderFourMinuteVideosAsShorts",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Load Videos Masks Under Four Minute Videos As Shorts",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.005224943161010742
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testRecordThumbnailReferenceUpdatesFeedAndRemoteSearchRows",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Record Thumbnail Reference Updates Feed And Remote Search Rows",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0049250125885009766
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testRemoveChannelIDDeletesRegisteredChannel",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Remove Channel ID Deletes Registered Channel",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.004737973213195801
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testResetAllStoredDataClearsCacheButLeavesBackupRecoverable",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Reset All Stored Data Clears Cache But Leaves Backup Recoverable",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.013267040252685547
+    },
+    {
+      "unique_id": "FeedCacheMaintenanceTests.testTrimThumbnailsIfNeededContinuesUntilBelowLowWatermark",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheMaintenanceTests.swift",
+      "overview": "Trim Thumbnails If Needed Continues Until Below Low Watermark",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.006965994834899902
+    },
+    {
+      "unique_id": "FeedCacheReadWriteServiceTests.testClearRemoteSearchRemovesPersistedCacheThroughWriteService",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheReadWriteServiceTests.swift",
+      "overview": "Clear Remote Search Removes Persisted Cache Through Write Service",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.005054950714111328
+    },
+    {
+      "unique_id": "FeedCacheReadWriteServiceTests.testLoadMergedVideosForChannelDoesNotMutateCaches",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheReadWriteServiceTests.swift",
+      "overview": "Load Merged Videos For Channel Does Not Mutate Caches",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.005324006080627441
+    },
+    {
+      "unique_id": "FeedCacheReadWriteServiceTests.testLoadRefreshStateDoesNotPersistBootstrap",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheReadWriteServiceTests.swift",
+      "overview": "Load Refresh State Does Not Persist Bootstrap",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.004873991012573242
+    },
+    {
+      "unique_id": "FeedCacheReadWriteServiceTests.testLoadRemoteSearchSnapshotReadsCacheWithoutMutatingEntries",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheReadWriteServiceTests.swift",
+      "overview": "Load Remote Search Snapshot Reads Cache Without Mutating Entries",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.004369020462036133
+    },
+    {
+      "unique_id": "FeedCacheReadWriteServiceTests.testPersistBootstrapWritesSnapshotThroughWriteService",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/FeedCacheReadWriteServiceTests.swift",
+      "overview": "Persist Bootstrap Writes Snapshot Through Write Service",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.004582047462463379
+    },
+    {
+      "unique_id": "RemoteVideoSearchCacheStoreTests.testClearAllRemovesDefaultAndSanitizedSearchCacheFiles",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/RemoteVideoSearchCacheStoreTests.swift",
+      "overview": "Clear All Removes Default And Sanitized Search Cache Files",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.005213022232055664
+    },
+    {
+      "unique_id": "RemoteVideoSearchCacheStoreTests.testMergeKeepsExistingVideosAndAddsNewOnes",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/RemoteVideoSearchCacheStoreTests.swift",
+      "overview": "Merge Keeps Existing Videos And Adds New Ones",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.0042449235916137695
+    },
+    {
+      "unique_id": "RemoteVideoSearchCacheStoreTests.testRemoteSearchCachePersistsThumbnailLastAccessedAt",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/RemoteVideoSearchCacheStoreTests.swift",
+      "overview": "Remote Search Cache Persists Thumbnail Last Accessed At",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.004279017448425293
+    },
+    {
+      "unique_id": "RemoteVideoSearchCacheStoreTests.testRemoteSearchCacheStatusReflectsFreshnessWindow",
+      "target_kind": "logic",
+      "area": "Storage",
+      "file_path": "YoutubeFeederTests/Unit/Storage/RemoteVideoSearchCacheStoreTests.swift",
+      "overview": "Remote Search Cache Status Reflects Freshness Window",
+      "started_at": "2026-04-07T10:16:43+00:00",
+      "finished_at": "2026-04-07T10:16:43+00:00",
+      "duration_seconds": 0.004346966743469238
+    },
+    {
+      "unique_id": "BrowseScreenUITests.testAllVideosScreenScrollsWithMockData",
+      "target_kind": "ui",
+      "area": "Browse",
+      "file_path": "YoutubeFeederUITests/Browse/BrowseScreenUITests.swift",
+      "overview": "All Videos Screen Scrolls With Mock Data",
+      "started_at": "2026-04-07T10:16:48+00:00",
+      "finished_at": "2026-04-07T10:17:03+00:00",
+      "duration_seconds": 15.084841966629028
+    },
+    {
+      "unique_id": "BrowseScreenUITests.testChannelListShowsNonInteractiveTipsTile",
+      "target_kind": "ui",
+      "area": "Browse",
+      "file_path": "YoutubeFeederUITests/Browse/BrowseScreenUITests.swift",
+      "overview": "Channel List Shows Non Interactive Tips Tile",
+      "started_at": "2026-04-07T10:17:03+00:00",
+      "finished_at": "2026-04-07T10:17:09+00:00",
+      "duration_seconds": 5.7542290687561035
+    },
+    {
+      "unique_id": "BrowseScreenUITests.testChannelVideosPullToRefreshRefreshesOnlySelectedChannel",
+      "target_kind": "ui",
+      "area": "Browse",
+      "file_path": "YoutubeFeederUITests/Browse/BrowseScreenUITests.swift",
+      "overview": "Channel Videos Pull To Refresh Refreshes Only Selected Channel",
+      "started_at": "2026-04-07T10:17:09+00:00",
+      "finished_at": "2026-04-07T10:17:21+00:00",
+      "duration_seconds": 12.129317045211792
+    },
+    {
+      "unique_id": "BrowseScreenUITests.testRemoteSearchChipDismissesOnUserInteraction",
+      "target_kind": "ui",
+      "area": "Browse",
+      "file_path": "YoutubeFeederUITests/Browse/BrowseScreenUITests.swift",
+      "overview": "Remote Search Chip Dismisses On User Interaction",
+      "started_at": "2026-04-07T10:17:21+00:00",
+      "finished_at": "2026-04-07T10:17:27+00:00",
+      "duration_seconds": 6.500116944313049
+    },
+    {
+      "unique_id": "BrowseScreenUITests.testRemoteSearchLiveRefreshCompletesOnDevice",
+      "target_kind": "ui",
+      "area": "Browse",
+      "file_path": "YoutubeFeederUITests/Browse/BrowseScreenUITests.swift",
+      "overview": "Remote Search Live Refresh Completes On Device",
+      "started_at": "2026-04-07T10:17:27+00:00",
+      "finished_at": "2026-04-07T10:17:38+00:00",
+      "duration_seconds": 10.344555020332336
+    },
+    {
+      "unique_id": "BrowseScreenUITests.testRemoteSearchRefreshUpdatesResultsAndChipState",
+      "target_kind": "ui",
+      "area": "Browse",
+      "file_path": "YoutubeFeederUITests/Browse/BrowseScreenUITests.swift",
+      "overview": "Remote Search Refresh Updates Results And Chip State",
+      "started_at": "2026-04-07T10:17:38+00:00",
+      "finished_at": "2026-04-07T10:17:47+00:00",
+      "duration_seconds": 9.119874000549316
+    },
+    {
+      "unique_id": "BrowseScreenUITests.testRemoteSearchTapShowsChannelTitleAndTriggersAutomaticRefresh",
+      "target_kind": "ui",
+      "area": "Browse",
+      "file_path": "YoutubeFeederUITests/Browse/BrowseScreenUITests.swift",
+      "overview": "Remote Search Tap Shows Channel Title And Triggers Automatic Refresh",
+      "started_at": "2026-04-07T10:17:47+00:00",
+      "finished_at": "2026-04-07T10:17:57+00:00",
+      "duration_seconds": 9.793615102767944
+    },
+    {
+      "unique_id": "HomeScreenUITests.testHomePrimaryNavigationAndFeedbackFlow",
+      "target_kind": "ui",
+      "area": "Home",
+      "file_path": "YoutubeFeederUITests/Home/HomeScreenUITests.swift",
+      "overview": "Home Primary Navigation And Feedback Flow",
+      "started_at": "2026-04-07T10:17:57+00:00",
+      "finished_at": "2026-04-07T10:18:30+00:00",
+      "duration_seconds": 33.37920808792114
+    },
+    {
+      "unique_id": "HomeScreenUITests.testHomeRefreshUsesMockPathWithoutNetwork",
+      "target_kind": "ui",
+      "area": "Home",
+      "file_path": "YoutubeFeederUITests/Home/HomeScreenUITests.swift",
+      "overview": "Home Refresh Uses Mock Path Without Network",
+      "started_at": "2026-04-07T10:18:30+00:00",
+      "finished_at": "2026-04-07T10:18:35+00:00",
+      "duration_seconds": 4.6082940101623535
+    },
+    {
+      "unique_id": "HomeScreenUITests.testHomeStartupMetrics",
+      "target_kind": "ui",
+      "area": "Home",
+      "file_path": "YoutubeFeederUITests/Home/HomeScreenUITests.swift",
+      "overview": "Home Startup Metrics",
+      "started_at": "2026-04-07T10:18:35+00:00",
+      "finished_at": "2026-04-07T10:18:40+00:00",
+      "duration_seconds": 5.62364399433136
+    }
+  ]
+}

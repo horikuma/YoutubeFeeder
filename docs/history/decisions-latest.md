@@ -1,4 +1,8 @@
 ## 2026/04/07
+- metrics 文書の正本は JSON に置き、Markdown は renderer で生成する。
+  - build・test・startup metrics を機械処理しやすい形式へ揃えつつ既存 Markdown 出力も維持するため。
+- build と startup metrics は metrics-collect、full test metrics は metrics-test-collect で分離する。
+  - startup metrics のために毎回 full test suite を要求しない構成へ寄せるため。
 - セッション開始では、main最新化の直後にgit fetch --pruneとgit branch -dでローカルブランチを掃除する。
   - session-start skillの正規手順として、main最新化後のブランチ掃除を固定するため。
 - Issue詳細化Descriptionでは、禁止事項を連番、ToDoを本文番号付きチェックボックス箇条書きとして扱う。

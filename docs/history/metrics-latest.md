@@ -1,4 +1,41 @@
 ## 2026/04/07
+### Issue81 todo3 focused verification retry
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `2.748s`
+- startup test-without-building: `8.253s`
+- 検証合計時間: `11.001s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `471ms`
+- スプラッシュ表示からホーム表示まで: `163ms`
+- 起動からホーム表示まで: `634ms`
+- 起動から bootstrap 読込完了まで: `549ms`
+- 起動からホーム遷移開始まで: `631ms`
+
+### Issue81 todo3 focused verification
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `2.708s`
+- startup test-without-building: `3.166s`
+- 検証合計時間: `5.873s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+
+### Issue81 todo2 focused verification
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `4.202s`
+- startup test-without-building: `30.673s`
+- 検証合計時間: `34.874s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `531ms`
+- スプラッシュ表示からホーム表示まで: `326ms`
+- 起動からホーム表示まで: `857ms`
+- 起動から bootstrap 読込完了まで: `634ms`
+- 起動からホーム遷移開始まで: `853ms`
+
 - session-start focused verification: skills/session-start.md updated for git fetch --prune and git branch -d ordering
 - session-start focused verification: skills/session-start.md updated for git fetch --prune and git branch -d ordering
 - session-start focused verification: skills/session-start.md updated for git fetch --prune and git branch -d ordering
