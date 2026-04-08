@@ -16,7 +16,7 @@
         ],
         "one_of": []
       },
-      "description": "Append one validated user line into chat-latest.md without reading the file in the caller."
+      "description": "Append one chat content entry into chat-latest.md without reading the file in the caller. User entries are inserted at today's section top line, and assistant entries are inserted at the next line."
     },
     {
       "name": "history-decision-append",
