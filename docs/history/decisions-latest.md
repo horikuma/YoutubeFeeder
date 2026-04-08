@@ -1,4 +1,6 @@
 ## 2026/04/08
+- Python観測とSwiftLint観測は別系統として併存させる。
+  - health-barometerの既存観測を維持しつつ、SwiftLintはbuild時の追加観測として導入するため。
 - build確認でのSwiftLint観測は専用commandとして `swiftlint lint` を明記する。
   - 実行手順を固定し、観測値の出どころを verification skill だけで辿れるようにするため。
 - build確認ではSwiftLint結果を判定条件に混ぜず観測値として別枠記録する。
