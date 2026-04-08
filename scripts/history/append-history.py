@@ -21,7 +21,8 @@ def parse_args() -> argparse.Namespace:
         default=str(Path(__file__).resolve().parents[2] / "docs" / "history"),
     )
     parser.add_argument("--today", default=date.today().strftime("%Y/%m/%d"))
-    parser.add_argument("--user-line")
+    parser.add_argument("--role")
+    parser.add_argument("--text")
     parser.add_argument("--decision-line")
     parser.add_argument("--reason-line")
     parser.add_argument("--metric-line")
@@ -86,15 +87,15 @@ def validate_no_secrets(line: str) -> None:
             raise SystemExit(f"History line contains banned fragment: {fragment}")
 
 
-def validate_chat_line(user_line: str) -> list[str]:
-    if not user_line:
-        raise SystemExit("chat history requires --user-line")
-    if "\n" in user_line:
-        raise SystemExit("chat history line must be single-line")
-    if not user_line.startswith("- "):
-        raise SystemExit("--user-line must start with hyphen and space")
-    validate_no_secrets(user_line)
-    return [user_line]
+def validate_chat_line(role: str | None, text: str | None) -> list[str]:
+    if not role or not text:
+        raise SystemExit("chat history requires --role and --text")
+    if role not in {"user", "assistant"}:
+        raise SystemExit("--role must be user or assistant")
+    if "\n" in text:
+        raise SystemExit("chat history text must be single-line")
+    validate_no_secrets(text)
+    return [text]
 
 
 def validate_decision_lines(decision_line: str, reason_line: str) -> list[str]:
@@ -124,7 +125,7 @@ def validate_metric_line(metric_line: str) -> list[str]:
 
 def build_entry(args: argparse.Namespace) -> list[str]:
     if args.kind == "chat":
-        return validate_chat_line(args.user_line)
+        return validate_chat_line(args.role, args.text)
     if args.kind == "decision":
         return validate_decision_lines(args.decision_line, args.reason_line)
     return validate_metric_line(args.metric_line)
