@@ -1,4 +1,6 @@
 ## 2026/04/08
+- build確認でのSwiftLint観測は専用commandとして `swiftlint lint` を明記する。
+  - 実行手順を固定し、観測値の出どころを verification skill だけで辿れるようにするため。
 - build確認ではSwiftLint結果を判定条件に混ぜず観測値として別枠記録する。
   - Python観測を維持したままSwiftLintを並行導入し、既存のwarning/error判定を変えないため。
 - basic GUI のホーム・チャンネル一覧・YouTube検索は composition wrapper 経由で組み立てる。
