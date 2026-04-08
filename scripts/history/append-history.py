@@ -87,7 +87,7 @@ def validate_no_secrets(line: str) -> None:
             raise SystemExit(f"History line contains banned fragment: {fragment}")
 
 
-def validate_chat_line(role: str | None, text: str | None) -> list[str]:
+def validate_chat_line(role: str | None, text: str | None) -> tuple[str, str]:
     if not role or not text:
         raise SystemExit("chat history requires --role and --text")
     if role not in {"user", "assistant"}:
@@ -95,7 +95,7 @@ def validate_chat_line(role: str | None, text: str | None) -> list[str]:
     if "\n" in text:
         raise SystemExit("chat history text must be single-line")
     validate_no_secrets(text)
-    return [text]
+    return role, text
 
 
 def validate_decision_lines(decision_line: str, reason_line: str) -> list[str]:
@@ -123,7 +123,7 @@ def validate_metric_line(metric_line: str) -> list[str]:
     return [metric_line]
 
 
-def build_entry(args: argparse.Namespace) -> list[str]:
+def build_entry(args: argparse.Namespace) -> tuple[str, list[str]] | list[str]:
     if args.kind == "chat":
         return validate_chat_line(args.role, args.text)
     if args.kind == "decision":
@@ -137,6 +137,30 @@ def target_path(history_dir: Path, kind: str) -> Path:
     if kind == "decision":
         return history_dir / "decisions-latest.md"
     return history_dir / "metrics-latest.md"
+
+
+def render_chat_line(role: str, text: str) -> str:
+    prefix = "- " if role == "user" else "  - "
+    return f"{prefix}{text}"
+
+
+def append_chat_entry(latest_path: Path, today: str, role: str, text: str) -> None:
+    sections = ensure_today_first(split_sections(read_text(latest_path)), today)
+    updated_sections: list[str] = []
+    rendered_line = render_chat_line(role, text)
+
+    for index, section in enumerate(sections):
+        if index == 0 and heading_of(section) == today:
+            lines = section.splitlines()
+            heading = lines[0]
+            body = lines[1:]
+            insert_at = 0 if role == "user" else min(1, len(body))
+            body.insert(insert_at, rendered_line)
+            updated_sections.append("\n".join([heading, *body]).strip())
+        else:
+            updated_sections.append(section)
+
+    write_text(latest_path, render_sections(updated_sections))
 
 
 def append_entry(latest_path: Path, today: str, entry_lines: list[str]) -> None:
@@ -202,7 +226,11 @@ def main() -> int:
     today = normalize_today(args.today)
     latest_path = target_path(history_dir, args.kind)
     entry_lines = build_entry(args)
-    append_entry(latest_path, today, entry_lines)
+    if args.kind == "chat":
+        role, text = entry_lines
+        append_chat_entry(latest_path, today, role, text)
+    else:
+        append_entry(latest_path, today, entry_lines)
     validate_latest(args.kind, latest_path, today)
     return 0
 
