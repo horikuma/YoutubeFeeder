@@ -1,4 +1,5 @@
 ## 2026/04/08
+- swiftlint lint: exit code 2, 278 violations, 14 serious, observed only and not used for build pass/fail.
 - docs verification: node scripts/check-mermaid.mjs docs/human-view/design-overview.md
 ### Issue85 verification
 - 種別: design

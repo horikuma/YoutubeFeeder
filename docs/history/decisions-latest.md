@@ -1,4 +1,10 @@
 ## 2026/04/08
+- Python観測とSwiftLint観測は別系統として併存させる。
+  - health-barometerの既存観測を維持しつつ、SwiftLintはbuild時の追加観測として導入するため。
+- build確認でのSwiftLint観測は専用commandとして `swiftlint lint` を明記する。
+  - 実行手順を固定し、観測値の出どころを verification skill だけで辿れるようにするため。
+- build確認ではSwiftLint結果を判定条件に混ぜず観測値として別枠記録する。
+  - Python観測を維持したままSwiftLintを並行導入し、既存のwarning/error判定を変えないため。
 - basic GUI のホーム・チャンネル一覧・YouTube検索は composition wrapper 経由で組み立てる。
   - prewarm を含む screen assembly を BasicGUIComposition に集約し、公開契約を保ったまま差し替え単位を揃えるため。
 - basic GUI の route switch と画面 presentation 選択を BasicGUIComposition へ移す。

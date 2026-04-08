@@ -45,26 +45,15 @@
 ### 制約
 
 - 追記は `*-latest.md` に対してだけ行わなければならない。
-- `docs/history/*-latest.md` の更新は、LLM の本文読込みや直接編集で行ってはならず、対応する `scripts/command-runner.py 'history-chat-append'`、`scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'` を通して行わなければならない。
+- `docs/history/*-latest.md` の更新は、LLM の本文読込みや直接編集で行ってはならず、対応する `scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'` を通して行わなければならない。
 - `*-log.md` は追記対象にも LLM 読込対象にもしてはならない。
-- `*-latest.md` へ新しい項目を追加する場合は、対応する `./scripts/command-runner.py 'history-chat-append'`、`./scripts/command-runner.py 'history-decision-append'`、`./scripts/command-runner.py 'history-metrics-append'` のいずれかが対象の日付見出し行の次行へ挿入しなければならない。
+- `*-latest.md` へ新しい項目を追加する場合は、対応する `./scripts/command-runner.py 'history-decision-append'`、`./scripts/command-runner.py 'history-metrics-append'` のいずれかが対象の日付見出し行の次行へ挿入しなければならない。
 - `*-latest.md` は、先頭行を日付見出しから始め、先頭の説明文を置いてはならない。
 - 見出しと直後の列挙の間に空行を入れてはならない。
 - 箇条書きの項目同士の間に空行を入れてはならない。
 - 記録する文字列に個人情報、APIキー、トークン、絶対パス、ホームディレクトリが含まれる場合は、除去しなければならない。
 
 ### ファイル固有規則
-
-#### `docs/history/chat-latest.md`
-
-- ユーザー指示は、`skills/user-instruction-understanding.md` で確定した 1 行を、次の例外を除き、変更せずそのまま記録しなければならない。
-- `docs/history/chat-latest.md` への追記は `scripts/command-runner.py 'history-chat-append'` の成功で完了とし、LLM が本文を読んで追記位置を判断してはならない。
-- `docs/history/chat-latest.md` へ追記する場合は、次の usage で実行しなければならない。
-  `./scripts/command-runner.py 'history-chat-append' --user-line '<user_line>'[ --today '<today>']`
-  例: `./scripts/command-runner.py 'history-chat-append' --user-line '- 実施し、PRを作成せよ。'`
-    - `<user_line>` は、`skills/user-instruction-understanding.md` で確定した 1 行のユーザー指示であり、先頭を `- ` で始めなければならない。
-    - `<today>` は、省略時は当日値が使われ、指定する場合は `YYYY/MM/DD` または `YYYY-MM-DD` 形式でなければならない。
-- 制約である「記録する文字列に個人情報、APIキー、トークン、絶対パス、ホームディレクトリが含まれる場合は、除去しなければならない。」は、この節の規則より上位に適用しなければならない。
 
 #### `docs/history/metrics-latest.md`
 
@@ -98,7 +87,6 @@
 
 - コミット対象が、その時点で完了条件を満たした変更セットだけで構成されていること。
 - 必要な検証と、対応する `docs/history/*-latest.md` 更新が完了したうえでコミットされていること。
-- `docs/history/chat-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'history-chat-append'` が成功し、その結果が `docs/history/chat-latest.md` に反映されていること。
 - `docs/history/decisions-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'history-decision-append'` が成功し、その結果が `docs/history/decisions-latest.md` に反映されていること。
 - `docs/history/metrics-latest.md` または `docs/metrics/metrics-test.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'`、`scripts/command-runner.py 'history-metrics-append'` のうち今回実行すべき command が成功し、その結果が対応する文書へ反映されていること。
 - コミットメッセージが日本語で記述されていること。
@@ -112,6 +100,6 @@
 - `docs/history/*-log.md` を直接更新してはならない。
 - `docs/history/*-latest.md` の本文を読んで追記位置を判断したり、LLM が直接編集したりしてはならない。
 - `docs/history/*-latest.md` の更新が必要なのに省略したままコミットしてはならない。
-- この文書で規定した usage 以外の形で `scripts/command-runner.py 'history-chat-append'`、`scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'`、`scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'` を使ってはならない。
+- この文書で規定した usage 以外の形で `scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'`、`scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'` を使ってはならない。
 - Issue に実施タスクの ToDo があるのに、対応する `IssueToDo` を未更新のままコミットしてはならない。
 - 英語や空文、変更内容と対応しない文言でコミットメッセージを書いてはならない。
