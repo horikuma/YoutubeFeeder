@@ -154,6 +154,7 @@ def append_chat_entry(latest_path: Path, today: str, role: str, text: str) -> No
             lines = section.splitlines()
             heading = lines[0]
             body = lines[1:]
+            # Assistant entries stay immediately below today's leading user entry.
             insert_at = 0 if role == "user" else min(1, len(body))
             body.insert(insert_at, rendered_line)
             updated_sections.append("\n".join([heading, *body]).strip())
