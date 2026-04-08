@@ -9,14 +9,19 @@
       "required_inputs": {
         "all_of": [
           {
-            "name": "user_line",
-            "sources": ["arg:--user-line"],
-            "description": "記録するユーザー指示の1行"
+            "name": "chat_role",
+            "sources": ["arg:--role"],
+            "description": "chat 履歴へ追記する役割。user または assistant"
+          },
+          {
+            "name": "chat_text",
+            "sources": ["arg:--text"],
+            "description": "chat 履歴へ追記する内容テキスト"
           }
         ],
         "one_of": []
       },
-      "description": "Append one validated user line into chat-latest.md without reading the file in the caller."
+      "description": "Append one chat content entry into chat-latest.md without reading the file in the caller. The caller passes role and plain text only."
     },
     {
       "name": "history-decision-append",
