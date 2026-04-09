@@ -1,4 +1,6 @@
 ## 2026/04/10
+- on-input hook では最初の改行以後だけを引用扱いに限定する。
+  - 単一行入力まで引用扱いになる解釈を防ぎ、入力記録の境界を一意にするため。
 - main最新化は git-main-sync へ集約し、ahead / diverged 時は origin/main との共通祖先 commit へ戻してから pull --ff-only する。
   - LLM が手作業の Git 分岐解釈へ逃げず、終了コードだけで成功可否と失敗モードを判定できるようにするため。
 - セッション開始から merged ブランチ削除責務を外し、終了時の main 最新化とローカルブランチ掃除は session-end skill へ分離する。
