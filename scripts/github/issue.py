@@ -88,8 +88,6 @@ def main() -> int:
     if args.command == "show":
         if args.body_only:
             sys.stdout.write(issue.body or "")
-            if issue.body:
-                sys.stdout.write("\n")
         else:
             json.dump(issue.raw_data, sys.stdout, ensure_ascii=False, indent=2)
             sys.stdout.write("\n")
