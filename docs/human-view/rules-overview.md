@@ -46,6 +46,12 @@ flowchart TD
 | 8 | コミットする | Git 履歴 | 変更単位が追えるコミット |
 | 9 | Pull Request を作る | GitHub Pull Request | Issue とつながった提出物 |
 
+## セッション終了時にやること
+
+1. 必要なコミットと Pull Request 作成が終わっていることを確認する。
+2. `セッション終了` task が必要なら `skills/session-end.md` を読み、`main` へ戻して最新化し、merged な local branch を掃除する。
+3. 次の依頼が来ても基準状態から再開できることを確認する。
+
 ## Issue ドリブンで見るべき流れ
 
 ```mermaid
