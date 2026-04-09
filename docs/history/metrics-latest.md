@@ -1,4 +1,5 @@
 ## 2026/04/10
+- verification: next session start after session-finish kept Issue 103 value and restarted session_total without prior-session carryover for ToDo 6
 - verification: multiple metrics-llm-elapsed finish calls plus session-finish and project-field-set issue reflection succeeded for Issue 103 ToDo 5
 - focused verification: python3 -m py_compile scripts/metrics/llm-elapsed.py and representative metrics-llm-elapsed start/finish/status/session-finish flow for Issue 103 ToDo 4
 - focused verification: contract sync for session-end/pr-creation/specs-environment on Issue 103 ToDo 3
