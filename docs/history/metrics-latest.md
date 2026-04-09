@@ -1,4 +1,5 @@
 ## 2026/04/10
+- focused verification: contract sync for session-end/pr-creation/specs-environment on Issue 103 ToDo 3
 - focused verification: read metrics-llm-elapsed/project-field-set contract and state file behavior for Issue 103 ToDo 2
 - focused verification: read current LLM所要時間 contract in session-end/pr-creation/on-input/on-output/specs-environment for Issue 103 ToDo 1
 - docs only verification: git diff -- skills/hooks/on-input.md
