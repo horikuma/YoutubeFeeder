@@ -1,4 +1,5 @@
 ## 2026/04/10
+- focused verification: read current LLM所要時間 contract in session-end/pr-creation/on-input/on-output/specs-environment for Issue 103 ToDo 1
 - docs only verification: git diff -- skills/hooks/on-input.md
 - issue105 todo3 focused verification: session-end.md に git branch -d / fully merged が残っておらず、git-main-sync + git branch -D へ置換済みであることを確認
 - issue105 todo2 focused verification: session-end.md を git-main-sync + git branch -D 前提へ更新し、旧記述が残っていないことを確認
