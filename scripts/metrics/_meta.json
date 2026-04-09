@@ -50,7 +50,7 @@
           {
             "name": "action",
             "sources": ["arg:action"],
-            "description": "start / finish / status / reset のいずれかの操作"
+            "description": "start / finish / status / reset / session-finish のいずれかの操作"
           }
         ],
         "one_of": []
