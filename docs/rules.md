@@ -36,6 +36,10 @@
 
 - セッション開始を行う時は、`skills/session-start.md` を開かなければならない。
 
+### セッション終了
+
+- セッション終了を行う時は、`skills/session-end.md` を開かなければならない。
+
 ### ユーザー指示の理解
 
 - ユーザー指示の理解を行う時は、`skills/user-instruction-understanding.md` を開かなければならない。
