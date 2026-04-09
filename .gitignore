@@ -24,3 +24,4 @@ Config/LocalSecrets.xcconfig
 llm-temp/
 llm-cache/
 __pycache__/
+docs/history/chat-latest.md
