@@ -12,13 +12,9 @@
 ## 実施内容
 
 - GitHub Issue を 1 件新規作成しなければならない。
-  `./scripts/command-runner.py 'issue-creation' --title '<title>' --body-file 'llm-temp/issue-creation-<summary>.md'`
-  例: `./scripts/command-runner.py 'issue-creation' --title 'Git履歴からサルベージして command 例文必須要件を rules / skills へ復元する' --body-file 'llm-temp/issue-creation-description.md'`
+  `./scripts/command-runner.py 'issue-creation' --title '<title>'`
+  例: `./scripts/command-runner.py 'issue-creation' --title 'Git履歴からサルベージして command 例文必須要件を rules / skills へ復元する'`
     - `<title>` がユーザ指示に存在しない場合は、処理を中断しなければならない。
-    - `llm-temp/issue-creation-<summary>.md` は、Issue Description ファイルとして常に生成し、指定しなければならない。
-    - ユーザが Issue Description を出力せよと指示した場合は、その指示内容を Issue Description として `llm-temp/issue-creation-<summary>.md` へ出力しなければならない。
-    - ユーザが Issue Description を出力せよと指示していない場合は、空ファイルを `llm-temp/issue-creation-<summary>.md` に生成しなければならない。
-    - `<summary>` は、`.md` の前に入る空でない要約文字列であり、省略してはならない。
 
 ## 完了条件
 
