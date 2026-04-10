@@ -28,6 +28,7 @@
 
 ### 更新
 
+- 今回の変更セットに必要な `docs/history/*-latest.md` 更新を、対応する `scripts/command-runner.py` の command だけで完了させなければならない。
 - focused verification が完了した後、Git の staging 前かつ commit 前に、次の usage で対象 Issue の `IssueToDo` を 1 件だけチェック済みに更新しなければならない。
   `./scripts/command-runner.py 'issue-todo-check' --issue-number '<issue_number>' --todo-section 'IssueToDo' --todo-number '<todo_number>' --body-file 'llm-temp/issue-todo-check-<issue_number>.md'`
   例: `./scripts/command-runner.py 'issue-todo-check' --issue-number '69' --todo-section 'IssueToDo' --todo-number '7' --body-file 'llm-temp/issue-todo-check-69.md'`
@@ -38,7 +39,6 @@
 ### コミット
 
 - コミットは、focused verification と `IssueToDo` 更新が完了した後に、今回完了した 1 件分の変更セットだけを対象として行わなければならない。
-- コミット前には、今回の変更セットに必要な `docs/history/*-latest.md` 更新を、対応する `scripts/command-runner.py` の command だけで完了させなければならない。
 
 ### 停止判断
 
