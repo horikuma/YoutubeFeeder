@@ -25,11 +25,11 @@
 - ユーザー指示がレイヤ構造、依存方向、データフロー、責務境界の変更に該当する場合は、`docs/specs/specs-architecture.md` を読まなければならない。
 - ユーザー指示がファイル単位、型単位、テスト単位の責務や構成の変更に該当する場合は、`docs/specs/specs-design.md` を読まなければならない。
 - ユーザー指示がローカル開発環境、版固定、セットアップ、再現性の変更に該当する場合は、`docs/specs/specs-environment.md` を読まなければならない。
-- ユーザー指示が文書配置や文書更新先の判断を含む場合は、`docs/rules.md` の `文書同期` 節を読まなければならない。
-- ユーザー指示が `skills`、`scripts`、`tools` の変更に該当する場合は、`docs/rules.md` の `スキル作成` 節を読まなければならない。
-- ユーザー指示がルール文書の作成または更新に該当する場合は、`docs/rules.md` の `ルール作成・更新` 節を読まなければならない。
-- ユーザー指示が、skill の呼び出し方、`scripts` 入口、`llm-cache` 参照キーの rules への固定に該当する場合は、`docs/rules.md` に加えて、対応する `scripts/*`、`scripts/*/_meta.json`、`llm-cache/*.json` を読み、command 形式と参照キー名を確定しなければならない。
-- ユーザー指示が chat 履歴追記の公開面や hook から渡す入力形式の変更に該当する場合は、`docs/rules.md` に加えて、`skills/hooks/on-input.md`、`skills/hooks/on-output.md`、対応する `scripts/history/*`、`scripts/history/_meta.json` を読み、user / assistant の責務境界と command 形式を確定しなければならない。
+- ユーザー指示が文書配置や文書更新先の判断を含む場合は、`AGENTS.md` の `文書同期` 節を読まなければならない。
+- ユーザー指示が `skills`、`scripts`、`tools` の変更に該当する場合は、`AGENTS.md` の `スキル作成` 節を読まなければならない。
+- ユーザー指示がルール文書の作成または更新に該当する場合は、`AGENTS.md` の `ルール作成・更新` 節を読まなければならない。
+- ユーザー指示が、skill の呼び出し方、`scripts` 入口、`llm-cache` 参照キーの rules への固定に該当する場合は、`AGENTS.md` に加えて、対応する `scripts/*`、`scripts/*/_meta.json`、`llm-cache/*.json` を読み、command 形式と参照キー名を確定しなければならない。
+- ユーザー指示が chat 履歴追記の公開面や hook から渡す入力形式の変更に該当する場合は、`AGENTS.md` に加えて、`skills/hooks/on-input.md`、`skills/hooks/on-output.md`、対応する `scripts/history/*`、`scripts/history/_meta.json` を読み、user / assistant の責務境界と command 形式を確定しなければならない。
 - Issue に基づいて着手する場合は、実装前に対象 Issue の Description を読み、作業単位、完了条件、非対象を確定しなければならない。
 - 上記のどの種別にも該当しない場合は、追加の文書を読まず、ユーザー指示と直接関係するコードや既存ファイルだけを確認しなければならない。
 - タスク規定が曖昧で、変更対象、完了条件、非対象、更新先のいずれかを確定できない場合は、処理を中断し、その旨をユーザーへ報告しなければならない。

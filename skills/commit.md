@@ -76,7 +76,7 @@
 - 各決定の理由は、`scripts/command-runner.py 'history-decision-append'` により、その決定内容の箇条書き行の直後の次行に、行頭から1段だけインデントを下げて記述しなければならない。
 - `docs/history/decisions-latest.md` へ追記する場合は、次の usage で実行しなければならない。
   `./scripts/command-runner.py 'history-decision-append' --decision-line '<decision_line>' --reason-line '<reason_line>'[ --today '<today>']`
-  例: `./scripts/command-runner.py 'history-decision-append' --decision-line '- skills内のcommand参照にも具体例文を必須とする。' --reason-line '  - docs/rules.mdの共通原則と整合させるため。'`
+  例: `./scripts/command-runner.py 'history-decision-append' --decision-line '- skills内のcommand参照にも具体例文を必須とする。' --reason-line '  - AGENTS.mdの共通原則と整合させるため。'`
     - `<decision_line>` は、1行の決定事項であり、先頭を `- ` で始めなければならない。
     - `<reason_line>` は、1行の理由であり、先頭を `  - ` で始めなければならない。
     - `<today>` は、省略時は当日値が使われ、指定する場合は `YYYY/MM/DD` または `YYYY-MM-DD` 形式でなければならない。
