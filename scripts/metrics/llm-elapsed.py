@@ -51,7 +51,8 @@ def main() -> int:
 
     if args.action == "finish":
         if not STATE_FILE.exists():
-            raise SystemExit("LLM timer has not been started.")
+            print("(LLM所要時間: 約0分)")
+            return 0
         start_epoch = read_int(STATE_FILE)
         elapsed_seconds = now_epoch - start_epoch
         write_int(SESSION_FILE, read_int(SESSION_FILE) + elapsed_seconds)
