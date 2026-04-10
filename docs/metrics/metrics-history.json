@@ -5,6 +5,26 @@
       "items": [
         {
           "kind": "metrics_entry",
+          "label": "Issue95 verification",
+          "change_kind": "source",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 4.6367950439453125,
+          "startup_test_duration_seconds": 30.93671989440918,
+          "total_duration_seconds": 35.57351493835449,
+          "startup_metrics": {
+            "app_launch_to_bootstrap_ms": 689,
+            "app_launch_to_home_ms": 953,
+            "app_launch_to_maintenance_enter_ms": 949,
+            "app_launch_to_splash_ms": 606,
+            "bootstrap_to_home_ms": 264,
+            "splash_to_home_ms": 347
+          }
+        },
+        {
+          "kind": "metrics_entry",
           "label": "Issue103 temp file naming rule update",
           "change_kind": "docs",
           "destination_display": "skip",
