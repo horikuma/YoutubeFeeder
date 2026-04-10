@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-STATE_DIR = REPO_ROOT / ".git" / "llm-elapsed"
+STATE_DIR = REPO_ROOT / "llm-temp" / "llm-elapsed"
 STATE_FILE = STATE_DIR / "current_start_epoch"
 SESSION_FILE = STATE_DIR / "session_accumulated_seconds"
 
