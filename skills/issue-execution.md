@@ -42,9 +42,12 @@
     - `<issue_number>` は、今回実施中の Issue 番号であり、省略してはならない。
     - `<todo_number>` は、今回完了した `### IssueToDo` 配下で本文テキストとして書かれた ToDo 番号であり、省略してはならない。
     - `llm-temp/issue-todo-<issue_number>.md` は、現在の Issue Description と一致しているローカル Markdown であり、更新後はそのまま GitHub へ反映される。
+- 'llm-temp/issue-todo-<issue_number>.md'を、直接編集してはならない。
+- 'llm-temp/issue-todo-<issue_number>.md'と同じ役割のファイルを、新規に生成してはならない。
 
 ### コミット
 
+- working treeが空の場合は、コミットをスキップしなければならない。
 - コミットは、focused verification と `IssueToDo` 更新が完了した後に、今回完了した 1 件分の変更セットだけを対象として行わなければならない。
 
 ### 停止判断
