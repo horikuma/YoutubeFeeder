@@ -1,6 +1,22 @@
 {
   "days": [
     {
+      "date": "2026/04/10",
+      "items": [
+        {
+          "kind": "metrics_entry",
+          "label": "Issue103 temp file naming rule update",
+          "change_kind": "docs",
+          "destination_display": "skip",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "measurement": "skip",
+          "reason": "ドキュメントのみの変更のため"
+        }
+      ]
+    },
+    {
       "date": "2026/04/08",
       "items": [
         {

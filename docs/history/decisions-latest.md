@@ -1,4 +1,8 @@
 ## 2026/04/10
+- issue-todo-check系のllm-temp本文ファイル名をIssue番号基準へ統一する。
+  - ToDoごとの別名ファイル増殖を避けつつ、Issue単位の対応関係を保持するため。
+- metrics-llm-elapsed は応答単位の finish とセッション単位の session-finish を分離する。
+  - 履歴記録の粒度を維持したまま、session-end で累計反映と状態クリアを両立するため。
 - on-input hook では最初の改行以後だけを引用扱いに限定する。
   - 単一行入力まで引用扱いになる解釈を防ぎ、入力記録の境界を一意にするため。
 - main最新化は git-main-sync へ集約し、ahead / diverged 時は origin/main との共通祖先 commit へ戻してから pull --ff-only する。

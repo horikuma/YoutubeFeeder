@@ -22,7 +22,6 @@
 - Pull Request の body には、対応する Issue を GitHub の機能で連携クローズするため、`Closes #{issue_number}` を明記しなければならない。
 - Pull Request の作成時は、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態にしなければならない。
 - Pull Request 作成・更新に必要な項目が 1 つでも未完了なら、開発シーケンスを完了扱いにしてはならず、不足項目として列挙して停止しなければならない。
-- GitHub Project に `LLM所要時間` の Number フィールドがある場合は、開発シーケンス終盤で実測した分数を対応する Issue 項目へ反映しなければならない。フィールドが無い場合は対応する skill / script で作成してから更新しなければならない。
 - LLM は Issue を直接 close してはならない。
 
 ## 完了条件
