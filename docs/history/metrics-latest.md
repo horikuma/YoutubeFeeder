@@ -1,4 +1,5 @@
 ## 2026/04/10
+- stash pop commit: py_compile scripts/metrics/llm-elapsed.py and finish without state returned 約0分 successfully.
 - Issue95 verification: warning 0, error 0, swiftlint lint 0 violations and 0 serious after metrics-collect.
 ### Issue95 verification
 - 種別: source
