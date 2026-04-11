@@ -108,6 +108,10 @@ flowchart TD
     YouTubeSearch --> SearchProcessing["YouTubeSearchProcessing"]
 ```
 
+### classDiagram の扱い
+
+`classDiagram` は Service / Store / Model の関係を確認する補助資料としてだけ使う。route / layout / UI orchestration は判断配置図で扱い、`classDiagram` を主説明にしない。
+
 ## 主要シーケンス
 
 ### ホームからチャンネル別動画一覧を開く
