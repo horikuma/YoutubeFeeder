@@ -300,8 +300,11 @@ actor FeedCacheStore {
         _ = await cacheThumbnail(videoID: video.id)
     }
 
-    func cacheThumbnail(for video: CachedVideo) async -> String? {
-        await cacheThumbnail(videoID: video.id)
+    func cacheThumbnail(
+        for video: CachedVideo,
+        fetch: ThumbnailFetchOperation = FeedCacheStore.fetchThumbnailResponse
+    ) async -> String? {
+        await cacheThumbnail(videoID: video.id, fetch: fetch)
     }
 
     func cacheThumbnail(

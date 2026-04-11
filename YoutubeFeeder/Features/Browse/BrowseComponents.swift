@@ -431,14 +431,19 @@ private struct VideoMetadataBadge: View {
 
 struct ThumbnailView: View {
     private static let referenceStore = FeedCacheStore()
+    private static let writeService = FeedCacheWriteService(
+        store: FeedCacheStore(),
+        remoteSearchCacheStore: RemoteVideoSearchCacheStore()
+    )
 
     let video: CachedVideo
     var contentMode: ContentMode = .fill
+    @State private var cachedThumbnail: CachedThumbnailReference?
     @State private var lastTrackedFilename: String?
 
     var body: some View {
         Group {
-            if let filename = video.thumbnailLocalFilename {
+            if let filename = localFilename {
                 AsyncImage(url: FeedCachePaths.thumbnailURL(filename: filename)) { image in
                     image.resizable().aspectRatio(contentMode: contentMode)
                 } placeholder: {
@@ -449,17 +454,33 @@ struct ThumbnailView: View {
                     lastTrackedFilename = filename
                     await Self.referenceStore.recordThumbnailReference(filename: filename)
                 }
-            } else if let remoteURL = video.thumbnailRemoteURL {
-                AsyncImage(url: remoteURL) { image in
-                    image.resizable().aspectRatio(contentMode: contentMode)
-                } placeholder: {
-                    placeholder
-                }
             } else {
                 placeholder
+                    .task(id: video.id) {
+                        guard video.thumbnailRemoteURL != nil else { return }
+                        if cachedThumbnail?.videoID == video.id { return }
+                        if let filename = await Self.writeService.cacheThumbnail(for: video) {
+                            cachedThumbnail = CachedThumbnailReference(videoID: video.id, filename: filename)
+                        }
+                    }
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var localFilename: String? {
+        if let filename = video.thumbnailLocalFilename {
+            return filename
+        }
+        if cachedThumbnail?.videoID == video.id {
+            return cachedThumbnail?.filename
+        }
+        return nil
+    }
+
+    private struct CachedThumbnailReference {
+        let videoID: String
+        let filename: String
     }
 
     private var placeholder: some View {
