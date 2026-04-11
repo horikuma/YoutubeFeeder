@@ -6,7 +6,17 @@
 - LLM は、読んだ文書の記載内容だけで判断しなければならず、推測、補完、慣習、文脈、先回りで意味を追加してはならない。
 - タスク規定が曖昧で、タスク遂行に推論を要すると判明した場合は、処理を中断し、その旨をユーザーへ報告しなければならない。
 - Git 操作は、同一リポジトリ内で常に 1 操作ずつ直列に実行しなければならない。
-- Git 追跡中の既存ファイルの改名は、履歴を保持するため `git mv` を使わなければならない。
+- Git command を実行する時は、次の usage で `./scripts/command-runner.py 'git'` を経由しなければならない。
+  `./scripts/command-runner.py 'git' <git_args>...`
+  例: `./scripts/command-runner.py 'git' status --short`
+  - `<git_args>...` は、通常の `git` command へ渡す subcommand と option である。
+  - `./scripts/command-runner.py 'git-main-sync'` のように、別の Git 専用 wrapper command が明示されている場合は、その command を使わなければならない。
+  - Git command を `git <git_args>...` として直接実行してはならない。
+- Git 追跡中の既存ファイルの改名は、履歴を保持するため次の usage で `./scripts/command-runner.py 'git'` を使わなければならない。
+  `./scripts/command-runner.py 'git' mv <old_path> <new_path>`
+  例: `./scripts/command-runner.py 'git' mv docs/old.md docs/new.md`
+  - `<old_path>` は、Git 追跡中の既存ファイルパスである。
+  - `<new_path>` は、変更後のファイルパスである。
 - Git 未追跡ファイルのファイル名変更は `mv` を使わなければならない。
 - Git 追跡中の既存ファイルを改名した後に同じファイルへ本文編集を加える場合は、改名と本文編集の間にコミットを挟まなければならない。
 - チャット入力を受け取った直後、および応答を出力完了する直前には、対応するフック処理を必ず実行しなければならない。

@@ -23,9 +23,14 @@
 - ドキュメントだけを変更した場合も、ユーザーから明示的に停止されていない限り、その変更セットに必要な `docs/history/*-latest.md` 更新を終えてからコミットしなければならない。
 - 細かいコミットが積み上がること自体は許容し、未確定の複数シーケンスを 1 つの大きなコミットへまとめることより、各変更セットをコミットで確定することを優先しなければならない。
 - コミットメッセージは日本語で記述しなければならない。
-- Git の staging は `git add <path>...` で行わなければならない。
-- Git の commit は `git commit -m '<message>'` で行わなければならない。
-- `<message>` は、日本語で記述した commit message でなければならない。
+- Git の staging は、次の usage で `./scripts/command-runner.py 'git'` を使わなければならない。
+  `./scripts/command-runner.py 'git' add <path>...`
+  例: `./scripts/command-runner.py 'git' add AGENTS.md`
+  - `<path>...` は、コミット対象へ含めるファイルパスであり、省略してはならない。
+- Git の commit は、次の usage で `./scripts/command-runner.py 'git'` を使わなければならない。
+  `./scripts/command-runner.py 'git' commit -m '<message>'`
+  例: `./scripts/command-runner.py 'git' commit -m 'Git操作をwrapper経由へ統一する'`
+  - `<message>` は、日本語で記述した commit message でなければならない。
 - Issue 駆動で進めたタスクは、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態を壊してはならない。
 - Issue の ToDo を完了として反映する場合は、次の usage で `./scripts/command-runner.py 'issue-todo'` を使わなければならない。
   `./scripts/command-runner.py 'issue-todo' --check --issue-number '<issue_number>' --todo-section 'IssueToDo' --todo-number '<todo_number>' --body-file 'llm-temp/issue-todo-<issue_number>.md'`
