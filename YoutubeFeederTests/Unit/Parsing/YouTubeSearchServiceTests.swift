@@ -139,4 +139,64 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
 
         XCTAssertEqual(response.items.map(\.id), ["video-1", "video-2", "video-3"])
     }
+
+    func testFilterPlayableVideosExcludesItemsMissingDuration() throws {
+        let json = """
+        {
+          "items": [
+            {
+              "id": "video-1",
+              "contentDetails": {
+                "duration": "PT27M10S"
+              },
+              "snippet": {
+                "publishedAt": "2026-03-15T02:00:00Z",
+                "channelId": "UC111",
+                "channelTitle": "One",
+                "title": "Playable",
+                "liveBroadcastContent": "none",
+                "thumbnails": {
+                  "high": { "url": "https://example.com/1.jpg" }
+                }
+              }
+            },
+            {
+              "id": "video-2",
+              "contentDetails": {},
+              "snippet": {
+                "publishedAt": "2026-03-15T01:00:00Z",
+                "channelId": "UC222",
+                "channelTitle": "Two",
+                "title": "Missing duration",
+                "liveBroadcastContent": "none",
+                "thumbnails": {
+                  "high": { "url": "https://example.com/2.jpg" }
+                }
+              }
+            },
+            {
+              "id": "video-3",
+              "snippet": {
+                "publishedAt": "2026-03-15T00:00:00Z",
+                "channelId": "UC333",
+                "channelTitle": "Three",
+                "title": "Missing content details",
+                "liveBroadcastContent": "none",
+                "thumbnails": {
+                  "high": { "url": "https://example.com/3.jpg" }
+                }
+              }
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let response = try decoder.decode(VideoListResponse.self, from: json)
+        let filtered = YouTubeSearchService.filterPlayableVideos(response.items)
+
+        XCTAssertEqual(filtered.map(\.id), ["video-1"])
+        XCTAssertEqual(filtered.first?.durationSeconds, 1_630)
+    }
 }
