@@ -6,7 +6,7 @@ struct VideoListResponse: Decodable {
     struct Item: Decodable {
         let id: String
         let snippet: Snippet
-        let contentDetails: ContentDetails
+        let contentDetails: ContentDetails?
         let statistics: Statistics?
         let liveStreamingDetails: LiveStreamingDetails?
     }
@@ -30,7 +30,7 @@ struct VideoListResponse: Decodable {
     }
 
     struct ContentDetails: Decodable {
-        let duration: String
+        let duration: String?
     }
 
     struct Statistics: Decodable {

@@ -46,7 +46,7 @@ extension YouTubeSearchService {
                 publishedAt: item.snippet.publishedAt,
                 videoURL: URL(string: "https://www.youtube.com/watch?v=\(item.id)"),
                 thumbnailURL: YouTubeThumbnailCandidates.preferredURL(for: item.id),
-                durationSeconds: parseDuration(item.contentDetails.duration),
+                durationSeconds: item.contentDetails?.duration.flatMap(parseDuration),
                 viewCount: item.statistics?.viewCount.flatMap(Int.init)
             )
         }
