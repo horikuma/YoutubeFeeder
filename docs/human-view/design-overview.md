@@ -61,6 +61,8 @@ flowchart TD
 
 対象は route / layout / presentation の決定位置である。SwiftUI View の親子関係、Coordinator から Service / Store へのデータフローは含めない。
 
+composition は画面組み立てと判断の集約単位であり、UI クラスではない。View / Service / Store と同列の静的クラス依存として扱わず、どこで route、layout、presentation が決まるかを示す概念として扱う。
+
 ```mermaid
 flowchart TD
     ContentView["ContentView"] --> AppLayout["AppLayout"]
