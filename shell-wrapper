@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  printf 'usage: %s <file> [args...]\n' "$(basename "$0")" >&2
+}
+
+die() {
+  printf 'shell-wrapper: %s\n' "$1" >&2
+  exit 1
+}
+
+if [[ $# -lt 1 ]]; then
+  usage
+  die "execution target must be a file path"
+fi
+
+target=$1
+shift
+
+if [[ "$target" == "-" ]]; then
+  die "stdin execution is not allowed"
+fi
+
+if [[ "$target" == -* ]]; then
+  die "execution target must be a file path, not an option"
+fi
+
+if [[ ! -f "$target" ]]; then
+  die "execution target is not a regular file: $target"
+fi
+
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+extension=${target##*.}
+if [[ "$target" == "$extension" ]]; then
+  extension=""
+fi
+
+if [[ "$extension" == "py" ]]; then
+  venv_python="$repo_root/.venv/bin/python3"
+  if [[ ! -x "$venv_python" ]]; then
+    python3 -m venv "$repo_root/.venv"
+  fi
+  exec "$venv_python" "$target" "$@" </dev/null
+fi
+
+exec bash "$target" "$@" </dev/null

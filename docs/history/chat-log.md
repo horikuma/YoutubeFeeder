@@ -1,3 +1,108 @@
+## 2026/04/10
+- セッションを終了せよ。[引用要約: IssueへのLLM使用時間登録は除外する。]
+  - セッションを終了しました。main へ戻し、LLMセッション所要時間をクローズし、Issueへの時間反映は指示どおり省略しました。
+- 今回はそのブロックを無視して良い。PRを作成せよ。
+  - issue-complex から main 向け Pull Request #115 を作成しました。
+- ブランチissue-complexを作成し、プッシュし、origin/mainへのPRを作成せよ。
+  - issue-complex ブランチを作成して push しましたが、PR は対応 Issue 番号を一意に確定できず作成していません。
+- コミットせよ。
+  - skills/issue-execution.md の差分をコミットしました。
+- コミットせよ。
+  - Issue実施スキルの責務構造整理をコミットしました。
+- コミットせよ。
+  - history の latest ファイルを Git 管理対象外にする変更をコミットしました。
+- chat-latest.mdと同様に、*-latest.mdをGit管理対象外とし、GitIgnoreへ追加せよ。ただし、ファイルを削除してはならない。
+  - docs/history の *-latest.md を gitignore 対象に追加し、decisions-latest.md と metrics-latest.md を削除せずに Git 管理対象外へ変更しました。
+- コミットせよ。
+  - Issue詳細化スキルのブランチ登録削除をコミットしました。
+- Issue詳細化スキルのブランチ登録はGitHub標準機能へ移譲済みなので、スキルから削除せよ。
+  - Issue詳細化スキルからブランチ登録に関する usage、要件、完了条件、禁止事項を削除しました。
+- コミットせよ。
+  - Issue追加スキルの修正をコミットしました。
+- Issue追加スキルから、Description指定を削除し、引数で渡すのはタイトルのみとせよ。それ以外は従来のままとせよ。
+  - Issue追加スキルの usage を title のみに変更し、Description 指定に関する記述を削除しました。
+- セッションを開始せよ。
+  - セッションを開始しました。main を同期し、remote-tracking branch を prune し、履歴ローテーション差分をコミットしました。
+- 記録を見ると20分ほどで、30分というのは多いように感じる。本スレッドの作業時間記録を合計せよ。
+  - 本スレッド内で表示された LLM所要時間 の合計は 28分です。内訳は 1分、11分、15分、1分、0分 です。
+- セッションを終了せよ。
+  - セッションを終了しました。main を最新化し、issue-95 を削除し、Issue #95 にセッション累計30分を反映しました。
+- スタッシュをポップしてコミットせよ。
+  - 最新スタッシュを pop し、未開始時の metrics-llm-elapsed finish を約0分で成功させる変更をコミットしました。
+- 実施し、PRを作成せよ。
+  - issue95を最後まで実施し、issue-95 を push して PR #114 を作成しました。SwiftLint は 0 violations で、focused test と metrics-collect による最終確認も完了しています。
+- issue95を詳細化せよ。
+  - issue95を詳細化し、タイトル・Description・詳細化コメント・作業ブランチ issue-95 を更新しました。
+- ここまでの消費トークンを報告せよ。
+- # AGENTS.md instructions for 対象リポジトリ [引用要約: AGENTS.mdでは docs/rules.md を source of truth とし、環境情報とともに指示はセッション開始である。]
+  - セッションを開始しました。main は最新で、git fetch --prune と history-rotate を実行し、発生した履歴差分をコミットしました。
+- スタッシュせよ。
+  - metrics-llm-elapsed finish の未開始許容変更を stash@{0} へ退避し、作業ツリーを clean に戻した。
+- metrics-llm-elapsedで、finishのとき、まだ開始していなくとも、エラーを出さずに終了するようにせよ。
+  - metrics-llm-elapsed finish を未開始でも約0分で成功するように変更し、通常経路と未開始経路を確認した。
+- セッションを終了せよ。
+  - セッション終了手順を実行し、main を最新化し、Issue 103 へセッション累計LLM所要時間を反映した。削除対象のlocal branchはなかった。
+- コミットし、プッシュせよ。
+  - llm-temp本文ファイル名のIssue番号統一をコミットし、issue-103 を origin へプッシュした。
+- issue-todo-check-<issue_number>.mdとし、類似も同じルールに寄せよ。usageと実例では書き分けよ。命名ルール以外はそのまま採用する。適用せよ。
+  - 命名ルールを issue_number 基準へ統一し、usage と具体例の書き分けを維持したまま skills を更新した。
+- 1ファイルでのToDo進行の妨げとなるルールを抽出し、修正候補として報告せよ。
+  - 1ファイル運用を阻害するルールを確認し、必須条件と修正候補を整理した。
+- 実施し、PRを作成せよ。
+  - Issue #103 を最後まで実施し、session-end へのLLM所要時間反映移管と session-finish 追加を実装して PR #113 を作成した。IssueToDo は 1 から 6 まで完了済みである。
+- セッション終了後に、そのセッションの使用時間がクリアされずに次のセッションを繰り返すたびに加算されていくことを回避することを踏まえ、詳細化に反映せよ。
+  - Issue #103 の詳細化を更新し、セッション終了後にLLM所要時間がクリアされず次セッションへ再加算されることを防ぐ禁止事項とToDoを追加した。
+- 本対応により、次のセッションで、前のセッションでのLLM使用時間が漏れないよう点検し、詳細化に反映せよ。
+  - Issue #103 の詳細化を更新し、次セッション開始後に前セッション分のLLM所要時間が欠落していないことを点検する禁止事項とToDoを追加した。
+- Issueを追加せよ。[引用要約: ToDoごとにコミット、が優先され差分がないままメトリクス更新だけでコミットする動作を抑制する。]
+  - Issue #112 を追加した。タイトルはToDoごとにコミット、が優先され差分がないままメトリクス更新だけでコミットする動作を抑制する。で、Description は空ファイルで作成した。
+- Issue103を詳細化せよ。
+  - Issue #103 を詳細化した。タイトルと Description を更新し、詳細化コメントと issue-103 ブランチ登録コメントを追加して、現在の作業ブランチは issue-103 になっている。
+- Issueを追加せよ。[引用要約: 複数のIssueを連続的に実施するスキルを追加する。]
+  - Issue #111 を追加した。タイトルは複数のIssueを連続的に実施するスキルを追加する。で、Description は空ファイルで作成した。
+- コミットせよ。
+  - on-input フックの引用境界を明確化してコミットした。docs/history の決定記録と検証記録も追記し、コミットは 4e68dd0 で完了した。
+- セッションを開始せよ。
+  - セッションを開始した。main は最新化済みで、git fetch --prune と history-rotate は成功し、差分は残っていない。
+- Issueを追加せよ。[引用要約: 「git-main-syncに、PRマージ済み判定を追加する。セッション終了スキルからスクリプトへbranch -Dを移動する。」]
+  - Issue #110 を追加した。タイトルは「git-main-syncに、PRマージ済み判定を追加する。セッション終了スキルからスクリプトへbranch -Dを移動する。」で、Description は空である。
+- セッションを終了せよ。
+  - セッション終了を完了した。git-main-sync で main へ戻して最新化し、Squash マージ済みと確認できるローカルブランチはなかったため branch -D は実行していない。
+- PRを作成せよ。
+  - PR #109 を作成した。branch issue-105 を push し、Closes #105 を含む本文で main 向けの Pull Request を作成した。
+- Issueを追加せよ。[引用要約: 「Issue実施スキルにおいて、実行結果をチェックする際、issue-todo-checkではなくLLM自身がチェックすることを禁止する→スキルの推論ゼロの一本道化の一環」]
+  - Issue #108 を追加した。タイトルは「Issue実施スキルにおいて、実行結果をチェックする際、issue-todo-checkではなくLLM自身がチェックすることを禁止する」で、Description は空である。
+- issue-todo-checkが一度で通らなかったのは、どこの推論あるいは結果でそうなったかを調査し、回答せよ。
+  - issue-todo-check の初回失敗原因は、body-file に current remote body そのものではなく、LLM が先にチェック済みへ書き換えた本文を渡していた誤推論だと特定した。
+- git-main-syncがToDoの要求を満たしていれば実施済みとみなし、チェックして良い。[引用要約: これを踏まえて、Issue105を再実施せよ。]
+  - Issue #105 を再実施し、ToDo1の読取り確認、ToDo2のsession-end更新、ToDo3の検証まで完了して3件ともチェック済みにした。
+- Issue105を実施せよ。[引用要約: ただし競合した場合は、ブロックし報告せよ。]
+  - Issue #105 は競合のため未着手で停止した。詳細化は session-end を raw の checkout / pull / git branch -D に揃える前提だが、現行 main 系ルールは git-main-sync を唯一の正規手順として固定済みで衝突している。
+- コミットせよ。[引用要約: 続いてIssueを作成せよ。「Issue追加スキルから、Description指定を削除する。」]
+  - git-main-sync 追加の変更をコミットし、その後 Issue #107「Issue追加スキルから、Description指定を削除する。」を空 Description で作成しました。
+- コミット状態により、ローカルのmainが、origin/mainから前進していることがある。[引用要約: この場合はローカルmainをorigin/mainとの共通祖先コミットにリセットしてからpullすること。シナリオ毎のGit操作は決定論的に可能なようscriptsで実装し、LLMはスクリプトのExitコードから失敗モードも含めて結果判断するようにせよ。]
+  - main最新化の決定論的スクリプト git-main-sync を追加し、session-start / session-end を終了コード判定前提へ更新して、ahead と dirty の代表経路を検証しました。
+- Issueを追加せよ。[引用要約: Issue詳細化のブランチ登録はGitHub標準機能へ移譲済みなので、スキルから削除する。]
+  - Issue #106 を追加しました。タイトルは「Issue詳細化のブランチ登録はGitHub標準機能へ移譲済みなので、スキルから削除する。」で、Description は空です。
+- Issue105を詳細化せよ。
+  - Issue #105 の詳細化を完了し、Description と詳細化コメントを更新して、作業ブランチ issue-105 を登録しました。
+- セッションを開始せよ。[引用要約: AGENTS.md で docs/rules.md を source of truth とする指示、および作業ディレクトリ・日時・タイムゾーン情報の提示]
+  - セッション開始を完了し、main は最新状態で、git fetch --prune と history-rotate も成功し、追加コミットは不要でした。
+- checkout -f と branch -Dでセッション終了を再実施せよ。
+  - main には session-end task が未導入で、docs/rules.md にも skills/session-end.md にも存在しないため、checkout -f と branch -D でのセッション終了再実施は中断した。先に PR #104 の反映か Issue #105 の実施が必要である。
+- Issueを追加せよ。[引用要約: 「セッション終了スキルを、Squashマージを前提に、checkout -fとbranch -Dに変更する。」]
+  - Issue #105 を追加した。タイトルは「セッション終了スキルを Squash マージ前提の checkout -f と branch -D へ変更する」。
+- セッションを終了せよ。
+  - セッション終了を試みたが、main が origin/main と分岐しており git pull --ff-only で最新化できないため中断した。merge・rebase・push は session-end の正規手順外である。
+- 実施し、PRを作成せよ。
+  - Issue #102 を実施し、session-end skill 追加と session-start の責務整理をコミットして push し、PR #104 を作成した。
+- issue102を詳細化せよ。[引用要約: 従来のブランチ削除責務は、セッション開始スキルから削除する。]
+  - Issue #102 を詳細化し、タイトル・Description・詳細化コメントを更新して、作業ブランチ issue-102 を登録した。
+- セッションを開始せよ。
+  - セッション開始を完了した。main を最新化し、git fetch --prune と history-rotate を実行し、履歴差分をコミットした。
+- 赤ションを開始せよ。
+  - 「赤ション」の意味をこのリポジトリ規約だけでは確定できないため中断した。実行したい対象を明示してほしい。
+
 ## 2026/04/09
 - Issue一覧を取得し、解決した日時昇順に、タイトルだけllm-tempへドキュメントとして出力せよ。
   - 解決済み Issue のタイトル一覧を解決日時昇順で取得し、タイトルだけを llm-temp/issue-list-resolved-titles.md へ出力した。

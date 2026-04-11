@@ -38,12 +38,15 @@ def load_issue_defaults_module():
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Mark a checkbox item in a GitHub issue Description as completed."
+        description="Inspect or update checkbox items in a GitHub issue Description."
     )
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument("--get", action="store_true")
+    mode_group.add_argument("--check", action="store_true")
     parser.add_argument("--repo")
     parser.add_argument("--issue-number", type=int, required=True)
     parser.add_argument("--todo-section", choices=SECTION_NAMES, required=True)
-    parser.add_argument("--todo-number", type=int, required=True)
+    parser.add_argument("--todo-number", type=int)
     parser.add_argument("--body-file", required=True)
     parser.add_argument(
         "--cache-file",
@@ -61,7 +64,11 @@ def parse_args() -> argparse.Namespace:
         parser.error("repository must be in owner/repo format")
     if args.issue_number <= 0:
         parser.error("--issue-number must be positive")
-    if args.todo_number <= 0:
+    if args.check and args.todo_number is None:
+        parser.error("--check requires --todo-number")
+    if args.get and args.todo_number is not None:
+        parser.error("--get must not use --todo-number")
+    if args.todo_number is not None and args.todo_number <= 0:
         parser.error("--todo-number must be positive")
     return args
 
@@ -127,13 +134,51 @@ def mark_todo_completed(lines: list[str], *, section_name: str, todo_number: int
     }
 
 
-def dump_payload(*, issue_number: int, issue, change: dict) -> int:
+def find_next_todo(lines: list[str], *, section_name: str) -> dict | None:
+    start_index, end_index = find_section_range(lines, section_name)
+    seen_items = 0
+
+    for index in range(start_index, end_index):
+        match = CHECKBOX_PATTERN.match(lines[index])
+        bullet_match = BULLET_CHECKBOX_PATTERN.match(lines[index])
+        if match is None and bullet_match is None:
+            continue
+        seen_items += 1
+        if match is not None:
+            parsed_number = int(match.group(1))
+            parsed_state = match.group(2).lower()
+            text = match.group(3)
+        else:
+            assert bullet_match is not None
+            parsed_number = int(bullet_match.group(2))
+            parsed_state = bullet_match.group(1).lower()
+            text = bullet_match.group(3)
+
+        if parsed_state == "x":
+            continue
+
+        return {
+            "section": section_name,
+            "todo_number": parsed_number,
+            "ordinal": seen_items,
+            "line": lines[index],
+            "text": text,
+        }
+
+    return None
+
+
+def dump_payload(*, issue_number: int, issue, mode: str, change: dict | None = None, next_todo: dict | None = None) -> int:
     payload = {
         "issue_number": issue_number,
         "title": issue.title,
-        "change": change,
+        "mode": mode,
         "body": issue.body,
     }
+    if mode == "get":
+        payload["next"] = next_todo
+    if mode == "check":
+        payload["change"] = change
     json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0
@@ -187,7 +232,12 @@ def main() -> int:
     if body != remote_body:
         raise SystemExit("Issue body file does not match current remote issue body")
 
+    if args.get:
+        next_todo = find_next_todo(body.splitlines(), section_name=args.todo_section)
+        return dump_payload(issue_number=args.issue_number, issue=issue, mode="get", next_todo=next_todo)
+
     trailing_newline = body.endswith("\n")
+    assert args.todo_number is not None
     updated_lines, change = mark_todo_completed(
         body.splitlines(),
         section_name=args.todo_section,
@@ -202,7 +252,7 @@ def main() -> int:
         issue_payload = update_issue_body_via_body_file(args)
         issue = type("IssuePayload", (), issue_payload)
 
-    return dump_payload(issue_number=args.issue_number, issue=issue, change=change)
+    return dump_payload(issue_number=args.issue_number, issue=issue, mode="check", change=change)
 
 
 if __name__ == "__main__":

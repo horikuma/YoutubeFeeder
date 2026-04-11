@@ -1,8 +1,8 @@
 # YoutubeFeeder Design Overview
 
-この文書は、人間のエンジニア向けに `rules.md`、`specs-product.md`、`specs-architecture.md`、`specs-design.md` の内容を UML 風に読み替えた設計資料である。正本ではなく、関連する正本文書を人間が俯瞰しやすい形へ翻訳した `human-view` 文書として継続管理する。
+この文書は、人間のエンジニア向けに `AGENTS.md`、`specs-product.md`、`specs-architecture.md`、`specs-design.md` の内容を UML 風に読み替えた設計資料である。正本ではなく、関連する正本文書を人間が俯瞰しやすい形へ翻訳した `human-view` 文書として継続管理する。
 
-文書群の役割分担は [rules.md](../rules.md) と [specs.md](../specs.md) を参照する。
+文書群の役割分担は [AGENTS.md](../../AGENTS.md) と [specs.md](../specs.md) を参照する。
 
 ## レイヤ構成
 

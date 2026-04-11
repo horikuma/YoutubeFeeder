@@ -97,6 +97,6 @@
 | `docs/specs/specs-product.md` | `464` |
 | `docs/specs/specs-design.md` | `278` |
 | `docs/specs/specs-architecture.md` | `147` |
-| `docs/rules.md` | `75` |
+| `AGENTS.md` | `96` |
 | `docs/specs/specs-environment.md` | `48` |
 | `docs/specs.md` | `30` |

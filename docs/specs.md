@@ -2,7 +2,7 @@
 
 この文書は、このリポジトリにおける specs コレクション全体の最上位入口である。ここでは、仕様系文書の役割、参照順、コレクション全体での責務分担だけを定義する。
 
-上位の文書運用ルールは [rules.md](./rules.md) と [rules-update-documents.md](./rules/rules-update-documents.md) を参照する。
+上位の文書運用ルールは [AGENTS.md](../AGENTS.md) と [rules-update-documents.md](./rules/rules-update-documents.md) を参照する。
 
 ## specs コレクション
 
