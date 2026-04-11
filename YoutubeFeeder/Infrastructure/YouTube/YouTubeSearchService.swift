@@ -3,6 +3,16 @@ import Foundation
 struct YouTubeSearchService {
     nonisolated static let videoDetailsPartParameter = "snippet,contentDetails,statistics,liveStreamingDetails"
 
+    let dataLoader: @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
+    init(
+        dataLoader: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse) = { request in
+            try await URLSession.shared.data(for: request)
+        }
+    ) {
+        self.dataLoader = dataLoader
+    }
+
     var isConfigured: Bool {
         AppLaunchMode.current.usesMockData || resolvedAPIKey != nil
     }
@@ -328,7 +338,7 @@ struct YouTubeSearchService {
         return ids
     }
 
-    private func fetchVideoDetails(videoIDs: [String], apiKey: String) async throws -> [YouTubeSearchVideo] {
+    func fetchVideoDetails(videoIDs: [String], apiKey: String) async throws -> [YouTubeSearchVideo] {
         guard !videoIDs.isEmpty else { return [] }
 
         let logger = AppConsoleLogger.youtubeSearch
@@ -380,116 +390,6 @@ struct YouTubeSearchService {
         return mergedVideos
     }
 
-    private func loadData(
-        for request: URLRequest,
-        endpoint: String,
-        metadata: [String: String]
-    ) async throws -> Data {
-        let startedAt = Date()
-        let logger = AppConsoleLogger.youtubeSearch
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await URLSession.shared.data(for: request)
-        } catch {
-            let transportMetadata = transportFailureMetadata(metadata, endpoint: endpoint, startedAt: startedAt, error: error)
-            logTransportFailure(error, metadata: transportMetadata, logger: logger)
-            throw error
-        }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            logger.error("response_invalid", message: "HTTP response を取得できませんでした。", metadata: invalidResponseMetadata(
-                metadata,
-                endpoint: endpoint,
-                startedAt: startedAt
-            ))
-            throw YouTubeSearchError.invalidResponse
-        }
-
-        let responseMetadata = successMetadata(
-            metadata,
-            endpoint: endpoint,
-            startedAt: startedAt,
-            response: httpResponse,
-            data: data
-        )
-
-        guard (200 ..< 300).contains(httpResponse.statusCode) else {
-            logger.error(
-                "http_failure",
-                message: "YouTube API が失敗しました。",
-                metadata: responseMetadata.merging(
-                    ["body_preview": AppConsoleLogger.responsePreview(data)],
-                    uniquingKeysWith: { _, new in new }
-                )
-            )
-            throw YouTubeSearchError.httpError(statusCode: httpResponse.statusCode)
-        }
-
-        logger.debug("http_success", metadata: responseMetadata)
-        return data
-    }
-
-    private func transportFailureMetadata(
-        _ metadata: [String: String],
-        endpoint: String,
-        startedAt: Date,
-        error: Error
-    ) -> [String: String] {
-        metadata.merging(
-            [
-                "endpoint": endpoint,
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
-            ],
-            uniquingKeysWith: { _, new in new }
-        )
-    }
-
-    private func logTransportFailure(
-        _ error: Error,
-        metadata: [String: String],
-        logger: AppConsoleLogger
-    ) {
-        if RemoteSearchErrorPolicy.isCancellation(error) {
-            logger.notice("http_cancelled", metadata: metadata)
-        } else {
-            logger.error(
-                "http_transport_failure",
-                message: AppConsoleLogger.errorSummary(error),
-                metadata: metadata
-            )
-        }
-    }
-
-    private func invalidResponseMetadata(
-        _ metadata: [String: String],
-        endpoint: String,
-        startedAt: Date
-    ) -> [String: String] {
-        metadata.merging(
-            ["endpoint": endpoint, "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)],
-            uniquingKeysWith: { _, new in new }
-        )
-    }
-
-    private func successMetadata(
-        _ metadata: [String: String],
-        endpoint: String,
-        startedAt: Date,
-        response: HTTPURLResponse,
-        data: Data
-    ) -> [String: String] {
-        metadata.merging(
-            [
-                "endpoint": endpoint,
-                "status": String(response.statusCode),
-                "bytes": String(data.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-            ]
-        ) { _, new in new }
-    }
-
     private func chunkVideoIDs(_ videoIDs: [String], size: Int) -> [[String]] {
         guard size > 0 else { return [videoIDs] }
         var result: [[String]] = []
@@ -500,28 +400,6 @@ struct YouTubeSearchService {
             index = nextIndex
         }
         return result
-    }
-
-    private func decodeResponse<Response: Decodable>(
-        _ type: Response.Type,
-        from data: Data,
-        endpoint: String,
-        metadata: [String: String]
-    ) throws -> Response {
-        do {
-            return try JSONDecoder.youtubeAPI.decode(type, from: data)
-        } catch {
-            let decodeMetadata = metadata.merging(
-                ["endpoint": endpoint, "body_preview": AppConsoleLogger.responsePreview(data)],
-                uniquingKeysWith: { _, new in new }
-            )
-            AppConsoleLogger.youtubeSearch.error(
-                "decode_failure",
-                message: AppConsoleLogger.errorSummary(error),
-                metadata: decodeMetadata
-            )
-            throw error
-        }
     }
 
 }
