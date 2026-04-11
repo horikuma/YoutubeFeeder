@@ -20,107 +20,97 @@ flowchart LR
     Infra --> YouTube["YouTube API / Feed"]
 ```
 
-## 主要クラス図
+## 主要構造図
+
+### UI構造図（Viewツリー）
+
+対象は `ContentView`、basic GUI の root / screen、各 SwiftUI View、共通 UI 部品の親子関係である。Coordinator、Service、Store、composition / pure logic の判断単位は含めない。
 
 ```mermaid
-classDiagram
-    class ContentView
-    class BasicGUIRootView
-    class BasicGUIHomeScreen
-    class BasicGUIChannelBrowseScreen
-    class BasicGUIRemoteSearchScreen
-    class BasicGUIRouteAssembly
-    class BasicGUILayoutBranching
-    class BasicGUIBrowsePresentation
-    class AppLayout
-    class FeedCacheCoordinator
-    class FeedCacheReadService
-    class FeedCacheWriteService
-    class FeedChannelSyncService
-    class HomeSystemStatusService
-    class ChannelBrowseView["ChannelBrowseView<br/>[Variants Host]"]
-    class ChannelVideosView
-    class AllVideosView
-    class KeywordSearchResultsView
-    class RemoteKeywordSearchResultsView["RemoteKeywordSearchResultsView<br/>[Variants Host]"]
-    class RemoteKeywordSearchResultsCompactView
-    class RemoteKeywordSearchResultsRegularView
-    class RemoteKeywordSearchResultsSplitDetailView
-    class InteractiveListView
-    class ChannelTile["ChannelTile<br/>[Shared UI Core]"]
-    class VideoTile
-    class FeedCacheStore
-    class ChannelRegistryMaintenanceService
-    class RemoteVideoSearchService
-    class RemoteVideoSearchCacheStore
-    class YouTubeFeed
-    class YouTubeSearchService
-    class YouTubeSearchModels
-    class YouTubeSearchListResponse
-    class YouTubeVideoListResponse
-    class YouTubeSearchProcessing
-    class RemoteSearchPresentationState
+flowchart TD
+    ContentView["ContentView"] --> Root["BasicGUIRootView"]
+    Root --> HomeScreen["BasicGUIHomeScreen"]
+    Root --> ChannelBrowseScreen["BasicGUIChannelBrowseScreen"]
+    Root --> AllVideos["AllVideosView"]
+    Root --> KeywordSearch["KeywordSearchResultsView"]
+    Root --> RemoteSearchScreen["BasicGUIRemoteSearchScreen"]
 
-    ContentView --> AppLayout : computes
-    ContentView --> FeedCacheCoordinator : owns
-    ContentView --> BasicGUIRootView
-    BasicGUIRootView --> BasicGUIHomeScreen
-    BasicGUIRootView --> BasicGUIChannelBrowseScreen
-    BasicGUIRootView --> AllVideosView
-    BasicGUIRootView --> KeywordSearchResultsView
-    BasicGUIRootView --> BasicGUIRemoteSearchScreen
-    BasicGUIRouteAssembly --> BasicGUIRootView : route mapping
-    BasicGUILayoutBranching --> BasicGUIChannelBrowseScreen : decides
-    BasicGUILayoutBranching --> BasicGUIRemoteSearchScreen : decides
-    BasicGUILayoutBranching --> BasicGUIBrowsePresentation
+    HomeScreen --> HomeView["HomeScreenView"]
+    ChannelBrowseScreen --> ChannelBrowse["ChannelBrowseView"]
+    RemoteSearchScreen --> RemoteSearch["RemoteKeywordSearchResultsView"]
 
-    BasicGUIHomeScreen --> HomeScreenView
-    BasicGUIChannelBrowseScreen --> ChannelBrowseView
-    BasicGUIRemoteSearchScreen --> RemoteKeywordSearchResultsView
+    ChannelBrowse --> ChannelList["InteractiveListView"]
+    ChannelBrowse --> ChannelTile["ChannelTile"]
+    ChannelBrowse --> ChannelVideos["ChannelVideosView"]
+    AllVideos --> AllVideosList["InteractiveListView"]
+    KeywordSearch --> KeywordSearchList["InteractiveListView"]
+    ChannelVideos --> ChannelVideoTile["VideoTile"]
+    AllVideos --> AllVideoTile["VideoTile"]
+    KeywordSearch --> KeywordVideoTile["VideoTile"]
 
-    ChannelBrowseView --> FeedCacheCoordinator
-    ChannelVideosView --> FeedCacheCoordinator
-    AllVideosView --> FeedCacheCoordinator
-    KeywordSearchResultsView --> FeedCacheCoordinator
-    RemoteKeywordSearchResultsView --> FeedCacheCoordinator
-
-    ChannelBrowseView --> InteractiveListView
-    RemoteKeywordSearchResultsView --> InteractiveListView
-    RemoteKeywordSearchResultsView --> RemoteKeywordSearchResultsCompactView
-    RemoteKeywordSearchResultsView --> RemoteKeywordSearchResultsRegularView
-    RemoteKeywordSearchResultsRegularView --> RemoteKeywordSearchResultsSplitDetailView
-    AllVideosView --> InteractiveListView
-    KeywordSearchResultsView --> InteractiveListView
-    ChannelVideosView --> VideoTile
-    AllVideosView --> VideoTile
-    KeywordSearchResultsView --> VideoTile
-    RemoteKeywordSearchResultsCompactView --> VideoTile
-    RemoteKeywordSearchResultsRegularView --> VideoTile
-    RemoteKeywordSearchResultsSplitDetailView --> VideoTile
-    ChannelBrowseView --> ChannelTile
-
-    FeedCacheCoordinator --> FeedCacheReadService
-    FeedCacheCoordinator --> FeedCacheWriteService
-    FeedCacheCoordinator --> FeedChannelSyncService
-    FeedCacheCoordinator --> ChannelRegistryMaintenanceService
-    FeedCacheCoordinator --> RemoteVideoSearchService
-    FeedCacheCoordinator --> HomeSystemStatusService
-    FeedCacheReadService --> FeedCacheStore
-    FeedCacheReadService --> RemoteVideoSearchService
-    FeedCacheWriteService --> FeedCacheStore
-    FeedChannelSyncService --> FeedCacheWriteService
-    RemoteVideoSearchService --> RemoteVideoSearchCacheStore
-    RemoteVideoSearchService --> YouTubeSearchService
-    ChannelRegistryMaintenanceService --> FeedCacheReadService
-    ChannelRegistryMaintenanceService --> FeedCacheWriteService
-    ChannelRegistryMaintenanceService --> YouTubeFeed
-    YouTubeSearchService --> YouTubeSearchModels
-    YouTubeSearchService --> YouTubeSearchListResponse
-    YouTubeSearchService --> YouTubeVideoListResponse
-    YouTubeSearchService --> YouTubeSearchProcessing
-
-    RemoteKeywordSearchResultsView --> RemoteSearchPresentationState : uses
+    RemoteSearch --> RemoteSearchList["InteractiveListView"]
+    RemoteSearch --> RemoteCompact["RemoteKeywordSearchResultsCompactView"]
+    RemoteSearch --> RemoteRegular["RemoteKeywordSearchResultsRegularView"]
+    RemoteRegular --> RemoteSplitDetail["RemoteKeywordSearchResultsSplitDetailView"]
+    RemoteCompact --> RemoteCompactTile["VideoTile"]
+    RemoteRegular --> RemoteRegularTile["VideoTile"]
+    RemoteSplitDetail --> RemoteSplitTile["VideoTile"]
 ```
+
+### 判断配置図（composition / pure logic）
+
+対象は route / layout / presentation の決定位置である。SwiftUI View の親子関係、Coordinator から Service / Store へのデータフローは含めない。
+
+composition は画面組み立てと判断の集約単位であり、UI クラスではない。View / Service / Store と同列の静的クラス依存として扱わず、どこで route、layout、presentation が決まるかを示す概念として扱う。
+
+```mermaid
+flowchart TD
+    ContentView["ContentView"] --> AppLayout["AppLayout"]
+    AppLayout --> LayoutBranching["BasicGUILayoutBranching"]
+    RouteAssembly["BasicGUIRouteAssembly"] --> RootComposition["BasicGUIRootView"]
+    LayoutBranching --> ChannelBrowseScreen["BasicGUIChannelBrowseScreen"]
+    LayoutBranching --> RemoteSearchScreen["BasicGUIRemoteSearchScreen"]
+    LayoutBranching --> BrowsePresentation["BasicGUIBrowsePresentation"]
+    RemoteSearchView["RemoteKeywordSearchResultsView"] --> RemoteSearchState["RemoteSearchPresentationState"]
+    BrowsePresentation --> Compact["compact presentation"]
+    BrowsePresentation --> Regular["regular presentation"]
+    BrowsePresentation --> SplitDetail["split detail presentation"]
+```
+
+### データフロー図（View -> Coordinator -> Service -> Store / Infrastructure）
+
+対象は View から `FeedCacheCoordinator` を経由して Service、Store、Infrastructure へ至る呼び出し関係とデータの流れである。View ツリー、route / layout / presentation の判断配置は含めない。
+
+```mermaid
+flowchart TD
+    BrowseViews["Browse / Search Views"] --> Coordinator["FeedCacheCoordinator"]
+    HomeView["HomeScreenView"] --> Coordinator
+
+    Coordinator --> Read["FeedCacheReadService"]
+    Coordinator --> Write["FeedCacheWriteService"]
+    Coordinator --> Sync["FeedChannelSyncService"]
+    Coordinator --> RegistryMaintenance["ChannelRegistryMaintenanceService"]
+    Coordinator --> RemoteSearch["RemoteVideoSearchService"]
+    Coordinator --> HomeStatus["HomeSystemStatusService"]
+
+    Read --> Store["FeedCacheStore"]
+    Read --> RemoteSearch
+    Write --> Store
+    Sync --> Write
+    RegistryMaintenance --> Read
+    RegistryMaintenance --> Write
+    RegistryMaintenance --> YouTubeFeed["YouTubeFeed"]
+    RemoteSearch --> RemoteSearchCache["RemoteVideoSearchCacheStore"]
+    RemoteSearch --> YouTubeSearch["YouTubeSearchService"]
+    YouTubeSearch --> SearchModels["YouTubeSearchModels"]
+    YouTubeSearch --> SearchListResponse["YouTubeSearchListResponse"]
+    YouTubeSearch --> VideoListResponse["YouTubeVideoListResponse"]
+    YouTubeSearch --> SearchProcessing["YouTubeSearchProcessing"]
+```
+
+### classDiagram の扱い
+
+`classDiagram` は Service / Store / Model の関係を確認する補助資料としてだけ使う。route / layout / UI orchestration は判断配置図で扱い、`classDiagram` を主説明にしない。
 
 ## 主要シーケンス
 
@@ -177,18 +167,33 @@ sequenceDiagram
 
 ## 依存関係メモ
 
+### UI構造メモ
+
+- `ContentView` は launch 直後の入口として `BasicGUIRootView` を表示する。
+- `BasicGUIRootView` は home、browse、all videos、keyword search、remote search の各 screen を束ねる。
+- `InteractiveListView` は一覧系画面の共通コンテナとして使う。
+- `VideoTile` と `ChannelTile` は一覧内の共通表示部品として使う。
+- `HomeScreenView` はホーム表示中に hidden host として `BasicGUIRemoteSearchScreen` を prewarm する。
+
+### 判断配置メモ
+
+- `BasicGUIRouteAssembly` は basic GUI の route mapping を担う。
+- `AppLayout` は regular 幅かどうかを基準に layout 判定を返す。
+- `BasicGUILayoutBranching` は `AppLayout` の判定を browse 系 screen 向けの分岐へ写し替える。
+- `BasicGUIBrowsePresentation` は browse 系画面の compact / regular / split detail presentation を決める。
+- `RemoteSearchPresentationState` は YouTube 検索結果の visibleCount、chip 状態、split 初期選択を pure logic としてまとめる。
+- `View` は `iPhone` / `iPad` / `Mac` の操作差分を UI 層で吸収する。
+
+### データフローメモ
+
 - `View` は I/O を直接持たず、`FeedCacheCoordinator` 経由で状態と操作を受ける。
-- `ContentView` は bootstrap と launch 直後の入口に集中し、basic GUI の route 組み立ては `BasicGUIRootView` / `BasicGUIRouteAssembly` 側へ分離する。
-- `BasicGUILayoutBranching` と `BasicGUIBrowsePresentation` は、`AppLayout` の split 判定を browse 系画面向けの composition 境界へ写し替える。
-- `View` は `refreshFeed()` やメニュー起動のようなドメインアクションを呼ぶ UI アダプタとして振る舞い、`iPhone` / `iPad` / `Mac` の操作差分は View 側で吸収する。
-- `AppLayout` は regular 幅かどうかを基準に split UI の有無、余白、一覧カラム数を切り替える。
+- `View` は `refreshFeed()` やメニュー起動のようなドメインアクションを呼ぶ UI アダプタとして振る舞う。
 - `FeedCacheCoordinator` は画面オーケストレーションを担い、読取り・書込み・同期・検索・ホーム状況集計を専用 service へ委譲する。
-- `HomeScreenView` はホーム表示中に hidden host として `BasicGUIRemoteSearchScreen` を prewarm し、YouTube検索の初回遷移待ちを抑える。
 - `FeedCacheReadService` はキャッシュ読取り、動画検索、チャンネル動画マージをまとめる。
 - `FeedCacheWriteService` はキャッシュ保存、サムネイル保存、bootstrap 永続化、整合性メンテナンスの入口を担う。
-- `RemoteSearchPresentationState` は YouTube 検索結果の visibleCount、chip 状態、split 初期選択を pure logic としてまとめる。
 - `RemoteKeywordSearchResultsView` は state orchestration を持ち、compact / regular / split detail の表示本体は別 View へ分けて扱う。
-- `InteractiveListView` は画面ごとの refresh action を受ける共通コンテナであり、gesture や command の違いそのものは抱え込まない。
-- `VideoTile` と `ChannelTile` の操作は共通 menu action を持ち、表示デバイスごとの差は menu を開く操作だけへ閉じ込める。
 - `YouTubeSearchService` は API 呼び出しと error handling を担い、公開 model、decode DTO、結果整列 helper は別ファイルへ分けて扱う。
-- 正本を更新した時は、本書のクラス図、シーケンス図も同じ変更セットで同期する。
+
+### 同期メモ
+
+- 正本を更新した時は、本書の主要構造図、主要シーケンスも同じ変更セットで同期する。
