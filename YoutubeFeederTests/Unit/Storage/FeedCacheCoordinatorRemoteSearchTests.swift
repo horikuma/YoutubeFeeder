@@ -184,6 +184,63 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
         }
     }
 
+    func testForceRefreshCompletesRemoteRefreshWhenVideoDetailsContainExcludedItems() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let keyword = "duration-missing-refresh"
+        let staleFetchedAt = ISO8601DateFormatter().date(from: "2026-03-01T03:00:00Z")!
+        let staleVideo = Self.staleRemoteSearchVideo(fetchedAt: staleFetchedAt)
+
+        try await withEnvironment([
+            "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR": temporaryRoot.appendingPathComponent("Cache", isDirectory: true).path,
+            "YOUTUBEFEEDER_UI_TEST_MODE": "1",
+            "YOUTUBEFEEDER_UI_TEST_USE_MOCK": "0",
+            "YOUTUBEFEEDER_YOUTUBE_API_KEY": "test-key"
+        ]) {
+            FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager)
+            defer { FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager) }
+
+            let remoteCacheStore = RemoteVideoSearchCacheStore()
+            await remoteCacheStore.save(
+                keyword: keyword,
+                videos: [staleVideo],
+                totalCount: 1,
+                fetchedAt: staleFetchedAt
+            )
+
+            let coordinator = FeedCacheCoordinator(
+                channels: [],
+                dependencies: FeedCacheDependencies(
+                    store: FeedCacheStore(),
+                    feedService: YouTubeFeedService(),
+                    channelResolver: YouTubeChannelResolver(),
+                    searchService: Self.remoteRefreshSearchService(),
+                    remoteSearchCacheStore: remoteCacheStore
+                )
+            )
+
+            let freshResult = await coordinator.searchRemoteVideos(
+                keyword: keyword,
+                limit: 100,
+                forceRefresh: true
+            )
+            let cachedSnapshot = await coordinator.loadRemoteSearchSnapshot(
+                keyword: keyword,
+                limit: 100
+            )
+
+            XCTAssertEqual(freshResult.source, .remoteCache)
+            XCTAssertNil(freshResult.errorMessage)
+            XCTAssertEqual(freshResult.videos.first?.id, "fresh-playable")
+            XCTAssertFalse(freshResult.videos.contains { $0.id == "fresh-missing-duration" })
+            XCTAssertEqual(cachedSnapshot.source, .remoteCache)
+            XCTAssertEqual(cachedSnapshot.videos.first?.id, "fresh-playable")
+        }
+    }
+
     func testForceRefreshPersistsEvenIfCallerTaskIsCancelled() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -249,5 +306,137 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
         }
 
         return try await operation()
+    }
+
+    nonisolated private static func staleRemoteSearchVideo(fetchedAt: Date) -> CachedVideo {
+        CachedVideo(
+            id: "stale-cache-video",
+            channelID: "UC_STALE",
+            channelTitle: "Stale Channel",
+            title: "stale cached result",
+            publishedAt: fetchedAt,
+            videoURL: URL(string: "https://example.com/watch?v=stale"),
+            thumbnailRemoteURL: nil,
+            thumbnailLocalFilename: nil,
+            fetchedAt: fetchedAt,
+            searchableText: "stale cached result",
+            durationSeconds: 600,
+            viewCount: 1
+        )
+    }
+
+    nonisolated private static func remoteRefreshSearchService() -> YouTubeSearchService {
+        YouTubeSearchService { request in
+            guard let url = request.url else {
+                throw YouTubeSearchError.invalidResponse
+            }
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (try remoteSearchResponseData(for: url), response)
+        }
+    }
+
+    nonisolated private static func remoteSearchResponseData(for url: URL) throws -> Data {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            throw YouTubeSearchError.invalidResponse
+        }
+
+        switch components.path {
+        case "/youtube/v3/search":
+            return searchListResponseJSON(
+                items: [
+                    searchListItemJSON(id: "fresh-playable", publishedAt: "2026-03-21T03:00:00Z"),
+                    searchListItemJSON(id: "fresh-missing-duration", publishedAt: "2026-03-21T02:00:00Z"),
+                ]
+            )
+        case "/youtube/v3/videos":
+            return videoDetailsResponseJSON(
+                items: [
+                    videoDetailsItemJSON(id: "fresh-playable", duration: "PT27M10S"),
+                    videoDetailsItemJSON(id: "fresh-missing-duration", duration: nil),
+                ]
+            )
+        default:
+            throw YouTubeSearchError.invalidResponse
+        }
+    }
+
+    nonisolated private static func searchListResponseJSON(items: [String]) -> Data {
+        """
+        {
+          "items": [
+            \(items.joined(separator: ",\n"))
+          ],
+          "pageInfo": {
+            "totalResults": \(items.count)
+          }
+        }
+        """.data(using: .utf8)!
+    }
+
+    nonisolated private static func searchListItemJSON(id: String, publishedAt: String) -> String {
+        """
+        {
+          "id": {
+            "videoId": "\(id)"
+          },
+          "snippet": {
+            "publishedAt": "\(publishedAt)",
+            "channelId": "UC_REFRESH",
+            "channelTitle": "Refresh Channel",
+            "title": "Search item \(id)",
+            "liveBroadcastContent": "none",
+            "thumbnails": {
+              "high": { "url": "https://example.com/\(id).jpg" }
+            }
+          }
+        }
+        """
+    }
+
+    nonisolated private static func videoDetailsResponseJSON(items: [String]) -> Data {
+        """
+        {
+          "items": [
+            \(items.joined(separator: ",\n"))
+          ]
+        }
+        """.data(using: .utf8)!
+    }
+
+    nonisolated private static func videoDetailsItemJSON(id: String, duration: String?) -> String {
+        let contentDetails = if let duration {
+            """
+            "contentDetails": {
+              "duration": "\(duration)"
+            },
+            """
+        } else {
+            """
+            "contentDetails": {},
+            """
+        }
+
+        return """
+        {
+          "id": "\(id)",
+          \(contentDetails)
+          "snippet": {
+            "publishedAt": "2026-03-21T03:00:00Z",
+            "channelId": "UC_REFRESH",
+            "channelTitle": "Refresh Channel",
+            "title": "Detail item \(id)",
+            "liveBroadcastContent": "none",
+            "thumbnails": {
+              "high": { "url": "https://example.com/\(id).jpg" }
+            }
+          }
+        }
+        """
     }
 }
