@@ -38,6 +38,7 @@ extension YouTubeSearchService {
         items.compactMap { item in
             guard item.snippet.liveBroadcastContent == "none" else { return nil }
             guard item.liveStreamingDetails == nil else { return nil }
+            guard let duration = item.contentDetails?.duration else { return nil }
             return YouTubeSearchVideo(
                 id: item.id,
                 channelID: item.snippet.channelID,
@@ -46,7 +47,7 @@ extension YouTubeSearchService {
                 publishedAt: item.snippet.publishedAt,
                 videoURL: URL(string: "https://www.youtube.com/watch?v=\(item.id)"),
                 thumbnailURL: YouTubeThumbnailCandidates.preferredURL(for: item.id),
-                durationSeconds: parseDuration(item.contentDetails.duration),
+                durationSeconds: parseDuration(duration),
                 viewCount: item.statistics?.viewCount.flatMap(Int.init)
             )
         }
