@@ -1,6 +1,30 @@
 {
   "commands": [
     {
+      "name": "git",
+      "entry_point": "git.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "required_inputs": {
+        "all_of": [
+          {
+            "name": "git_args",
+            "description": "Git command arguments passed after the command name.",
+            "sources": [
+              "direct command arguments"
+            ]
+          }
+        ],
+        "one_of": []
+      },
+      "runtime": {
+        "use_repo_venv": false,
+        "required_modules": []
+      },
+      "description": "Run git in the repository root through the command-runner entry point."
+    },
+    {
       "name": "git-main-sync",
       "entry_point": "git-main-sync.py",
       "args": {
