@@ -167,18 +167,33 @@ sequenceDiagram
 
 ## 依存関係メモ
 
+### UI構造メモ
+
+- `ContentView` は launch 直後の入口として `BasicGUIRootView` を表示する。
+- `BasicGUIRootView` は home、browse、all videos、keyword search、remote search の各 screen を束ねる。
+- `InteractiveListView` は一覧系画面の共通コンテナとして使う。
+- `VideoTile` と `ChannelTile` は一覧内の共通表示部品として使う。
+- `HomeScreenView` はホーム表示中に hidden host として `BasicGUIRemoteSearchScreen` を prewarm する。
+
+### 判断配置メモ
+
+- `BasicGUIRouteAssembly` は basic GUI の route mapping を担う。
+- `AppLayout` は regular 幅かどうかを基準に layout 判定を返す。
+- `BasicGUILayoutBranching` は `AppLayout` の判定を browse 系 screen 向けの分岐へ写し替える。
+- `BasicGUIBrowsePresentation` は browse 系画面の compact / regular / split detail presentation を決める。
+- `RemoteSearchPresentationState` は YouTube 検索結果の visibleCount、chip 状態、split 初期選択を pure logic としてまとめる。
+- `View` は `iPhone` / `iPad` / `Mac` の操作差分を UI 層で吸収する。
+
+### データフローメモ
+
 - `View` は I/O を直接持たず、`FeedCacheCoordinator` 経由で状態と操作を受ける。
-- `ContentView` は bootstrap と launch 直後の入口に集中し、basic GUI の route 組み立ては `BasicGUIRootView` / `BasicGUIRouteAssembly` 側へ分離する。
-- `BasicGUILayoutBranching` と `BasicGUIBrowsePresentation` は、`AppLayout` の split 判定を browse 系画面向けの composition 境界へ写し替える。
-- `View` は `refreshFeed()` やメニュー起動のようなドメインアクションを呼ぶ UI アダプタとして振る舞い、`iPhone` / `iPad` / `Mac` の操作差分は View 側で吸収する。
-- `AppLayout` は regular 幅かどうかを基準に split UI の有無、余白、一覧カラム数を切り替える。
+- `View` は `refreshFeed()` やメニュー起動のようなドメインアクションを呼ぶ UI アダプタとして振る舞う。
 - `FeedCacheCoordinator` は画面オーケストレーションを担い、読取り・書込み・同期・検索・ホーム状況集計を専用 service へ委譲する。
-- `HomeScreenView` はホーム表示中に hidden host として `BasicGUIRemoteSearchScreen` を prewarm し、YouTube検索の初回遷移待ちを抑える。
 - `FeedCacheReadService` はキャッシュ読取り、動画検索、チャンネル動画マージをまとめる。
 - `FeedCacheWriteService` はキャッシュ保存、サムネイル保存、bootstrap 永続化、整合性メンテナンスの入口を担う。
-- `RemoteSearchPresentationState` は YouTube 検索結果の visibleCount、chip 状態、split 初期選択を pure logic としてまとめる。
 - `RemoteKeywordSearchResultsView` は state orchestration を持ち、compact / regular / split detail の表示本体は別 View へ分けて扱う。
-- `InteractiveListView` は画面ごとの refresh action を受ける共通コンテナであり、gesture や command の違いそのものは抱え込まない。
-- `VideoTile` と `ChannelTile` の操作は共通 menu action を持ち、表示デバイスごとの差は menu を開く操作だけへ閉じ込める。
 - `YouTubeSearchService` は API 呼び出しと error handling を担い、公開 model、decode DTO、結果整列 helper は別ファイルへ分けて扱う。
-- 正本を更新した時は、本書のクラス図、シーケンス図も同じ変更セットで同期する。
+
+### 同期メモ
+
+- 正本を更新した時は、本書の主要構造図、主要シーケンスも同じ変更セットで同期する。
