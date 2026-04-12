@@ -31,7 +31,8 @@ struct ChannelBrowseView: View {
                     layout: layout,
                     sortDescriptor: sortDescriptor,
                     items: items,
-                    onRequestRemoval: requestRemoval
+                    onRequestRemoval: requestRemoval,
+                    onRefresh: refreshChannelBrowseItems
                 )
             case .compact:
                 ChannelBrowseCompactView(
@@ -41,12 +42,13 @@ struct ChannelBrowseView: View {
                     sortDescriptor: sortDescriptor,
                     items: items,
                     tipsSummary: tipsSummary,
-                    onRequestRemoval: requestRemoval
+                    onRequestRemoval: requestRemoval,
+                    onRefresh: refreshChannelBrowseItems
                 )
             }
         }
         .task {
-            items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+            await loadChannelBrowseItems()
         }
         .onReceive(coordinator.$maintenanceItems.dropFirst()) { _ in
             RuntimeDiagnostics.shared.record(
@@ -58,7 +60,7 @@ struct ChannelBrowseView: View {
                 ]
             )
             Task {
-                items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+                await loadChannelBrowseItems()
             }
         }
         .confirmationDialog(
@@ -105,12 +107,21 @@ struct ChannelBrowseView: View {
     private func handleRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
         removalFeedback = feedback
         Task {
-            items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+            await loadChannelBrowseItems()
         }
     }
 
     private var tipsSummary: ChannelBrowseTipsSummary {
         ChannelBrowseTipsSummary.build(items: items, sortDescriptor: sortDescriptor)
+    }
+
+    private func loadChannelBrowseItems() async {
+        items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+    }
+
+    private func refreshChannelBrowseItems() async {
+        _ = await coordinator.performRefreshAction(.home)
+        await loadChannelBrowseItems()
     }
 }
 
@@ -122,6 +133,7 @@ private struct ChannelBrowseCompactView: View {
     let items: [ChannelBrowseItem]
     let tipsSummary: ChannelBrowseTipsSummary
     let onRequestRemoval: (ChannelBrowseItem) -> Void
+    let onRefresh: () async -> Void
 
     private var usesDesktopMenus: Bool {
         AppInteractionPlatform.current.usesPrimaryClickForMenus
@@ -134,7 +146,7 @@ private struct ChannelBrowseCompactView: View {
             coordinator: coordinator,
             path: $path,
             layout: layout,
-            onRefresh: nil,
+            onRefresh: onRefresh,
             allowsRefreshCommandBinding: true
         ) {
             ChannelBrowseTipsTile(summary: tipsSummary)
@@ -200,6 +212,7 @@ private struct ChannelBrowseRegularView: View {
     let sortDescriptor: ChannelBrowseSortDescriptor
     let items: [ChannelBrowseItem]
     let onRequestRemoval: (ChannelBrowseItem) -> Void
+    let onRefresh: () async -> Void
 
     @State private var selectedChannelID: String?
     @State private var videosByChannelID: [String: [CachedVideo]] = [:]
@@ -218,6 +231,9 @@ private struct ChannelBrowseRegularView: View {
         .navigationSplitViewStyle(.balanced)
         .toolbar(.hidden, for: .navigationBar)
         .modifier(BackSwipePopModifier(path: $path))
+        .bindRefreshCommand {
+            await onRefresh()
+        }
         .onAppear {
             coordinator.suspendLiveUpdates()
             applyDefaultSelectionIfNeeded()

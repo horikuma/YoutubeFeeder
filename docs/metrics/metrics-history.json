@@ -1,6 +1,31 @@
 {
   "days": [
     {
+      "date": "2026/04/12",
+      "items": [
+        {
+          "kind": "metrics_entry",
+          "label": "Mac channel list refresh command",
+          "change_kind": "ui",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 5.08091402053833,
+          "startup_test_duration_seconds": 37.850991010665894,
+          "total_duration_seconds": 42.931905031204224,
+          "startup_metrics": {
+            "app_launch_to_bootstrap_ms": 657,
+            "app_launch_to_home_ms": 920,
+            "app_launch_to_maintenance_enter_ms": 916,
+            "app_launch_to_splash_ms": 569,
+            "bootstrap_to_home_ms": 263,
+            "splash_to_home_ms": 351
+          }
+        }
+      ]
+    },
+    {
       "date": "2026/04/10",
       "items": [
         {
