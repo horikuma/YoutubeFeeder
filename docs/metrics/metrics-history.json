@@ -5,6 +5,26 @@
       "items": [
         {
           "kind": "metrics_entry",
+          "label": "Mac channel list right click action",
+          "change_kind": "ui",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 4.4167702198028564,
+          "startup_test_duration_seconds": 19.600822925567627,
+          "total_duration_seconds": 24.017593145370483,
+          "startup_metrics": {
+            "app_launch_to_bootstrap_ms": 718,
+            "app_launch_to_home_ms": 1014,
+            "app_launch_to_maintenance_enter_ms": 1010,
+            "app_launch_to_splash_ms": 620,
+            "bootstrap_to_home_ms": 296,
+            "splash_to_home_ms": 394
+          }
+        },
+        {
+          "kind": "metrics_entry",
           "label": "Mac channel list refresh command",
           "change_kind": "ui",
           "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",

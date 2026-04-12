@@ -157,11 +157,25 @@ private struct ChannelBrowseCompactView: View {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
                         if usesDesktopMenus {
-                            ChannelNavigationTile(item: item, index: offset + 1)
-                                .tileActionMenu(
-                                    menu: channelMenu(for: item),
-                                    accessibilityIdentifier: "channel.tile.\(item.channelID)"
+                            Button {
+                                path.append(
+                                    MaintenanceRoute.channelVideos(
+                                        ChannelVideosRouteContext(
+                                            channelID: item.channelID,
+                                            preferredChannelTitle: item.channelTitle
+                                        )
+                                    )
                                 )
+                            } label: {
+                                ChannelNavigationTile(item: item, index: offset + 1)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("channel.tile.\(item.channelID)")
+                            .contextMenu {
+                                Button("チャンネルを削除", role: .destructive) {
+                                    onRequestRemoval(item)
+                                }
+                            }
                         } else {
                             NavigationLink(
                                 value: MaintenanceRoute.channelVideos(
@@ -262,12 +276,15 @@ private struct ChannelBrowseRegularView: View {
                                 index: offset + 1
                             )
                             .onTapGesture {
-                                guard !usesDesktopMenus else { return }
                                 selectChannel(item.channelID)
                             }
-                            .tileActionMenu(
-                                menu: selectionMenu(for: item),
-                                accessibilityIdentifier: "channel.tile.\(item.channelID)"
+                            .modifier(
+                                ChannelSelectionActionModifier(
+                                    item: item,
+                                    usesDesktopMenus: usesDesktopMenus,
+                                    menu: selectionMenu(for: item),
+                                    onRequestRemoval: onRequestRemoval
+                                )
                             )
                         }
                     }
@@ -427,6 +444,31 @@ private struct ChannelBrowseRegularView: View {
                 }
             ]
         )
+    }
+}
+
+private struct ChannelSelectionActionModifier: ViewModifier {
+    let item: ChannelBrowseItem
+    let usesDesktopMenus: Bool
+    let menu: TileMenuConfiguration
+    let onRequestRemoval: (ChannelBrowseItem) -> Void
+
+    func body(content: Content) -> some View {
+        if usesDesktopMenus {
+            content
+                .accessibilityIdentifier("channel.tile.\(item.channelID)")
+                .contextMenu {
+                    Button("チャンネルを削除", role: .destructive) {
+                        onRequestRemoval(item)
+                    }
+                }
+        } else {
+            content
+                .tileActionMenu(
+                    menu: menu,
+                    accessibilityIdentifier: "channel.tile.\(item.channelID)"
+                )
+        }
     }
 }
 
