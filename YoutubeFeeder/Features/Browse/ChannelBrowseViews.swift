@@ -237,10 +237,30 @@ private struct ChannelBrowseRegularView: View {
 
     var body: some View {
         NavigationSplitView {
-            leftPane
+            ChannelBrowseTreeSidebar(
+                items: items,
+                selectedChannelID: selectedChannelID,
+                sortDescriptor: sortDescriptor,
+                layout: layout,
+                tipsSummary: tipsSummary,
+                usesDesktopMenus: usesDesktopMenus,
+                onSelectChannel: selectChannel,
+                onRequestRemoval: onRequestRemoval,
+                selectionMenu: selectionMenu
+            )
                 .navigationTitle("チャンネル一覧")
         } detail: {
-            rightPane
+            ChannelBrowseTreeDetail(
+                coordinator: coordinator,
+                selectedChannelID: selectedChannelID,
+                selectedTitle: selectedTitle,
+                videosForSelectedChannel: videosForSelectedChannel,
+                layout: layout,
+                onRequestRemoval: onRequestRemoval,
+                openVideo: openVideo,
+                refreshSelectedChannel: refreshSelectedChannel,
+                videosByChannelID: $videosByChannelID
+            )
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar(.hidden, for: .navigationBar)
@@ -444,6 +464,152 @@ private struct ChannelBrowseRegularView: View {
                 }
             ]
         )
+    }
+}
+
+private struct ChannelBrowseTreeSidebar: View {
+    let items: [ChannelBrowseItem]
+    let selectedChannelID: String?
+    let sortDescriptor: ChannelBrowseSortDescriptor
+    let layout: AppLayout
+    let tipsSummary: ChannelBrowseTipsSummary
+    let usesDesktopMenus: Bool
+    let onSelectChannel: (String) -> Void
+    let onRequestRemoval: (ChannelBrowseItem) -> Void
+    let selectionMenu: (ChannelBrowseItem) -> TileMenuConfiguration
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                ChannelBrowseTipsTile(summary: tipsSummary)
+
+                if items.isEmpty {
+                    MetricTile(title: "チャンネル一覧", value: "まだありません", detail: "キャッシュが増えるとここに並びます")
+                } else {
+                    LazyVStack(spacing: 16) {
+                        ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
+                            ChannelSelectionTile(
+                                item: item,
+                                isSelected: item.channelID == selectedChannelID,
+                                index: offset + 1
+                            )
+                            .onTapGesture {
+                                onSelectChannel(item.channelID)
+                            }
+                            .modifier(
+                                ChannelSelectionActionModifier(
+                                    item: item,
+                                    usesDesktopMenus: usesDesktopMenus,
+                                    menu: selectionMenu(item),
+                                    onRequestRemoval: onRequestRemoval
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: 420, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, layout.horizontalPadding)
+            .padding(.vertical, 20)
+        }
+        .background(Color(.systemGroupedBackground))
+        .safeAreaInset(edge: .top) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("チャンネル一覧")
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .accessibilityIdentifier("screen.title")
+
+                Text(sortDescriptor.listSubtitle)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, layout.horizontalPadding)
+            .padding(.top, 20)
+            .padding(.bottom, 8)
+            .background(Color(.systemGroupedBackground))
+        }
+    }
+}
+
+private struct ChannelBrowseTreeDetail: View {
+    let coordinator: FeedCacheCoordinator
+    let selectedChannelID: String?
+    let selectedTitle: String
+    let videosForSelectedChannel: [CachedVideo]
+    let layout: AppLayout
+    let onRequestRemoval: (ChannelBrowseItem) -> Void
+    let openVideo: (CachedVideo) -> Void
+    let refreshSelectedChannel: () async -> Void
+    @Binding var videosByChannelID: [String: [CachedVideo]]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(selectedTitle)
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+
+                Text("このチャンネルの動画を新しい順に表示")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if selectedChannelID != nil {
+                    if AppLaunchMode.current.usesMockData {
+                        UITestMarker(
+                            identifier: "screen.channelVideos.loaded",
+                            value: videosForSelectedChannel.first?.id ?? "none"
+                        )
+                    }
+
+                    if videosForSelectedChannel.isEmpty {
+                        MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
+                    } else {
+                        LazyVGrid(columns: layout.listColumns, spacing: 20) {
+                            ForEach(Array(videosForSelectedChannel.enumerated()), id: \.element.id) { offset, video in
+                                VideoTile(
+                                    video: video,
+                                    tapAction: nil,
+                                    openVideoAction: {
+                                        openVideo(video)
+                                    },
+                                    removeChannel: {
+                                        onRequestRemoval(
+                                            ChannelBrowseItem(
+                                                id: video.channelID,
+                                                channelID: video.channelID,
+                                                channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle,
+                                                latestPublishedAt: video.publishedAt,
+                                                registeredAt: nil,
+                                                latestVideo: video,
+                                                cachedVideoCount: 0
+                                            )
+                                        )
+                                    },
+                                    index: offset + 1
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    MetricTile(title: "動画一覧", value: "チャンネル未選択", detail: "左側のチャンネルを選ぶと動画を表示します")
+                }
+            }
+            .frame(maxWidth: layout.readableContentWidth ?? layout.contentWidth ?? .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, layout.horizontalPadding)
+            .padding(.vertical, 20)
+        }
+        .background(Color(.systemGroupedBackground))
+        .refreshable {
+            await refreshSelectedChannel()
+        }
+        .task(id: selectedChannelID) {
+            guard let selectedChannelID else { return }
+            if videosByChannelID[selectedChannelID] == nil {
+                videosByChannelID[selectedChannelID] = await coordinator.loadVideosForChannel(selectedChannelID)
+            }
+        }
     }
 }
 
