@@ -91,6 +91,8 @@ struct HomeScreenView: View {
             guard !didRunAutoRefresh else { return }
             didRunAutoRefresh = true
             await coordinator.refreshCacheManually()
+            guard AppLaunchMode.current.allowsBackgroundRefresh else { return }
+            coordinator.startAutomaticRefreshLoopIfNeeded()
         }
         .task(priority: .utility) {
             guard !didPrewarmRemoteSearch else { return }
