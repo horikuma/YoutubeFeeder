@@ -82,7 +82,16 @@ struct ContentView: View {
 
     private func openVideo(_ video: CachedVideo) {
         guard let webURL = video.videoURL else { return }
-        webViewURL = webURL
+        if AppInteractionPlatform.current == .desktop {
+            webViewURL = webURL
+        } else {
+            let appURL = URL(string: "youtube://watch?v=\(video.id)")!
+            openURL(appURL) { accepted in
+                if !accepted {
+                    openURL(webURL)
+                }
+            }
+        }
     }
 
     @ViewBuilder
