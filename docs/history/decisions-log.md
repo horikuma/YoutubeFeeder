@@ -1,3 +1,23 @@
+## 2026/04/11
+- YouTube videos詳細応答のcontentDetailsとduration欠落をdecode許容にする。
+  - 実ログでduration欠落itemが1件混入しただけで検索更新全体が古い検索キャッシュへ戻っていたため。
+- design-overview.mdの依存関係メモをUI構造、判断配置、データフローへ分ける。
+  - 主要構造図と同じ責務分離で読み進められるようにするため。
+- classDiagramをService/Store/Model関係確認の補助資料として扱う。
+  - route/layout/UI orchestrationの主説明を静的クラス依存へ戻さないため。
+- compositionを画面組み立てと判断の集約単位としてdesign-overview.mdへ明記する。
+  - UIクラスやService/Storeと同列の静的クラス依存として誤読されることを避けるため。
+- design-overview.mdの主要図をUI構造、判断配置、データフローへ分離する。
+  - 主要クラス図が異なる関心事を1図に混在させ、設計意図を追いにくくしていたため。
+- Git command は command-runner の git wrapper 経由で実行する。
+  - Git 操作の入口を統一し、ルール文書と scripts の実行経路を一致させるため。
+- 開発ルールの正本を docs/rules.md から AGENTS.md へ移動する。
+  - ユーザー指示により rules.md を削除し、history 配下を除く参照先を AGENTS.md に統一するため。
+- Issue実施では issue-todo の body file を直接編集せず、同役割ファイルを新規生成せず、working tree が空ならコミットをスキップする。
+  - Issue ToDo 更新経路とコミット条件を明確に固定するため。
+- issue-todo command は --get で次の未完了 ToDo を返し、--check で ToDo をチェック済みにする契約へ変更する。
+  - Issue実施の対象選定と終了条件を command の JSON next に一本化するため。
+
 ## 2026/04/09
 - Issue100では issue-todo-check の完全一致判定を維持し、issue-read --body-only の追加入力改行だけを除去して本文再利用を成立させる。
   - 安定名の llm-temp 本文ファイル再利用という設計意図を満たしつつ、Description の厳密一致契約も崩さない最小変更だから。

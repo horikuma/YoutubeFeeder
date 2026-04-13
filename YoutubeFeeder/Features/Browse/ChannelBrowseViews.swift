@@ -31,7 +31,8 @@ struct ChannelBrowseView: View {
                     layout: layout,
                     sortDescriptor: sortDescriptor,
                     items: items,
-                    onRequestRemoval: requestRemoval
+                    onRequestRemoval: requestRemoval,
+                    onRefresh: refreshChannelBrowseItems
                 )
             case .compact:
                 ChannelBrowseCompactView(
@@ -41,12 +42,13 @@ struct ChannelBrowseView: View {
                     sortDescriptor: sortDescriptor,
                     items: items,
                     tipsSummary: tipsSummary,
-                    onRequestRemoval: requestRemoval
+                    onRequestRemoval: requestRemoval,
+                    onRefresh: refreshChannelBrowseItems
                 )
             }
         }
         .task {
-            items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+            await loadChannelBrowseItems()
         }
         .onReceive(coordinator.$maintenanceItems.dropFirst()) { _ in
             RuntimeDiagnostics.shared.record(
@@ -58,7 +60,7 @@ struct ChannelBrowseView: View {
                 ]
             )
             Task {
-                items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+                await loadChannelBrowseItems()
             }
         }
         .confirmationDialog(
@@ -105,12 +107,21 @@ struct ChannelBrowseView: View {
     private func handleRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
         removalFeedback = feedback
         Task {
-            items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+            await loadChannelBrowseItems()
         }
     }
 
     private var tipsSummary: ChannelBrowseTipsSummary {
         ChannelBrowseTipsSummary.build(items: items, sortDescriptor: sortDescriptor)
+    }
+
+    private func loadChannelBrowseItems() async {
+        items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+    }
+
+    private func refreshChannelBrowseItems() async {
+        _ = await coordinator.performRefreshAction(.home)
+        await loadChannelBrowseItems()
     }
 }
 
@@ -122,6 +133,7 @@ private struct ChannelBrowseCompactView: View {
     let items: [ChannelBrowseItem]
     let tipsSummary: ChannelBrowseTipsSummary
     let onRequestRemoval: (ChannelBrowseItem) -> Void
+    let onRefresh: () async -> Void
 
     private var usesDesktopMenus: Bool {
         AppInteractionPlatform.current.usesPrimaryClickForMenus
@@ -134,7 +146,7 @@ private struct ChannelBrowseCompactView: View {
             coordinator: coordinator,
             path: $path,
             layout: layout,
-            onRefresh: nil,
+            onRefresh: onRefresh,
             allowsRefreshCommandBinding: true
         ) {
             ChannelBrowseTipsTile(summary: tipsSummary)
@@ -145,11 +157,25 @@ private struct ChannelBrowseCompactView: View {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
                         if usesDesktopMenus {
-                            ChannelNavigationTile(item: item, index: offset + 1)
-                                .tileActionMenu(
-                                    menu: channelMenu(for: item),
-                                    accessibilityIdentifier: "channel.tile.\(item.channelID)"
+                            Button {
+                                path.append(
+                                    MaintenanceRoute.channelVideos(
+                                        ChannelVideosRouteContext(
+                                            channelID: item.channelID,
+                                            preferredChannelTitle: item.channelTitle
+                                        )
+                                    )
                                 )
+                            } label: {
+                                ChannelNavigationTile(item: item, index: offset + 1)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("channel.tile.\(item.channelID)")
+                            .contextMenu {
+                                Button("チャンネルを削除", role: .destructive) {
+                                    onRequestRemoval(item)
+                                }
+                            }
                         } else {
                             NavigationLink(
                                 value: MaintenanceRoute.channelVideos(
@@ -200,6 +226,7 @@ private struct ChannelBrowseRegularView: View {
     let sortDescriptor: ChannelBrowseSortDescriptor
     let items: [ChannelBrowseItem]
     let onRequestRemoval: (ChannelBrowseItem) -> Void
+    let onRefresh: () async -> Void
 
     @State private var selectedChannelID: String?
     @State private var videosByChannelID: [String: [CachedVideo]] = [:]
@@ -218,6 +245,9 @@ private struct ChannelBrowseRegularView: View {
         .navigationSplitViewStyle(.balanced)
         .toolbar(.hidden, for: .navigationBar)
         .modifier(BackSwipePopModifier(path: $path))
+        .bindRefreshCommand {
+            await onRefresh()
+        }
         .onAppear {
             coordinator.suspendLiveUpdates()
             applyDefaultSelectionIfNeeded()
@@ -246,12 +276,15 @@ private struct ChannelBrowseRegularView: View {
                                 index: offset + 1
                             )
                             .onTapGesture {
-                                guard !usesDesktopMenus else { return }
                                 selectChannel(item.channelID)
                             }
-                            .tileActionMenu(
-                                menu: selectionMenu(for: item),
-                                accessibilityIdentifier: "channel.tile.\(item.channelID)"
+                            .modifier(
+                                ChannelSelectionActionModifier(
+                                    item: item,
+                                    usesDesktopMenus: usesDesktopMenus,
+                                    menu: selectionMenu(for: item),
+                                    onRequestRemoval: onRequestRemoval
+                                )
                             )
                         }
                     }
@@ -411,6 +444,31 @@ private struct ChannelBrowseRegularView: View {
                 }
             ]
         )
+    }
+}
+
+private struct ChannelSelectionActionModifier: ViewModifier {
+    let item: ChannelBrowseItem
+    let usesDesktopMenus: Bool
+    let menu: TileMenuConfiguration
+    let onRequestRemoval: (ChannelBrowseItem) -> Void
+
+    func body(content: Content) -> some View {
+        if usesDesktopMenus {
+            content
+                .accessibilityIdentifier("channel.tile.\(item.channelID)")
+                .contextMenu {
+                    Button("チャンネルを削除", role: .destructive) {
+                        onRequestRemoval(item)
+                    }
+                }
+        } else {
+            content
+                .tileActionMenu(
+                    menu: menu,
+                    accessibilityIdentifier: "channel.tile.\(item.channelID)"
+                )
+        }
     }
 }
 

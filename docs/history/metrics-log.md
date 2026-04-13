@@ -1,3 +1,20 @@
+## 2026/04/11
+- Issue120 ToDo2 focused test: YouTubeSearchServiceTests/testVideoListResponseDecodesItemsWithMissingContentDetailsDuration passed on iPhone 17 iOS 26.4; xcodebuild reported existing warnings in FeedCacheMaintenanceTests requestedURLs capture.
+- Issue92 ToDo6 final docs verification: npm run check:mermaid -- docs/human-view/design-overview.md succeeded with 6 mermaid blocks.
+- Issue92 ToDo5 docs verification: npm run check:mermaid -- docs/human-view/design-overview.md succeeded with 6 mermaid blocks.
+- Issue92 ToDo4 docs verification: npm run check:mermaid -- docs/human-view/design-overview.md succeeded with 6 mermaid blocks.
+- Issue92 ToDo3 docs verification: npm run check:mermaid -- docs/human-view/design-overview.md succeeded with 6 mermaid blocks.
+- Issue92 ToDo2 docs verification: npm run check:mermaid -- docs/human-view/design-overview.md succeeded with 6 mermaid blocks.
+- Issue #60 ToDo 6 verification: xcodebuild test -project YoutubeFeeder.xcodeproj -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 17 -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests => passed (11 tests, 0 failures).
+- Issue #60 ToDo 3 verification: xcodebuild build -project YoutubeFeeder.xcodeproj -scheme YoutubeFeeder -destination generic/platform=iOS Simulator => succeeded.
+- Issue #60 ToDo 2 verification: xcodebuild test -project YoutubeFeeder.xcodeproj -scheme YoutubeFeeder -destination platform=iOS Simulator,name=iPhone 17 -only-testing:YoutubeFeederTests/FeedCacheMaintenanceTests/testCacheThumbnailForCachedVideoUsesVideoIDCandidatesAndPersistsFilename => passed (1 test, 0 failures).
+- git wrapper verification: py_compile, command-runner git status, diff --check, _meta json syntax passed
+- docs relocation check: rules.md references absent outside docs/history; git diff --check passed
+- docs diff review: skills/issue-execution.md issue-todo body-file and empty working tree commit rule checked
+- issue-todo helper path: find_next_todo and mark_todo_completed passed with sample IssueToDo lines
+- command-runner issue-todo --help: passed
+- py_compile: issue-todo-check.py and command-runner.py passed with PYTHONPYCACHEPREFIX in tmp
+
 ## 2026/04/08
 ### Issue85 verification
 - 種別: design

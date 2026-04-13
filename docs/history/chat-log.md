@@ -1,3 +1,79 @@
+## 2026/04/11
+- Issueを実施せよ。
+  - Issue #120 を実施し、duration欠落応答のdecode許容、duration欠落item除外、バッチ継続テスト、force refreshのstale fallback回避テストを追加した。関連2テストクラス11件はiPhone 17 iOS 26.4で成功し、作業ツリーはclean。
+  - - searchRemoteVideosのforce refresh live経路でduration欠落item混入時もremote_refresh_completeに到達し、stale cache fallbackへ戻らないことを検証した。  - 期限切れ検索キャッシュを事前投入し、旧失敗経路ならstaleRemoteCacheになる条件でremoteCacheとfresh-playableを確認した。 - Issue120 ToDo5 focused test: FeedCacheCoordinatorRemoteSearchTests/testForceRefreshCompletesRemoteRefreshWhenVideoDetailsContainExcludedItems passed on iPhone 17 iOS 26.4.
+  - - fetchVideoDetailsをテスト可能なdataLoader注入にし、duration欠落itemを含む1バッチ目と後続バッチが継続されることをテストした。  - 外部通信の補助処理はYouTubeSearchService+Networking.swiftへ分離し、YouTubeSearchService.swiftを422行へ戻した。 - Issue120 ToDo4 focused test: YouTubeSearchServiceTests/testFetchVideoDetailsContinuesConvertibleItemsAcrossBatchesWhenExcludedItemsPresent passed on iPhone 17 iOS 26.4.
+  - - YouTube検索結果ではduration欠落itemを通常動画として扱わず除外する。  - duration欠落itemを残すと入力条件を満たさない動画が検索結果へ混入するため。 - Issue120 ToDo3 focused test: YouTubeSearchServiceTests/testFilterPlayableVideosExcludesItemsMissingDuration passed on iPhone 17 iOS 26.4.
+- Issueを作成せよ。「YouTube検索画面でプルリフレッシュしても、古い検索キャッシュの最終更新が下のポップアップで表示されるだけで、検索結果そのものが最新に更新されない」続いて、本スレッドで調査した確定的なシナリオをベースに、入力でブレない機能性を実現するために、Issueを詳細化せよ。
+  - Issue #120 を作成し、調査済みの duration 欠落 decode failure から stale cache fallback へ進むシナリオを基に Description と詳細化コメントを更新し、作業ブランチ issue-120 を作成しました。
+- llm-temp/app.logに、起動から当該操作をし、ホームに戻るまでの操作をした際のログを保存した。これを元に精度を高めよ。
+  - ログにより、YouTube検索更新失敗の直接原因は videos 詳細応答の decode failure で、items.[40].contentDetails.duration が欠落したため古い検索キャッシュへフォールバックしていると特定しました。
+- YouTube検索画面でプルリフレッシュしても、古い検索キャッシュの最終更新が下のポップアップで表示されるだけで、検索結果そのものが最新に更新されない、あるいは表示されない。ホーム画面に戻っても、システム状況の最終更新が古いままである。コードを探索し、可能性の高い原因シナリオを回答せよ。
+  - コード探索の結果、最有力は検索更新失敗時に古い検索キャッシュへフォールバックする設計で、ホームの最終更新は検索キャッシュではなく通常フィードキャッシュ由来の日時を表示している点です。
+- セッションを開始せよ。
+  - セッション開始は完了しました。main は最新、fetch --prune と history-rotate は成功し、差分は残っていません。
+- セッションを終了せよ。
+  - セッション終了処理を完了しました。
+- PRを作成せよ。
+  - Issue #92 の PR #119 を作成しました。
+- 実施せよ。
+  - Issue #92 の実施を完了しました。
+- issue92を詳細化せよ。
+  - Issue #92 の詳細化を完了しました。
+- セッションを終了せよ。
+  - セッション終了処理を完了しました。
+- issue60のPRを作成せよ。
+  - Issue 60 の PR #118 を作成しました。
+- 実施せよ。
+  - Issue #60 を実施しました。全 IssueToDo を完了し、テストは FeedCacheMaintenanceTests 11 件成功、作業ツリー差分なしです。
+- issue60を詳細化せよ。
+  - Issue #60 を詳細化しました。Description とタイトルを更新し、詳細化コメントを追加し、作業ブランチ issue-60 へ切り替え済みです。
+- main 以外のローカルブランチを全て強制削除せよ。
+  - main 以外のローカルブランチをすべて強制削除しました。確認結果として残っているローカルブランチは main だけです。
+- セッションを開始せよ。
+  - セッション開始は完了しました。main 同期、fetch --prune、history-rotate はすべて成功し、残差分はありません。
+- セッションを終了せよ。LLM時間の登録は行わない。
+  - セッション終了を実行しました。main は最新化済みで作業ツリーは clean です。Squash マージ済みと確認できる削除対象はなく、LLM時間の登録は行っていません。
+- スキルを使ってPRを作成せよ。Issue番号のブロックは無視せよ。
+  - PR #117 を pull-request-creation スキル経由で作成しました。Issue 番号は指示どおり省略し、作業ツリーは clean です。
+- PRを作成せよ。Issue番号のブロックは無視して良い。
+- issuesを作成し、切り替え、コミットせよ。
+  - issues ブランチを作成して切り替え、Git wrapper 経由統一の変更をコミットしました。現在の作業ツリーは clean です。
+- ルールを読み直し、ブランチをissuesに切り替えて、コミットせよ。
+  - issues ブランチは local と remote のどちらにも存在せず、作成してよいかは指示から確定できないため、ブランチ切り替えとコミットを中断しました。
+- コミットしないこと。gitコマンドをwrapするscriptsを追加せよ。ルールに、gitコマンドは、wrapper経由を強制せよ。
+  - Git wrapper script を追加し、Git command は command-runner の wrapper 経由で実行するよう AGENTS.md と関連 skill 文書を更新しました。検証は通過し、コミットはしていません。
+- セッションを開始せよ。
+  - セッション開始は完了しました。main は最新化済みで、git fetch --prune と履歴ローテーションも成功し、残差分はありません。
+- セッションを終了せよ。LLM時間登録はスキップせよ。
+  - セッション終了しました。mainをorigin/mainへ同期し、Squashマージ済みのlocal branch issuesを削除しました。LLM時間のIssue登録はスキップし、ローカル計測stateのみsession-finishで消去しました。
+- 規定のスクリプトを使って
+  - 規定スクリプト pull-request-creation で PR #116 を作成しました。URL は https://github.com/horikuma/YoutubeFeeder/pull/116 です。issues は origin/issues に push 済みで作業ツリーはクリーンです。
+- 今回のみそのブロッキングは無効化せよ。続けよ。
+  - Issue番号ブロックを今回のみ無効化してPR作成を続行しましたが、GitHub CLIのPR作成コマンドが承認拒否され、GitHubアプリ経由も403のためPR作成は完了できませんでした。origin/issuesはpush済みです。
+- ルールを読み直し、規定の手順で進めよ。
+  - 規定手順で確認した結果、PR作成はIssue番号を推測なしに確定できないため停止しました。push済みですが、PR作成にはCloses #{issue_number}を含む本文とIssue対応関係が必須です。
+- Issue番号のブロックを無視して良い。遂行せよ。
+- PUSHし、PRを作成せよ。
+- コミットせよ。
+  - issuesブランチでLLM経過時間の出力先をllm-tempへ移動する変更をa272b5cでコミットしました。作業ツリーはクリーンです。
+- ブランチをissuesに切り替えよ。レガシーの回収は不要なので、llm-tempのみに簡潔化せよ。
+  - issuesブランチへ切り替え、llm-elapsed.pyをllm-temp/llm-elapsedのみ参照する形へ簡潔化しました。py_compile、status、旧.git参照なし、git diff --checkを確認済みです。コミットはしていません。
+- elapsedの出力先を、.git配下からllm-temp配下へ移動せよ。
+  - elapsedの出力先を.git/llm-elapsedからllm-temp/llm-elapsedへ変更しました。旧stateの移行、py_compile、metrics-llm-elapsed status、git diff --checkを確認済みです。コミットはしていません。
+- コミットせよ。
+  - shell-wrapperを49770ddでコミットしました。bash構文確認、py経路、オプション文字列拒否を確認済みで、mainはorigin/mainより5コミットaheadです。
+- コミットしてはならない。shell-wrapperをルート直下へ追加せよ。ファイルのみを参照し、リダイレクトによるコード実行を受け付けない。拡張子がpyなら.venvのpython、.venvがない場合は作成する。systemのpythonの使用は、.venvの作成のみ許可する。拡張子がないかpy以外の場合、bashとみなし実行する。
+  - shell-wrapperをルート直下へ追加し、コミットはしていません。pyは.venv/bin/python3、py以外または拡張子なしはbashで実行し、stdinやオプション文字列によるコード実行を拒否する代表確認を実施しました。
+- rules.mdの内容を、AGENTS.mdへ移動し、rules.mdは削除せよ。併せて参照を更新せよ。ただしhistory配下は対象外とする。
+  - AGENTS.mdへ開発ルール本文を移動し、docs/rules.mdを削除し、history配下を除くrules.md参照をAGENTS.mdへ更新して9f0f344でコミットしました。現在mainはorigin/mainより4コミットaheadです。
+- ルールを読み直し、コミットせよ。
+  - ルールを読み直し、未コミットだった skills/issue-execution.md の追記を 8e7518a でコミットしました。現在 main は origin/main より 3 コミット ahead です。
+- issue-todo-checkをissue-todoとし、--getをつけ--todo-numberなしでコールした場合、次のToDoであるnextパラメタを含むJsonを出力する。従来の機能は、--checkとする。issue-executionの未完了項目の選定、および終了条件は、この --getで取得できるnextパラメタを根拠とするよう再構築する。
+  - 実装完了しました。issue-todo に --get/--check を追加し、Issue実施の対象選定と終了条件を JSON next 根拠に更新し、3ed55fb でコミットしました。検証は py_compile、_meta JSON 構文、command-runner issue-todo --help、helper 経路確認を実施済みです。
+- セッションを開始せよ。
+  - セッションを開始しました。mainは最新化済みで、remote prune と履歴ローテーションを完了し、残差分を dce977d でコミットしました。現在は main が origin/main より 1 コミット ahead です。
+
 ## 2026/04/10
 - セッションを終了せよ。[引用要約: IssueへのLLM使用時間登録は除外する。]
   - セッションを終了しました。main へ戻し、LLMセッション所要時間をクローズし、Issueへの時間反映は指示どおり省略しました。
