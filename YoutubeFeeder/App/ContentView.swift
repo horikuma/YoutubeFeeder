@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var hasPreparedMaintenance = false
     @State private var hasAppliedInitialUITestRoute = false
     @State private var navigationPath = NavigationPath()
+    @State private var webViewURL: URL?
     @ObservedObject private var diagnostics = StartupDiagnostics.shared
     private let dependencies: FeedCacheDependencies
 
@@ -29,20 +30,8 @@ struct ContentView: View {
                 horizontalSizeClass: horizontalSizeClass
             )
 
-            Group {
-                if hasEnteredMaintenance {
-                    BasicGUIRootView(
-                        coordinator: coordinator,
-                        openVideo: openVideo,
-                        layout: layout,
-                        diagnostics: diagnostics,
-                        navigationPath: $navigationPath
-                    )
-                } else {
-                    LaunchScreenView()
-                }
-            }
-            .overlay(alignment: .topTrailing) {
+            contentView(layout: layout, geometry: geometry)
+                .overlay(alignment: .topTrailing) {
                 if AppInteractionPlatform.current.usesMenuCommandForRefresh {
                     UITestAsyncActionTrigger(identifier: "test.refresh.command") {
                         await RefreshCommandCenter.shared.performCurrentRefresh()
@@ -93,11 +82,46 @@ struct ContentView: View {
 
     private func openVideo(_ video: CachedVideo) {
         guard let webURL = video.videoURL else { return }
+        webViewURL = webURL
+    }
 
-        let appURL = URL(string: "youtube://watch?v=\(video.id)")!
-        openURL(appURL) { accepted in
-            if !accepted {
-                openURL(webURL)
+    @ViewBuilder
+    private func contentView(layout: AppLayout, geometry: GeometryProxy) -> some View {
+        if AppInteractionPlatform.current == .desktop {
+            HStack(spacing: 0) {
+                Group {
+                    if hasEnteredMaintenance {
+                        BasicGUIRootView(
+                            coordinator: coordinator,
+                            openVideo: openVideo,
+                            layout: layout,
+                            diagnostics: diagnostics,
+                            navigationPath: $navigationPath
+                        )
+                    } else {
+                        LaunchScreenView()
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                Divider()
+
+                EmbeddedWebView(url: $webViewURL)
+                    .frame(width: max(geometry.size.width * 0.42, 360))
+            }
+        } else {
+            Group {
+                if hasEnteredMaintenance {
+                    BasicGUIRootView(
+                        coordinator: coordinator,
+                        openVideo: openVideo,
+                        layout: layout,
+                        diagnostics: diagnostics,
+                        navigationPath: $navigationPath
+                    )
+                } else {
+                    LaunchScreenView()
+                }
             }
         }
     }
