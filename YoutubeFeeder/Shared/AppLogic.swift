@@ -384,6 +384,51 @@ enum ChannelVideosAutoRefreshPolicy {
     }
 }
 
+enum ChannelRefreshSchedulePolicy {
+    static let recentUpdateWindow: TimeInterval = 7 * 24 * 60 * 60
+    static let recentRefreshInterval: TimeInterval = 10 * 60
+    static let staleRefreshInterval: TimeInterval = 60 * 60
+
+    static func refreshInterval(for state: CachedChannelState?, now: Date = .now) -> TimeInterval {
+        guard let latestPublishedAt = state?.latestPublishedAt else {
+            return staleRefreshInterval
+        }
+
+        let age = now.timeIntervalSince(latestPublishedAt)
+        return age <= recentUpdateWindow ? recentRefreshInterval : staleRefreshInterval
+    }
+
+    static func nextRefreshDueAt(for state: CachedChannelState?, now: Date = .now) -> Date {
+        let interval = refreshInterval(for: state, now: now)
+        let anchor = state?.lastCheckedAt ?? state?.lastAttemptAt ?? state?.lastSuccessAt ?? state?.latestPublishedAt
+        guard let anchor else { return now }
+        return anchor.addingTimeInterval(interval)
+    }
+
+    static func prioritizedDueChannelIDs(
+        channels: [String],
+        states: [String: CachedChannelState],
+        now: Date = .now
+    ) -> [String] {
+        FeedOrdering.prioritizedChannelIDs(channels: channels, states: states).filter {
+            nextRefreshDueAt(for: states[$0], now: now) <= now
+        }
+    }
+
+    static func nextRefreshDelay(
+        channels: [String],
+        states: [String: CachedChannelState],
+        now: Date = .now
+    ) -> TimeInterval? {
+        guard !channels.isEmpty else { return nil }
+        let nextDueAt = channels
+            .map { nextRefreshDueAt(for: states[$0], now: now) }
+            .min()
+        guard let nextDueAt else { return nil }
+        return max(nextDueAt.timeIntervalSince(now), 0)
+    }
+}
+
 enum RemoteSearchErrorPolicy {
     static func isCancellation(_ error: Error) -> Bool {
         if error is CancellationError {

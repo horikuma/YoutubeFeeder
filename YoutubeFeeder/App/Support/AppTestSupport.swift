@@ -28,7 +28,19 @@ enum AppLaunchMode {
     }
 
     var autoRefreshOnLaunch: Bool {
-        ProcessInfo.processInfo.environment["YOUTUBEFEEDER_UI_TEST_AUTO_REFRESH"] == "1"
+        Self.autoRefreshOnLaunch(
+            mode: self,
+            uiTestAutoRefreshEnabled: ProcessInfo.processInfo.environment["YOUTUBEFEEDER_UI_TEST_AUTO_REFRESH"] == "1"
+        )
+    }
+
+    static func autoRefreshOnLaunch(mode: AppLaunchMode, uiTestAutoRefreshEnabled: Bool) -> Bool {
+        switch mode {
+        case .normal:
+            return true
+        case .uiTestMock, .uiTestLive:
+            return uiTestAutoRefreshEnabled
+        }
     }
 
     var initialUITestRoute: UITestInitialRoute? {

@@ -3,6 +3,8 @@ import Combine
 
 @MainActor
 final class FeedCacheCoordinator: ObservableObject {
+    nonisolated static let maximumConcurrentChannelRefreshes = 3
+
     @Published var progress: CacheProgress
     @Published var maintenanceItems: [ChannelMaintenanceItem] = []
     @Published var videos: [CachedVideo] = []
@@ -19,6 +21,7 @@ final class FeedCacheCoordinator: ObservableObject {
     let homeSystemStatusService: HomeSystemStatusService
     let channelRegistryMaintenanceService: ChannelRegistryMaintenanceService
     var manualRefreshTask: Task<Void, Never>?
+    var automaticRefreshTask: Task<Void, Never>?
     var importRefreshTask: Task<Void, Never>?
     var freshnessInterval: TimeInterval
     var videoQuery = VideoQuery()

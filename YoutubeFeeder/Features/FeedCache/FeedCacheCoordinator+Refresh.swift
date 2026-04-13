@@ -5,13 +5,65 @@ extension FeedCacheCoordinator {
         let snapshot = await readService.loadSnapshot()
         let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let sortedChannels = prioritizedChannelIDs(states: states)
-        let totalChannels = sortedChannels.count
+        _ = await runRefreshCycle(channelIDs: sortedChannels, states: states)
+    }
 
-        beginManualRefreshProgress(totalChannels: totalChannels)
-        let lastError = await runManualRefreshChannels(sortedChannels, states: states)
+    func startAutomaticRefreshLoopIfNeeded() {
+        guard automaticRefreshTask == nil else { return }
+        automaticRefreshTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.runAutomaticRefreshLoop()
+            self.automaticRefreshTask = nil
+        }
+    }
+
+    func runAutomaticRefreshLoop() async {
+        while !Task.isCancelled {
+            if manualRefreshTask != nil {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                continue
+            }
+
+            let snapshot = await readService.loadSnapshot()
+            let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
+            let dueChannels = ChannelRefreshSchedulePolicy.prioritizedDueChannelIDs(
+                channels: channels,
+                states: states
+            )
+
+            if !dueChannels.isEmpty {
+                await runScheduledRefreshCycle(channelIDs: dueChannels, states: states)
+                continue
+            }
+
+            guard let delay = ChannelRefreshSchedulePolicy.nextRefreshDelay(channels: channels, states: states) else {
+                return
+            }
+
+            if delay > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            } else {
+                await Task.yield()
+            }
+        }
+    }
+
+    func runScheduledRefreshCycle(channelIDs: [String], states: [String: CachedChannelState]) async {
+        guard manualRefreshTask == nil else { return }
+        manualRefreshTask = Task { [channelIDs, states] in
+            _ = await runRefreshCycle(channelIDs: channelIDs, states: states)
+        }
+        await manualRefreshTask?.value
+        manualRefreshTask = nil
+    }
+
+    func runRefreshCycle(channelIDs: [String], states: [String: CachedChannelState]) async -> String? {
+        beginManualRefreshProgress(totalChannels: channelIDs.count)
+        let lastError = await runManualRefreshChannels(channelIDs, states: states)
         finishManualRefreshProgress()
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
+        return lastError
     }
 
     func performMockRefresh() async {
@@ -115,7 +167,7 @@ extension FeedCacheCoordinator {
         var nextIndex = 0
 
         await withTaskGroup(of: String?.self) { group in
-            let initialCount = min(3, sortedChannels.count)
+            let initialCount = min(Self.maximumConcurrentChannelRefreshes, sortedChannels.count)
             updateManualRefreshActiveCalls(completed: 0, totalChannels: sortedChannels.count, activeCalls: initialCount)
 
             for _ in 0 ..< initialCount {
@@ -131,7 +183,11 @@ extension FeedCacheCoordinator {
 
                 let completed = refreshProgress.checkStage.completed + 1
                 let remaining = sortedChannels.count - completed
-                updateManualRefreshActiveCalls(completed: completed, totalChannels: sortedChannels.count, activeCalls: min(3, remaining))
+                updateManualRefreshActiveCalls(
+                    completed: completed,
+                    totalChannels: sortedChannels.count,
+                    activeCalls: min(Self.maximumConcurrentChannelRefreshes, remaining)
+                )
 
                 if nextIndex < sortedChannels.count {
                     let channelID = sortedChannels[nextIndex]
@@ -411,7 +467,7 @@ extension FeedCacheCoordinator {
 
         await withTaskGroup(of: Void.self) { group in
             var nextIndex = 0
-            let initialCount = min(3, prioritizedChannelIDs.count)
+            let initialCount = min(Self.maximumConcurrentChannelRefreshes, prioritizedChannelIDs.count)
 
             for _ in 0 ..< initialCount {
                 let channelID = prioritizedChannelIDs[nextIndex]

@@ -1,3 +1,5 @@
+## 2026/04/12
+
 ## 2026/04/11
 - YouTube videos詳細応答のcontentDetailsとduration欠落をdecode許容にする。
   - 実ログでduration欠落itemが1件混入しただけで検索更新全体が古い検索キャッシュへ戻っていたため。
