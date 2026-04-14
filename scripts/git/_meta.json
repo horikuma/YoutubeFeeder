@@ -38,7 +38,7 @@
         "use_repo_venv": false,
         "required_modules": []
       },
-      "description": "Synchronize the local main branch with origin/main through a deterministic checkout, fetch, optional merge-base reset, and ff-only pull sequence."
+      "description": "Synchronize the local main branch with origin/main through a deterministic checkout, fetch, optional merge-base reset, ff-only pull sequence, and cleanup of local branches whose PRs are merged."
     }
   ]
 }
