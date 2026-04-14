@@ -15,4 +15,10 @@ final class AppLaunchModeTests: LoggedTestCase {
         XCTAssertTrue(AppLaunchMode.autoRefreshOnLaunch(mode: .uiTestMock, uiTestAutoRefreshEnabled: true))
         XCTAssertTrue(AppLaunchMode.autoRefreshOnLaunch(mode: .uiTestLive, uiTestAutoRefreshEnabled: true))
     }
+
+    func testAllowsBackgroundRefreshOnlyInNormalMode() {
+        XCTAssertTrue(AppLaunchMode.normal.allowsBackgroundRefresh)
+        XCTAssertFalse(AppLaunchMode.uiTestMock.allowsBackgroundRefresh)
+        XCTAssertFalse(AppLaunchMode.uiTestLive.allowsBackgroundRefresh)
+    }
 }

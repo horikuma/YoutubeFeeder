@@ -73,6 +73,14 @@ final class ChannelRefreshSchedulePolicyTests: LoggedTestCase {
         )
     }
 
+    func testNextRefreshDelayReturnsNilWhenThereAreNoChannels() {
+        let now = Date(timeIntervalSince1970: 10_000)
+
+        XCTAssertNil(
+            ChannelRefreshSchedulePolicy.nextRefreshDelay(channels: [], states: [:], now: now)
+        )
+    }
+
     private func makeState(id: String, latestPublishedAt: Date, lastCheckedAt: Date) -> CachedChannelState {
         CachedChannelState(
             channelID: id,
