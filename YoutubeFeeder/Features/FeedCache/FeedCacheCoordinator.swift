@@ -120,6 +120,14 @@ final class FeedCacheCoordinator: ObservableObject {
     func refreshCacheManually() async {
         guard manualRefreshTask == nil else { return }
 
+        AppConsoleLogger.appLifecycle.notice(
+            "refresh_cache_manual_started",
+            metadata: [
+                "channels": String(channels.count),
+                "current_channel": progress.currentChannelID ?? "",
+                "is_running": progress.isRunning ? "true" : "false"
+            ]
+        )
         manualRefreshTask = Task {
             StartupDiagnostics.shared.mark("manualRefreshStarted")
             manualRefreshCount += 1
@@ -132,6 +140,14 @@ final class FeedCacheCoordinator: ObservableObject {
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
+        AppConsoleLogger.appLifecycle.notice(
+            "refresh_cache_manual_finished",
+            metadata: [
+                "channels": String(channels.count),
+                "current_channel": progress.currentChannelID ?? "",
+                "is_running": progress.isRunning ? "true" : "false"
+            ]
+        )
     }
 
     func refreshChannelManually(_ channelID: String) async {

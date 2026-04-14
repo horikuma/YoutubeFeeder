@@ -9,7 +9,23 @@ extension FeedCacheCoordinator {
     }
 
     func startAutomaticRefreshLoopIfNeeded() {
-        guard automaticRefreshTask == nil else { return }
+        guard automaticRefreshTask == nil else {
+            AppConsoleLogger.appLifecycle.notice(
+                "auto_refresh_loop_start_skipped",
+                metadata: [
+                    "reason": "already_running",
+                    "has_manual_refresh": manualRefreshTask != nil ? "true" : "false"
+                ]
+            )
+            return
+        }
+        AppConsoleLogger.appLifecycle.notice(
+            "auto_refresh_loop_start_requested",
+            metadata: [
+                "has_manual_refresh": manualRefreshTask != nil ? "true" : "false",
+                "channel_count": String(channels.count)
+            ]
+        )
         automaticRefreshTask = Task { @MainActor [weak self] in
             guard let self else { return }
             await self.runAutomaticRefreshLoop()
@@ -18,8 +34,21 @@ extension FeedCacheCoordinator {
     }
 
     func runAutomaticRefreshLoop() async {
+        AppConsoleLogger.appLifecycle.notice(
+            "auto_refresh_loop_entered",
+            metadata: [
+                "channel_count": String(channels.count),
+                "has_manual_refresh": manualRefreshTask != nil ? "true" : "false"
+            ]
+        )
         while !Task.isCancelled {
             if manualRefreshTask != nil {
+                AppConsoleLogger.appLifecycle.notice(
+                    "auto_refresh_loop_waiting_for_manual_refresh",
+                    metadata: [
+                        "channel_count": String(channels.count)
+                    ]
+                )
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 continue
             }
@@ -30,39 +59,106 @@ extension FeedCacheCoordinator {
                 channels: channels,
                 states: states
             )
+            AppConsoleLogger.appLifecycle.notice(
+                "auto_refresh_loop_snapshot_evaluated",
+                metadata: [
+                    "channel_count": String(channels.count),
+                    "snapshot_channels": String(snapshot.channels.count),
+                    "due_channels": String(dueChannels.count)
+                ]
+            )
 
             if !dueChannels.isEmpty {
+                AppConsoleLogger.appLifecycle.notice(
+                    "auto_refresh_loop_dispatching",
+                    metadata: [
+                        "due_channels": String(dueChannels.count)
+                    ]
+                )
                 await runScheduledRefreshCycle(channelIDs: dueChannels, states: states)
                 continue
             }
 
             guard let delay = ChannelRefreshSchedulePolicy.nextRefreshDelay(channels: channels, states: states) else {
+                AppConsoleLogger.appLifecycle.notice(
+                    "auto_refresh_loop_exiting_no_channels",
+                    metadata: [
+                        "channel_count": String(channels.count),
+                        "snapshot_channels": String(snapshot.channels.count)
+                    ]
+                )
                 return
             }
 
             if delay > 0 {
+                AppConsoleLogger.appLifecycle.notice(
+                    "auto_refresh_loop_sleeping",
+                    metadata: [
+                        "delay_ms": String(Int(delay * 1000)),
+                        "channel_count": String(channels.count)
+                    ]
+                )
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             } else {
+                AppConsoleLogger.appLifecycle.notice(
+                    "auto_refresh_loop_yielding",
+                    metadata: [
+                        "channel_count": String(channels.count)
+                    ]
+                )
                 await Task.yield()
             }
         }
+        AppConsoleLogger.appLifecycle.notice(
+            "auto_refresh_loop_exited",
+            metadata: [
+                "cancelled": Task.isCancelled ? "true" : "false",
+                "channel_count": String(channels.count)
+            ]
+        )
     }
 
     func runScheduledRefreshCycle(channelIDs: [String], states: [String: CachedChannelState]) async {
         guard manualRefreshTask == nil else { return }
+        AppConsoleLogger.appLifecycle.notice(
+            "auto_refresh_cycle_started",
+            metadata: [
+                "channel_count": String(channelIDs.count)
+            ]
+        )
         manualRefreshTask = Task { [channelIDs, states] in
             _ = await runRefreshCycle(channelIDs: channelIDs, states: states)
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
+        AppConsoleLogger.appLifecycle.notice(
+            "auto_refresh_cycle_finished",
+            metadata: [
+                "channel_count": String(channelIDs.count)
+            ]
+        )
     }
 
     func runRefreshCycle(channelIDs: [String], states: [String: CachedChannelState]) async -> String? {
+        AppConsoleLogger.appLifecycle.notice(
+            "refresh_cycle_started",
+            metadata: [
+                "channel_count": String(channelIDs.count),
+                "has_manual_refresh": manualRefreshTask != nil ? "true" : "false"
+            ]
+        )
         beginManualRefreshProgress(totalChannels: channelIDs.count)
         let lastError = await runManualRefreshChannels(channelIDs, states: states)
         finishManualRefreshProgress()
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
+        AppConsoleLogger.appLifecycle.notice(
+            "refresh_cycle_finished",
+            metadata: [
+                "channel_count": String(channelIDs.count),
+                "last_error": lastError ?? ""
+            ]
+        )
         return lastError
     }
 
