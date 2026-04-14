@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "One Tab Per Domain",
+  "version": "1.1",
+  "permissions": ["tabs"],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

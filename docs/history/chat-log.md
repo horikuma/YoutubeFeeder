@@ -1,3 +1,19 @@
+## 2026/04/14
+- セッションを終了せよ。
+  - セッションを終了しました。git-main-sync により main が最新化され、merged 判定に基づく branch 削除も完了しています。
+- コミットせよ。
+  - session-end.md を簡素化してコミットしました。
+- 再実施せよ。
+  - session-end.md を git-main-sync の完了条件だけに絞り、ブランチ掃除と追加の完了条件を削除しました。
+  - session-end.md からブランチ掃除に関する記述を削除しました。
+  - Issue 110 を完了しました。git-main-sync の merged PR cleanup、_meta.json 更新、session-end の branch -D 削除反映まで済んでいます。
+- 実施せよ。
+  - Issue 110 の実施は、IssueToDo が番号付きチェックボックスでないため issue-todo --get が next=null となり、ここで blocker でした。
+- Issue110を詳細化せよ。
+  - Issue 110 を詳細化し、タイトル・Description・Issueコメントを更新して作業ブランチ issue-110 を作成しました。
+- セッションを開始せよ。
+  - セッション開始を完了しました。main の最新化、remote-tracking の prune、履歴ローテーション、差分のコミットまで済んでいます。
+
 ## 2026/04/13
 - セッションを週りょすえよ。
   - セッションを終了しました。main を最新化し、Issue #127 に LLM 所要時間 5 分を反映しました。

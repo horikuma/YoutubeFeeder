@@ -87,11 +87,64 @@ struct HomeScreenView: View {
             )
         }
         .task {
-            guard AppLaunchMode.current.autoRefreshOnLaunch else { return }
-            guard !didRunAutoRefresh else { return }
+            AppConsoleLogger.appLifecycle.notice(
+                "home_auto_refresh_task_started",
+                metadata: [
+                    "auto_refresh_on_launch": AppLaunchMode.current.autoRefreshOnLaunch ? "true" : "false",
+                    "background_refresh": AppLaunchMode.current.allowsBackgroundRefresh ? "true" : "false",
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
+                ]
+            )
+            guard AppLaunchMode.current.autoRefreshOnLaunch else {
+                AppConsoleLogger.appLifecycle.notice(
+                    "home_auto_refresh_task_skipped",
+                    metadata: [
+                        "reason": "disabled_on_launch",
+                        "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
+                    ]
+                )
+                return
+            }
+            guard !didRunAutoRefresh else {
+                AppConsoleLogger.appLifecycle.notice(
+                    "home_auto_refresh_task_skipped",
+                    metadata: [
+                        "reason": "already_ran",
+                        "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
+                    ]
+                )
+                return
+            }
             didRunAutoRefresh = true
+            AppConsoleLogger.appLifecycle.notice(
+                "home_auto_refresh_manual_refresh_started",
+                metadata: [
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
+                ]
+            )
             await coordinator.refreshCacheManually()
-            guard AppLaunchMode.current.allowsBackgroundRefresh else { return }
+            AppConsoleLogger.appLifecycle.notice(
+                "home_auto_refresh_manual_refresh_finished",
+                metadata: [
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
+                ]
+            )
+            guard AppLaunchMode.current.allowsBackgroundRefresh else {
+                AppConsoleLogger.appLifecycle.notice(
+                    "home_auto_refresh_background_loop_skipped",
+                    metadata: [
+                        "reason": "background_refresh_disabled",
+                        "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
+                    ]
+                )
+                return
+            }
+            AppConsoleLogger.appLifecycle.notice(
+                "home_auto_refresh_background_loop_requested",
+                metadata: [
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
+                ]
+            )
             coordinator.startAutomaticRefreshLoopIfNeeded()
         }
         .task(priority: .utility) {
