@@ -1,3 +1,5 @@
+## 2026/04/13
+
 ## 2026/04/12
 ### Mac channel list right click action
 - 種別: ui
