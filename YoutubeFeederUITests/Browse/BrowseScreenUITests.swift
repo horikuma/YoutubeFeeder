@@ -49,6 +49,30 @@ final class BrowseScreenUITests: UITestCaseSupport {
         XCTAssertFalse(app.buttons["channel.tipsTile"].exists)
     }
 
+    func testChannelListRefreshUpdatesVisibleListAndLogsReception() throws {
+        let app = launchApp(
+            extraEnvironment: [
+                "YOUTUBEFEEDER_UI_TEST_INITIAL_ROUTE": "channelList",
+                "YOUTUBEFEEDER_RUNTIME_LOGGING": "1"
+            ]
+        )
+
+        XCTAssertTrue(element("screen.title", in: app).waitForExistence(timeout: 5))
+
+        let initialEntries = try runtimePayload(in: app)
+        XCTAssertFalse(initialEntries.contains { $0.event == "channel_list_received_update" })
+
+        tapAsyncTrigger("test.refresh.command", in: app)
+
+        XCTAssertTrue(eventually(timeout: 5) {
+            guard let entries = self.runtimePayloadIfAvailable(in: app) else {
+                return false
+            }
+            return entries.contains { $0.event == "refresh_ui_applied" }
+                && entries.contains { $0.event == "channel_list_received_update" }
+        })
+    }
+
     func testRemoteSearchRefreshUpdatesResultsAndChipState() throws {
         let app = launchApp(extraEnvironment: ["YOUTUBEFEEDER_UI_TEST_INITIAL_ROUTE": "channelSearchResults"])
 

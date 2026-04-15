@@ -190,8 +190,7 @@ extension FeedCacheCoordinator {
         await refreshUI(
             currentChannelID: channelID,
             isRunning: false,
-            lastError: progress.lastError,
-            allowsSuspendedStateUpdate: true
+            lastError: progress.lastError
         )
         try? await Task.sleep(nanoseconds: 2_000_000_000)
         refreshProgress = .idle
@@ -243,8 +242,7 @@ extension FeedCacheCoordinator {
         await refreshUI(
             currentChannelID: channelID,
             isRunning: false,
-            lastError: result.errorMessage,
-            allowsSuspendedStateUpdate: true
+            lastError: result.errorMessage
         )
         refreshProgress = .idle
     }
@@ -397,14 +395,12 @@ extension FeedCacheCoordinator {
         currentChannelID: String?,
         isRunning: Bool,
         lastError: String?,
-        includesVideos: Bool = true,
-        allowsSuspendedStateUpdate: Bool = false
+        includesVideos: Bool = true
     ) async {
         let startedAt = Date()
         logRefreshUIStart(
             currentChannelID: currentChannelID,
-            includesVideos: includesVideos,
-            allowsSuspendedStateUpdate: allowsSuspendedStateUpdate
+            includesVideos: includesVideos
         )
         let refreshState = await readService.loadRefreshState(
             channels: channels,
@@ -418,11 +414,6 @@ extension FeedCacheCoordinator {
         let snapshotLoadedAt = Date()
         let nextProgress = refreshState.progress
         let nextMaintenanceItems = refreshState.maintenanceItems
-
-        if shouldDeferRefreshUI(allowsSuspendedStateUpdate: allowsSuspendedStateUpdate) {
-            deferRefreshUI(currentChannelID: currentChannelID, maintenanceCount: nextMaintenanceItems.count)
-            return
-        }
 
         applyRefreshUIState(
             progress: nextProgress,
@@ -454,33 +445,14 @@ extension FeedCacheCoordinator {
 
     func logRefreshUIStart(
         currentChannelID: String?,
-        includesVideos: Bool,
-        allowsSuspendedStateUpdate: Bool
+        includesVideos: Bool
     ) {
         AppConsoleLogger.appLifecycle.debug(
             "refresh_ui_start",
             metadata: [
                 "current_channel": currentChannelID ?? "none",
                 "includes_videos": includesVideos ? "true" : "false",
-                "allows_suspended": allowsSuspendedStateUpdate ? "true" : "false",
                 "main_thread": AppConsoleLogger.mainThreadFlag(),
-            ]
-        )
-    }
-
-    func shouldDeferRefreshUI(allowsSuspendedStateUpdate: Bool) -> Bool {
-        liveUpdateSuspendCount > 0 && !allowsSuspendedStateUpdate
-    }
-
-    func deferRefreshUI(currentChannelID: String?, maintenanceCount: Int) {
-        needsRefreshWhenResumed = true
-        RuntimeDiagnostics.shared.record(
-            "refresh_ui_deferred",
-            detail: "ライブ更新抑止中のため UI 反映を保留",
-            metadata: [
-                "currentChannelID": currentChannelID ?? "",
-                "suspendCount": String(liveUpdateSuspendCount),
-                "maintenanceCount": String(maintenanceCount)
             ]
         )
     }
