@@ -249,11 +249,7 @@ private struct ChannelBrowseRegularView: View {
             await onRefresh()
         }
         .onAppear {
-            coordinator.suspendLiveUpdates()
             applyDefaultSelectionIfNeeded()
-        }
-        .onDisappear {
-            coordinator.resumeLiveUpdates()
         }
         .onChange(of: items) { _ in
             applyDefaultSelectionIfNeeded()

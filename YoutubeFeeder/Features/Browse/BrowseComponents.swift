@@ -44,12 +44,6 @@ struct InteractiveListView<Content: View>: View {
             await onRefresh()
         }
         .bindRefreshCommand(refreshCommandAction)
-        .onAppear {
-            coordinator.suspendLiveUpdates()
-        }
-        .onDisappear {
-            coordinator.resumeLiveUpdates()
-        }
     }
 }
 

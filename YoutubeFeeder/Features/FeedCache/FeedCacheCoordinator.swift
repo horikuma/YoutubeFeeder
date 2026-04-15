@@ -25,8 +25,6 @@ final class FeedCacheCoordinator: ObservableObject {
     var importRefreshTask: Task<Void, Never>?
     var freshnessInterval: TimeInterval
     var videoQuery = VideoQuery()
-    var liveUpdateSuspendCount = 0
-    var needsRefreshWhenResumed = false
     var remoteSearchTasks: [RemoteSearchTaskKey: Task<VideoSearchResult, Never>] = [:]
     var remoteSearchSnapshotCache: [String: VideoSearchResult] = [:]
     var remoteSearchPrewarmTasks: [String: Task<Void, Never>] = [:]
@@ -92,31 +90,6 @@ final class FeedCacheCoordinator: ObservableObject {
         )
     }
 
-    func suspendLiveUpdates() {
-        liveUpdateSuspendCount += 1
-        RuntimeDiagnostics.shared.record(
-            "live_updates_suspended",
-            detail: "一覧のライブ更新を抑止",
-            metadata: ["suspendCount": String(liveUpdateSuspendCount)]
-        )
-    }
-
-    func resumeLiveUpdates() {
-        liveUpdateSuspendCount = max(liveUpdateSuspendCount - 1, 0)
-        RuntimeDiagnostics.shared.record(
-            "live_updates_resumed",
-            detail: "一覧のライブ更新抑止を解除",
-            metadata: [
-                "suspendCount": String(liveUpdateSuspendCount),
-                "needsRefreshWhenResumed": needsRefreshWhenResumed ? "true" : "false"
-            ]
-        )
-
-        guard liveUpdateSuspendCount == 0, needsRefreshWhenResumed else { return }
-        needsRefreshWhenResumed = false
-        refreshMaintenanceFromCache()
-    }
-
     func refreshCacheManually() async {
         guard manualRefreshTask == nil else { return }
 
@@ -171,8 +144,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 "channel_manual_refresh_started",
                 detail: "チャンネル単独更新を開始",
                 metadata: [
-                    "channelID": normalizedChannelID,
-                    "liveUpdateSuspendCount": String(liveUpdateSuspendCount)
+                    "channelID": normalizedChannelID
                 ]
             )
             lastManualChannelRefreshID = normalizedChannelID
@@ -196,17 +168,6 @@ final class FeedCacheCoordinator: ObservableObject {
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
-    }
-
-    func refreshMaintenanceFromCache() {
-        Task {
-            await refreshUI(
-                currentChannelID: progress.currentChannelID,
-                isRunning: manualRefreshTask != nil,
-                lastError: progress.lastError,
-                includesVideos: false
-            )
-        }
     }
 
     func performRefreshAction(_ action: FeedRefreshAction) async -> FeedRefreshResult {
