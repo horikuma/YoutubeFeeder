@@ -256,13 +256,12 @@
 ### UI Test
 
 - [HomeScreenUITests.swift](../../YoutubeFeederUITests/Home/HomeScreenUITests.swift)
-  - ホーム画面表示、導線、モック refresh、起動タイムライン。
-- [BrowseScreenUITests.swift](../../YoutubeFeederUITests/Browse/BrowseScreenUITests.swift)
-  - 一覧導線、チャンネル別動画一覧更新、YouTube 検索結果 refresh state、検索結果からのチャンネル遷移。
-  - 実機向け live YouTube 検索 refresh の再現導線。
+  - アプリ起動成功、初期ホーム画面表示、クラッシュしないことの確認だけを担う起動健全性 smoke test。
+  - 画面文言、レイアウト、詳細遷移、分岐網羅、ビジュアル品質は検証しない。
+  - 各テストは単一責務に保ち、最小本数へ抑える。
 - [UITestCaseSupport.swift](../../YoutubeFeederUITests/Support/UITestCaseSupport.swift)
-  - app 起動、timeline 解析、共通 wait。
-  - runtime diagnostics の解析と区間 ms 変換。
+  - app 起動とホーム画面待機の共通補助。
+  - GUI テストをブラックボックスの起動確認として保つための最小補助だけを持つ。
 
 ## Test Support と Fixture
 
