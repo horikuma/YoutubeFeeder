@@ -230,6 +230,7 @@ private struct ChannelBrowseRegularView: View {
 
     @State private var selectedChannelID: String?
     @State private var videosByChannelID: [String: [CachedVideo]] = [:]
+    @State private var loadingChannelIDs: Set<String> = []
 
     private var usesDesktopMenus: Bool {
         AppInteractionPlatform.current.usesPrimaryClickForMenus
@@ -339,7 +340,12 @@ private struct ChannelBrowseRegularView: View {
                                             )
                                         )
                                     },
-                                    index: offset + 1
+                                    index: offset + 1,
+                                    desktopPrimaryClickAction: {
+                                        openVideo(video)
+                                    },
+                                    desktopMenuTriggerStyle: .contextMenu,
+                                    includesOpenVideoInMenu: false
                                 )
                             }
                         }
@@ -356,12 +362,6 @@ private struct ChannelBrowseRegularView: View {
         .background(Color(.systemGroupedBackground))
         .refreshable {
             await refreshSelectedChannel()
-        }
-        .task(id: selectedChannelID) {
-            guard let selectedChannelID else { return }
-            if videosByChannelID[selectedChannelID] == nil {
-                videosByChannelID[selectedChannelID] = await coordinator.loadVideosForChannel(selectedChannelID)
-            }
         }
     }
 
@@ -394,13 +394,32 @@ private struct ChannelBrowseRegularView: View {
 
     private func selectChannel(_ channelID: String) {
         selectedChannelID = channelID
+        loadVideosIfNeeded(for: channelID)
     }
 
     private func applyDefaultSelectionIfNeeded() {
         if let selectedChannelID, items.contains(where: { $0.channelID == selectedChannelID }) {
+            loadVideosIfNeeded(for: selectedChannelID)
             return
         }
-        self.selectedChannelID = items.first?.channelID
+        guard let firstChannelID = items.first?.channelID else { return }
+        self.selectedChannelID = firstChannelID
+        loadVideosIfNeeded(for: firstChannelID)
+    }
+
+    private func loadVideosIfNeeded(for channelID: String) {
+        guard videosByChannelID[channelID] == nil else { return }
+        guard !loadingChannelIDs.contains(channelID) else { return }
+        loadingChannelIDs.insert(channelID)
+        Task {
+            let loadedVideos = await coordinator.loadVideosForChannel(channelID)
+            await MainActor.run {
+                loadingChannelIDs.remove(channelID)
+                if videosByChannelID[channelID] == nil {
+                    videosByChannelID[channelID] = loadedVideos
+                }
+            }
+        }
     }
 
     private func refreshSelectedChannel() async {

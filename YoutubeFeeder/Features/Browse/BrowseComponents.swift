@@ -53,6 +53,11 @@ struct TileMenuAction {
     let action: () -> Void
 }
 
+enum TileMenuTriggerStyle {
+    case primaryClick
+    case contextMenu
+}
+
 struct TileMenuConfiguration {
     let primaryAction: TileMenuAction?
     let secondaryActions: [TileMenuAction]
@@ -77,6 +82,7 @@ struct TileMenuConfiguration {
 private struct TileActionMenuModifier: ViewModifier {
     let menu: TileMenuConfiguration
     let accessibilityIdentifier: String?
+    let desktopTriggerStyle: TileMenuTriggerStyle
     @State private var isShowingMenu = false
 
     private var platform: AppInteractionPlatform {
@@ -86,7 +92,7 @@ private struct TileActionMenuModifier: ViewModifier {
     func body(content: Content) -> some View {
         let presentedActions = menu.presentedActions(for: platform)
 
-        if platform.usesPrimaryClickForMenus, menu.hasActions {
+        if platform.usesPrimaryClickForMenus, desktopTriggerStyle == .primaryClick, menu.hasActions {
             Button {
                 isShowingMenu = true
             } label: {
@@ -102,6 +108,20 @@ private struct TileActionMenuModifier: ViewModifier {
                 }
                 Button("キャンセル", role: .cancel) {}
             }
+        } else if platform.usesPrimaryClickForMenus, desktopTriggerStyle == .contextMenu {
+            content
+                .accessibilityIdentifier(accessibilityIdentifier ?? "")
+                .contextMenu {
+                    if presentedActions.isEmpty {
+                        Button("未定義") {}
+                    } else {
+                        ForEach(Array(presentedActions.enumerated()), id: \.offset) { _, action in
+                            Button(action.title, role: action.role) {
+                                action.action()
+                            }
+                        }
+                    }
+                }
         } else {
             content
                 .accessibilityIdentifier(accessibilityIdentifier ?? "")
@@ -128,8 +148,18 @@ private struct TileActionMenuModifier: ViewModifier {
 }
 
 extension View {
-    func tileActionMenu(menu: TileMenuConfiguration, accessibilityIdentifier: String? = nil) -> some View {
-        modifier(TileActionMenuModifier(menu: menu, accessibilityIdentifier: accessibilityIdentifier))
+    func tileActionMenu(
+        menu: TileMenuConfiguration,
+        accessibilityIdentifier: String? = nil,
+        desktopTriggerStyle: TileMenuTriggerStyle = .primaryClick
+    ) -> some View {
+        modifier(
+            TileActionMenuModifier(
+                menu: menu,
+                accessibilityIdentifier: accessibilityIdentifier,
+                desktopTriggerStyle: desktopTriggerStyle
+            )
+        )
     }
 }
 
@@ -139,13 +169,36 @@ struct VideoTile: View {
     let openVideoAction: (() -> Void)?
     let removeChannel: (() -> Void)?
     let index: Int?
+    let desktopPrimaryClickAction: (() -> Void)?
+    let desktopMenuTriggerStyle: TileMenuTriggerStyle
+    let includesOpenVideoInMenu: Bool
     @State private var shareURL: URL?
+
+    init(
+        video: CachedVideo,
+        tapAction: (() -> Void)? = nil,
+        openVideoAction: (() -> Void)? = nil,
+        removeChannel: (() -> Void)? = nil,
+        index: Int? = nil,
+        desktopPrimaryClickAction: (() -> Void)? = nil,
+        desktopMenuTriggerStyle: TileMenuTriggerStyle = .primaryClick,
+        includesOpenVideoInMenu: Bool = true
+    ) {
+        self.video = video
+        self.tapAction = tapAction
+        self.openVideoAction = openVideoAction
+        self.removeChannel = removeChannel
+        self.index = index
+        self.desktopPrimaryClickAction = desktopPrimaryClickAction
+        self.desktopMenuTriggerStyle = desktopMenuTriggerStyle
+        self.includesOpenVideoInMenu = includesOpenVideoInMenu
+    }
 
     var body: some View {
         let menu = buildMenuConfiguration()
         let tile = VideoHeroTile(video: video, index: index)
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .tileActionMenu(menu: menu)
+            .tileActionMenu(menu: menu, desktopTriggerStyle: desktopMenuTriggerStyle)
             .sheet(
                 isPresented: Binding(
                     get: { shareURL != nil },
@@ -157,11 +210,16 @@ struct VideoTile: View {
                 }
             }
             .accessibilityAddTraits(.isButton)
-            .accessibilityHint(AppInteractionPlatform.current.usesPrimaryClickForMenus ? "クリックでメニューを開きます" : "長押しでメニューを開きます")
+            .accessibilityHint(accessibilityHint)
             .accessibilityIdentifier("video.tile.\(video.id)")
 
-        if AppInteractionPlatform.current.usesPrimaryClickForMenus, menu.hasActions {
+        if AppInteractionPlatform.current.usesPrimaryClickForMenus, desktopMenuTriggerStyle == .primaryClick, menu.hasActions {
             tile
+        } else if AppInteractionPlatform.current.usesPrimaryClickForMenus, let desktopPrimaryClickAction {
+            Button(action: desktopPrimaryClickAction) {
+                tile
+            }
+            .buttonStyle(.plain)
         } else if let tapAction {
             Button(action: tapAction) {
                 tile
@@ -170,6 +228,16 @@ struct VideoTile: View {
         } else {
             tile
         }
+    }
+
+    private var accessibilityHint: String {
+        if AppInteractionPlatform.current.usesPrimaryClickForMenus {
+            if desktopMenuTriggerStyle == .contextMenu, desktopPrimaryClickAction != nil {
+                return "クリックで YouTube を開きます。右クリックでメニューを開きます"
+            }
+            return "クリックでメニューを開きます"
+        }
+        return "長押しでメニューを開きます"
     }
 
     private func buildMenuConfiguration() -> TileMenuConfiguration {
@@ -183,7 +251,7 @@ struct VideoTile: View {
             )
         }
 
-        if let openVideoAction {
+        if includesOpenVideoInMenu, let openVideoAction {
             actions.append(
                 TileMenuAction(title: "YouTubeで開く", role: nil) {
                     openVideoAction()

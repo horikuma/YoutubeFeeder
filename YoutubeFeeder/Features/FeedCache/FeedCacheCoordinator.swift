@@ -73,7 +73,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func bootstrapMaintenance() async {
         let startedAt = Date()
-        channels = ChannelRegistryStore.loadAllChannelIDs()
+        syncRegisteredChannelsFromStore(reason: "bootstrap")
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         let bootstrap = FeedBootstrapStore.load(channels: channels)
@@ -92,6 +92,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func refreshCacheManually() async {
         guard manualRefreshTask == nil else { return }
+        syncRegisteredChannelsFromStore(reason: "manual_refresh")
 
         AppConsoleLogger.appLifecycle.notice(
             "refresh_cache_manual_started",
@@ -124,6 +125,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func refreshChannelManually(_ channelID: String) async {
+        syncRegisteredChannelsFromStore(reason: "channel_refresh")
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedChannelID.isEmpty else {
             RuntimeDiagnostics.shared.record("channel_manual_refresh_ignored", detail: "空の channelID のため更新しない")
@@ -372,6 +374,33 @@ final class FeedCacheCoordinator: ObservableObject {
     func performConsistencyMaintenanceIfNeeded(force: Bool) async -> CacheConsistencyMaintenanceResult? {
         guard force || !channels.isEmpty else { return nil }
         return await writeService.performConsistencyMaintenance(activeChannelIDs: channels, force: force)
+    }
+
+    func syncRegisteredChannelsFromStore(reason: String) {
+        let storedChannels = ChannelRegistryStore.loadAllChannelIDs()
+        guard !storedChannels.isEmpty else {
+            RuntimeDiagnostics.shared.record(
+                "registered_channels_sync_skipped",
+                detail: "登録チャンネルの再同期を省略",
+                metadata: [
+                    "reason": reason,
+                    "currentCount": String(channels.count)
+                ]
+            )
+            return
+        }
+
+        guard storedChannels != channels else { return }
+        channels = storedChannels
+        freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+        RuntimeDiagnostics.shared.record(
+            "registered_channels_synced",
+            detail: "登録チャンネルを永続ストアから再同期",
+            metadata: [
+                "reason": reason,
+                "channelCount": String(channels.count)
+            ]
+        )
     }
 
     func refreshHomeSystemStatus(snapshot: FeedCacheSnapshot? = nil, currentProgress: CacheProgress? = nil) async {
