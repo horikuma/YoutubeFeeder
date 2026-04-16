@@ -343,7 +343,8 @@ private struct ChannelBrowseRegularView: View {
                                     desktopPrimaryClickAction: {
                                         openVideo(video)
                                     },
-                                    desktopMenuTriggerStyle: .contextMenu
+                                    desktopMenuTriggerStyle: .contextMenu,
+                                    includesOpenVideoInMenu: false
                                 )
                             }
                         }

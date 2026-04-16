@@ -171,6 +171,7 @@ struct VideoTile: View {
     let index: Int?
     let desktopPrimaryClickAction: (() -> Void)?
     let desktopMenuTriggerStyle: TileMenuTriggerStyle
+    let includesOpenVideoInMenu: Bool
     @State private var shareURL: URL?
 
     init(
@@ -180,7 +181,8 @@ struct VideoTile: View {
         removeChannel: (() -> Void)? = nil,
         index: Int? = nil,
         desktopPrimaryClickAction: (() -> Void)? = nil,
-        desktopMenuTriggerStyle: TileMenuTriggerStyle = .primaryClick
+        desktopMenuTriggerStyle: TileMenuTriggerStyle = .primaryClick,
+        includesOpenVideoInMenu: Bool = true
     ) {
         self.video = video
         self.tapAction = tapAction
@@ -189,6 +191,7 @@ struct VideoTile: View {
         self.index = index
         self.desktopPrimaryClickAction = desktopPrimaryClickAction
         self.desktopMenuTriggerStyle = desktopMenuTriggerStyle
+        self.includesOpenVideoInMenu = includesOpenVideoInMenu
     }
 
     var body: some View {
@@ -248,7 +251,7 @@ struct VideoTile: View {
             )
         }
 
-        if let openVideoAction {
+        if includesOpenVideoInMenu, let openVideoAction {
             actions.append(
                 TileMenuAction(title: "YouTubeで開く", role: nil) {
                     openVideoAction()
