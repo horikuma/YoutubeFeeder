@@ -75,6 +75,7 @@
 - [ChannelBrowseViews.swift](../../YoutubeFeeder/Features/Browse/ChannelBrowseViews.swift)
   - `ChannelBrowseView`、全動画一覧、分割チャンネル閲覧。
   - `Tips` タイル、並び順反映、削除導線。
+  - 分割レイアウトでは、初回選択したチャンネルの動画一覧を自動読込し、右ペインの表示を選択と同じ経路で揃える。
   - チャンネルタイルの削除メニューは `openTileMenu(item:)` 相当の共通アクションへ寄せ、`iPhone` / `iPad` の長押しと `Mac` の左クリックは UI アダプタ差分として扱う。
 - [SearchResultsViews.swift](../../YoutubeFeeder/Features/Browse/SearchResultsViews.swift)
   - 固定キーワード検索結果と共通チップ UI。
