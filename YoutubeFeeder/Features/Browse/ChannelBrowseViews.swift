@@ -339,7 +339,11 @@ private struct ChannelBrowseRegularView: View {
                                             )
                                         )
                                     },
-                                    index: offset + 1
+                                    index: offset + 1,
+                                    desktopPrimaryClickAction: {
+                                        openVideo(video)
+                                    },
+                                    desktopMenuTriggerStyle: .contextMenu
                                 )
                             }
                         }

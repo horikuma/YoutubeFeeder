@@ -77,7 +77,11 @@ struct ChannelVideosView: View {
                                     channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
                                 )
                             },
-                            index: offset + 1
+                            index: offset + 1,
+                            desktopPrimaryClickAction: {
+                                openVideo(video)
+                            },
+                            desktopMenuTriggerStyle: .contextMenu
                         )
                     }
                 }
