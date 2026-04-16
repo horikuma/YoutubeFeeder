@@ -2,6 +2,7 @@ import Foundation
 
 extension FeedCacheCoordinator {
     func performManualRefresh() async {
+        syncRegisteredChannelsFromStore(reason: "manual_refresh_cycle")
         let snapshot = await readService.loadSnapshot()
         let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let sortedChannels = prioritizedChannelIDs(states: states)
@@ -42,6 +43,7 @@ extension FeedCacheCoordinator {
             ]
         )
         while !Task.isCancelled {
+            self.syncRegisteredChannelsFromStore(reason: "automatic_refresh_loop")
             if manualRefreshTask != nil {
                 AppConsoleLogger.appLifecycle.notice(
                     "auto_refresh_loop_waiting_for_manual_refresh",
