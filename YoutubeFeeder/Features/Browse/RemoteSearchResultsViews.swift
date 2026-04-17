@@ -14,17 +14,8 @@ struct RemoteKeywordSearchResultsView: View {
     let browsePresentation: BasicGUIBrowsePresentation
     let presentationMode: RemoteSearchPresentationMode
 
-    @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
-    @State private var presentationState = RemoteSearchPresentationState(
-        visibleCount: 20,
-        chipMode: .hidden,
-        splitContext: nil
-    )
-    @State private var splitContext: ChannelVideosRouteContext?
-    @State private var splitVideos: [CachedVideo] = []
-    @State private var splitVisibleCount = 20
+    @State private var searchState = RemoteSearchLogic()
     @State private var splitLoadTask: Task<Void, Never>?
-    @State private var isSplitLoading = false
     @State private var hasLoggedRootRender = false
 
     init(
@@ -56,7 +47,7 @@ struct RemoteKeywordSearchResultsView: View {
                 .frame(width: 0, height: 0)
             )
             .overlay(alignment: .top) {
-                if presentationState.isRefreshingChip {
+                if searchState.presentationState.isRefreshingChip {
                     SearchRefreshStatusView()
                         .padding(.horizontal, layout.horizontalPadding)
                         .padding(.top, 12)
@@ -67,7 +58,7 @@ struct RemoteKeywordSearchResultsView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    if result.totalCount > 0 {
+                    if searchState.result.totalCount > 0 {
                         Button("クリア") {
                             Task {
                                 await coordinator.clearRemoteSearchHistory(keyword: keyword)
@@ -78,12 +69,12 @@ struct RemoteKeywordSearchResultsView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if presentationState.chipMode == .summary {
+                if searchState.presentationState.chipMode == .summary {
                     SearchResultCountChip(
-                        totalCount: result.totalCount,
-                        sourceLabel: result.source.label,
-                        fetchedAt: result.fetchedAt,
-                        isRefreshing: presentationState.isRefreshingChip
+                        totalCount: searchState.result.totalCount,
+                        sourceLabel: searchState.result.source.label,
+                        fetchedAt: searchState.result.fetchedAt,
+                        isRefreshing: searchState.presentationState.isRefreshingChip
                     )
                         .padding(.bottom, 10)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -125,8 +116,8 @@ struct RemoteKeywordSearchResultsView: View {
                     "screen_disappear",
                     metadata: [
                         "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
-                        "videos": String(result.videos.count),
-                        "refreshing": presentationState.isRefreshingChip ? "true" : "false",
+                        "videos": String(searchState.result.videos.count),
+                        "refreshing": searchState.presentationState.isRefreshingChip ? "true" : "false",
                         "mode": presentationMode.rawValue,
                     ]
                 )
@@ -138,11 +129,11 @@ struct RemoteKeywordSearchResultsView: View {
             if AppLaunchMode.current.usesMockData {
                 UITestMarker(
                     identifier: "test.remoteSearch.firstVideoID",
-                    value: result.videos.first?.id ?? "none"
+                    value: searchState.result.videos.first?.id ?? "none"
                 )
                 UITestMarker(
                     identifier: "search.refreshPhase",
-                    value: presentationState.chipMode.rawValue
+                    value: searchState.presentationState.chipMode.rawValue
                 )
                 UITestAsyncActionTrigger(identifier: "test.remoteSearch.refresh") {
                     await reloadResults(forceRefresh: true)
@@ -165,19 +156,24 @@ struct RemoteKeywordSearchResultsView: View {
                 "mode": presentationMode.rawValue,
             ]
         )
-        result = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
+        let loadedResult = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
+        searchState.setResult(
+            loadedResult,
+            usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
+            previousSplitContext: searchState.splitContext
+        )
         logger.debug(
             "screen_snapshot_load_complete",
             metadata: [
                 "keyword": keywordPreview,
-                "source": result.source.label,
-                "videos": String(result.videos.count),
-                "error": result.errorMessage == nil ? "none" : "present",
+                "source": searchState.result.source.label,
+                "videos": String(searchState.result.videos.count),
+                "error": searchState.result.errorMessage == nil ? "none" : "present",
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 "mode": presentationMode.rawValue,
             ]
         )
-        applyPresentationState()
+        applyDefaultSplitSelectionIfNeeded()
     }
 
     private func reloadResults(forceRefresh: Bool) async {
@@ -188,40 +184,48 @@ struct RemoteKeywordSearchResultsView: View {
             metadata: [
                 "keyword": keywordPreview,
                 "force_refresh": forceRefresh ? "true" : "false",
-                "current_videos": String(result.videos.count),
+                "current_videos": String(searchState.result.videos.count),
                 "mode": presentationMode.rawValue,
             ]
         )
         if forceRefresh {
-            presentationState.beginRefresh()
+            searchState.beginRefresh()
             await Task.yield()
         }
         if forceRefresh {
             if case let .remoteSearch(refreshedResult) = await coordinator.performRefreshAction(.remoteSearch(keyword: keyword, limit: 100)) {
-                result = refreshedResult
+                searchState.setResult(
+                    refreshedResult,
+                    usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
+                    previousSplitContext: searchState.splitContext
+                )
             }
         } else {
-            result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: false)
+            searchState.setResult(
+                await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: false),
+                usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
+                previousSplitContext: searchState.splitContext
+            )
         }
         logger.notice(
             "screen_refresh_complete",
             metadata: [
                 "keyword": keywordPreview,
-                "source": result.source.label,
-                "videos": String(result.videos.count),
-                "fetched": result.fetchedAt == nil ? "false" : "true",
-                "error": result.errorMessage == nil ? "none" : "present",
+                "source": searchState.result.source.label,
+                "videos": String(searchState.result.videos.count),
+                "fetched": searchState.result.fetchedAt == nil ? "false" : "true",
+                "error": searchState.result.errorMessage == nil ? "none" : "present",
                 "mode": presentationMode.rawValue,
             ]
         )
-        applyPresentationState()
+        applyDefaultSplitSelectionIfNeeded()
     }
 
     private func dismissChip() {
-        guard presentationState.isChipVisible else { return }
-        guard presentationState.chipMode != .refreshing else { return }
+        guard searchState.presentationState.isChipVisible else { return }
+        guard searchState.presentationState.chipMode != .refreshing else { return }
         withAnimation(.easeOut(duration: 0.2)) {
-            presentationState.dismissChip()
+            searchState.dismissChip()
         }
     }
 
@@ -230,31 +234,17 @@ struct RemoteKeywordSearchResultsView: View {
     }
 
     private func loadMoreIfNeeded() {
-        presentationState.loadMoreIfNeeded(totalVideoCount: result.videos.count)
-    }
-
-    private func applyPresentationState() {
-        presentationState = RemoteSearchPresentationState.build(
-            result: result,
-            usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
-            previousSplitContext: splitContext
-        )
-        if browsePresentation.usesSplitLayout {
-            applyDefaultSplitSelectionIfNeeded()
-        }
+        searchState.loadMoreIfNeeded()
     }
 
     private func applyDefaultSplitSelectionIfNeeded() {
         guard browsePresentation.usesSplitLayout else { return }
-        guard let context = presentationState.splitContext else {
+        guard let context = searchState.presentationState.splitContext else {
             splitLoadTask?.cancel()
-            splitContext = nil
-            splitVideos = []
-            splitVisibleCount = 20
-            isSplitLoading = false
+            searchState.clearSplitSelection()
             return
         }
-        if splitContext == context { return }
+        if searchState.splitContext == context { return }
         scheduleDeferredSplitSelection(context)
     }
 
@@ -281,10 +271,7 @@ struct RemoteKeywordSearchResultsView: View {
     }
 
     private func beginDeferredSplitSelection(_ context: ChannelVideosRouteContext) {
-        splitContext = context
-        splitVideos = []
-        splitVisibleCount = 20
-        isSplitLoading = true
+        searchState.beginSplitSelection(context)
     }
 
     private func performImmediateSplitSelection(_ context: ChannelVideosRouteContext) async {
@@ -313,10 +300,7 @@ struct RemoteKeywordSearchResultsView: View {
 
         let publishStartedAt = Date()
         await MainActor.run {
-            guard splitContext == context else { return }
-            splitVideos = loadedVideos
-            splitVisibleCount = min(20, loadedVideos.count)
-            isSplitLoading = false
+            searchState.finishSplitSelection(context, videos: loadedVideos)
         }
 
         AppConsoleLogger.appLifecycle.notice(
@@ -363,10 +347,7 @@ struct RemoteKeywordSearchResultsView: View {
 
         let publishStartedAt = Date()
         await MainActor.run {
-            guard splitContext == context else { return }
-            splitVideos = loadedVideos
-            splitVisibleCount = min(20, loadedVideos.count)
-            isSplitLoading = false
+            searchState.finishSplitSelection(context, videos: loadedVideos)
         }
         recordDeferredSplitSelectionCompleted(
             context,
@@ -436,8 +417,7 @@ struct RemoteKeywordSearchResultsView: View {
     }
 
     private func loadMoreSplitVideosIfNeeded() {
-        guard splitVisibleCount < splitVideos.count else { return }
-        splitVisibleCount = min(splitVisibleCount + 20, splitVideos.count)
+        searchState.loadSplitMoreIfNeeded()
     }
 
     private func recordRenderProbe(_ phase: String) {
@@ -445,7 +425,7 @@ struct RemoteKeywordSearchResultsView: View {
             "phase": phase,
             "layout": browsePresentation.rawValue,
             "mode": presentationMode.rawValue,
-            "videos": String(result.videos.count),
+            "videos": String(searchState.result.videos.count),
         ]
         AppConsoleLogger.youtubeSearch.debug("screen_render_probe", metadata: metadata)
         RuntimeDiagnostics.shared.record(
@@ -464,12 +444,12 @@ struct RemoteKeywordSearchResultsView: View {
                 openVideo: openVideo,
                 path: $path,
                 layout: layout,
-                result: result,
-                visibleCount: presentationState.visibleCount,
-                splitContext: $splitContext,
-                splitVideos: $splitVideos,
-                splitVisibleCount: $splitVisibleCount,
-                isSplitLoading: isSplitLoading,
+                result: searchState.result,
+                visibleCount: searchState.presentationState.visibleCount,
+                splitContext: $searchState.splitContext,
+                splitVideos: $searchState.splitVideos,
+                splitVisibleCount: $searchState.splitVisibleCount,
+                isSplitLoading: searchState.isSplitLoading,
                 presentationMode: presentationMode,
                 onRenderProbe: recordRenderProbe,
                 onLoadMoreSplitVideos: loadMoreSplitVideosIfNeeded,
@@ -485,8 +465,8 @@ struct RemoteKeywordSearchResultsView: View {
                 layout: layout,
                 path: $path,
                 keyword: keyword,
-                result: result,
-                visibleCount: presentationState.visibleCount,
+                result: searchState.result,
+                visibleCount: searchState.presentationState.visibleCount,
                 allowsRefreshCommandBinding: presentationMode == .visible,
                 onRefresh: { await reloadResults(forceRefresh: true) },
                 onDismissChip: dismissChip,

@@ -7,7 +7,7 @@ struct KeywordSearchResultsView: View {
     @Binding var path: NavigationPath
     let layout: AppLayout
 
-    @State private var result = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
+    @State private var searchState = KeywordSearchLogic()
     @State private var isChipVisible = true
 
     var body: some View {
@@ -22,11 +22,11 @@ struct KeywordSearchResultsView: View {
             },
             allowsRefreshCommandBinding: true
         ) {
-            if result.videos.isEmpty {
+            if searchState.result.videos.isEmpty {
                 MetricTile(title: "検索結果", value: "0件", detail: "一致する動画がキャッシュにありません")
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                    ForEach(Array(result.videos.enumerated()), id: \.element.id) { offset, video in
+                    ForEach(Array(searchState.result.videos.enumerated()), id: \.element.id) { offset, video in
                         VideoTile(
                             video: video,
                             tapAction: {
@@ -52,7 +52,7 @@ struct KeywordSearchResultsView: View {
         }
         .safeAreaInset(edge: .bottom) {
             if isChipVisible {
-                SearchResultCountChip(totalCount: result.totalCount, sourceLabel: result.source.label, fetchedAt: result.fetchedAt)
+                SearchResultCountChip(totalCount: searchState.result.totalCount, sourceLabel: searchState.result.source.label, fetchedAt: searchState.result.fetchedAt)
                     .padding(.bottom, 10)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -74,7 +74,7 @@ struct KeywordSearchResultsView: View {
     }
 
     private func reloadResults() async {
-        result = await coordinator.searchVideos(keyword: keyword, limit: 20)
+        searchState.setResult(await coordinator.searchVideos(keyword: keyword, limit: 20))
     }
 
     private func dismissChip() {

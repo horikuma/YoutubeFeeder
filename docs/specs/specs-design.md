@@ -196,12 +196,12 @@
   - `FeedOrdering`
   - `ChannelBrowseSortDescriptor`
   - `RemoteSearchPresentationState`
-  - 画面非依存の pure logic。
+  - 画面非依存の pure logic と、UI から切り離した状態の正本。
 
 ## 画面と状態の詳細設計
 
-- `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面局所の UI 状態は `SearchResultsViews.swift` / `RemoteSearchResultsViews.swift` と `RemoteSearchPresentationState` に閉じ込める。
-- `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択を pure logic として持つ。
+- `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような表示上の一時状態は `SearchResultsViews.swift` / `RemoteSearchResultsViews.swift` に閉じ、複数 View 間で共有される選択状態や進行状態、非同期結果に依存する状態は `RemoteSearchPresentationState` に寄せる。
+- `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択の正本を持つ pure logic とする。
 - `RemoteSearchPresentationState` の split 初期選択は `routeSource = .remoteSearch` を含む `ChannelVideosRouteContext` を返し、後続の自動 refresh / fallback 判定へ文脈を引き渡す。
 - アクションは `refreshFeed()` や `openTileMenu(item:)` のようなドメイン単位で定義し、UI イベント単位の共通入口を作らない。
 - UI はドメインアクションを呼び出すアダプタとして扱い、プラットフォーム差分は UI 層で吸収してアクション層へ持ち込まない。

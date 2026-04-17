@@ -189,6 +189,232 @@ struct ChannelBrowseSortDescriptor: Hashable {
     }
 }
 
+struct HomeScreenLogic: Hashable {
+    var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
+    var transferFeedback: ChannelRegistryTransferFeedback?
+    var resetFeedback: LocalStateResetFeedback?
+    var transferErrorMessage: String?
+    var isTransferringRegistry = false
+    var isResettingAllSettings = false
+    var shouldConfirmReset = false
+
+    mutating func selectChannelSortDescriptor(_ descriptor: ChannelBrowseSortDescriptor) {
+        channelSortDescriptor = descriptor
+    }
+
+    mutating func requestResetAllSettings() {
+        shouldConfirmReset = true
+    }
+
+    mutating func beginRegistryTransfer() {
+        resetFeedback = nil
+        transferErrorMessage = nil
+        isTransferringRegistry = true
+    }
+
+    mutating func finishRegistryTransfer(_ feedback: ChannelRegistryTransferFeedback) {
+        transferFeedback = feedback
+        isTransferringRegistry = false
+    }
+
+    mutating func failRegistryTransfer(_ error: Error) {
+        transferFeedback = nil
+        transferErrorMessage = error.localizedDescription
+        isTransferringRegistry = false
+    }
+
+    mutating func beginResetAllSettings() {
+        transferFeedback = nil
+        transferErrorMessage = nil
+        shouldConfirmReset = false
+        isResettingAllSettings = true
+    }
+
+    mutating func finishResetAllSettings(_ feedback: LocalStateResetFeedback) {
+        resetFeedback = feedback
+        isResettingAllSettings = false
+    }
+
+    mutating func failResetAllSettings(_ error: Error) {
+        resetFeedback = nil
+        transferErrorMessage = error.localizedDescription
+        isResettingAllSettings = false
+    }
+}
+
+struct ChannelRegistrationLogic: Hashable {
+    var errorMessage: String?
+    var feedback: ChannelRegistrationFeedback?
+    var isSubmitting = false
+    var isImportingCSV = false
+    var importFeedback: ChannelCSVImportFeedback?
+    var isCSVImporterPresented = false
+
+    mutating func beginSubmit() {
+        errorMessage = nil
+        feedback = nil
+        importFeedback = nil
+        isSubmitting = true
+    }
+
+    mutating func finishSubmit(_ feedback: ChannelRegistrationFeedback) {
+        self.feedback = feedback
+        isSubmitting = false
+    }
+
+    mutating func failSubmit(_ error: Error) {
+        errorMessage = error.localizedDescription
+        isSubmitting = false
+    }
+
+    mutating func beginCSVImport() {
+        errorMessage = nil
+        feedback = nil
+        importFeedback = nil
+    }
+
+    mutating func requestCSVImport() {
+        guard !isImportingCSV else { return }
+        beginCSVImport()
+        isCSVImporterPresented = true
+    }
+
+    mutating func failCSVImportPresentation(_ error: Error) {
+        errorMessage = error.localizedDescription
+    }
+
+    mutating func beginCSVImport(fromFile _: URL) {
+        errorMessage = nil
+        feedback = nil
+        importFeedback = nil
+        isImportingCSV = true
+    }
+
+    mutating func finishCSVImport(_ feedback: ChannelCSVImportFeedback) {
+        importFeedback = feedback
+        isImportingCSV = false
+    }
+
+    mutating func failCSVImport(_ error: Error) {
+        errorMessage = error.localizedDescription
+        isImportingCSV = false
+    }
+}
+
+struct ChannelBrowseLogic: Hashable {
+    var items: [ChannelBrowseItem] = []
+    var pendingChannelRemoval: PendingChannelRemoval?
+    var removalFeedback: ChannelRemovalFeedback?
+    var selectedChannelID: String?
+    var videosByChannelID: [String: [CachedVideo]] = [:]
+    var loadingChannelIDs: Set<String> = []
+
+    mutating func setItems(_ items: [ChannelBrowseItem]) {
+        self.items = items
+        if let selectedChannelID, !items.contains(where: { $0.channelID == selectedChannelID }) {
+            self.selectedChannelID = nil
+        }
+    }
+
+    mutating func requestRemoval(for item: ChannelBrowseItem) {
+        pendingChannelRemoval = PendingChannelRemoval(channelID: item.channelID, channelTitle: item.channelTitle)
+    }
+
+    mutating func clearPendingRemoval() {
+        pendingChannelRemoval = nil
+    }
+
+    mutating func applyRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
+        removalFeedback = feedback
+    }
+
+    mutating func selectChannel(_ channelID: String) {
+        selectedChannelID = channelID
+    }
+
+    mutating func applyDefaultSelectionIfNeeded() -> String? {
+        if let selectedChannelID, items.contains(where: { $0.channelID == selectedChannelID }) {
+            return selectedChannelID
+        }
+        guard let firstChannelID = items.first?.channelID else {
+            selectedChannelID = nil
+            return nil
+        }
+        selectedChannelID = firstChannelID
+        return firstChannelID
+    }
+
+    mutating func beginLoadingVideos(for channelID: String) -> Bool {
+        guard videosByChannelID[channelID] == nil else { return false }
+        guard !loadingChannelIDs.contains(channelID) else { return false }
+        loadingChannelIDs.insert(channelID)
+        return true
+    }
+
+    mutating func finishLoadingVideos(_ videos: [CachedVideo], for channelID: String) {
+        loadingChannelIDs.remove(channelID)
+        if videosByChannelID[channelID] == nil {
+            videosByChannelID[channelID] = videos
+        }
+    }
+
+    mutating func refreshSelectedChannelVideos(_ videos: [CachedVideo]) {
+        guard let selectedChannelID else { return }
+        videosByChannelID[selectedChannelID] = videos
+    }
+
+    func videosForSelectedChannel() -> [CachedVideo] {
+        guard let selectedChannelID else { return [] }
+        return videosByChannelID[selectedChannelID] ?? []
+    }
+
+    func selectedTitle() -> String {
+        guard let selectedChannelID else { return "チャンネル未選択" }
+        return items.first(where: { $0.channelID == selectedChannelID })?.channelTitle ?? selectedChannelID
+    }
+}
+
+struct VideoListLogic: Hashable {
+    var videos: [CachedVideo] = []
+    var isAutomaticRefreshInProgress = false
+    var pendingChannelRemoval: PendingChannelRemoval?
+    var removalFeedback: ChannelRemovalFeedback?
+
+    mutating func beginAutomaticRefresh() {
+        isAutomaticRefreshInProgress = true
+    }
+
+    mutating func setVideos(_ videos: [CachedVideo]) {
+        self.videos = videos
+        isAutomaticRefreshInProgress = false
+    }
+
+    mutating func finishAutomaticRefresh(_ videos: [CachedVideo]) {
+        self.videos = videos
+        isAutomaticRefreshInProgress = false
+    }
+
+    mutating func requestRemoval(for item: ChannelBrowseItem) {
+        pendingChannelRemoval = PendingChannelRemoval(channelID: item.channelID, channelTitle: item.channelTitle)
+    }
+
+    mutating func clearPendingRemoval() {
+        pendingChannelRemoval = nil
+    }
+
+    mutating func applyRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
+        removalFeedback = feedback
+    }
+}
+
+struct KeywordSearchLogic: Hashable {
+    var result: VideoSearchResult = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
+
+    mutating func setResult(_ result: VideoSearchResult) {
+        self.result = result
+    }
+}
+
 struct ChannelBrowseTipsSummary: Hashable {
     let countText: String
     let sortText: String
@@ -275,6 +501,72 @@ struct RemoteSearchPresentationState: Hashable {
 
     private static func normalizedChannelTitle(for video: CachedVideo) -> String? {
         video.channelTitle.isEmpty ? nil : video.channelTitle
+    }
+}
+
+struct RemoteSearchLogic: Hashable {
+    var result: VideoSearchResult = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
+    var presentationState = RemoteSearchPresentationState(visibleCount: 20, chipMode: .hidden, splitContext: nil)
+    var splitContext: ChannelVideosRouteContext?
+    var splitVideos: [CachedVideo] = []
+    var splitVisibleCount = 20
+    var isSplitLoading = false
+
+    mutating func setResult(
+        _ result: VideoSearchResult,
+        usesSplitChannelBrowser: Bool,
+        previousSplitContext: ChannelVideosRouteContext?
+    ) {
+        self.result = result
+        presentationState = RemoteSearchPresentationState.build(
+            result: result,
+            usesSplitChannelBrowser: usesSplitChannelBrowser,
+            previousSplitContext: previousSplitContext
+        )
+        splitContext = presentationState.splitContext
+        if !usesSplitChannelBrowser {
+            clearSplitSelection()
+        }
+    }
+
+    mutating func dismissChip() {
+        presentationState.dismissChip()
+    }
+
+    mutating func beginRefresh() {
+        presentationState.beginRefresh()
+    }
+
+    mutating func loadMoreIfNeeded() {
+        presentationState.loadMoreIfNeeded(totalVideoCount: result.videos.count)
+    }
+
+    mutating func beginSplitSelection(_ context: ChannelVideosRouteContext) {
+        splitContext = context
+        splitVideos = []
+        splitVisibleCount = 20
+        isSplitLoading = true
+        presentationState.splitContext = context
+    }
+
+    mutating func clearSplitSelection() {
+        splitContext = nil
+        splitVideos = []
+        splitVisibleCount = 20
+        isSplitLoading = false
+        presentationState.splitContext = nil
+    }
+
+    mutating func finishSplitSelection(_ context: ChannelVideosRouteContext, videos: [CachedVideo]) {
+        guard splitContext == context else { return }
+        splitVideos = videos
+        splitVisibleCount = min(20, videos.count)
+        isSplitLoading = false
+    }
+
+    mutating func loadSplitMoreIfNeeded() {
+        guard splitVisibleCount < splitVideos.count else { return }
+        splitVisibleCount = min(splitVisibleCount + 20, splitVideos.count)
     }
 }
 

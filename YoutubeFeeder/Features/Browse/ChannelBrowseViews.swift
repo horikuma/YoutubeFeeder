@@ -16,9 +16,7 @@ struct ChannelBrowseView: View {
     let sortDescriptor: ChannelBrowseSortDescriptor
     let presentation: BasicGUIBrowsePresentation
 
-    @State private var items: [ChannelBrowseItem] = []
-    @State private var pendingChannelRemoval: PendingChannelRemoval?
-    @State private var removalFeedback: ChannelRemovalFeedback?
+    @State private var browseState = ChannelBrowseLogic()
 
     var body: some View {
         Group {
@@ -30,8 +28,7 @@ struct ChannelBrowseView: View {
                     path: $path,
                     layout: layout,
                     sortDescriptor: sortDescriptor,
-                    items: items,
-                    onRequestRemoval: requestRemoval,
+                    state: $browseState,
                     onRefresh: refreshChannelBrowseItems
                 )
             case .compact:
@@ -40,9 +37,7 @@ struct ChannelBrowseView: View {
                     layout: layout,
                     path: $path,
                     sortDescriptor: sortDescriptor,
-                    items: items,
-                    tipsSummary: tipsSummary,
-                    onRequestRemoval: requestRemoval,
+                    state: $browseState,
                     onRefresh: refreshChannelBrowseItems
                 )
             }
@@ -64,15 +59,15 @@ struct ChannelBrowseView: View {
             }
         }
         .confirmationDialog(
-            pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
+            browseState.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
             isPresented: Binding(
-                get: { pendingChannelRemoval != nil },
-                set: { if !$0 { pendingChannelRemoval = nil } }
+                get: { browseState.pendingChannelRemoval != nil },
+                set: { if !$0 { browseState.clearPendingRemoval() } }
             ),
             titleVisibility: .visible
         ) {
             Button("チャンネルを削除", role: .destructive) {
-                guard let pendingChannelRemoval else { return }
+                guard let pendingChannelRemoval = browseState.pendingChannelRemoval else { return }
                 Task {
                     if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
                         await MainActor.run {
@@ -80,15 +75,15 @@ struct ChannelBrowseView: View {
                         }
                     }
                 }
-                self.pendingChannelRemoval = nil
+                browseState.clearPendingRemoval()
             }
             Button("キャンセル", role: .cancel) {
-                pendingChannelRemoval = nil
+                browseState.clearPendingRemoval()
             }
         } message: {
             Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")
         }
-        .alert(item: $removalFeedback) { feedback in
+        .alert(item: $browseState.removalFeedback) { feedback in
             Alert(
                 title: Text(feedback.title),
                 message: Text(feedback.detail),
@@ -101,22 +96,22 @@ struct ChannelBrowseView: View {
     }
 
     private func requestRemoval(_ item: ChannelBrowseItem) {
-        pendingChannelRemoval = PendingChannelRemoval(channelID: item.channelID, channelTitle: item.channelTitle)
+        browseState.requestRemoval(for: item)
     }
 
     private func handleRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
-        removalFeedback = feedback
+        browseState.applyRemovalFeedback(feedback)
         Task {
             await loadChannelBrowseItems()
         }
     }
 
     private var tipsSummary: ChannelBrowseTipsSummary {
-        ChannelBrowseTipsSummary.build(items: items, sortDescriptor: sortDescriptor)
+        ChannelBrowseTipsSummary.build(items: browseState.items, sortDescriptor: sortDescriptor)
     }
 
     private func loadChannelBrowseItems() async {
-        items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+        browseState.setItems(await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor))
     }
 
     private func refreshChannelBrowseItems() async {
@@ -130,13 +125,19 @@ private struct ChannelBrowseCompactView: View {
     let layout: AppLayout
     @Binding var path: NavigationPath
     let sortDescriptor: ChannelBrowseSortDescriptor
-    let items: [ChannelBrowseItem]
-    let tipsSummary: ChannelBrowseTipsSummary
-    let onRequestRemoval: (ChannelBrowseItem) -> Void
+    @Binding var state: ChannelBrowseLogic
     let onRefresh: () async -> Void
 
     private var usesDesktopMenus: Bool {
         AppInteractionPlatform.current.usesPrimaryClickForMenus
+    }
+
+    private var items: [ChannelBrowseItem] {
+        state.items
+    }
+
+    private var tipsSummary: ChannelBrowseTipsSummary {
+        ChannelBrowseTipsSummary.build(items: state.items, sortDescriptor: sortDescriptor)
     }
 
     var body: some View {
@@ -173,7 +174,7 @@ private struct ChannelBrowseCompactView: View {
                             .accessibilityIdentifier("channel.tile.\(item.channelID)")
                             .contextMenu {
                                 Button("チャンネルを削除", role: .destructive) {
-                                    onRequestRemoval(item)
+                                    state.requestRemoval(for: item)
                                 }
                             }
                         } else {
@@ -211,7 +212,7 @@ private struct ChannelBrowseCompactView: View {
             } : nil,
             secondaryActions: [
                 TileMenuAction(title: "チャンネルを削除", role: .destructive) {
-                    onRequestRemoval(item)
+                    state.requestRemoval(for: item)
                 }
             ]
         )
@@ -224,16 +225,27 @@ private struct ChannelBrowseRegularView: View {
     @Binding var path: NavigationPath
     let layout: AppLayout
     let sortDescriptor: ChannelBrowseSortDescriptor
-    let items: [ChannelBrowseItem]
-    let onRequestRemoval: (ChannelBrowseItem) -> Void
+    @Binding var state: ChannelBrowseLogic
     let onRefresh: () async -> Void
-
-    @State private var selectedChannelID: String?
-    @State private var videosByChannelID: [String: [CachedVideo]] = [:]
-    @State private var loadingChannelIDs: Set<String> = []
 
     private var usesDesktopMenus: Bool {
         AppInteractionPlatform.current.usesPrimaryClickForMenus
+    }
+
+    private var items: [ChannelBrowseItem] {
+        state.items
+    }
+
+    private var selectedChannelID: String? {
+        state.selectedChannelID
+    }
+
+    private var videosForSelectedChannel: [CachedVideo] {
+        state.videosForSelectedChannel()
+    }
+
+    private var selectedTitle: String {
+        state.selectedTitle()
     }
 
     var body: some View {
@@ -280,7 +292,7 @@ private struct ChannelBrowseRegularView: View {
                                     item: item,
                                     usesDesktopMenus: usesDesktopMenus,
                                     menu: selectionMenu(for: item),
-                                    onRequestRemoval: onRequestRemoval
+                                    onRequestRemoval: { _ in state.requestRemoval(for: item) }
                                 )
                             )
                         }
@@ -328,7 +340,7 @@ private struct ChannelBrowseRegularView: View {
                                         openVideo(video)
                                     },
                                     removeChannel: {
-                                        onRequestRemoval(
+                                        state.requestRemoval(for:
                                             ChannelBrowseItem(
                                                 id: video.channelID,
                                                 channelID: video.channelID,
@@ -382,18 +394,8 @@ private struct ChannelBrowseRegularView: View {
         .background(Color(.systemGroupedBackground))
     }
 
-    private var videosForSelectedChannel: [CachedVideo] {
-        guard let selectedChannelID else { return [] }
-        return videosByChannelID[selectedChannelID] ?? []
-    }
-
-    private var selectedTitle: String {
-        guard let selectedChannelID else { return "チャンネル未選択" }
-        return items.first(where: { $0.channelID == selectedChannelID })?.channelTitle ?? selectedChannelID
-    }
-
     private func selectChannel(_ channelID: String) {
-        selectedChannelID = channelID
+        state.selectChannel(channelID)
         loadVideosIfNeeded(for: channelID)
     }
 
@@ -402,22 +404,16 @@ private struct ChannelBrowseRegularView: View {
             loadVideosIfNeeded(for: selectedChannelID)
             return
         }
-        guard let firstChannelID = items.first?.channelID else { return }
-        self.selectedChannelID = firstChannelID
+        guard let firstChannelID = state.applyDefaultSelectionIfNeeded() else { return }
         loadVideosIfNeeded(for: firstChannelID)
     }
 
     private func loadVideosIfNeeded(for channelID: String) {
-        guard videosByChannelID[channelID] == nil else { return }
-        guard !loadingChannelIDs.contains(channelID) else { return }
-        loadingChannelIDs.insert(channelID)
+        guard state.beginLoadingVideos(for: channelID) else { return }
         Task {
             let loadedVideos = await coordinator.loadVideosForChannel(channelID)
             await MainActor.run {
-                loadingChannelIDs.remove(channelID)
-                if videosByChannelID[channelID] == nil {
-                    videosByChannelID[channelID] = loadedVideos
-                }
+                state.finishLoadingVideos(loadedVideos, for: channelID)
             }
         }
     }
@@ -430,22 +426,22 @@ private struct ChannelBrowseRegularView: View {
             metadata: [
                 "channelID": selectedChannelID,
                 "screen": "splitChannelVideos"
-            ]
+        ]
         )
         await coordinator.refreshChannelManually(selectedChannelID)
-        videosByChannelID[selectedChannelID] = await coordinator.loadVideosForChannel(selectedChannelID)
+        state.refreshSelectedChannelVideos(await coordinator.loadVideosForChannel(selectedChannelID))
         RuntimeDiagnostics.shared.record(
             "channel_refresh_view_reload_finished",
             detail: "スプリット表示の動画一覧リロード完了",
             metadata: [
                 "channelID": selectedChannelID,
-                "videoCount": String(videosByChannelID[selectedChannelID]?.count ?? 0)
+                "videoCount": String(state.videosForSelectedChannel().count)
             ]
         )
     }
 
     private var tipsSummary: ChannelBrowseTipsSummary {
-        ChannelBrowseTipsSummary.build(items: items, sortDescriptor: sortDescriptor)
+        ChannelBrowseTipsSummary.build(items: state.items, sortDescriptor: sortDescriptor)
     }
 
     private func selectionMenu(for item: ChannelBrowseItem) -> TileMenuConfiguration {
@@ -455,7 +451,7 @@ private struct ChannelBrowseRegularView: View {
             } : nil,
             secondaryActions: [
                 TileMenuAction(title: "チャンネルを削除", role: .destructive) {
-                    onRequestRemoval(item)
+                    state.requestRemoval(for: item)
                 }
             ]
         )
@@ -492,8 +488,7 @@ struct AllVideosView: View {
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let layout: AppLayout
-    @State private var pendingChannelRemoval: PendingChannelRemoval?
-    @State private var removalFeedback: ChannelRemovalFeedback?
+    @State private var videoState = VideoListLogic()
 
     var body: some View {
         InteractiveListView(
@@ -505,11 +500,11 @@ struct AllVideosView: View {
             onRefresh: nil,
             allowsRefreshCommandBinding: true
         ) {
-            if coordinator.videos.isEmpty {
+            if videoState.videos.isEmpty {
                 MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を表示します")
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                    ForEach(Array(coordinator.videos.enumerated()), id: \.element.id) { offset, video in
+                    ForEach(Array(videoState.videos.enumerated()), id: \.element.id) { offset, video in
                         VideoTile(
                             video: video,
                             tapAction: {
@@ -525,9 +520,16 @@ struct AllVideosView: View {
                             },
                             openVideoAction: nil,
                             removeChannel: {
-                                pendingChannelRemoval = PendingChannelRemoval(
-                                    channelID: video.channelID,
-                                    channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
+                                videoState.requestRemoval(
+                                    for: ChannelBrowseItem(
+                                        id: video.channelID,
+                                        channelID: video.channelID,
+                                        channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle,
+                                        latestPublishedAt: video.publishedAt,
+                                        registeredAt: nil,
+                                        latestVideo: video,
+                                        cachedVideoCount: 0
+                                    )
                                 )
                             },
                             index: offset + 1
@@ -539,33 +541,36 @@ struct AllVideosView: View {
         .task {
             coordinator.loadVideosFromCache()
         }
+        .onReceive(coordinator.$videos) { videos in
+            videoState.setVideos(videos)
+        }
         .confirmationDialog(
-            pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
+            videoState.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
             isPresented: Binding(
-                get: { pendingChannelRemoval != nil },
-                set: { if !$0 { pendingChannelRemoval = nil } }
+                get: { videoState.pendingChannelRemoval != nil },
+                set: { if !$0 { videoState.clearPendingRemoval() } }
             ),
             titleVisibility: .visible
         ) {
             Button("チャンネルを削除", role: .destructive) {
-                guard let pendingChannelRemoval else { return }
+                guard let pendingChannelRemoval = videoState.pendingChannelRemoval else { return }
                 Task {
                     if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
                         await MainActor.run {
-                            removalFeedback = feedback
+                            videoState.applyRemovalFeedback(feedback)
                             coordinator.loadVideosFromCache()
                         }
                     }
                 }
-                self.pendingChannelRemoval = nil
+                videoState.clearPendingRemoval()
             }
             Button("キャンセル", role: .cancel) {
-                pendingChannelRemoval = nil
+                videoState.clearPendingRemoval()
             }
         } message: {
             Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")
         }
-        .alert(item: $removalFeedback) { feedback in
+        .alert(item: $videoState.removalFeedback) { feedback in
             Alert(
                 title: Text(feedback.title),
                 message: Text(feedback.detail),

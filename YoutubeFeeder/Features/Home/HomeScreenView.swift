@@ -6,13 +6,7 @@ struct HomeScreenView: View {
     let diagnostics: StartupDiagnostics
     let navigationPath: Binding<NavigationPath>
     @State private var didRunAutoRefresh = false
-    @State private var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
-    @State private var transferFeedback: ChannelRegistryTransferFeedback?
-    @State private var resetFeedback: LocalStateResetFeedback?
-    @State private var transferErrorMessage: String?
-    @State private var isTransferringRegistry = false
-    @State private var isResettingAllSettings = false
-    @State private var shouldConfirmReset = false
+    @State private var homeState = HomeScreenLogic()
     @State private var didPrewarmRemoteSearch = false
     @State private var shouldMountRemoteSearchPrewarmHost = false
     @State private var remoteSearchPrewarmPath = NavigationPath()
@@ -35,13 +29,13 @@ struct HomeScreenView: View {
                     navigationSection
                     SystemStatusTile(status: coordinator.homeSystemStatus)
 
-                    if let transferFeedback {
+                    if let transferFeedback = homeState.transferFeedback {
                         registryTransferFeedbackCard(transferFeedback)
                             .accessibilityIdentifier("home.transferFeedback")
-                    } else if let resetFeedback {
+                    } else if let resetFeedback = homeState.resetFeedback {
                         resetFeedbackCard(resetFeedback)
                             .accessibilityIdentifier("home.resetFeedback")
-                    } else if let transferErrorMessage {
+                    } else if let transferErrorMessage = homeState.transferErrorMessage {
                         registryTransferErrorCard(transferErrorMessage)
                             .accessibilityIdentifier("home.transferError")
                     }
@@ -157,7 +151,7 @@ struct HomeScreenView: View {
         }
         .confirmationDialog(
             "この端末の設定をリセットしますか",
-            isPresented: $shouldConfirmReset,
+            isPresented: $homeState.shouldConfirmReset,
             titleVisibility: .visible
         ) {
             Button("全設定をリセット", role: .destructive) {
@@ -177,12 +171,12 @@ struct HomeScreenView: View {
                         ForEach(SortDirection.allCases, id: \.self) { direction in
                             let option = ChannelBrowseSortDescriptor(metric: metric, direction: direction)
                             Button {
-                                channelSortDescriptor = option
+                                homeState.selectChannelSortDescriptor(option)
                                 navigationPath.wrappedValue.append(MaintenanceRoute.channelList(option))
                             } label: {
                                 HStack {
                                     Text(option.shortLabel)
-                                    if option == channelSortDescriptor {
+                                    if option == homeState.channelSortDescriptor {
                                         Spacer()
                                         Image(systemName: "checkmark")
                                     }
@@ -194,7 +188,7 @@ struct HomeScreenView: View {
             } label: {
                 MetricTile(
                     title: "チャンネル",
-                    value: channelSortDescriptor.shortLabel,
+                    value: homeState.channelSortDescriptor.shortLabel,
                     detail: "並び順を選んでチャンネル一覧へ"
                 )
             }
@@ -275,94 +269,79 @@ struct HomeScreenView: View {
             } label: {
                 MetricTile(
                     title: "バックアップ",
-                    value: isTransferringRegistry ? "処理中..." : "",
-                    detail: transferFeedback?.detail ?? "この端末内の固定JSONへ書き出し / 読み戻し"
+                    value: homeState.isTransferringRegistry ? "処理中..." : "",
+                    detail: homeState.transferFeedback?.detail ?? "この端末内の固定JSONへ書き出し / 読み戻し"
                 )
             }
             .menuStyle(.borderlessButton)
-            .disabled(isTransferringRegistry)
+            .disabled(homeState.isTransferringRegistry)
             .accessibilityIdentifier("nav.registryTransfer")
 
             Button {
-                shouldConfirmReset = true
+                homeState.requestResetAllSettings()
             } label: {
                 MetricTile(
                     title: "全設定リセット",
-                    value: isResettingAllSettings ? "処理中..." : "",
+                    value: homeState.isResettingAllSettings ? "処理中..." : "",
                     detail: "この端末の設定とキャッシュを削除。バックアップ JSON は残す"
                 )
             }
             .buttonStyle(.plain)
-            .disabled(isTransferringRegistry || isResettingAllSettings)
+            .disabled(homeState.isTransferringRegistry || homeState.isResettingAllSettings)
             .tint(.red)
             .accessibilityIdentifier("nav.resetAllSettings")
         }
     }
 
     private func exportRegistry() {
-        guard !isTransferringRegistry else { return }
-        resetFeedback = nil
-        transferErrorMessage = nil
-        isTransferringRegistry = true
+        guard !homeState.isTransferringRegistry else { return }
+        homeState.beginRegistryTransfer()
 
         Task {
             do {
                 let feedback = try coordinator.exportChannelRegistry(backend: .localDocuments)
                 await MainActor.run {
-                    transferFeedback = feedback
-                    isTransferringRegistry = false
+                    homeState.finishRegistryTransfer(feedback)
                 }
             } catch {
                 await MainActor.run {
-                    transferFeedback = nil
-                    transferErrorMessage = error.localizedDescription
-                    isTransferringRegistry = false
+                    homeState.failRegistryTransfer(error)
                 }
             }
         }
     }
 
     private func importRegistry() {
-        guard !isTransferringRegistry else { return }
-        resetFeedback = nil
-        transferErrorMessage = nil
-        isTransferringRegistry = true
+        guard !homeState.isTransferringRegistry else { return }
+        homeState.beginRegistryTransfer()
 
         Task {
             do {
                 let feedback = try await coordinator.importChannelRegistry(backend: .localDocuments)
                 await MainActor.run {
-                    transferFeedback = feedback
-                    isTransferringRegistry = false
+                    homeState.finishRegistryTransfer(feedback)
                 }
             } catch {
                 await MainActor.run {
-                    transferFeedback = nil
-                    transferErrorMessage = error.localizedDescription
-                    isTransferringRegistry = false
+                    homeState.failRegistryTransfer(error)
                 }
             }
         }
     }
 
     private func resetAllSettings() {
-        guard !isResettingAllSettings else { return }
-        transferFeedback = nil
-        transferErrorMessage = nil
-        isResettingAllSettings = true
+        guard !homeState.isResettingAllSettings else { return }
+        homeState.beginResetAllSettings()
 
         Task {
             do {
                 let feedback = try await coordinator.resetAllSettings()
                 await MainActor.run {
-                    resetFeedback = feedback
-                    isResettingAllSettings = false
+                    homeState.finishResetAllSettings(feedback)
                 }
             } catch {
                 await MainActor.run {
-                    resetFeedback = nil
-                    transferErrorMessage = error.localizedDescription
-                    isResettingAllSettings = false
+                    homeState.failResetAllSettings(error)
                 }
             }
         }
