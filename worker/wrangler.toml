@@ -1,0 +1,8 @@
+name = "worker"
+main = "src/index.ts"
+compatibility_date = "2026-03-10"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "3e62f3d80fce44feace435cf17671df4"
+preview_id = "f12aafaf8c00473c9af513c4901ec5ae"
