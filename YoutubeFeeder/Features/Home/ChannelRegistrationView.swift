@@ -5,11 +5,7 @@ struct ChannelRegistrationView: View {
     @ObservedObject var coordinator: FeedCacheCoordinator
 
     @State private var input = ""
-    @State private var errorMessage: String?
-    @State private var isSubmitting = false
-    @State private var feedback: ChannelRegistrationFeedback?
-    @State private var isImportingCSV = false
-    @State private var importFeedback: ChannelCSVImportFeedback?
+    @State private var registrationState = ChannelRegistrationLogic()
     @State private var isCSVImporterPresented = false
 
     var body: some View {
@@ -30,7 +26,7 @@ struct ChannelRegistrationView: View {
                         .padding(14)
                         .background(.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                    if let errorMessage {
+                    if let errorMessage = registrationState.errorMessage {
                         Text(errorMessage)
                             .font(.footnote)
                             .foregroundStyle(.red)
@@ -38,12 +34,12 @@ struct ChannelRegistrationView: View {
                     }
                 }
 
-                if let feedback {
+                if let feedback = registrationState.feedback {
                     registrationFeedbackCard(feedback)
                         .accessibilityIdentifier("channelRegistration.feedback")
                 }
 
-                if let importFeedback {
+                if let importFeedback = registrationState.importFeedback {
                     csvImportFeedbackCard(importFeedback)
                         .accessibilityIdentifier("channelRegistration.csvFeedback")
                 }
@@ -52,35 +48,35 @@ struct ChannelRegistrationView: View {
                     submit()
                 } label: {
                     HStack {
-                        if isSubmitting {
+                        if registrationState.isSubmitting {
                             ProgressView()
                                 .tint(.white)
                         }
-                        Text(isSubmitting ? "解決中..." : "追加する")
+                        Text(registrationState.isSubmitting ? "解決中..." : "追加する")
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(isSubmitting || trimmedInput.isEmpty)
+                .disabled(registrationState.isSubmitting || trimmedInput.isEmpty)
                 .accessibilityIdentifier("channelRegistration.submit")
 
                 Button {
                     beginCSVImport()
                 } label: {
                     HStack {
-                        if isImportingCSV {
+                        if registrationState.isImportingCSV {
                             ProgressView()
                         }
-                        Text(isImportingCSV ? "CSVを読み込み中..." : "登録チャンネルCSVを読み込む")
+                        Text(registrationState.isImportingCSV ? "CSVを読み込み中..." : "登録チャンネルCSVを読み込む")
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                 }
                 .buttonStyle(.bordered)
-                .disabled(isSubmitting || isImportingCSV)
+                .disabled(registrationState.isSubmitting || registrationState.isImportingCSV)
                 .accessibilityIdentifier("channelRegistration.importCSV")
 
                 Text("YouTube の登録チャンネル CSV を選ぶと、未登録の Channel ID だけを追加します。")
@@ -109,33 +105,26 @@ struct ChannelRegistrationView: View {
     private func submit() {
         guard !trimmedInput.isEmpty else { return }
 
-        errorMessage = nil
-        feedback = nil
-        importFeedback = nil
-        isSubmitting = true
+        registrationState.beginSubmit()
 
         Task {
             do {
                 let result = try await coordinator.addChannel(input: trimmedInput)
                 await MainActor.run {
-                    feedback = result
+                    registrationState.finishSubmit(result)
                     input = ""
-                    isSubmitting = false
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = error.localizedDescription
-                    isSubmitting = false
+                    registrationState.failSubmit(error)
                 }
             }
         }
     }
 
     private func beginCSVImport() {
-        guard !isImportingCSV else { return }
-        errorMessage = nil
-        feedback = nil
-        importFeedback = nil
+        guard !registrationState.isImportingCSV else { return }
+        registrationState.beginCSVImport()
         isCSVImporterPresented = true
     }
 
@@ -145,15 +134,12 @@ struct ChannelRegistrationView: View {
             guard let url = urls.first else { return }
             importCSV(from: url)
         case let .failure(error):
-            errorMessage = error.localizedDescription
+            registrationState.failCSVImportPresentation(error)
         }
     }
 
     private func importCSV(from url: URL) {
-        errorMessage = nil
-        feedback = nil
-        importFeedback = nil
-        isImportingCSV = true
+        registrationState.beginCSVImport(fromFile: url)
 
         Task {
             let didAccess = url.startAccessingSecurityScopedResource()
@@ -167,13 +153,11 @@ struct ChannelRegistrationView: View {
                 let data = try Data(contentsOf: url)
                 let result = try await coordinator.importChannelCSV(data: data, fileURL: url)
                 await MainActor.run {
-                    importFeedback = result
-                    isImportingCSV = false
+                    registrationState.finishCSVImport(result)
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = error.localizedDescription
-                    isImportingCSV = false
+                    registrationState.failCSVImport(error)
                 }
             }
         }
