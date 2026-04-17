@@ -488,8 +488,7 @@ struct AllVideosView: View {
     let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let layout: AppLayout
-    @State private var pendingChannelRemoval: PendingChannelRemoval?
-    @State private var removalFeedback: ChannelRemovalFeedback?
+    @State private var videoState = VideoListLogic()
 
     var body: some View {
         InteractiveListView(
@@ -521,9 +520,16 @@ struct AllVideosView: View {
                             },
                             openVideoAction: nil,
                             removeChannel: {
-                                pendingChannelRemoval = PendingChannelRemoval(
-                                    channelID: video.channelID,
-                                    channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
+                                videoState.requestRemoval(
+                                    for: ChannelBrowseItem(
+                                        id: video.channelID,
+                                        channelID: video.channelID,
+                                        channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle,
+                                        latestPublishedAt: video.publishedAt,
+                                        registeredAt: nil,
+                                        latestVideo: video,
+                                        cachedVideoCount: 0
+                                    )
                                 )
                             },
                             index: offset + 1
@@ -536,32 +542,32 @@ struct AllVideosView: View {
             coordinator.loadVideosFromCache()
         }
         .confirmationDialog(
-            pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
+            videoState.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
             isPresented: Binding(
-                get: { pendingChannelRemoval != nil },
-                set: { if !$0 { pendingChannelRemoval = nil } }
+                get: { videoState.pendingChannelRemoval != nil },
+                set: { if !$0 { videoState.clearPendingRemoval() } }
             ),
             titleVisibility: .visible
         ) {
             Button("チャンネルを削除", role: .destructive) {
-                guard let pendingChannelRemoval else { return }
+                guard let pendingChannelRemoval = videoState.pendingChannelRemoval else { return }
                 Task {
                     if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
                         await MainActor.run {
-                            removalFeedback = feedback
+                            videoState.applyRemovalFeedback(feedback)
                             coordinator.loadVideosFromCache()
                         }
                     }
                 }
-                self.pendingChannelRemoval = nil
+                videoState.clearPendingRemoval()
             }
             Button("キャンセル", role: .cancel) {
-                pendingChannelRemoval = nil
+                videoState.clearPendingRemoval()
             }
         } message: {
             Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")
         }
-        .alert(item: $removalFeedback) { feedback in
+        .alert(item: $videoState.removalFeedback) { feedback in
             Alert(
                 title: Text(feedback.title),
                 message: Text(feedback.detail),

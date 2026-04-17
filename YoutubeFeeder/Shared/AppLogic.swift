@@ -353,6 +353,39 @@ struct ChannelBrowseLogic: Hashable {
     }
 }
 
+struct VideoListLogic: Hashable {
+    var videos: [CachedVideo] = []
+    var isAutomaticRefreshInProgress = false
+    var pendingChannelRemoval: PendingChannelRemoval?
+    var removalFeedback: ChannelRemovalFeedback?
+
+    mutating func beginAutomaticRefresh() {
+        isAutomaticRefreshInProgress = true
+    }
+
+    mutating func setVideos(_ videos: [CachedVideo]) {
+        self.videos = videos
+        isAutomaticRefreshInProgress = false
+    }
+
+    mutating func finishAutomaticRefresh(_ videos: [CachedVideo]) {
+        self.videos = videos
+        isAutomaticRefreshInProgress = false
+    }
+
+    mutating func requestRemoval(for item: ChannelBrowseItem) {
+        pendingChannelRemoval = PendingChannelRemoval(channelID: item.channelID, channelTitle: item.channelTitle)
+    }
+
+    mutating func clearPendingRemoval() {
+        pendingChannelRemoval = nil
+    }
+
+    mutating func applyRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
+        removalFeedback = feedback
+    }
+}
+
 struct ChannelBrowseTipsSummary: Hashable {
     let countText: String
     let sortText: String

@@ -10,10 +10,7 @@ struct ChannelVideosView: View {
     @Binding var path: NavigationPath
     let layout: AppLayout
 
-    @State private var videos: [CachedVideo] = []
-    @State private var isAutomaticRefreshInProgress = false
-    @State private var pendingChannelRemoval: PendingChannelRemoval?
-    @State private var removalFeedback: ChannelRemovalFeedback?
+    @State private var videoState = VideoListLogic()
 
     var body: some View {
         InteractiveListView(
@@ -32,14 +29,14 @@ struct ChannelVideosView: View {
                     ]
                 )
                 if case let .channelVideos(reloadedVideos) = await coordinator.performRefreshAction(.channel(context)) {
-                    videos = reloadedVideos
+                    videoState.setVideos(reloadedVideos)
                 }
                 RuntimeDiagnostics.shared.record(
                     "channel_refresh_view_reload_finished",
                     detail: "チャンネル動画一覧リロード完了",
                     metadata: [
                         "channelID": context.channelID,
-                        "videoCount": String(videos.count)
+                        "videoCount": String(videoState.videos.count)
                     ]
                 )
             },
@@ -48,7 +45,7 @@ struct ChannelVideosView: View {
             if AppLaunchMode.current.usesMockData {
                 UITestMarker(
                     identifier: "screen.channelVideos.loaded",
-                    value: videos.first?.id ?? "none"
+                    value: videoState.videos.first?.id ?? "none"
                 )
                 UITestMarker(
                     identifier: "test.channelRefreshTarget",
@@ -56,15 +53,15 @@ struct ChannelVideosView: View {
                 )
                 UITestMarker(
                     identifier: "channel.autoRefreshState",
-                    value: isAutomaticRefreshInProgress ? "loading" : "idle"
+                    value: videoState.isAutomaticRefreshInProgress ? "loading" : "idle"
                 )
             }
 
-            if videos.isEmpty {
+            if videoState.videos.isEmpty {
                 MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                    ForEach(Array(videos.enumerated()), id: \.element.id) { offset, video in
+                    ForEach(Array(videoState.videos.enumerated()), id: \.element.id) { offset, video in
                         VideoTile(
                             video: video,
                             tapAction: nil,
@@ -72,9 +69,16 @@ struct ChannelVideosView: View {
                                 openVideo(video)
                             },
                             removeChannel: {
-                                pendingChannelRemoval = PendingChannelRemoval(
-                                    channelID: video.channelID,
-                                    channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle
+                                videoState.requestRemoval(
+                                    for: ChannelBrowseItem(
+                                        id: video.channelID,
+                                        channelID: video.channelID,
+                                        channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle,
+                                        latestPublishedAt: video.publishedAt,
+                                        registeredAt: nil,
+                                        latestVideo: video,
+                                        cachedVideoCount: 0
+                                    )
                                 )
                             },
                             index: offset + 1,
@@ -91,7 +95,7 @@ struct ChannelVideosView: View {
             await reloadVideos()
         }
         .overlay(alignment: .top) {
-            if isAutomaticRefreshInProgress {
+            if videoState.isAutomaticRefreshInProgress {
                 VStack(spacing: 0) {
                     ProgressView()
                         .accessibilityIdentifier("channel.autoRefreshIndicator")
@@ -100,31 +104,31 @@ struct ChannelVideosView: View {
             }
         }
         .confirmationDialog(
-            pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
+            videoState.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
             isPresented: Binding(
-                get: { pendingChannelRemoval != nil },
-                set: { if !$0 { pendingChannelRemoval = nil } }
+                get: { videoState.pendingChannelRemoval != nil },
+                set: { if !$0 { videoState.clearPendingRemoval() } }
             ),
             titleVisibility: .visible
         ) {
             Button("チャンネルを削除", role: .destructive) {
-                guard let pendingChannelRemoval else { return }
+                guard let pendingChannelRemoval = videoState.pendingChannelRemoval else { return }
                 Task {
                     if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
                         await MainActor.run {
-                            removalFeedback = feedback
+                            videoState.applyRemovalFeedback(feedback)
                         }
                     }
                 }
-                self.pendingChannelRemoval = nil
+                videoState.clearPendingRemoval()
             }
             Button("キャンセル", role: .cancel) {
-                pendingChannelRemoval = nil
+                videoState.clearPendingRemoval()
             }
         } message: {
             Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")
         }
-        .alert(item: $removalFeedback) { feedback in
+        .alert(item: $videoState.removalFeedback) { feedback in
             Alert(
                 title: Text(feedback.title),
                 message: Text(feedback.detail),
@@ -137,7 +141,7 @@ struct ChannelVideosView: View {
         }
         .onAppear {
             if context.prefersAutomaticRefresh {
-                isAutomaticRefreshInProgress = true
+                videoState.beginAutomaticRefresh()
             }
             StartupDiagnostics.shared.mark("channelVideosShown")
         }
@@ -145,7 +149,7 @@ struct ChannelVideosView: View {
 
     private var channelTitle: String {
         coordinator.maintenanceItems.first(where: { $0.channelID == context.channelID })?.channelTitle
-            ?? videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
+            ?? videoState.videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
             ?? context.preferredChannelTitle
             ?? context.channelID
     }
@@ -154,9 +158,9 @@ struct ChannelVideosView: View {
         if context.prefersAutomaticRefresh {
             let clock = ContinuousClock()
             let start = clock.now
-            isAutomaticRefreshInProgress = true
+            videoState.beginAutomaticRefresh()
 
-            videos = await coordinator.openChannelVideos(context)
+            let loadedVideos = await coordinator.openChannelVideos(context)
 
             let minimumDuration = AppLaunchMode.current.usesMockData
                 ? Self.automaticRefreshIndicatorMockDuration
@@ -165,16 +169,16 @@ struct ChannelVideosView: View {
             if elapsed < minimumDuration {
                 try? await Task.sleep(for: minimumDuration - elapsed)
             }
-            isAutomaticRefreshInProgress = false
+            videoState.finishAutomaticRefresh(loadedVideos)
         } else {
-            videos = await coordinator.loadVideosForChannel(context.channelID)
+            videoState.setVideos(await coordinator.loadVideosForChannel(context.channelID))
         }
         RuntimeDiagnostics.shared.record(
             "channel_videos_loaded",
             detail: "チャンネル動画一覧を読み込み",
             metadata: [
                 "channelID": context.channelID,
-                "videoCount": String(videos.count),
+                "videoCount": String(videoState.videos.count),
                 "title": channelTitle
             ]
         )
