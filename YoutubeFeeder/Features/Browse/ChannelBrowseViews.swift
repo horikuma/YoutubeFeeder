@@ -500,11 +500,11 @@ struct AllVideosView: View {
             onRefresh: nil,
             allowsRefreshCommandBinding: true
         ) {
-            if coordinator.videos.isEmpty {
+            if videoState.videos.isEmpty {
                 MetricTile(title: "動画一覧", value: "まだありません", detail: "収集が進むとここに長尺動画を表示します")
             } else {
                 LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
-                    ForEach(Array(coordinator.videos.enumerated()), id: \.element.id) { offset, video in
+                    ForEach(Array(videoState.videos.enumerated()), id: \.element.id) { offset, video in
                         VideoTile(
                             video: video,
                             tapAction: {
@@ -540,6 +540,9 @@ struct AllVideosView: View {
         }
         .task {
             coordinator.loadVideosFromCache()
+        }
+        .onReceive(coordinator.$videos) { videos in
+            videoState.setVideos(videos)
         }
         .confirmationDialog(
             videoState.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
