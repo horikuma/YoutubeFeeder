@@ -248,6 +248,7 @@ struct ChannelRegistrationLogic: Hashable {
     var isSubmitting = false
     var isImportingCSV = false
     var importFeedback: ChannelCSVImportFeedback?
+    var isCSVImporterPresented = false
 
     mutating func beginSubmit() {
         errorMessage = nil
@@ -270,6 +271,12 @@ struct ChannelRegistrationLogic: Hashable {
         errorMessage = nil
         feedback = nil
         importFeedback = nil
+    }
+
+    mutating func requestCSVImport() {
+        guard !isImportingCSV else { return }
+        beginCSVImport()
+        isCSVImporterPresented = true
     }
 
     mutating func failCSVImportPresentation(_ error: Error) {

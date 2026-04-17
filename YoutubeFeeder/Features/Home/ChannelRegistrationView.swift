@@ -6,7 +6,6 @@ struct ChannelRegistrationView: View {
 
     @State private var input = ""
     @State private var registrationState = ChannelRegistrationLogic()
-    @State private var isCSVImporterPresented = false
 
     var body: some View {
         ScrollView {
@@ -63,7 +62,7 @@ struct ChannelRegistrationView: View {
                 .accessibilityIdentifier("channelRegistration.submit")
 
                 Button {
-                    beginCSVImport()
+                    registrationState.requestCSVImport()
                 } label: {
                     HStack {
                         if registrationState.isImportingCSV {
@@ -91,7 +90,7 @@ struct ChannelRegistrationView: View {
         .navigationTitle("チャンネル登録")
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(
-            isPresented: $isCSVImporterPresented,
+            isPresented: $registrationState.isCSVImporterPresented,
             allowedContentTypes: [.commaSeparatedText, .plainText],
             allowsMultipleSelection: false,
             onCompletion: handleCSVImporterResult
@@ -120,12 +119,6 @@ struct ChannelRegistrationView: View {
                 }
             }
         }
-    }
-
-    private func beginCSVImport() {
-        guard !registrationState.isImportingCSV else { return }
-        registrationState.beginCSVImport()
-        isCSVImporterPresented = true
     }
 
     private func handleCSVImporterResult(_ result: Result<[URL], Error>) {
