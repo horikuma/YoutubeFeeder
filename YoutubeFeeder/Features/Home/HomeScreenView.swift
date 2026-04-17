@@ -6,10 +6,7 @@ struct HomeScreenView: View {
     let diagnostics: StartupDiagnostics
     let navigationPath: Binding<NavigationPath>
     @State private var didRunAutoRefresh = false
-    @State private var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
-    @State private var transferFeedback: ChannelRegistryTransferFeedback?
-    @State private var resetFeedback: LocalStateResetFeedback?
-    @State private var transferErrorMessage: String?
+    @State private var homeState = HomeScreenLogic()
     @State private var isTransferringRegistry = false
     @State private var isResettingAllSettings = false
     @State private var shouldConfirmReset = false
@@ -35,13 +32,13 @@ struct HomeScreenView: View {
                     navigationSection
                     SystemStatusTile(status: coordinator.homeSystemStatus)
 
-                    if let transferFeedback {
+                    if let transferFeedback = homeState.transferFeedback {
                         registryTransferFeedbackCard(transferFeedback)
                             .accessibilityIdentifier("home.transferFeedback")
-                    } else if let resetFeedback {
+                    } else if let resetFeedback = homeState.resetFeedback {
                         resetFeedbackCard(resetFeedback)
                             .accessibilityIdentifier("home.resetFeedback")
-                    } else if let transferErrorMessage {
+                    } else if let transferErrorMessage = homeState.transferErrorMessage {
                         registryTransferErrorCard(transferErrorMessage)
                             .accessibilityIdentifier("home.transferError")
                     }
@@ -177,12 +174,12 @@ struct HomeScreenView: View {
                         ForEach(SortDirection.allCases, id: \.self) { direction in
                             let option = ChannelBrowseSortDescriptor(metric: metric, direction: direction)
                             Button {
-                                channelSortDescriptor = option
+                                homeState.selectChannelSortDescriptor(option)
                                 navigationPath.wrappedValue.append(MaintenanceRoute.channelList(option))
                             } label: {
                                 HStack {
                                     Text(option.shortLabel)
-                                    if option == channelSortDescriptor {
+                                    if option == homeState.channelSortDescriptor {
                                         Spacer()
                                         Image(systemName: "checkmark")
                                     }
@@ -194,7 +191,7 @@ struct HomeScreenView: View {
             } label: {
                 MetricTile(
                     title: "チャンネル",
-                    value: channelSortDescriptor.shortLabel,
+                    value: homeState.channelSortDescriptor.shortLabel,
                     detail: "並び順を選んでチャンネル一覧へ"
                 )
             }
@@ -276,7 +273,7 @@ struct HomeScreenView: View {
                 MetricTile(
                     title: "バックアップ",
                     value: isTransferringRegistry ? "処理中..." : "",
-                    detail: transferFeedback?.detail ?? "この端末内の固定JSONへ書き出し / 読み戻し"
+                    detail: homeState.transferFeedback?.detail ?? "この端末内の固定JSONへ書き出し / 読み戻し"
                 )
             }
             .menuStyle(.borderlessButton)
@@ -301,21 +298,19 @@ struct HomeScreenView: View {
 
     private func exportRegistry() {
         guard !isTransferringRegistry else { return }
-        resetFeedback = nil
-        transferErrorMessage = nil
+        homeState.beginRegistryTransfer()
         isTransferringRegistry = true
 
         Task {
             do {
                 let feedback = try coordinator.exportChannelRegistry(backend: .localDocuments)
                 await MainActor.run {
-                    transferFeedback = feedback
+                    homeState.finishRegistryTransfer(feedback)
                     isTransferringRegistry = false
                 }
             } catch {
                 await MainActor.run {
-                    transferFeedback = nil
-                    transferErrorMessage = error.localizedDescription
+                    homeState.failRegistryTransfer(error)
                     isTransferringRegistry = false
                 }
             }
@@ -324,21 +319,19 @@ struct HomeScreenView: View {
 
     private func importRegistry() {
         guard !isTransferringRegistry else { return }
-        resetFeedback = nil
-        transferErrorMessage = nil
+        homeState.beginRegistryTransfer()
         isTransferringRegistry = true
 
         Task {
             do {
                 let feedback = try await coordinator.importChannelRegistry(backend: .localDocuments)
                 await MainActor.run {
-                    transferFeedback = feedback
+                    homeState.finishRegistryTransfer(feedback)
                     isTransferringRegistry = false
                 }
             } catch {
                 await MainActor.run {
-                    transferFeedback = nil
-                    transferErrorMessage = error.localizedDescription
+                    homeState.failRegistryTransfer(error)
                     isTransferringRegistry = false
                 }
             }
@@ -347,21 +340,19 @@ struct HomeScreenView: View {
 
     private func resetAllSettings() {
         guard !isResettingAllSettings else { return }
-        transferFeedback = nil
-        transferErrorMessage = nil
+        homeState.beginResetAllSettings()
         isResettingAllSettings = true
 
         Task {
             do {
                 let feedback = try await coordinator.resetAllSettings()
                 await MainActor.run {
-                    resetFeedback = feedback
+                    homeState.finishResetAllSettings(feedback)
                     isResettingAllSettings = false
                 }
             } catch {
                 await MainActor.run {
-                    resetFeedback = nil
-                    transferErrorMessage = error.localizedDescription
+                    homeState.failResetAllSettings(error)
                     isResettingAllSettings = false
                 }
             }

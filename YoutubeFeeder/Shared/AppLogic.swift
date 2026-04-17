@@ -189,6 +189,45 @@ struct ChannelBrowseSortDescriptor: Hashable {
     }
 }
 
+struct HomeScreenLogic: Hashable {
+    var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
+    var transferFeedback: ChannelRegistryTransferFeedback?
+    var resetFeedback: LocalStateResetFeedback?
+    var transferErrorMessage: String?
+
+    mutating func selectChannelSortDescriptor(_ descriptor: ChannelBrowseSortDescriptor) {
+        channelSortDescriptor = descriptor
+    }
+
+    mutating func beginRegistryTransfer() {
+        resetFeedback = nil
+        transferErrorMessage = nil
+    }
+
+    mutating func finishRegistryTransfer(_ feedback: ChannelRegistryTransferFeedback) {
+        transferFeedback = feedback
+    }
+
+    mutating func failRegistryTransfer(_ error: Error) {
+        transferFeedback = nil
+        transferErrorMessage = error.localizedDescription
+    }
+
+    mutating func beginResetAllSettings() {
+        transferFeedback = nil
+        transferErrorMessage = nil
+    }
+
+    mutating func finishResetAllSettings(_ feedback: LocalStateResetFeedback) {
+        resetFeedback = feedback
+    }
+
+    mutating func failResetAllSettings(_ error: Error) {
+        resetFeedback = nil
+        transferErrorMessage = error.localizedDescription
+    }
+}
+
 struct ChannelBrowseTipsSummary: Hashable {
     let countText: String
     let sortText: String
