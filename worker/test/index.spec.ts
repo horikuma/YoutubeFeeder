@@ -12,6 +12,44 @@ import worker from "../src/index";
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
 
 describe("Worker", () => {
+	it("stores channel registry payload on PUT /channel-registry", async () => {
+		const request = new IncomingRequest("http://example.com/channel-registry", {
+			method: "PUT",
+			body: JSON.stringify({
+				formatVersion: 1,
+				syncedAt: "2026-04-17T00:00:00.000Z",
+				channels: [{ channelID: "UC123", addedAt: "2026-04-16T00:00:00.000Z" }],
+			}),
+		});
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, env, ctx);
+		await waitOnExecutionContext(ctx);
+
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual({ ok: true });
+		expect(await env.KV.get("channel-registry")).toBe(
+			JSON.stringify({
+				formatVersion: 1,
+				syncedAt: "2026-04-17T00:00:00.000Z",
+				channels: [{ channelID: "UC123", addedAt: "2026-04-16T00:00:00.000Z" }],
+			})
+		);
+	});
+
+	it("rejects invalid JSON on PUT /channel-registry", async () => {
+		const request = new IncomingRequest("http://example.com/channel-registry", {
+			method: "PUT",
+			body: "{\"formatVersion\":1",
+		});
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, env, ctx);
+		await waitOnExecutionContext(ctx);
+
+		expect(response.status).toBe(400);
+		expect(await response.json()).toEqual({ error: "invalid JSON" });
+		expect(await env.KV.get("channel-registry")).toBeNull();
+	});
+
 	it("responds with ok (unit style)", async () => {
 		const request = new IncomingRequest("http://example.com");
 		// Create an empty context to pass to `worker.fetch()`.

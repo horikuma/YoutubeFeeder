@@ -218,7 +218,8 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
                     feedService: YouTubeFeedService(),
                     channelResolver: YouTubeChannelResolver(),
                     searchService: Self.remoteRefreshSearchService(),
-                    remoteSearchCacheStore: remoteCacheStore
+                    remoteSearchCacheStore: remoteCacheStore,
+                    channelRegistrySyncService: ChannelRegistryCloudflareSyncService(endpointURL: nil)
                 )
             )
 
