@@ -483,6 +483,72 @@ struct RemoteSearchPresentationState: Hashable {
     }
 }
 
+struct RemoteSearchLogic: Hashable {
+    var result: VideoSearchResult = VideoSearchResult(keyword: "", videos: [], totalCount: 0)
+    var presentationState = RemoteSearchPresentationState(visibleCount: 20, chipMode: .hidden, splitContext: nil)
+    var splitContext: ChannelVideosRouteContext?
+    var splitVideos: [CachedVideo] = []
+    var splitVisibleCount = 20
+    var isSplitLoading = false
+
+    mutating func setResult(
+        _ result: VideoSearchResult,
+        usesSplitChannelBrowser: Bool,
+        previousSplitContext: ChannelVideosRouteContext?
+    ) {
+        self.result = result
+        presentationState = RemoteSearchPresentationState.build(
+            result: result,
+            usesSplitChannelBrowser: usesSplitChannelBrowser,
+            previousSplitContext: previousSplitContext
+        )
+        splitContext = presentationState.splitContext
+        if !usesSplitChannelBrowser {
+            clearSplitSelection()
+        }
+    }
+
+    mutating func dismissChip() {
+        presentationState.dismissChip()
+    }
+
+    mutating func beginRefresh() {
+        presentationState.beginRefresh()
+    }
+
+    mutating func loadMoreIfNeeded() {
+        presentationState.loadMoreIfNeeded(totalVideoCount: result.videos.count)
+    }
+
+    mutating func beginSplitSelection(_ context: ChannelVideosRouteContext) {
+        splitContext = context
+        splitVideos = []
+        splitVisibleCount = 20
+        isSplitLoading = true
+        presentationState.splitContext = context
+    }
+
+    mutating func clearSplitSelection() {
+        splitContext = nil
+        splitVideos = []
+        splitVisibleCount = 20
+        isSplitLoading = false
+        presentationState.splitContext = nil
+    }
+
+    mutating func finishSplitSelection(_ context: ChannelVideosRouteContext, videos: [CachedVideo]) {
+        guard splitContext == context else { return }
+        splitVideos = videos
+        splitVisibleCount = min(20, videos.count)
+        isSplitLoading = false
+    }
+
+    mutating func loadSplitMoreIfNeeded() {
+        guard splitVisibleCount < splitVideos.count else { return }
+        splitVisibleCount = min(splitVisibleCount + 20, splitVideos.count)
+    }
+}
+
 enum FeedOrdering {
     static func prioritizedChannelIDs(channels: [String], states: [String: CachedChannelState]) -> [String] {
         channels.sorted { lhs, rhs in
