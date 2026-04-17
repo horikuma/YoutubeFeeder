@@ -9,6 +9,9 @@ final class HomeScreenLogicTests: LoggedTestCase {
         XCTAssertNil(state.transferFeedback)
         XCTAssertNil(state.resetFeedback)
         XCTAssertNil(state.transferErrorMessage)
+        XCTAssertFalse(state.isTransferringRegistry)
+        XCTAssertFalse(state.isResettingAllSettings)
+        XCTAssertFalse(state.shouldConfirmReset)
     }
 
     func testRegistryTransferLifecycleKeepsResetStateClearedAndRecordsOutcome() {
@@ -25,16 +28,19 @@ final class HomeScreenLogicTests: LoggedTestCase {
         XCTAssertEqual(state.transferFeedback, makeTransferFeedback(action: .export))
         XCTAssertNil(state.resetFeedback)
         XCTAssertNil(state.transferErrorMessage)
+        XCTAssertTrue(state.isTransferringRegistry)
 
         let successFeedback = makeTransferFeedback(action: .import)
         state.finishRegistryTransfer(successFeedback)
 
         XCTAssertEqual(state.transferFeedback, successFeedback)
+        XCTAssertFalse(state.isTransferringRegistry)
 
         state.failRegistryTransfer(SampleError(message: "transfer failed"))
 
         XCTAssertNil(state.transferFeedback)
         XCTAssertEqual(state.transferErrorMessage, "transfer failed")
+        XCTAssertFalse(state.isTransferringRegistry)
     }
 
     func testResetLifecycleKeepsTransferStateClearedAndRecordsOutcome() {
@@ -50,16 +56,20 @@ final class HomeScreenLogicTests: LoggedTestCase {
         XCTAssertEqual(state.transferFeedback, nil)
         XCTAssertEqual(state.resetFeedback, makeResetFeedback())
         XCTAssertNil(state.transferErrorMessage)
+        XCTAssertTrue(state.isResettingAllSettings)
+        XCTAssertFalse(state.shouldConfirmReset)
 
         let successFeedback = makeResetFeedback()
         state.finishResetAllSettings(successFeedback)
 
         XCTAssertEqual(state.resetFeedback, successFeedback)
+        XCTAssertFalse(state.isResettingAllSettings)
 
         state.failResetAllSettings(SampleError(message: "reset failed"))
 
         XCTAssertNil(state.resetFeedback)
         XCTAssertEqual(state.transferErrorMessage, "reset failed")
+        XCTAssertFalse(state.isResettingAllSettings)
     }
 
     func testSelectChannelSortDescriptorUpdatesOnlyTheSortState() {
@@ -72,6 +82,14 @@ final class HomeScreenLogicTests: LoggedTestCase {
         XCTAssertNil(state.transferFeedback)
         XCTAssertNil(state.resetFeedback)
         XCTAssertNil(state.transferErrorMessage)
+    }
+
+    func testRequestResetAllSettingsMarksDialogAsPresented() {
+        var state = HomeScreenLogic()
+
+        state.requestResetAllSettings()
+
+        XCTAssertTrue(state.shouldConfirmReset)
     }
 
     private func makeTransferFeedback(action: ChannelRegistryTransferAction) -> ChannelRegistryTransferFeedback {
