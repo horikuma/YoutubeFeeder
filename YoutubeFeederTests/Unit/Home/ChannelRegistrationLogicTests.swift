@@ -10,6 +10,7 @@ final class ChannelRegistrationLogicTests: LoggedTestCase {
         XCTAssertFalse(state.isSubmitting)
         XCTAssertFalse(state.isImportingCSV)
         XCTAssertNil(state.importFeedback)
+        XCTAssertFalse(state.isCSVImporterPresented)
     }
 
     func testSubmitLifecycleUpdatesOnlyRegistrationState() {
@@ -18,7 +19,8 @@ final class ChannelRegistrationLogicTests: LoggedTestCase {
             feedback: makeRegistrationFeedback(),
             isSubmitting: false,
             isImportingCSV: true,
-            importFeedback: makeImportFeedback()
+            importFeedback: makeImportFeedback(),
+            isCSVImporterPresented: false
         )
 
         state.beginSubmit()
@@ -47,7 +49,8 @@ final class ChannelRegistrationLogicTests: LoggedTestCase {
             feedback: makeRegistrationFeedback(),
             isSubmitting: true,
             isImportingCSV: false,
-            importFeedback: makeImportFeedback()
+            importFeedback: makeImportFeedback(),
+            isCSVImporterPresented: false
         )
 
         state.beginCSVImport()
@@ -79,6 +82,18 @@ final class ChannelRegistrationLogicTests: LoggedTestCase {
 
         XCTAssertEqual(state.errorMessage, "import failed")
         XCTAssertFalse(state.isImportingCSV)
+    }
+
+    func testRequestCSVImportPresentsImporterWithoutStartingExecution() {
+        var state = ChannelRegistrationLogic()
+
+        state.requestCSVImport()
+
+        XCTAssertTrue(state.isCSVImporterPresented)
+        XCTAssertFalse(state.isImportingCSV)
+        XCTAssertNil(state.errorMessage)
+        XCTAssertNil(state.feedback)
+        XCTAssertNil(state.importFeedback)
     }
 
     private func makeRegistrationFeedback() -> ChannelRegistrationFeedback {
