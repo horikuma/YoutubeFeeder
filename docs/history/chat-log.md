@@ -1,3 +1,45 @@
+## 2026/04/17
+- LLM処理時間の総計を解凍せよ。
+  - LLM処理時間の総計は 6372 秒、約 106 分です。
+- セッションを終了せよ。
+  - セッション終了を完了しました。main を最新化し、ローカルの issue-136 ブランチを削除しました。
+- PRを作成せよ。
+  - PR #138 を作成しました。
+- Issueを作成せよ。「ネットワーク依存のテストの環境制約を整合させる、Macの証明書を用意する」
+  - Issue #137 を作成しました。
+- 証明設定を使わない検証方法に切り替えよ。残りのToDo24、ToDo25を完了せよ。
+  - ToDo 24 と ToDo 25 を完了し、Issue #136 は完了しました。署名なし build は成功し、unit test 実行は通信制限由来の失敗でしたが指示どおり無視して進めました。
+- コミットする際はコミットメッセージの先頭にToDo番号を追加せよ。
+  - ToDo 24 は Mac Development 署名証明書不足で停止しました。
+- コミットする際はコミットメッセージの先頭にToDo番号を追加せよ。これまでのコミットはそのままで良い。引き続き、進めよ。
+- 本Blockingは別途対処するため、以後実行環境の通信制限による失敗は、無視して良い。ただし実施するところまでは進めよ。また、通信制限以外のBlockingはルール通り停止し報告せよ。再開せよ。
+  - ToDo 8-11 を完了し、ChannelBrowse/VideoList/KeywordSearch/RemoteSearch の state を pure logic に集約して build を通しました。通信制限系の test 失敗は無視済みです。
+  - Issue #136 の ToDo 7 を完了し、ChannelRegistrationLogic へ状態を集約して ChannelRegistrationView を更新しました。build は通過し、test は通信制限で失敗しましたが指示どおり無視して進めました。
+- Issueを再開せよ。
+  - Issue #136 の ToDo 6 を HomeScreenLogic へ集約し、HomeScreenView を更新して build を確認しました。テスト実行は test runner 通信制限で失敗しました。
+- ToDo12以降で同様に大きなものがあれば分解せよ。ただし、不必要に過剰に砕く必要はない。
+  - Issue #136 の ToDo 12 以降を見直し、ToDo 12 と ToDo 13 を領域単位へ分解して Description と詳細化コメントへ反映しました。実装には進んでいません。
+- スレッドの文脈をもとに、ToDo6を分解せよ。ToDo7以降はその分後ろにずらせ。ToDo5まではチェック状態を含めてそのままとせよ。詳細化までで完了せよ。実装まで進めてはならない。
+  - Issue #136 の ToDo 6 を分解し、ToDo 7 以降を後ろへずらして Description と詳細化コメントへ反映しました。実装には進んでいません。
+- Issueを詳細化せよ。
+  - Issue #136 を詳細化し、Description とコメントを更新して、作業ブランチ issue-136 を作成しました。
+- Issueを作成せよ。「UIは状態を持たず、PureLogicがすべての状態とロジックを単一の真実源として管理する」
+  - Issue #136 を作成しました。
+- セッションを完了せよ。
+  - セッションを完了しました。`git-main-sync` を実行し、`main` を最新化して `issue-123` ブランチも削除済みです。
+- PRを作成せよ。
+  - PR #135 を作成しました。issue-123 を origin に push したうえで、Issue #123 を連携する Pull Request を open 状態で作成済みです。
+- Issueを実施せよ。
+  - Issue #123 の実施を完了しました。IssueToDo 1〜3 を順に処理し、skills/implementation-and-health.md に範囲外実装変更の禁止を追加して、Issue を完了状態にしました。
+- issue123を詳細化せよ。Issueのコメントは無視せよ。
+  - Issue #123 を詳細化しました。既存コメント本文は読まず、Issue タイトルと Description と skills/implementation-and-health.md だけを根拠に、Description 更新、詳細化コメント追加、issue-123 ブランチ確認まで完了しました。
+- 1.について、skills/implementation-and-health.mdである。2.について、健康度改善を目的としたセッション以外の全てである。詳細化を継続せよ。
+  - Issue 123 の詳細化を完了しました。`skills/implementation-and-health.md` を明示先に更新する前提と、健康度改善目的以外でメトリクス警告を理由に設計・実装を修正しない条件を Issue 本文とコメントに反映しました。
+- issue123を詳細化せよ。
+  - Issue 123 は本文と既存コメントがなく、設計アラートと実装アラートの明示先と適用範囲を追加推論なしで確定できないため、詳細化を停止しました。
+- セッションを開始せよ。
+  - セッション開始を完了しました。`main` を最新化し、`fetch --prune` と `history-rotate` を実行して、差分をコミット済みです。
+
 ## 2026/04/16
 - セッションを終了せよ。
   - セッション終了の `git-main-sync` を完了し、main を origin/main に最新化しました。
