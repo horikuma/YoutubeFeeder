@@ -7,9 +7,6 @@ struct HomeScreenView: View {
     let navigationPath: Binding<NavigationPath>
     @State private var didRunAutoRefresh = false
     @State private var homeState = HomeScreenLogic()
-    @State private var isTransferringRegistry = false
-    @State private var isResettingAllSettings = false
-    @State private var shouldConfirmReset = false
     @State private var didPrewarmRemoteSearch = false
     @State private var shouldMountRemoteSearchPrewarmHost = false
     @State private var remoteSearchPrewarmPath = NavigationPath()
@@ -154,7 +151,7 @@ struct HomeScreenView: View {
         }
         .confirmationDialog(
             "この端末の設定をリセットしますか",
-            isPresented: $shouldConfirmReset,
+            isPresented: $homeState.shouldConfirmReset,
             titleVisibility: .visible
         ) {
             Button("全設定をリセット", role: .destructive) {
@@ -272,88 +269,79 @@ struct HomeScreenView: View {
             } label: {
                 MetricTile(
                     title: "バックアップ",
-                    value: isTransferringRegistry ? "処理中..." : "",
+                    value: homeState.isTransferringRegistry ? "処理中..." : "",
                     detail: homeState.transferFeedback?.detail ?? "この端末内の固定JSONへ書き出し / 読み戻し"
                 )
             }
             .menuStyle(.borderlessButton)
-            .disabled(isTransferringRegistry)
+            .disabled(homeState.isTransferringRegistry)
             .accessibilityIdentifier("nav.registryTransfer")
 
             Button {
-                shouldConfirmReset = true
+                homeState.requestResetAllSettings()
             } label: {
                 MetricTile(
                     title: "全設定リセット",
-                    value: isResettingAllSettings ? "処理中..." : "",
+                    value: homeState.isResettingAllSettings ? "処理中..." : "",
                     detail: "この端末の設定とキャッシュを削除。バックアップ JSON は残す"
                 )
             }
             .buttonStyle(.plain)
-            .disabled(isTransferringRegistry || isResettingAllSettings)
+            .disabled(homeState.isTransferringRegistry || homeState.isResettingAllSettings)
             .tint(.red)
             .accessibilityIdentifier("nav.resetAllSettings")
         }
     }
 
     private func exportRegistry() {
-        guard !isTransferringRegistry else { return }
+        guard !homeState.isTransferringRegistry else { return }
         homeState.beginRegistryTransfer()
-        isTransferringRegistry = true
 
         Task {
             do {
                 let feedback = try coordinator.exportChannelRegistry(backend: .localDocuments)
                 await MainActor.run {
                     homeState.finishRegistryTransfer(feedback)
-                    isTransferringRegistry = false
                 }
             } catch {
                 await MainActor.run {
                     homeState.failRegistryTransfer(error)
-                    isTransferringRegistry = false
                 }
             }
         }
     }
 
     private func importRegistry() {
-        guard !isTransferringRegistry else { return }
+        guard !homeState.isTransferringRegistry else { return }
         homeState.beginRegistryTransfer()
-        isTransferringRegistry = true
 
         Task {
             do {
                 let feedback = try await coordinator.importChannelRegistry(backend: .localDocuments)
                 await MainActor.run {
                     homeState.finishRegistryTransfer(feedback)
-                    isTransferringRegistry = false
                 }
             } catch {
                 await MainActor.run {
                     homeState.failRegistryTransfer(error)
-                    isTransferringRegistry = false
                 }
             }
         }
     }
 
     private func resetAllSettings() {
-        guard !isResettingAllSettings else { return }
+        guard !homeState.isResettingAllSettings else { return }
         homeState.beginResetAllSettings()
-        isResettingAllSettings = true
 
         Task {
             do {
                 let feedback = try await coordinator.resetAllSettings()
                 await MainActor.run {
                     homeState.finishResetAllSettings(feedback)
-                    isResettingAllSettings = false
                 }
             } catch {
                 await MainActor.run {
                     homeState.failResetAllSettings(error)
-                    isResettingAllSettings = false
                 }
             }
         }
