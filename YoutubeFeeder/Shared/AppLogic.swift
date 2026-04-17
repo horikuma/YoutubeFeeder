@@ -280,6 +280,79 @@ struct ChannelRegistrationLogic: Hashable {
     }
 }
 
+struct ChannelBrowseLogic: Hashable {
+    var items: [ChannelBrowseItem] = []
+    var pendingChannelRemoval: PendingChannelRemoval?
+    var removalFeedback: ChannelRemovalFeedback?
+    var selectedChannelID: String?
+    var videosByChannelID: [String: [CachedVideo]] = [:]
+    var loadingChannelIDs: Set<String> = []
+
+    mutating func setItems(_ items: [ChannelBrowseItem]) {
+        self.items = items
+        if let selectedChannelID, !items.contains(where: { $0.channelID == selectedChannelID }) {
+            self.selectedChannelID = nil
+        }
+    }
+
+    mutating func requestRemoval(for item: ChannelBrowseItem) {
+        pendingChannelRemoval = PendingChannelRemoval(channelID: item.channelID, channelTitle: item.channelTitle)
+    }
+
+    mutating func clearPendingRemoval() {
+        pendingChannelRemoval = nil
+    }
+
+    mutating func applyRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
+        removalFeedback = feedback
+    }
+
+    mutating func selectChannel(_ channelID: String) {
+        selectedChannelID = channelID
+    }
+
+    mutating func applyDefaultSelectionIfNeeded() -> String? {
+        if let selectedChannelID, items.contains(where: { $0.channelID == selectedChannelID }) {
+            return selectedChannelID
+        }
+        guard let firstChannelID = items.first?.channelID else {
+            selectedChannelID = nil
+            return nil
+        }
+        selectedChannelID = firstChannelID
+        return firstChannelID
+    }
+
+    mutating func beginLoadingVideos(for channelID: String) -> Bool {
+        guard videosByChannelID[channelID] == nil else { return false }
+        guard !loadingChannelIDs.contains(channelID) else { return false }
+        loadingChannelIDs.insert(channelID)
+        return true
+    }
+
+    mutating func finishLoadingVideos(_ videos: [CachedVideo], for channelID: String) {
+        loadingChannelIDs.remove(channelID)
+        if videosByChannelID[channelID] == nil {
+            videosByChannelID[channelID] = videos
+        }
+    }
+
+    mutating func refreshSelectedChannelVideos(_ videos: [CachedVideo]) {
+        guard let selectedChannelID else { return }
+        videosByChannelID[selectedChannelID] = videos
+    }
+
+    func videosForSelectedChannel() -> [CachedVideo] {
+        guard let selectedChannelID else { return [] }
+        return videosByChannelID[selectedChannelID] ?? []
+    }
+
+    func selectedTitle() -> String {
+        guard let selectedChannelID else { return "チャンネル未選択" }
+        return items.first(where: { $0.channelID == selectedChannelID })?.channelTitle ?? selectedChannelID
+    }
+}
+
 struct ChannelBrowseTipsSummary: Hashable {
     let countText: String
     let sortText: String
