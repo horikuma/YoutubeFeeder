@@ -8,11 +8,13 @@ export interface Viewport {
 	context: ViewportContext;
 }
 
+export const VIEWPORT_VERSION = 1;
+
 export function createViewport(): Viewport {
 	return {
 		startLine: 0,
 		endLine: 999,
-		version: 1,
+		version: VIEWPORT_VERSION,
 		context: {},
 	};
 }
