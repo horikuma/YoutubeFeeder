@@ -205,7 +205,22 @@ struct YouTubeChannelResolver {
 }
 
 struct YouTubeFeedService {
+    private let checkForUpdatesHandler: (@Sendable (String, FeedValidationToken?) async throws -> FeedCheckResult)?
+    private let fetchLatestFeedHandler: (@Sendable (String) async throws -> (videos: [YouTubeVideo], metadata: FeedFetchMetadata))?
+
+    init(
+        checkForUpdates: (@Sendable (String, FeedValidationToken?) async throws -> FeedCheckResult)? = nil,
+        fetchLatestFeed: (@Sendable (String) async throws -> (videos: [YouTubeVideo], metadata: FeedFetchMetadata))? = nil
+    ) {
+        self.checkForUpdatesHandler = checkForUpdates
+        self.fetchLatestFeedHandler = fetchLatestFeed
+    }
+
     func checkForUpdates(for channelID: String, validationToken: FeedValidationToken?) async throws -> FeedCheckResult {
+        if let checkForUpdatesHandler {
+            return try await checkForUpdatesHandler(channelID, validationToken)
+        }
+
         var request = URLRequest(
             url: Self.feedURL(for: channelID),
             cachePolicy: .reloadIgnoringLocalCacheData,
@@ -233,6 +248,10 @@ struct YouTubeFeedService {
     }
 
     func fetchLatestFeed(for channelID: String) async throws -> (videos: [YouTubeVideo], metadata: FeedFetchMetadata) {
+        if let fetchLatestFeedHandler {
+            return try await fetchLatestFeedHandler(channelID)
+        }
+
         let request = URLRequest(
             url: Self.feedURL(for: channelID),
             cachePolicy: .reloadIgnoringLocalCacheData,

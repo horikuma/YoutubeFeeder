@@ -59,6 +59,37 @@ final class ChannelRefreshSchedulePolicyTests: LoggedTestCase {
         )
     }
 
+    func testFreshSnapshotMarksAllChannelsAsNotDueUntilTheirIntervalsExpire() {
+        let now = Date(timeIntervalSince1970: 10_000)
+        let channels = ["recent", "older"]
+        let states: [String: CachedChannelState] = [
+            "recent": makeState(
+                id: "recent",
+                latestPublishedAt: now.addingTimeInterval(-1 * 24 * 60 * 60),
+                lastCheckedAt: now.addingTimeInterval(-3 * 60)
+            ),
+            "older": makeState(
+                id: "older",
+                latestPublishedAt: now.addingTimeInterval(-9 * 24 * 60 * 60),
+                lastCheckedAt: now.addingTimeInterval(-20 * 60)
+            )
+        ]
+
+        XCTAssertEqual(
+            ChannelRefreshSchedulePolicy.prioritizedDueChannelIDs(channels: channels, states: states, now: now),
+            []
+        )
+    }
+
+    func testMissingSnapshotStateIsDueImmediately() {
+        let now = Date(timeIntervalSince1970: 10_000)
+
+        XCTAssertEqual(
+            ChannelRefreshSchedulePolicy.prioritizedDueChannelIDs(channels: ["missing"], states: [:], now: now),
+            ["missing"]
+        )
+    }
+
     func testNextRefreshDelayUsesEarliestPendingChannel() {
         let now = Date(timeIntervalSince1970: 10_000)
         let channels = ["A", "B"]

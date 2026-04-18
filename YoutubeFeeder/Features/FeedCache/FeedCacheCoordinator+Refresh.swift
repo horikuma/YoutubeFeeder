@@ -6,7 +6,25 @@ extension FeedCacheCoordinator {
         let snapshot = await readService.loadSnapshot()
         let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let sortedChannels = prioritizedChannelIDs(states: states)
-        _ = await runRefreshCycle(channelIDs: sortedChannels, states: states)
+        AppConsoleLogger.appLifecycle.notice(
+            "manual_refresh_snapshot_evaluated",
+            metadata: [
+                "channel_count": String(channels.count),
+                "snapshot_channels": String(snapshot.channels.count),
+                "due_channels": String(sortedChannels.count),
+                "freshness_bypassed": "true",
+                "force_network_fetch": "true",
+                "snapshot_dependency": "ordering_only",
+                "channel_fingerprint": AppConsoleLogger.channelIDsFingerprint(channels),
+                "snapshot_fingerprint": AppConsoleLogger.channelIDsFingerprint(snapshot.channels.map(\.channelID))
+            ]
+        )
+        _ = await runRefreshCycle(
+            channelIDs: sortedChannels,
+            states: states,
+            forceNetworkFetch: true,
+            refreshSource: "manual"
+        )
     }
 
     func startAutomaticRefreshLoopIfNeeded() {
@@ -129,7 +147,12 @@ extension FeedCacheCoordinator {
             ]
         )
         manualRefreshTask = Task { [channelIDs, states] in
-            _ = await runRefreshCycle(channelIDs: channelIDs, states: states)
+            _ = await runRefreshCycle(
+                channelIDs: channelIDs,
+                states: states,
+                forceNetworkFetch: false,
+                refreshSource: "automatic"
+            )
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
@@ -141,23 +164,43 @@ extension FeedCacheCoordinator {
         )
     }
 
-    func runRefreshCycle(channelIDs: [String], states: [String: CachedChannelState]) async -> String? {
+    func runRefreshCycle(
+        channelIDs: [String],
+        states: [String: CachedChannelState],
+        forceNetworkFetch: Bool = false,
+        refreshSource: String = "automatic"
+    ) async -> String? {
+        let beforeVideoCount = await readService.loadSnapshot().videos.count
         AppConsoleLogger.appLifecycle.notice(
             "refresh_cycle_started",
             metadata: [
                 "channel_count": String(channelIDs.count),
-                "has_manual_refresh": manualRefreshTask != nil ? "true" : "false"
+                "has_manual_refresh": manualRefreshTask != nil ? "true" : "false",
+                "force_network_fetch": forceNetworkFetch ? "true" : "false",
+                "refresh_source": refreshSource,
+                "cached_videos_before": String(beforeVideoCount)
             ]
         )
         beginManualRefreshProgress(totalChannels: channelIDs.count)
-        let lastError = await runManualRefreshChannels(channelIDs, states: states)
+        let lastError = await runManualRefreshChannels(
+            channelIDs,
+            states: states,
+            forceNetworkFetch: forceNetworkFetch
+        )
         finishManualRefreshProgress()
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
+        let afterVideoCount = await readService.loadSnapshot().videos.count
         AppConsoleLogger.appLifecycle.notice(
             "refresh_cycle_finished",
             metadata: [
                 "channel_count": String(channelIDs.count),
+                "force_network_fetch": forceNetworkFetch ? "true" : "false",
+                "refresh_source": refreshSource,
+                "network_fetch_attempted_channels": forceNetworkFetch ? String(channelIDs.count) : "conditional",
+                "cached_videos_before": String(beforeVideoCount),
+                "cached_videos_after": String(afterVideoCount),
+                "cached_videos_delta": String(afterVideoCount - beforeVideoCount),
                 "last_error": lastError ?? ""
             ]
         )
@@ -258,7 +301,11 @@ extension FeedCacheCoordinator {
         )
     }
 
-    func runManualRefreshChannels(_ sortedChannels: [String], states: [String: CachedChannelState]) async -> String? {
+    func runManualRefreshChannels(
+        _ sortedChannels: [String],
+        states: [String: CachedChannelState],
+        forceNetworkFetch: Bool = false
+    ) async -> String? {
         var lastError: String?
         var nextIndex = 0
 
@@ -269,7 +316,13 @@ extension FeedCacheCoordinator {
             for _ in 0 ..< initialCount {
                 let channelID = sortedChannels[nextIndex]
                 nextIndex += 1
-                group.addTask { await self.processChannel(channelID, states: states) }
+                group.addTask {
+                    await self.processChannel(
+                        channelID,
+                        states: states,
+                        forceNetworkFetch: forceNetworkFetch
+                    )
+                }
             }
 
             while let result = await group.next() {
@@ -288,7 +341,13 @@ extension FeedCacheCoordinator {
                 if nextIndex < sortedChannels.count {
                     let channelID = sortedChannels[nextIndex]
                     nextIndex += 1
-                    group.addTask { await self.processChannel(channelID, states: states) }
+                    group.addTask {
+                        await self.processChannel(
+                            channelID,
+                            states: states,
+                            forceNetworkFetch: forceNetworkFetch
+                        )
+                    }
                 }
             }
         }
@@ -437,6 +496,9 @@ extension FeedCacheCoordinator {
             metadata: refreshUICompletionMetadata(
                 currentChannelID: currentChannelID,
                 includesVideos: includesVideos,
+                progress: nextProgress,
+                maintenanceItemCount: nextMaintenanceItems.count,
+                loadedVideoCount: refreshState.videos?.count,
                 startedAt: startedAt,
                 snapshotLoadedAt: snapshotLoadedAt,
                 homeStatusUpdatedAt: homeStatusUpdatedAt,
@@ -483,6 +545,9 @@ extension FeedCacheCoordinator {
     func refreshUICompletionMetadata(
         currentChannelID: String?,
         includesVideos: Bool,
+        progress: CacheProgress,
+        maintenanceItemCount: Int,
+        loadedVideoCount: Int?,
         startedAt: Date,
         snapshotLoadedAt: Date,
         homeStatusUpdatedAt: Date,
@@ -491,6 +556,10 @@ extension FeedCacheCoordinator {
         [
             "current_channel": currentChannelID ?? "none",
             "includes_videos": includesVideos ? "true" : "false",
+            "cached_channels": String(progress.cachedChannels),
+            "cached_videos": String(progress.cachedVideos),
+            "loaded_videos": loadedVideoCount.map(String.init) ?? "",
+            "maintenance_items": String(maintenanceItemCount),
             "snapshot_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: snapshotLoadedAt),
             "home_status_ms": AppConsoleLogger.elapsedMilliseconds(from: snapshotLoadedAt, to: homeStatusUpdatedAt),
             "persist_ms": AppConsoleLogger.elapsedMilliseconds(from: homeStatusUpdatedAt, to: persistedAt),

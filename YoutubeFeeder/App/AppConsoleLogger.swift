@@ -11,6 +11,7 @@ struct AppConsoleLogger {
     static let appLifecycle = AppConsoleLogger(scope: "app.lifecycle")
     static let channelRegistry = AppConsoleLogger(scope: "channel.registry")
     static let cloudflareSync = AppConsoleLogger(scope: "cloudflare.sync")
+    static let feedRefresh = AppConsoleLogger(scope: "feed.refresh")
     static let youtubeSearch = AppConsoleLogger(scope: "youtube.search")
 
     let scope: String
