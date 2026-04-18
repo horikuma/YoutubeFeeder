@@ -108,6 +108,22 @@ struct ChannelVideosView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .top) {
+            if canCloseDetail {
+                HStack {
+                    Spacer()
+                    Button("閉じる") {
+                        closeDetail()
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("channelVideos.closeDetail")
+                }
+                .padding(.horizontal, layout.horizontalPadding)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+                .background(Color(.systemGroupedBackground))
+            }
+        }
         .confirmationDialog(
             videoState.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
             isPresented: Binding(
@@ -157,6 +173,15 @@ struct ChannelVideosView: View {
             ?? videoState.videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
             ?? context.preferredChannelTitle
             ?? context.channelID
+    }
+
+    private var canCloseDetail: Bool {
+        !path.isEmpty
+    }
+
+    private func closeDetail() {
+        guard canCloseDetail else { return }
+        path.removeLast()
     }
 
     private func reloadVideos() async {

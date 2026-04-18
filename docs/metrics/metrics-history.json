@@ -5,6 +5,19 @@
       "items": [
         {
           "kind": "metrics_entry",
+          "label": "Closable channel detail screen",
+          "change_kind": "ui",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 3.4240658283233643,
+          "startup_test_duration_seconds": 5.2273170948028564,
+          "total_duration_seconds": 8.65138292312622,
+          "startup_metrics": {}
+        },
+        {
+          "kind": "metrics_entry",
           "label": "Mac video tile context menu behavior",
           "change_kind": "ui",
           "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
