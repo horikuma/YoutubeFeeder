@@ -99,8 +99,9 @@ struct ChannelRegistryCloudflareSyncService {
             ]
         )
 
+        let requestURL = Self.channelRegistryEndpointURL(from: endpointURL)
         var request = URLRequest(
-            url: endpointURL.appendingPathComponent("channel-registry"),
+            url: requestURL,
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 30
         )
@@ -191,5 +192,12 @@ struct ChannelRegistryCloudflareSyncService {
         }
 
         return nil
+    }
+
+    static func channelRegistryEndpointURL(from endpointURL: URL) -> URL {
+        if endpointURL.lastPathComponent == "channel-registry" {
+            return endpointURL
+        }
+        return endpointURL.appendingPathComponent("channel-registry")
     }
 }

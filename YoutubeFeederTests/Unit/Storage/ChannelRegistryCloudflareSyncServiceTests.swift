@@ -2,6 +2,24 @@ import XCTest
 @testable import YoutubeFeeder
 
 final class ChannelRegistryCloudflareSyncServiceTests: LoggedTestCase {
+    func testChannelRegistryEndpointURLAcceptsBaseURL() {
+        XCTAssertEqual(
+            ChannelRegistryCloudflareSyncService
+                .channelRegistryEndpointURL(from: URL(string: "https://worker.example")!)
+                .absoluteString,
+            "https://worker.example/channel-registry"
+        )
+    }
+
+    func testChannelRegistryEndpointURLDoesNotDuplicatePath() {
+        XCTAssertEqual(
+            ChannelRegistryCloudflareSyncService
+                .channelRegistryEndpointURL(from: URL(string: "https://worker.example/channel-registry")!)
+                .absoluteString,
+            "https://worker.example/channel-registry"
+        )
+    }
+
     func testSyncChannelRegistryEncodesRecordsAndPostsToWorker() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
