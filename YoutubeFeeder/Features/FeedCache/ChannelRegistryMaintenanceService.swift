@@ -29,7 +29,7 @@ struct ChannelRegistryMaintenanceService {
 
     func addChannel(input: String) async throws -> FeedChannelRegistrationExecution {
         let resolvedChannel = try await channelResolver.resolve(input: input)
-        let didAdd = try ChannelRegistryStore.addChannelID(resolvedChannel.channelID)
+        let didAdd = try ChannelRegistryStore.addChannelID(resolvedChannel.channelID, source: "user_add_channel")
         let channels = ChannelRegistryStore.loadAllChannelIDs()
 
         let latestFeedError: String?
@@ -75,7 +75,7 @@ struct ChannelRegistryMaintenanceService {
             ?? videos.first(where: { $0.channelID == normalizedChannelID })?.channelTitle
             ?? normalizedChannelID
 
-        guard (try? ChannelRegistryStore.removeChannelID(normalizedChannelID)) == true else {
+        guard (try? ChannelRegistryStore.removeChannelID(normalizedChannelID, source: "user_remove_channel")) == true else {
             return nil
         }
 
@@ -142,7 +142,7 @@ struct ChannelRegistryMaintenanceService {
     }
 
     func resetAllSettings() async throws -> LocalStateResetFeedback {
-        let removedChannelCount = try ChannelRegistryStore.reset()
+        let removedChannelCount = try ChannelRegistryStore.reset(source: "user_reset_all_settings")
         let clearedSearchCacheCount = await writer.clearAllRemoteSearch()
         let clearedCache = await writer.resetAllStoredData()
 

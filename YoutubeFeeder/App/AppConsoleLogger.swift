@@ -9,6 +9,7 @@ enum AppConsoleLogLevel: String {
 
 struct AppConsoleLogger {
     static let appLifecycle = AppConsoleLogger(scope: "app.lifecycle")
+    static let channelRegistry = AppConsoleLogger(scope: "channel.registry")
     static let cloudflareSync = AppConsoleLogger(scope: "cloudflare.sync")
     static let youtubeSearch = AppConsoleLogger(scope: "youtube.search")
 
@@ -125,6 +126,15 @@ struct AppConsoleLogger {
 
     static func mainThreadFlag() -> String {
         Thread.isMainThread ? "true" : "false"
+    }
+
+    static func channelIDsFingerprint(_ channelIDs: [String]) -> String {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in channelIDs.joined(separator: "\u{1F}").utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x100000001b3
+        }
+        return String(format: "%016llx", hash)
     }
 
     private static func decodingErrorSummary(_ error: DecodingError, limit: Int) -> String {

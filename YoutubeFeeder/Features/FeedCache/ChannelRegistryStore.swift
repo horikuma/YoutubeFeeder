@@ -94,16 +94,50 @@ enum ChannelRegistryStore {
         loadAllChannels(fileManager: fileManager).first(where: { $0.channelID == channelID })?.addedAt
     }
 
-    static func addChannelID(_ channelID: String, fileManager: FileManager = .default) throws -> Bool {
+    static func addChannelID(
+        _ channelID: String,
+        fileManager: FileManager = .default,
+        source: String = "unspecified"
+    ) throws -> Bool {
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedChannelID.isEmpty else { return false }
-        return FeedCacheSQLiteDatabase.shared(fileManager: fileManager).addRegisteredChannel(normalizedChannelID, addedAt: .now)
+        let beforeChannels = loadAllChannelIDs(fileManager: fileManager)
+        let didAdd = FeedCacheSQLiteDatabase.shared(fileManager: fileManager).addRegisteredChannel(normalizedChannelID, addedAt: .now)
+        let afterChannels = loadAllChannelIDs(fileManager: fileManager)
+        logMutation(
+            "store_add_channel",
+            source: source,
+            beforeChannels: beforeChannels,
+            afterChannels: afterChannels,
+            metadata: [
+                "channel_id": normalizedChannelID,
+                "did_add": didAdd ? "true" : "false"
+            ]
+        )
+        return didAdd
     }
 
-    static func removeChannelID(_ channelID: String, fileManager: FileManager = .default) throws -> Bool {
+    static func removeChannelID(
+        _ channelID: String,
+        fileManager: FileManager = .default,
+        source: String = "unspecified"
+    ) throws -> Bool {
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedChannelID.isEmpty else { return false }
-        return FeedCacheSQLiteDatabase.shared(fileManager: fileManager).removeRegisteredChannel(normalizedChannelID)
+        let beforeChannels = loadAllChannelIDs(fileManager: fileManager)
+        let didRemove = FeedCacheSQLiteDatabase.shared(fileManager: fileManager).removeRegisteredChannel(normalizedChannelID)
+        let afterChannels = loadAllChannelIDs(fileManager: fileManager)
+        logMutation(
+            "store_remove_channel",
+            source: source,
+            beforeChannels: beforeChannels,
+            afterChannels: afterChannels,
+            metadata: [
+                "channel_id": normalizedChannelID,
+                "did_remove": didRemove ? "true" : "false"
+            ]
+        )
+        return didRemove
     }
 
     static func loadChannelRecords(fileManager: FileManager = .default) -> [RegisteredChannelRecord] {
@@ -112,12 +146,39 @@ enum ChannelRegistryStore {
         }
     }
 
-    static func replaceChannels(_ channels: [RegisteredChannelRecord], fileManager: FileManager = .default) throws {
-        FeedCacheSQLiteDatabase.shared(fileManager: fileManager).replaceRegisteredChannels(uniqueRecords(channels))
+    static func replaceChannels(
+        _ channels: [RegisteredChannelRecord],
+        fileManager: FileManager = .default,
+        source: String = "unspecified"
+    ) throws {
+        let beforeChannels = loadAllChannelIDs(fileManager: fileManager)
+        let records = uniqueRecords(channels)
+        FeedCacheSQLiteDatabase.shared(fileManager: fileManager).replaceRegisteredChannels(records)
+        let afterChannels = loadAllChannelIDs(fileManager: fileManager)
+        logMutation(
+            "store_replace_channels",
+            source: source,
+            beforeChannels: beforeChannels,
+            afterChannels: afterChannels,
+            metadata: [
+                "incoming_count": String(channels.count),
+                "unique_incoming_count": String(records.count)
+            ]
+        )
     }
 
-    static func reset(fileManager: FileManager = .default) throws -> Int {
-        FeedCacheSQLiteDatabase.shared(fileManager: fileManager).resetRegisteredChannels()
+    static func reset(fileManager: FileManager = .default, source: String = "unspecified") throws -> Int {
+        let beforeChannels = loadAllChannelIDs(fileManager: fileManager)
+        let removedCount = FeedCacheSQLiteDatabase.shared(fileManager: fileManager).resetRegisteredChannels()
+        let afterChannels = loadAllChannelIDs(fileManager: fileManager)
+        logMutation(
+            "store_reset_channels",
+            source: source,
+            beforeChannels: beforeChannels,
+            afterChannels: afterChannels,
+            metadata: ["removed_count": String(removedCount)]
+        )
+        return removedCount
     }
 
     private static func uniqueChannels(_ channels: [RegisteredChannel]) -> [RegisteredChannel] {
@@ -128,6 +189,44 @@ enum ChannelRegistryStore {
     private static func uniqueRecords(_ channels: [RegisteredChannelRecord]) -> [RegisteredChannelRecord] {
         var seen = Set<String>()
         return channels.filter { seen.insert($0.channelID).inserted }
+    }
+
+    private static func logMutation(
+        _ event: String,
+        source: String,
+        beforeChannels: [String],
+        afterChannels: [String],
+        metadata: [String: String] = [:]
+    ) {
+        AppConsoleLogger.channelRegistry.notice(
+            event,
+            metadata: registryMetadata(
+                source: source,
+                beforeChannels: beforeChannels,
+                afterChannels: afterChannels,
+                metadata: metadata
+            )
+        )
+    }
+
+    private static func registryMetadata(
+        source: String,
+        beforeChannels: [String],
+        afterChannels: [String],
+        metadata: [String: String]
+    ) -> [String: String] {
+        var result = metadata
+        result["source"] = source
+        result["before_count"] = String(beforeChannels.count)
+        result["after_count"] = String(afterChannels.count)
+        result["delta"] = String(afterChannels.count - beforeChannels.count)
+        result["before_fingerprint"] = AppConsoleLogger.channelIDsFingerprint(beforeChannels)
+        result["after_fingerprint"] = AppConsoleLogger.channelIDsFingerprint(afterChannels)
+        result["first_channel_before"] = beforeChannels.first ?? ""
+        result["first_channel_after"] = afterChannels.first ?? ""
+        result["last_channel_before"] = beforeChannels.last ?? ""
+        result["last_channel_after"] = afterChannels.last ?? ""
+        return result
     }
 }
 
@@ -158,7 +257,7 @@ enum ChannelRegistryTransferStore {
             throw ChannelRegistryTransferError.invalidImportData
         }
 
-        try ChannelRegistryStore.replaceChannels(document.channels, fileManager: fileManager)
+        try ChannelRegistryStore.replaceChannels(document.channels, fileManager: fileManager, source: "transfer_import")
         return ChannelRegistryTransferResult(backend: backend, fileURL: sourceURL, channelCount: document.channels.count)
     }
 

@@ -176,7 +176,7 @@ enum ChannelRegistryCSVImportService {
         var importedChannelIDs: [String] = []
 
         for row in rows {
-            if try ChannelRegistryStore.addChannelID(row.channelID, fileManager: fileManager) {
+            if try ChannelRegistryStore.addChannelID(row.channelID, fileManager: fileManager, source: "csv_import") {
                 importedChannelIDs.append(row.channelID)
             }
         }

@@ -278,90 +278,6 @@ final class FeedCacheCoordinator: ObservableObject {
         await readService.searchVideos(keyword: keyword, limit: limit)
     }
 
-    func addChannel(input: String) async throws -> ChannelRegistrationFeedback {
-        let execution = try await channelRegistryMaintenanceService.addChannel(input: input)
-        channels = execution.channels
-        freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
-        _ = await performConsistencyMaintenanceIfNeeded(force: false)
-        await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError, includesVideos: false)
-        return execution.feedback
-    }
-
-    func removeChannel(_ channelID: String) async -> ChannelRemovalFeedback? {
-        guard let execution = await channelRegistryMaintenanceService.removeChannel(
-            channelID: channelID,
-            maintenanceItems: maintenanceItems,
-            videos: videos
-        ) else {
-            return nil
-        }
-
-        channels = execution.channels
-        freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
-        await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
-        return execution.feedback
-    }
-
-    func exportChannelRegistry(backend: ChannelRegistryTransferBackend) throws -> ChannelRegistryTransferFeedback {
-        try channelRegistryMaintenanceService.exportChannelRegistry(backend: backend)
-    }
-
-    func importChannelRegistry(backend: ChannelRegistryTransferBackend) async throws -> ChannelRegistryTransferFeedback {
-        let execution = try channelRegistryMaintenanceService.importChannelRegistry(
-            backend: backend,
-            usesMockData: AppLaunchMode.current.usesMockData
-        )
-        await completeImportedChannelUpdate(
-            channels: execution.channels,
-            importedChannelIDs: execution.channels
-        )
-
-        return execution.feedback
-    }
-
-    func importChannelCSV(data: Data, fileURL: URL) async throws -> ChannelCSVImportFeedback {
-        let execution = try channelRegistryMaintenanceService.importChannelsCSV(
-            data: data,
-            fileURL: fileURL,
-            usesMockData: AppLaunchMode.current.usesMockData
-        )
-        await completeImportedChannelUpdate(
-            channels: execution.channels,
-            importedChannelIDs: execution.importedChannelIDs
-        )
-        return execution.feedback
-    }
-
-    func resetAllSettings() async throws -> LocalStateResetFeedback {
-        let feedback = try await channelRegistryMaintenanceService.resetAllSettings()
-
-        resetRemoteSearchSnapshotCache()
-        channels = []
-        freshnessInterval = 60
-        manualRefreshCount = 0
-        lastManualChannelRefreshID = nil
-        refreshProgress = .idle
-        progress = CacheProgress(
-            totalChannels: 0,
-            cachedChannels: 0,
-            cachedVideos: 0,
-            cachedThumbnails: 0,
-            currentChannelID: nil,
-            currentChannelNumber: nil,
-            lastUpdatedAt: nil,
-            isRunning: false,
-            lastError: nil
-        )
-        maintenanceItems = []
-        videos = []
-        await refreshHomeSystemStatus(
-            snapshot: .empty,
-            currentProgress: progress
-        )
-
-        return feedback
-    }
-
     func processChannel(_ channelID: String, states: [String: CachedChannelState]) async -> String? {
         await channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID])
     }
@@ -382,6 +298,12 @@ final class FeedCacheCoordinator: ObservableObject {
     func syncRegisteredChannelsFromStore(reason: String) {
         let storedChannels = ChannelRegistryStore.loadAllChannelIDs()
         guard !storedChannels.isEmpty else {
+            logChannelRegistryCoordinatorSync(
+                "coordinator_sync_skipped",
+                reason: reason,
+                storedChannels: storedChannels,
+                metadata: ["skip_reason": "store_empty_preserve_coordinator"]
+            )
             RuntimeDiagnostics.shared.record(
                 "registered_channels_sync_skipped",
                 detail: "登録チャンネルの再同期を省略",
@@ -394,8 +316,18 @@ final class FeedCacheCoordinator: ObservableObject {
         }
 
         guard storedChannels != channels else { return }
+        logChannelRegistryCoordinatorSync(
+            "coordinator_sync_applying",
+            reason: reason,
+            storedChannels: storedChannels
+        )
         channels = storedChannels
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+        logChannelRegistryCoordinatorSync(
+            "coordinator_sync_applied",
+            reason: reason,
+            storedChannels: storedChannels
+        )
         RuntimeDiagnostics.shared.record(
             "registered_channels_synced",
             detail: "登録チャンネルを永続ストアから再同期",
@@ -415,39 +347,60 @@ final class FeedCacheCoordinator: ObservableObject {
 
     private func startChannelRegistrySyncIfNeeded() {
         let logger = AppConsoleLogger.cloudflareSync
+        let storedChannels = ChannelRegistryStore.loadAllChannelIDs()
         guard channelRegistrySyncService.isConfigured else {
             logger.notice(
                 "coordinator_skip",
                 metadata: [
+                    "coordinator_channels": String(channels.count),
+                    "local_fingerprint": AppConsoleLogger.channelIDsFingerprint(storedChannels),
                     "reason": "endpoint_missing",
-                    "source": "bootstrap_complete"
+                    "source": "bootstrap_complete",
+                    "store_channels": String(storedChannels.count)
                 ]
             )
             return
         }
 
+        let coordinatorChannelCount = channels.count
+        let localFingerprint = AppConsoleLogger.channelIDsFingerprint(storedChannels)
+        let storeChannelCount = storedChannels.count
         Task(priority: .utility) { [channelRegistrySyncService] in
             let startedAt = Date()
             logger.info(
                 "coordinator_task_start",
-                metadata: ["source": "bootstrap_complete"]
+                metadata: [
+                    "coordinator_channels": String(coordinatorChannelCount),
+                    "local_fingerprint": localFingerprint,
+                    "source": "bootstrap_complete",
+                    "store_channels": String(storeChannelCount)
+                ]
             )
             do {
                 try await channelRegistrySyncService.syncChannelRegistry()
                 logger.notice(
                     "coordinator_task_complete",
-                    metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+                    metadata: [
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                        "source": "bootstrap_complete"
+                    ]
                 )
             } catch is CancellationError {
                 logger.notice(
                     "coordinator_task_cancelled",
-                    metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+                    metadata: [
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                        "source": "bootstrap_complete"
+                    ]
                 )
             } catch {
                 logger.error(
                     "coordinator_task_failed",
                     message: AppConsoleLogger.errorSummary(error),
-                    metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+                    metadata: [
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                        "source": "bootstrap_complete"
+                    ]
                 )
                 RuntimeDiagnostics.shared.record(
                     "channel_registry_sync_failed",

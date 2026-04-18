@@ -5,6 +5,19 @@
       "items": [
         {
           "kind": "metrics_entry",
+          "label": "channel registry diagnostics logging",
+          "change_kind": "logging",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 5.227804183959961,
+          "startup_test_duration_seconds": 5.168351173400879,
+          "total_duration_seconds": 10.39615535736084,
+          "startup_metrics": {}
+        },
+        {
+          "kind": "metrics_entry",
           "label": "platform-specific hint test fix",
           "change_kind": "test",
           "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
