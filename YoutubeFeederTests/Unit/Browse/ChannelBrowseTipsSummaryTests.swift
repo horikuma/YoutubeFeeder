@@ -16,7 +16,7 @@ final class ChannelBrowseTipsSummaryTests: LoggedTestCase {
         XCTAssertEqual(summary.countText, "2件")
         XCTAssertEqual(summary.sortText, "チャンネル登録日時 ↑")
         XCTAssertEqual(summary.primaryHint, "タップで動画一覧")
-        XCTAssertEqual(summary.secondaryHint, "長押しで削除")
+        XCTAssertEqual(summary.secondaryHint, "クリックでメニュー")
     }
 
     func testBuildHandlesEmptyList() {

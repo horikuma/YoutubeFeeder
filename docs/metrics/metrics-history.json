@@ -5,6 +5,19 @@
       "items": [
         {
           "kind": "metrics_entry",
+          "label": "Mac test failure follow-up",
+          "change_kind": "tests",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 12.940001010894775,
+          "startup_test_duration_seconds": 19.952687978744507,
+          "total_duration_seconds": 32.89268898963928,
+          "startup_metrics": {}
+        },
+        {
+          "kind": "metrics_entry",
           "label": "Cloudflare sync logging",
           "change_kind": "app",
           "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
