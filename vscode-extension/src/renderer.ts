@@ -3,7 +3,9 @@ export interface RendererDecoration {
 	virtualText: string;
 }
 
-export function render(lines: readonly string[]): readonly RendererDecoration[] {
+export type RendererDecorations = readonly RendererDecoration[];
+
+export function render(lines: readonly string[]): RendererDecorations {
 	return lines.map((line, index) => ({
 		lineNumber: index,
 		virtualText: line,
