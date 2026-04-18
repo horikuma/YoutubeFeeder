@@ -20,6 +20,7 @@ final class FeedCacheCoordinator: ObservableObject {
     let remoteSearchService: RemoteVideoSearchService
     let homeSystemStatusService: HomeSystemStatusService
     let channelRegistryMaintenanceService: ChannelRegistryMaintenanceService
+    let channelRegistrySyncService: ChannelRegistryCloudflareSyncService
     var manualRefreshTask: Task<Void, Never>?
     var automaticRefreshTask: Task<Void, Never>?
     var importRefreshTask: Task<Void, Never>?
@@ -59,6 +60,7 @@ final class FeedCacheCoordinator: ObservableObject {
             homeSearchKeyword: Self.homeSearchKeyword,
             remoteSearchCacheLifetime: remoteSearchCacheLifetime
         )
+        self.channelRegistrySyncService = dependencies.channelRegistrySyncService
         self.channelRegistryMaintenanceService = ChannelRegistryMaintenanceService(
             readService: readService,
             writer: writeService,
@@ -80,6 +82,7 @@ final class FeedCacheCoordinator: ObservableObject {
         progress = bootstrap.progress
         maintenanceItems = bootstrap.maintenanceItems
         await refreshHomeSystemStatus()
+        startChannelRegistrySyncIfNeeded()
         AppConsoleLogger.appLifecycle.notice(
             "bootstrap_coordinator_complete",
             metadata: [
@@ -408,5 +411,52 @@ final class FeedCacheCoordinator: ObservableObject {
             snapshot: snapshot,
             currentProgress: currentProgress
         )
+    }
+
+    private func startChannelRegistrySyncIfNeeded() {
+        let logger = AppConsoleLogger.cloudflareSync
+        guard channelRegistrySyncService.isConfigured else {
+            logger.notice(
+                "coordinator_skip",
+                metadata: [
+                    "reason": "endpoint_missing",
+                    "source": "bootstrap_complete"
+                ]
+            )
+            return
+        }
+
+        Task(priority: .utility) { [channelRegistrySyncService] in
+            let startedAt = Date()
+            logger.info(
+                "coordinator_task_start",
+                metadata: ["source": "bootstrap_complete"]
+            )
+            do {
+                try await channelRegistrySyncService.syncChannelRegistry()
+                logger.notice(
+                    "coordinator_task_complete",
+                    metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+                )
+            } catch is CancellationError {
+                logger.notice(
+                    "coordinator_task_cancelled",
+                    metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+                )
+            } catch {
+                logger.error(
+                    "coordinator_task_failed",
+                    message: AppConsoleLogger.errorSummary(error),
+                    metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+                )
+                RuntimeDiagnostics.shared.record(
+                    "channel_registry_sync_failed",
+                    detail: "Cloudflare KV 同期に失敗",
+                    metadata: [
+                        "reason": error.localizedDescription
+                    ]
+                )
+            }
+        }
     }
 }

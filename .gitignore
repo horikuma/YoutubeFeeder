@@ -13,6 +13,7 @@ build/
 
 # Local metrics artifacts
 .metrics/
+logs/
 
 # Node.js local dependencies
 node_modules/
