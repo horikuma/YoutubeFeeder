@@ -46,6 +46,7 @@ struct KeywordSearchResultsView: View {
                             removeChannel: nil,
                             index: offset + 1
                         )
+                        .listInsertionTransition()
                     }
                 }
             }
@@ -74,7 +75,12 @@ struct KeywordSearchResultsView: View {
     }
 
     private func reloadResults() async {
-        searchState.setResult(await coordinator.searchVideos(keyword: keyword, limit: 20))
+        let result = await coordinator.searchVideos(keyword: keyword, limit: 20)
+        await MainActor.run {
+            withAnimation(.easeOut(duration: 0.25)) {
+                searchState.setResult(result)
+            }
+        }
     }
 
     private func dismissChip() {

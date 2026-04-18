@@ -157,11 +157,15 @@ struct RemoteKeywordSearchResultsView: View {
             ]
         )
         let loadedResult = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
-        searchState.setResult(
-            loadedResult,
-            usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
-            previousSplitContext: searchState.splitContext
-        )
+        await MainActor.run {
+            withAnimation(.easeOut(duration: 0.25)) {
+                searchState.setResult(
+                    loadedResult,
+                    usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
+                    previousSplitContext: searchState.splitContext
+                )
+            }
+        }
         logger.debug(
             "screen_snapshot_load_complete",
             metadata: [
@@ -194,18 +198,27 @@ struct RemoteKeywordSearchResultsView: View {
         }
         if forceRefresh {
             if case let .remoteSearch(refreshedResult) = await coordinator.performRefreshAction(.remoteSearch(keyword: keyword, limit: 100)) {
-                searchState.setResult(
-                    refreshedResult,
-                    usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
-                    previousSplitContext: searchState.splitContext
-                )
+                await MainActor.run {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        searchState.setResult(
+                            refreshedResult,
+                            usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
+                            previousSplitContext: searchState.splitContext
+                        )
+                    }
+                }
             }
         } else {
-            searchState.setResult(
-                await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: false),
-                usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
-                previousSplitContext: searchState.splitContext
-            )
+            let result = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: false)
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    searchState.setResult(
+                        result,
+                        usesSplitChannelBrowser: browsePresentation.usesSplitLayout,
+                        previousSplitContext: searchState.splitContext
+                    )
+                }
+            }
         }
         logger.notice(
             "screen_refresh_complete",
@@ -300,7 +313,9 @@ struct RemoteKeywordSearchResultsView: View {
 
         let publishStartedAt = Date()
         await MainActor.run {
-            searchState.finishSplitSelection(context, videos: loadedVideos)
+            withAnimation(.easeOut(duration: 0.25)) {
+                searchState.finishSplitSelection(context, videos: loadedVideos)
+            }
         }
 
         AppConsoleLogger.appLifecycle.notice(
@@ -347,7 +362,9 @@ struct RemoteKeywordSearchResultsView: View {
 
         let publishStartedAt = Date()
         await MainActor.run {
-            searchState.finishSplitSelection(context, videos: loadedVideos)
+            withAnimation(.easeOut(duration: 0.25)) {
+                searchState.finishSplitSelection(context, videos: loadedVideos)
+            }
         }
         recordDeferredSplitSelectionCompleted(
             context,
