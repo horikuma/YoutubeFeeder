@@ -9,12 +9,13 @@ export interface Viewport {
 }
 
 export const VIEWPORT_VERSION = 1;
+export const EMPTY_VIEWPORT_CONTEXT: ViewportContext = {};
 
 export function createViewport(): Viewport {
 	return {
 		startLine: 0,
 		endLine: 999,
 		version: VIEWPORT_VERSION,
-		context: {},
+		context: EMPTY_VIEWPORT_CONTEXT,
 	};
 }
