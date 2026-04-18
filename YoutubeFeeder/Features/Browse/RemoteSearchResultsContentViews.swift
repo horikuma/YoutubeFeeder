@@ -63,6 +63,7 @@ struct RemoteKeywordSearchResultsCompactView: View {
                             guard offset >= visibleVideos.count - 1 else { return }
                             onLoadMore()
                         }
+                        .listInsertionTransition()
                     }
                 }
             }
@@ -119,8 +120,8 @@ struct RemoteKeywordSearchResultsRegularView: View {
                     let visibleVideos = Array(result.videos.prefix(visibleCount))
                     LazyVGrid(columns: layout.listColumns, spacing: layout.isPad ? 20 : 14) {
                         ForEach(Array(visibleVideos.enumerated()), id: \.element.id) { offset, video in
-                            VideoTile(
-                                video: video,
+                        VideoTile(
+                            video: video,
                                 tapAction: {
                                     onDismissChip()
                                     onSelectSplitChannel(
@@ -135,15 +136,16 @@ struct RemoteKeywordSearchResultsRegularView: View {
                                 },
                                 openVideoAction: nil,
                                 removeChannel: nil,
-                                index: offset + 1
-                            )
-                            .onAppear {
-                                guard offset >= visibleVideos.count - 1 else { return }
-                                onLoadMore()
-                            }
+                            index: offset + 1
+                        )
+                        .onAppear {
+                            guard offset >= visibleVideos.count - 1 else { return }
+                            onLoadMore()
                         }
+                        .listInsertionTransition()
                     }
                 }
+            }
             }
             .background(
                 RenderProbe {
@@ -220,22 +222,23 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
                     let visibleVideos = Array(splitVideos.prefix(splitVisibleCount))
                     LazyVGrid(columns: layout.listColumns, spacing: 20) {
                         ForEach(Array(visibleVideos.enumerated()), id: \.element.id) { offset, video in
-                            VideoTile(
-                                video: video,
+                        VideoTile(
+                            video: video,
                                 tapAction: nil,
                                 openVideoAction: {
                                     openVideo(video)
                                 },
                                 removeChannel: nil,
-                                index: offset + 1
-                            )
-                            .onAppear {
-                                guard offset >= visibleVideos.count - 1 else { return }
-                                onLoadMore()
-                            }
+                            index: offset + 1
+                        )
+                        .onAppear {
+                            guard offset >= visibleVideos.count - 1 else { return }
+                            onLoadMore()
                         }
+                        .listInsertionTransition()
                     }
                 }
+            }
             }
             .frame(maxWidth: layout.readableContentWidth ?? layout.contentWidth ?? .infinity, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -257,8 +260,12 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
         .refreshable {
             guard let splitContext else { return }
             if case let .channelVideos(reloadedVideos) = await coordinator.performRefreshAction(.channel(splitContext)) {
-                splitVideos = reloadedVideos
-                splitVisibleCount = min(20, splitVideos.count)
+                await MainActor.run {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        splitVideos = reloadedVideos
+                        splitVisibleCount = min(20, splitVideos.count)
+                    }
+                }
             }
         }
     }

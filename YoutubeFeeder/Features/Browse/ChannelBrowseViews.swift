@@ -111,7 +111,12 @@ struct ChannelBrowseView: View {
     }
 
     private func loadChannelBrowseItems() async {
-        browseState.setItems(await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor))
+        let items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+        await MainActor.run {
+            withAnimation(.easeOut(duration: 0.25)) {
+                browseState.setItems(items)
+            }
+        }
     }
 
     private func refreshChannelBrowseItems() async {
@@ -177,6 +182,7 @@ private struct ChannelBrowseCompactView: View {
                                     state.requestRemoval(for: item)
                                 }
                             }
+                            .listInsertionTransition()
                         } else {
                             NavigationLink(
                                 value: MaintenanceRoute.channelVideos(
@@ -191,6 +197,7 @@ private struct ChannelBrowseCompactView: View {
                             }
                             .buttonStyle(.plain)
                             .tileActionMenu(menu: channelMenu(for: item))
+                            .listInsertionTransition()
                         }
                     }
                 }
@@ -295,6 +302,7 @@ private struct ChannelBrowseRegularView: View {
                                     onRequestRemoval: { _ in state.requestRemoval(for: item) }
                                 )
                             )
+                            .listInsertionTransition()
                         }
                     }
                 }
@@ -359,6 +367,7 @@ private struct ChannelBrowseRegularView: View {
                                     desktopMenuTriggerStyle: .contextMenu,
                                     includesOpenVideoInMenu: false
                                 )
+                                .listInsertionTransition()
                             }
                         }
                     }
@@ -413,7 +422,9 @@ private struct ChannelBrowseRegularView: View {
         Task {
             let loadedVideos = await coordinator.loadVideosForChannel(channelID)
             await MainActor.run {
-                state.finishLoadingVideos(loadedVideos, for: channelID)
+                withAnimation(.easeOut(duration: 0.25)) {
+                    state.finishLoadingVideos(loadedVideos, for: channelID)
+                }
             }
         }
     }
@@ -429,7 +440,12 @@ private struct ChannelBrowseRegularView: View {
         ]
         )
         await coordinator.refreshChannelManually(selectedChannelID)
-        state.refreshSelectedChannelVideos(await coordinator.loadVideosForChannel(selectedChannelID))
+        let refreshedVideos = await coordinator.loadVideosForChannel(selectedChannelID)
+        await MainActor.run {
+            withAnimation(.easeOut(duration: 0.25)) {
+                state.refreshSelectedChannelVideos(refreshedVideos)
+            }
+        }
         RuntimeDiagnostics.shared.record(
             "channel_refresh_view_reload_finished",
             detail: "スプリット表示の動画一覧リロード完了",
@@ -534,6 +550,7 @@ struct AllVideosView: View {
                             },
                             index: offset + 1
                         )
+                        .listInsertionTransition()
                     }
                 }
             }
@@ -542,7 +559,9 @@ struct AllVideosView: View {
             coordinator.loadVideosFromCache()
         }
         .onReceive(coordinator.$videos) { videos in
-            videoState.setVideos(videos)
+            withAnimation(.easeOut(duration: 0.25)) {
+                videoState.setVideos(videos)
+            }
         }
         .confirmationDialog(
             videoState.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",

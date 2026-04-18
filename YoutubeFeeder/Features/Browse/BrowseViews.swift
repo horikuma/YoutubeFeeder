@@ -29,7 +29,11 @@ struct ChannelVideosView: View {
                     ]
                 )
                 if case let .channelVideos(reloadedVideos) = await coordinator.performRefreshAction(.channel(context)) {
-                    videoState.setVideos(reloadedVideos)
+                    await MainActor.run {
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            videoState.setVideos(reloadedVideos)
+                        }
+                    }
                 }
                 RuntimeDiagnostics.shared.record(
                     "channel_refresh_view_reload_finished",
@@ -87,6 +91,7 @@ struct ChannelVideosView: View {
                             },
                             desktopMenuTriggerStyle: .contextMenu
                         )
+                        .listInsertionTransition()
                     }
                 }
             }
@@ -169,9 +174,18 @@ struct ChannelVideosView: View {
             if elapsed < minimumDuration {
                 try? await Task.sleep(for: minimumDuration - elapsed)
             }
-            videoState.finishAutomaticRefresh(loadedVideos)
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    videoState.finishAutomaticRefresh(loadedVideos)
+                }
+            }
         } else {
-            videoState.setVideos(await coordinator.loadVideosForChannel(context.channelID))
+            let loadedVideos = await coordinator.loadVideosForChannel(context.channelID)
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    videoState.setVideos(loadedVideos)
+                }
+            }
         }
         RuntimeDiagnostics.shared.record(
             "channel_videos_loaded",

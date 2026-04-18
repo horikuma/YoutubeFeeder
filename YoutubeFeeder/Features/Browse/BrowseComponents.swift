@@ -280,6 +280,12 @@ struct VideoTile: View {
     }
 }
 
+extension View {
+    func listInsertionTransition() -> some View {
+        transition(.move(edge: .top).combined(with: .opacity))
+    }
+}
+
 private struct ActivityShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
