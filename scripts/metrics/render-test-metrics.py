@@ -81,6 +81,14 @@ def parse_iso8601(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def parse_metric_payload(line: str, marker: str) -> dict[str, object]:
+    payload_text = line.split(marker, 1)[1]
+    payload, _ = json.JSONDecoder().raw_decode(payload_text)
+    if not isinstance(payload, dict):
+        raise ValueError("metric payload must be an object")
+    return payload
+
+
 def build_payload(repo_root: Path, log_paths: list[Path]) -> dict[str, object]:
     definitions = {}
     definitions.update(collect_definitions(repo_root, repo_root / "YoutubeFeederTests", "logic"))
@@ -94,7 +102,7 @@ def build_payload(repo_root: Path, log_paths: list[Path]) -> dict[str, object]:
             marker = "YOUTUBEFEEDER_TEST_METRIC "
             if marker not in line:
                 continue
-            raw_payload = json.loads(line.split(marker, 1)[1])
+            raw_payload = parse_metric_payload(line, marker)
             test_id = normalize_test_id(raw_payload["testID"])
             event = events_by_test_id[test_id]
             if raw_payload["kind"] == "start":

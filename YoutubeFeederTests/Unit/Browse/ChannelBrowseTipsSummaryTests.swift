@@ -16,7 +16,12 @@ final class ChannelBrowseTipsSummaryTests: LoggedTestCase {
         XCTAssertEqual(summary.countText, "2件")
         XCTAssertEqual(summary.sortText, "チャンネル登録日時 ↑")
         XCTAssertEqual(summary.primaryHint, "タップで動画一覧")
-        XCTAssertEqual(summary.secondaryHint, "長押しで削除")
+        #if os(macOS) || targetEnvironment(macCatalyst)
+        let expectedSecondaryHint = AppInteractionPlatform.desktop.menuInteractionHint
+        #else
+        let expectedSecondaryHint = AppInteractionPlatform.touch.menuInteractionHint
+        #endif
+        XCTAssertEqual(summary.secondaryHint, expectedSecondaryHint)
     }
 
     func testBuildHandlesEmptyList() {

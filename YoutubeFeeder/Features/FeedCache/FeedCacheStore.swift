@@ -178,6 +178,7 @@ actor FeedCacheStore {
     func recordSuccess(channelID: String, videos: [YouTubeVideo], metadata: FeedFetchMetadata) async -> [YouTubeVideo] {
         var snapshot = loadSnapshot()
         let fetchedAt = metadata.checkedAt
+        let existingChannelVideoCount = snapshot.videos.filter { $0.channelID == channelID }.count
         let existingVideoIDs = Set(snapshot.videos.lazy.map(\.id))
         let uncachedVideos = videos.filter { !existingVideoIDs.contains($0.id) }
         let updatedVideos = updateCachedVideos(
@@ -191,6 +192,20 @@ actor FeedCacheStore {
         let resolvedChannelTitle = videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
         let latestPublishedAt = videos.compactMap(\.publishedAt).max()
         let channelVideoCount = snapshot.videos.filter { $0.channelID == channelID }.count
+        AppConsoleLogger.feedRefresh.notice(
+            "feed_cache_record_success",
+            metadata: [
+                "channelID": channelID,
+                "fetched_videos": String(videos.count),
+                "uncached_videos": String(uncachedVideos.count),
+                "existing_channel_videos": String(existingChannelVideoCount),
+                "cached_channel_videos_after": String(channelVideoCount),
+                "total_cached_videos_after": String(snapshot.videos.count),
+                "resolved_channel_title": resolvedChannelTitle ?? "",
+                "latest_published_at": latestPublishedAt.map { String(format: "%.3f", $0.timeIntervalSince1970) } ?? "nil",
+                "zero_fetch_preserved_existing": videos.isEmpty && channelVideoCount > 0 ? "true" : "false"
+            ]
+        )
 
         var channel = snapshot.channels.first(where: { $0.channelID == channelID }) ?? CachedChannelState(
             channelID: channelID,

@@ -58,6 +58,8 @@ struct ChannelRegistryCloudflareSyncService {
         }
 
         let records = ChannelRegistryStore.loadChannelRecords()
+        let beforeRequestChannelIDs = records.map(\.channelID)
+        let syncID = String(UUID().uuidString.prefix(8))
         let payload = ChannelRegistryCloudflareSyncPayload(
             formatVersion: 1,
             syncedAt: now(),
@@ -67,7 +69,9 @@ struct ChannelRegistryCloudflareSyncService {
             "store_loaded",
             metadata: [
                 "channels": String(records.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "local_fingerprint": AppConsoleLogger.channelIDsFingerprint(beforeRequestChannelIDs),
+                "sync_id": syncID
             ]
         )
 
@@ -84,7 +88,8 @@ struct ChannelRegistryCloudflareSyncService {
                 message: AppConsoleLogger.errorSummary(error),
                 metadata: [
                     "channels": String(records.count),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "sync_id": syncID
                 ]
             )
             throw error
@@ -95,7 +100,9 @@ struct ChannelRegistryCloudflareSyncService {
             metadata: [
                 "body_bytes": String(body.count),
                 "channels": String(records.count),
-                "format_version": String(payload.formatVersion)
+                "format_version": String(payload.formatVersion),
+                "local_fingerprint": AppConsoleLogger.channelIDsFingerprint(beforeRequestChannelIDs),
+                "sync_id": syncID
             ]
         )
 
@@ -115,7 +122,8 @@ struct ChannelRegistryCloudflareSyncService {
                 "body_bytes": String(body.count),
                 "endpoint_host": request.url?.host ?? "",
                 "endpoint_path": request.url?.path ?? "",
-                "method": request.httpMethod ?? ""
+                "method": request.httpMethod ?? "",
+                "sync_id": syncID
             ]
         )
 
@@ -126,14 +134,20 @@ struct ChannelRegistryCloudflareSyncService {
         } catch let error as CancellationError {
             logger.notice(
                 "http_request_cancelled",
-                metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+                metadata: [
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "sync_id": syncID
+                ]
             )
             throw error
         } catch {
             logger.error(
                 "http_request_failed",
                 message: AppConsoleLogger.errorSummary(error),
-                metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+                metadata: [
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "sync_id": syncID
+                ]
             )
             throw error
         }
@@ -143,17 +157,32 @@ struct ChannelRegistryCloudflareSyncService {
                 "http_response_invalid",
                 metadata: [
                     "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                    "response_type": String(describing: type(of: response))
+                    "response_type": String(describing: type(of: response)),
+                    "sync_id": syncID
                 ]
             )
             throw ChannelRegistryCloudflareSyncError.invalidResponse
         }
+        let afterResponseChannelIDs = ChannelRegistryStore.loadAllChannelIDs()
         logger.info(
             "http_response_received",
             metadata: [
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 "response_bytes": String(data.count),
-                "status": String(httpResponse.statusCode)
+                "status": String(httpResponse.statusCode),
+                "sync_id": syncID
+            ]
+        )
+        logger.info(
+            "local_store_rechecked_after_response",
+            metadata: [
+                "after_count": String(afterResponseChannelIDs.count),
+                "after_fingerprint": AppConsoleLogger.channelIDsFingerprint(afterResponseChannelIDs),
+                "before_count": String(beforeRequestChannelIDs.count),
+                "before_fingerprint": AppConsoleLogger.channelIDsFingerprint(beforeRequestChannelIDs),
+                "changed_during_sync": afterResponseChannelIDs == beforeRequestChannelIDs ? "false" : "true",
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "sync_id": syncID
             ]
         )
         guard httpResponse.statusCode == 200 else {
@@ -162,7 +191,8 @@ struct ChannelRegistryCloudflareSyncService {
                 metadata: [
                     "body_preview": AppConsoleLogger.responsePreview(data),
                     "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                    "status": String(httpResponse.statusCode)
+                    "status": String(httpResponse.statusCode),
+                    "sync_id": syncID
                 ]
             )
             throw ChannelRegistryCloudflareSyncError.httpError(statusCode: httpResponse.statusCode)
@@ -172,7 +202,9 @@ struct ChannelRegistryCloudflareSyncService {
             metadata: [
                 "channels": String(records.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "status": String(httpResponse.statusCode)
+                "local_store_changed_during_sync": afterResponseChannelIDs == beforeRequestChannelIDs ? "false" : "true",
+                "status": String(httpResponse.statusCode),
+                "sync_id": syncID
             ]
         )
     }

@@ -8,13 +8,14 @@ final class ChannelRegistryCSVImportTests: LoggedTestCase {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("llm-temp", isDirectory: true)
+            .appendingPathComponent("YoutubeFeederTests", isDirectory: true)
+            .appendingPathComponent("Fixtures", isDirectory: true)
             .appendingPathComponent("登録チャンネル.csv")
         let data = try Data(contentsOf: url)
 
         let rows = try ChannelRegistryCSVImportParser.parse(data: data)
 
-        XCTAssertEqual(rows.count, 300)
+        XCTAssertEqual(rows.count, 3)
         XCTAssertEqual(rows.first?.channelID, "UC--oTE32O37NvGS_4rS2cRg")
         XCTAssertEqual(rows.first?.channelURL, "http://www.youtube.com/channel/UC--oTE32O37NvGS_4rS2cRg")
         XCTAssertEqual(rows.first?.channelTitle, "アットおどろく:マルベロス")

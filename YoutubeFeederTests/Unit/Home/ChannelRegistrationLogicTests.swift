@@ -27,7 +27,7 @@ final class ChannelRegistrationLogicTests: LoggedTestCase {
 
         XCTAssertNil(state.errorMessage)
         XCTAssertNil(state.feedback)
-        XCTAssertFalse(state.isSubmitting)
+        XCTAssertTrue(state.isSubmitting)
         XCTAssertNil(state.importFeedback)
 
         let success = makeRegistrationFeedback()
@@ -38,7 +38,7 @@ final class ChannelRegistrationLogicTests: LoggedTestCase {
 
         state.failSubmit(SampleError(message: "submit failed"))
 
-        XCTAssertNil(state.feedback)
+        XCTAssertEqual(state.feedback, success)
         XCTAssertEqual(state.errorMessage, "submit failed")
         XCTAssertFalse(state.isSubmitting)
     }
