@@ -480,6 +480,7 @@ struct RemoteKeywordSearchResultsView: View {
             RemoteKeywordSearchResultsCompactView(
                 coordinator: coordinator,
                 layout: layout,
+                openVideo: openVideo,
                 path: $path,
                 keyword: keyword,
                 result: searchState.result,

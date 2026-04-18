@@ -10,7 +10,7 @@ final class ChannelRefreshSchedulePolicyTests: LoggedTestCase {
             lastAttemptAt: nil,
             lastCheckedAt: nil,
             lastSuccessAt: nil,
-            latestPublishedAt: now.addingTimeInterval(-6 * 24 * 60 * 60),
+            latestPublishedAt: now.addingTimeInterval(-9 * 24 * 60 * 60),
             cachedVideoCount: 0,
             lastError: nil,
             etag: nil,
@@ -31,7 +31,7 @@ final class ChannelRefreshSchedulePolicyTests: LoggedTestCase {
             lastAttemptAt: nil,
             lastCheckedAt: nil,
             lastSuccessAt: nil,
-            latestPublishedAt: now.addingTimeInterval(-8 * 24 * 60 * 60),
+            latestPublishedAt: now.addingTimeInterval(-11 * 24 * 60 * 60),
             cachedVideoCount: 0,
             lastError: nil,
             etag: nil,
@@ -48,7 +48,7 @@ final class ChannelRefreshSchedulePolicyTests: LoggedTestCase {
         let now = Date(timeIntervalSince1970: 10_000)
         let channels = ["A", "B", "C"]
         let states: [String: CachedChannelState] = [
-            "A": makeState(id: "A", latestPublishedAt: now.addingTimeInterval(-8 * 24 * 60 * 60), lastCheckedAt: now.addingTimeInterval(-2 * 60 * 60)),
+            "A": makeState(id: "A", latestPublishedAt: now.addingTimeInterval(-11 * 24 * 60 * 60), lastCheckedAt: now.addingTimeInterval(-2 * 60 * 60)),
             "B": makeState(id: "B", latestPublishedAt: now.addingTimeInterval(-4 * 24 * 60 * 60), lastCheckedAt: now.addingTimeInterval(-2 * 60 * 60)),
             "C": makeState(id: "C", latestPublishedAt: now.addingTimeInterval(-1 * 24 * 60 * 60), lastCheckedAt: now.addingTimeInterval(-2 * 60 * 60))
         ]
@@ -70,7 +70,7 @@ final class ChannelRefreshSchedulePolicyTests: LoggedTestCase {
             ),
             "older": makeState(
                 id: "older",
-                latestPublishedAt: now.addingTimeInterval(-9 * 24 * 60 * 60),
+                latestPublishedAt: now.addingTimeInterval(-11 * 24 * 60 * 60),
                 lastCheckedAt: now.addingTimeInterval(-20 * 60)
             )
         ]
@@ -95,7 +95,7 @@ final class ChannelRefreshSchedulePolicyTests: LoggedTestCase {
         let channels = ["A", "B"]
         let states: [String: CachedChannelState] = [
             "A": makeState(id: "A", latestPublishedAt: now.addingTimeInterval(-2 * 24 * 60 * 60), lastCheckedAt: now.addingTimeInterval(-9 * 60)),
-            "B": makeState(id: "B", latestPublishedAt: now.addingTimeInterval(-8 * 24 * 60 * 60), lastCheckedAt: now.addingTimeInterval(-50 * 60))
+            "B": makeState(id: "B", latestPublishedAt: now.addingTimeInterval(-11 * 24 * 60 * 60), lastCheckedAt: now.addingTimeInterval(-50 * 60))
         ]
 
         XCTAssertEqual(

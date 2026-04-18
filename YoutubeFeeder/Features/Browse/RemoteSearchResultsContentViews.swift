@@ -3,6 +3,7 @@ import SwiftUI
 struct RemoteKeywordSearchResultsCompactView: View {
     let coordinator: FeedCacheCoordinator
     let layout: AppLayout
+    let openVideo: (CachedVideo) -> Void
     @Binding var path: NavigationPath
     let keyword: String
     let result: VideoSearchResult
@@ -57,7 +58,11 @@ struct RemoteKeywordSearchResultsCompactView: View {
                             },
                             openVideoAction: nil,
                             removeChannel: nil,
-                            index: offset + 1
+                            index: offset + 1,
+                            desktopPrimaryClickAction: {
+                                openVideo(video)
+                            },
+                            desktopMenuTriggerStyle: .contextMenu
                         )
                         .onAppear {
                             guard offset >= visibleVideos.count - 1 else { return }
@@ -136,7 +141,11 @@ struct RemoteKeywordSearchResultsRegularView: View {
                                 },
                                 openVideoAction: nil,
                                 removeChannel: nil,
-                            index: offset + 1
+                            index: offset + 1,
+                            desktopPrimaryClickAction: {
+                                openVideo(video)
+                            },
+                            desktopMenuTriggerStyle: .contextMenu
                         )
                         .onAppear {
                             guard offset >= visibleVideos.count - 1 else { return }
@@ -229,7 +238,11 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
                                     openVideo(video)
                                 },
                                 removeChannel: nil,
-                            index: offset + 1
+                            index: offset + 1,
+                            desktopPrimaryClickAction: {
+                                openVideo(video)
+                            },
+                            desktopMenuTriggerStyle: .contextMenu
                         )
                         .onAppear {
                             guard offset >= visibleVideos.count - 1 else { return }
