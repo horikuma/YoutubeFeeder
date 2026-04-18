@@ -524,6 +524,10 @@ struct AllVideosView: View {
                         VideoTile(
                             video: video,
                             tapAction: {
+                                openVideo(video)
+                            },
+                            openVideoAction: nil,
+                            primaryMenuAction: {
                                 path.append(
                                     MaintenanceRoute.channelVideos(
                                         ChannelVideosRouteContext(
@@ -534,7 +538,6 @@ struct AllVideosView: View {
                                     )
                                 )
                             },
-                            openVideoAction: nil,
                             removeChannel: {
                                 videoState.requestRemoval(
                                     for: ChannelBrowseItem(

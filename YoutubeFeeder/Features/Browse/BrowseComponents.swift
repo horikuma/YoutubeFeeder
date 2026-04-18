@@ -167,6 +167,7 @@ struct VideoTile: View {
     let video: CachedVideo
     let tapAction: (() -> Void)?
     let openVideoAction: (() -> Void)?
+    let primaryMenuAction: (() -> Void)?
     let removeChannel: (() -> Void)?
     let index: Int?
     let desktopPrimaryClickAction: (() -> Void)?
@@ -178,6 +179,7 @@ struct VideoTile: View {
         video: CachedVideo,
         tapAction: (() -> Void)? = nil,
         openVideoAction: (() -> Void)? = nil,
+        primaryMenuAction: (() -> Void)? = nil,
         removeChannel: (() -> Void)? = nil,
         index: Int? = nil,
         desktopPrimaryClickAction: (() -> Void)? = nil,
@@ -187,6 +189,7 @@ struct VideoTile: View {
         self.video = video
         self.tapAction = tapAction
         self.openVideoAction = openVideoAction
+        self.primaryMenuAction = primaryMenuAction
         self.removeChannel = removeChannel
         self.index = index
         self.desktopPrimaryClickAction = desktopPrimaryClickAction
@@ -268,9 +271,9 @@ struct VideoTile: View {
         }
 
         let primaryAction: TileMenuAction?
-        if AppInteractionPlatform.current.usesPrimaryClickForMenus, let tapAction {
+        if AppInteractionPlatform.current.usesPrimaryClickForMenus, let action = primaryMenuAction ?? tapAction {
             primaryAction = TileMenuAction(title: "チャンネルを開く", role: nil) {
-                tapAction()
+                action()
             }
         } else {
             primaryAction = nil
