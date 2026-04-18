@@ -7,3 +7,12 @@ export interface Viewport {
 	version: number;
 	context: ViewportContext;
 }
+
+export function createViewport(): Viewport {
+	return {
+		startLine: 0,
+		endLine: 999,
+		version: 1,
+		context: {},
+	};
+}
