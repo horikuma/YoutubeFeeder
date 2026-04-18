@@ -10,8 +10,12 @@
 
 ## 実施内容
 
+
 ### 着手判断
 
+- 着手時は、GitHub 上の対象 Issue の最新 Description を取得し、ローカルの 'llm-temp/issue-todo-<issue_number>.md' と同期させなければならない。
+  - 取得は scripts/command-runner.py の対応コマンドを用いて行い、手動でのコピーや直接編集で同期してはならない。
+  - 同期後の内容のみを基準として、以降の読取り・判断を行わなければならない。
 - 着手時は、対象 Issue の Description と、その Issue の直近の詳細化コメントを読み、禁止事項、`IssueToDo`、読取り対象、更新対象、完了条件を確定しなければならない。
 - 着手時は、次の usage で `./scripts/command-runner.py 'issue-todo' --get` を実行し、出力 JSON の `next` を確認しなければならない。
   `./scripts/command-runner.py 'issue-todo' --get --issue-number '<issue_number>' --todo-section 'IssueToDo' --body-file 'llm-temp/issue-todo-<issue_number>.md'`
