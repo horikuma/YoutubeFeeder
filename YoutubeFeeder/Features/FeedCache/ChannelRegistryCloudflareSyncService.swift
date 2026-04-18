@@ -45,21 +45,60 @@ struct ChannelRegistryCloudflareSyncService {
     }
 
     func syncChannelRegistry() async throws {
+        let logger = AppConsoleLogger.cloudflareSync
+        let startedAt = Date()
+        logger.info("service_start")
+
         guard let endpointURL else {
+            logger.error(
+                "endpoint_missing",
+                metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+            )
             throw ChannelRegistryCloudflareSyncError.endpointMissing
         }
 
+        let records = ChannelRegistryStore.loadChannelRecords()
         let payload = ChannelRegistryCloudflareSyncPayload(
             formatVersion: 1,
             syncedAt: now(),
-            channels: ChannelRegistryStore.loadChannelRecords()
+            channels: records
+        )
+        logger.info(
+            "store_loaded",
+            metadata: [
+                "channels": String(records.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+            ]
         )
 
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.sortedKeys]
 
-        let body = try encoder.encode(payload)
+        let body: Data
+        do {
+            body = try encoder.encode(payload)
+        } catch {
+            logger.error(
+                "payload_encode_failed",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: [
+                    "channels": String(records.count),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+                ]
+            )
+            throw error
+        }
+
+        logger.info(
+            "payload_encoded",
+            metadata: [
+                "body_bytes": String(body.count),
+                "channels": String(records.count),
+                "format_version": String(payload.formatVersion)
+            ]
+        )
+
         var request = URLRequest(
             url: endpointURL.appendingPathComponent("channel-registry"),
             cachePolicy: .reloadIgnoringLocalCacheData,
@@ -69,13 +108,72 @@ struct ChannelRegistryCloudflareSyncService {
         request.httpBody = body
         request.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
 
-        let (_, response) = try await dataLoader(request)
+        logger.info(
+            "http_request_start",
+            metadata: [
+                "body_bytes": String(body.count),
+                "endpoint_host": request.url?.host ?? "",
+                "endpoint_path": request.url?.path ?? "",
+                "method": request.httpMethod ?? ""
+            ]
+        )
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await dataLoader(request)
+        } catch let error as CancellationError {
+            logger.notice(
+                "http_request_cancelled",
+                metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+            )
+            throw error
+        } catch {
+            logger.error(
+                "http_request_failed",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
+            )
+            throw error
+        }
+
         guard let httpResponse = response as? HTTPURLResponse else {
+            logger.error(
+                "http_response_invalid",
+                metadata: [
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "response_type": String(describing: type(of: response))
+                ]
+            )
             throw ChannelRegistryCloudflareSyncError.invalidResponse
         }
+        logger.info(
+            "http_response_received",
+            metadata: [
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "response_bytes": String(data.count),
+                "status": String(httpResponse.statusCode)
+            ]
+        )
         guard httpResponse.statusCode == 200 else {
+            logger.error(
+                "http_status_rejected",
+                metadata: [
+                    "body_preview": AppConsoleLogger.responsePreview(data),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "status": String(httpResponse.statusCode)
+                ]
+            )
             throw ChannelRegistryCloudflareSyncError.httpError(statusCode: httpResponse.statusCode)
         }
+        logger.notice(
+            "service_complete",
+            metadata: [
+                "channels": String(records.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "status": String(httpResponse.statusCode)
+            ]
+        )
     }
 
     private static func resolvedEndpointURL() -> URL? {

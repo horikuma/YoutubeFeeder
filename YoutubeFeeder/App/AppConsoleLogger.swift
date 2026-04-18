@@ -9,11 +9,15 @@ enum AppConsoleLogLevel: String {
 
 struct AppConsoleLogger {
     static let appLifecycle = AppConsoleLogger(scope: "app.lifecycle")
+    static let cloudflareSync = AppConsoleLogger(scope: "cloudflare.sync")
     static let youtubeSearch = AppConsoleLogger(scope: "youtube.search")
 
     let scope: String
 
     private static let prefix = "[YoutubeFeeder]"
+    private static let fileLogLock = NSLock()
+    private static let projectRootMarker = "YoutubeFeeder/App/AppConsoleLogger.swift"
+    private static let runtimeLogRelativePath = "logs/youtubefeeder-runtime.log"
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -38,21 +42,40 @@ struct AppConsoleLogger {
 
     private func emit(level: AppConsoleLogLevel, event: String, message: String?, metadata: [String: String]) {
         let timestamp = Self.timestampFormatter.string(from: .now)
+        let line = Self.renderLine(
+            timestamp: timestamp,
+            level: level,
+            scope: scope,
+            event: event,
+            message: message,
+            metadata: metadata
+        )
+        print(line)
+        Self.appendRuntimeLogLine(line)
+    }
+
+    static func renderLine(
+        timestamp: String,
+        level: AppConsoleLogLevel,
+        scope: String,
+        event: String,
+        message: String?,
+        metadata: [String: String]
+    ) -> String {
         let renderedMetadata = metadata
             .filter { !$0.value.isEmpty }
             .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\(Self.quoted($0.value))" }
+            .map { "\($0.key)=\(quoted($0.value))" }
             .joined(separator: " ")
-        let renderedMessage = message.map { "message=\(Self.quoted($0))" } ?? ""
+        let renderedMessage = message.map { "message=\(quoted($0))" } ?? ""
         let suffix = [renderedMetadata, renderedMessage]
             .filter { !$0.isEmpty }
             .joined(separator: " ")
 
         if suffix.isEmpty {
-            print("\(Self.prefix) \(timestamp) \(level.rawValue) \(scope).\(event)")
-        } else {
-            print("\(Self.prefix) \(timestamp) \(level.rawValue) \(scope).\(event) \(suffix)")
+            return "\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event)"
         }
+        return "\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event) \(suffix)"
     }
 
     private static func quoted(_ value: String) -> String {
@@ -134,5 +157,49 @@ struct AppConsoleLogger {
             return key.stringValue
         }
         return rendered.joined(separator: ".")
+    }
+
+    private static func appendRuntimeLogLine(_ line: String) {
+#if targetEnvironment(macCatalyst)
+        guard let logFileURL = runtimeLogFileURL() else { return }
+        fileLogLock.lock()
+        defer { fileLogLock.unlock() }
+
+        do {
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(
+                at: logFileURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            let data = Data((line + "\n").utf8)
+            if fileManager.fileExists(atPath: logFileURL.path) {
+                let handle = try FileHandle(forWritingTo: logFileURL)
+                try handle.seekToEnd()
+                try handle.write(contentsOf: data)
+                try handle.close()
+            } else {
+                try data.write(to: logFileURL, options: .atomic)
+            }
+        } catch {
+            // Logging must never change app behavior.
+        }
+#endif
+    }
+
+    static func runtimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
+#if targetEnvironment(macCatalyst)
+        if let override = ProcessInfo.processInfo.environment["YOUTUBEFEEDER_RUNTIME_LOG_FILE"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !override.isEmpty
+        {
+            return URL(fileURLWithPath: override)
+        }
+
+        guard let markerRange = sourceFilePath.range(of: projectRootMarker) else { return nil }
+        let projectRoot = String(sourceFilePath[..<markerRange.lowerBound])
+        return URL(fileURLWithPath: projectRoot).appendingPathComponent(runtimeLogRelativePath)
+#else
+        return nil
+#endif
     }
 }

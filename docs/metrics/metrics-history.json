@@ -1,6 +1,24 @@
 {
   "days": [
     {
+      "date": "2026/04/18",
+      "items": [
+        {
+          "kind": "metrics_entry",
+          "label": "Cloudflare sync logging",
+          "change_kind": "app",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 7.515737056732178,
+          "startup_test_duration_seconds": 15.019383907318115,
+          "total_duration_seconds": 22.535120964050293,
+          "startup_metrics": {}
+        }
+      ]
+    },
+    {
       "date": "2026/04/12",
       "items": [
         {
