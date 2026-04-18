@@ -1,4 +1,4 @@
-/**
+/****
  * Welcome to Cloudflare Workers! This is your first worker.
  *
  * - Run `npm run dev` in your terminal to start a development server
@@ -28,6 +28,14 @@ export default {
 
 			await env.KV.put("channel-registry", body);
 			return new Response(JSON.stringify({ ok: true }), {
+				status: 200,
+				headers: { "content-type": "application/json; charset=utf-8" },
+			});
+		}
+
+		if (request.method === "GET" && url.pathname === "/channel-registry") {
+			const val = await env.KV.get("channel-registry");
+			return new Response(val ?? "null", {
 				status: 200,
 				headers: { "content-type": "application/json; charset=utf-8" },
 			});
