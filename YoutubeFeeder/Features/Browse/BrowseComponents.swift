@@ -269,7 +269,7 @@ struct VideoTile: View {
 
         let primaryAction: TileMenuAction?
         if AppInteractionPlatform.current.usesPrimaryClickForMenus, let tapAction {
-            primaryAction = TileMenuAction(title: "チャンネル動画を開く", role: nil) {
+            primaryAction = TileMenuAction(title: "チャンネルを開く", role: nil) {
                 tapAction()
             }
         } else {

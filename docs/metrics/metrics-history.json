@@ -5,6 +5,19 @@
       "items": [
         {
           "kind": "metrics_entry",
+          "label": "Mac video tile context menu behavior",
+          "change_kind": "ui",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 3.7836711406707764,
+          "startup_test_duration_seconds": 5.174249172210693,
+          "total_duration_seconds": 8.95792031288147,
+          "startup_metrics": {}
+        },
+        {
+          "kind": "metrics_entry",
           "label": "channel registry diagnostics logging",
           "change_kind": "logging",
           "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",

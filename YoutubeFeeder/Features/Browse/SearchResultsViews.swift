@@ -44,7 +44,11 @@ struct KeywordSearchResultsView: View {
                             },
                             openVideoAction: nil,
                             removeChannel: nil,
-                            index: offset + 1
+                            index: offset + 1,
+                            desktopPrimaryClickAction: {
+                                openVideo(video)
+                            },
+                            desktopMenuTriggerStyle: .contextMenu
                         )
                         .listInsertionTransition()
                     }
