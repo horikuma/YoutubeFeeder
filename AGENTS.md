@@ -59,6 +59,10 @@
 
 - Issue の詳細化を行う時は、`skills/issue-detailing.md` を開かなければならない。
 
+### Issue ブランチ切り替え
+
+- Issue ブランチ切り替えを行う時は、`skills/issue-branch-switching.md` を開かなければならない。
+
 ### Issue実施
 
 - Issueを実施する時は、`skills/issue-execution.md` を開かなければならない。
