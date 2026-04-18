@@ -229,8 +229,17 @@ def main() -> int:
     remote_body = issue.body
     if remote_body is None:
         raise SystemExit("Issue body is empty")
-    if body != remote_body:
-        raise SystemExit("Issue body file does not match current remote issue body")
+
+    def normalize(text: str) -> str:
+        # Normalize line endings, strip trailing spaces, and ignore trailing newlines
+        lines = [line.rstrip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+        # Remove trailing empty lines
+        while lines and lines[-1] == "":
+            lines.pop()
+        return "\n".join(lines)
+
+    if normalize(body) != normalize(remote_body):
+        raise SystemExit("Issue body file does not match current remote issue body (normalized)")
 
     if args.get:
         next_todo = find_next_todo(body.splitlines(), section_name=args.todo_section)
