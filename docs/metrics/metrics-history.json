@@ -5,6 +5,19 @@
       "items": [
         {
           "kind": "metrics_entry",
+          "label": "platform-specific hint test fix",
+          "change_kind": "test",
+          "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
+          "manual_retries": 0,
+          "auto_retries": 0,
+          "extra_lines": [],
+          "build_duration_seconds": 2.0990679264068604,
+          "startup_test_duration_seconds": 3.159705877304077,
+          "total_duration_seconds": 5.2587738037109375,
+          "startup_metrics": {}
+        },
+        {
+          "kind": "metrics_entry",
           "label": "Mac test failure follow-up",
           "change_kind": "tests",
           "destination_display": "platform=iOS Simulator,name=iPhone 17,OS=26.4",
