@@ -677,7 +677,7 @@ enum ChannelVideosAutoRefreshPolicy {
 }
 
 enum ChannelRefreshSchedulePolicy {
-    static let recentUpdateWindow: TimeInterval = 7 * 24 * 60 * 60
+    static let recentUpdateWindow: TimeInterval = 10 * 24 * 60 * 60
     static let recentRefreshInterval: TimeInterval = 10 * 60
     static let staleRefreshInterval: TimeInterval = 60 * 60
 
