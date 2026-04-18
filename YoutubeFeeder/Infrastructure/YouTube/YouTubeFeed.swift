@@ -252,6 +252,16 @@ struct YouTubeFeedService {
             return try await fetchLatestFeedHandler(channelID)
         }
 
+        let startedAt = Date()
+        AppConsoleLogger.feedRefresh.notice(
+            "feed_request_started",
+            metadata: [
+                "channelID": channelID,
+                "method": "GET",
+                "validation_mode": "unconditional",
+                "playlist_id": Self.uploadsPlaylistID(for: channelID)
+            ]
+        )
         let request = URLRequest(
             url: Self.feedURL(for: channelID),
             cachePolicy: .reloadIgnoringLocalCacheData,
@@ -259,6 +269,15 @@ struct YouTubeFeedService {
         )
         let (data, response) = try await URLSession.shared.data(for: request)
         let httpResponse = response as? HTTPURLResponse
+        AppConsoleLogger.feedRefresh.notice(
+            "feed_response_received",
+            metadata: YouTubeFeedResponseDiagnostics.responseMetadata(
+                channelID: channelID,
+                httpResponse: httpResponse,
+                data: data,
+                elapsedMilliseconds: AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+            )
+        )
         let metadata = FeedFetchMetadata(
             checkedAt: .now,
             validationToken: FeedValidationToken(
@@ -278,12 +297,41 @@ struct YouTubeFeedService {
                     return false
                 }
             }
+        AppConsoleLogger.feedRefresh.notice(
+            "feed_parse_complete",
+            metadata: YouTubeFeedResponseDiagnostics.parseMetadata(
+                channelID: channelID,
+                httpResponse: httpResponse,
+                data: data,
+                parsedVideos: parsedVideos
+            )
+        )
+        if parsedVideos.isEmpty {
+            AppConsoleLogger.feedRefresh.notice(
+                "feed_zero_videos_diagnosed",
+                metadata: YouTubeFeedResponseDiagnostics.parseMetadata(
+                    channelID: channelID,
+                    httpResponse: httpResponse,
+                    data: data,
+                    parsedVideos: parsedVideos
+                )
+            )
+        }
 
         let videos = if let details = try? await fetchVideoDetails(for: parsedVideos.map(\.id)) {
             applyVideoDetails(details, to: parsedVideos)
         } else {
             parsedVideos
         }
+        AppConsoleLogger.feedRefresh.notice(
+            "feed_fetch_complete",
+            metadata: [
+                "channelID": channelID,
+                "parsed_videos": String(parsedVideos.count),
+                "returned_videos": String(videos.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+            ]
+        )
 
         return (videos, metadata)
     }

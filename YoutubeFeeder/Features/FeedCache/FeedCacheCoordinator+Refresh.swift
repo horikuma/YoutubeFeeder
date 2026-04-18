@@ -182,13 +182,14 @@ extension FeedCacheCoordinator {
             ]
         )
         beginManualRefreshProgress(totalChannels: channelIDs.count)
-        let lastError = await runManualRefreshChannels(
+        let cycleResult = await runManualRefreshChannels(
             channelIDs,
             states: states,
             forceNetworkFetch: forceNetworkFetch
         )
         finishManualRefreshProgress()
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
+        let lastError = cycleResult.lastError
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
         let afterVideoCount = await readService.loadSnapshot().videos.count
         AppConsoleLogger.appLifecycle.notice(
@@ -198,6 +199,13 @@ extension FeedCacheCoordinator {
                 "force_network_fetch": forceNetworkFetch ? "true" : "false",
                 "refresh_source": refreshSource,
                 "network_fetch_attempted_channels": forceNetworkFetch ? String(channelIDs.count) : "conditional",
+                "successful_channels": String(cycleResult.successfulChannels),
+                "failed_channels": String(cycleResult.failedChannels),
+                "fetch_count_observed_channels": String(cycleResult.observedFetchCountChannels),
+                "zero_fetched_channels": String(cycleResult.zeroFetchedChannels),
+                "nonzero_fetched_channels": String(cycleResult.nonZeroFetchedChannels),
+                "fetched_videos_total": String(cycleResult.fetchedVideosTotal),
+                "uncached_videos_total": String(cycleResult.uncachedVideosTotal),
                 "cached_videos_before": String(beforeVideoCount),
                 "cached_videos_after": String(afterVideoCount),
                 "cached_videos_delta": String(afterVideoCount - beforeVideoCount),
@@ -305,11 +313,11 @@ extension FeedCacheCoordinator {
         _ sortedChannels: [String],
         states: [String: CachedChannelState],
         forceNetworkFetch: Bool = false
-    ) async -> String? {
-        var lastError: String?
+    ) async -> FeedRefreshCycleResult {
+        var cycleResult = FeedRefreshCycleResult()
         var nextIndex = 0
 
-        await withTaskGroup(of: String?.self) { group in
+        await withTaskGroup(of: FeedChannelProcessResult.self) { group in
             let initialCount = min(Self.maximumConcurrentChannelRefreshes, sortedChannels.count)
             updateManualRefreshActiveCalls(completed: 0, totalChannels: sortedChannels.count, activeCalls: initialCount)
 
@@ -326,9 +334,7 @@ extension FeedCacheCoordinator {
             }
 
             while let result = await group.next() {
-                if let result {
-                    lastError = result
-                }
+                cycleResult.record(result)
 
                 let completed = refreshProgress.checkStage.completed + 1
                 let remaining = sortedChannels.count - completed
@@ -352,7 +358,7 @@ extension FeedCacheCoordinator {
             }
         }
 
-        return lastError
+        return cycleResult
     }
 
     func updateManualRefreshActiveCalls(completed: Int, totalChannels: Int, activeCalls: Int) {

@@ -2,6 +2,7 @@ import Foundation
 
 struct FeedChannelForcedRefreshResult {
     let uncachedVideos: [YouTubeVideo]
+    let fetchedVideoCount: Int
     let errorMessage: String?
 }
 
@@ -114,7 +115,11 @@ struct FeedChannelSyncService {
                     metadata: result.metadata
                 )
             }
-            return FeedChannelForcedRefreshResult(uncachedVideos: uncachedVideos, errorMessage: nil)
+            return FeedChannelForcedRefreshResult(
+                uncachedVideos: uncachedVideos,
+                fetchedVideoCount: result.videos.count,
+                errorMessage: nil
+            )
         } catch {
             let message = error.localizedDescription
             AppConsoleLogger.feedRefresh.error(
@@ -127,7 +132,7 @@ struct FeedChannelSyncService {
                 ]
             )
             await writer.recordFailure(channelID: channelID, checkedAt: .now, error: message)
-            return FeedChannelForcedRefreshResult(uncachedVideos: [], errorMessage: message)
+            return FeedChannelForcedRefreshResult(uncachedVideos: [], fetchedVideoCount: 0, errorMessage: message)
         }
     }
 

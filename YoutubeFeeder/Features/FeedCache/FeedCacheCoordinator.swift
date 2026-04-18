@@ -282,16 +282,24 @@ final class FeedCacheCoordinator: ObservableObject {
         _ channelID: String,
         states: [String: CachedChannelState],
         forceNetworkFetch: Bool = false
-    ) async -> String? {
+    ) async -> FeedChannelProcessResult {
         if forceNetworkFetch {
             let result = await channelSyncService.performForcedRefresh(
                 channelID: channelID,
                 state: states[channelID],
                 cacheThumbnails: true
             )
-            return result.errorMessage
+            return FeedChannelProcessResult(
+                errorMessage: result.errorMessage,
+                fetchedVideoCount: result.fetchedVideoCount,
+                uncachedVideoCount: result.uncachedVideos.count
+            )
         }
-        return await channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID])
+        return FeedChannelProcessResult(
+            errorMessage: await channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID]),
+            fetchedVideoCount: nil,
+            uncachedVideoCount: 0
+        )
     }
 
     func prioritizedChannelIDs(states: [String: CachedChannelState]) -> [String] {
