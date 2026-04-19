@@ -10,15 +10,15 @@ struct FeedCacheDependencies {
     var requestScheduler: RequestScheduler? = nil
 
     nonisolated static func live() -> FeedCacheDependencies {
-        var dependencies = FeedCacheDependencies(
+        let requestScheduler = RequestScheduler()
+        return FeedCacheDependencies(
             store: FeedCacheStore(),
-            feedService: YouTubeFeedService(),
+            feedService: YouTubeFeedService(requestScheduler: requestScheduler),
             channelResolver: YouTubeChannelResolver(),
             searchService: YouTubeSearchService(),
             remoteSearchCacheStore: RemoteVideoSearchCacheStore(),
-            channelRegistrySyncService: ChannelRegistryCloudflareSyncService()
+            channelRegistrySyncService: ChannelRegistryCloudflareSyncService(),
+            requestScheduler: requestScheduler
         )
-        dependencies.requestScheduler = RequestScheduler()
-        return dependencies
     }
 }
