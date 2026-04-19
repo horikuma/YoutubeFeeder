@@ -59,10 +59,18 @@
 
 - Issue の詳細化を行う時は、`skills/issue-detailing.md` を開かなければならない。
 
+### Issue ブランチ切り替え
+
+- Issue ブランチ切り替えを行う時は、`skills/issue-branch-switching.md` を開かなければならない。
+
 ### Issue実施
 
 - Issueを実施する時は、`skills/issue-execution.md` を開かなければならない。
-- Issueを実施する指示を受けた時は、`skills/issue-execution.md` が規定する `scripts/command-runner.py 'issue-todo' --get` の `next` で示された `IssueToDo` を 1 件だけ処理する手順を 1 回で終わらせてはならず、blocker がない限り、`next` が `null` になるまで同じ手順を直列に繰り返して最後まで完了させなければならない。
+- `IssueToDo` のチェック更新は、`skills/issue-execution.md` が規定する `issue-todo --check` の呼び出し条件に従い、必要な場合のみ `--allow-local-fallback` を付けて実行しなければならない。条件を満たさない状態でローカル更新を許可してはならない。
+- Issueを実施する指示を受けた時は、`skills/issue-execution.md` が規定する `scripts/command-runner.py 'issue-todo' --get` の `next` で示された `IssueToDo` を 1 件だけ処理する手順を、1 回で終わらせてはならない。
+- 初回の `IssueToDo` 実施は、GitHub との同期が成功している状態でのみ開始しなければならず、同期に失敗した状態でローカル Markdown を起点に処理を開始してはならない。
+- blocker がない限り、`next` が `null` になるまで同じ手順を直列に繰り返して最後まで完了させなければならない。
+- ただし `skills/issue-execution.md` が規定する fallback 条件に該当し、`issue-todo --check` の `sync.github_updated` が `false` で停止条件に該当する場合は、この限りではなく、その時点で以後の `IssueToDo` への進行を中断しなければならない。
 - Issueを実施する指示を受けた時に、いずれかの `IssueToDo` が完了条件を満たせない blocker に当たった場合は、その時点で以後の `IssueToDo` への進行を中断し、blocker の内容をユーザーへ報告しなければならない。
 
 ### 先行テストで期待固定

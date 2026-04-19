@@ -53,6 +53,7 @@ def parse_args() -> argparse.Namespace:
         default=str(Path(__file__).resolve().parents[2] / "llm-cache" / "issue-defaults.json"),
     )
     parser.add_argument("--config")
+    parser.add_argument("--allow-local-fallback", action="store_true")
     args = parser.parse_args()
 
     if not args.repo:
@@ -179,6 +180,8 @@ def dump_payload(*, issue_number: int, issue, mode: str, change: dict | None = N
         payload["next"] = next_todo
     if mode == "check":
         payload["change"] = change
+        if hasattr(issue, "sync_status"):
+            payload["sync"] = issue.sync_status
     json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0
@@ -210,11 +213,25 @@ def update_issue_body_via_body_file(args: argparse.Namespace) -> object:
         command.extend(["--config", args.config])
 
     process = subprocess.run(command, capture_output=True, text=True, check=False)
+
     if process.returncode != 0:
         stderr = process.stderr.strip() or process.stdout.strip()
-        raise SystemExit(stderr or "Failed to update issue body from body file")
+        return {
+            "success": False,
+            "error": stderr or "Failed to update issue body from body file",
+            "payload": None,
+        }
 
-    return json.loads(process.stdout)
+    try:
+        payload = json.loads(process.stdout)
+    except Exception:
+        payload = None
+
+    return {
+        "success": True,
+        "error": None,
+        "payload": payload,
+    }
 
 
 def main() -> int:
@@ -229,8 +246,17 @@ def main() -> int:
     remote_body = issue.body
     if remote_body is None:
         raise SystemExit("Issue body is empty")
-    if body != remote_body:
-        raise SystemExit("Issue body file does not match current remote issue body")
+
+    def normalize(text: str) -> str:
+        # Normalize line endings, strip trailing spaces, and ignore trailing newlines
+        lines = [line.rstrip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+        # Remove trailing empty lines
+        while lines and lines[-1] == "":
+            lines.pop()
+        return "\n".join(lines)
+
+    if normalize(body) != normalize(remote_body):
+        raise SystemExit("Issue body file does not match current remote issue body (normalized)")
 
     if args.get:
         next_todo = find_next_todo(body.splitlines(), section_name=args.todo_section)
@@ -246,12 +272,29 @@ def main() -> int:
     updated_body = "\n".join(updated_lines)
     if trailing_newline:
         updated_body += "\n"
-    write_body_file(body_path, updated_body)
+
+    sync_status = {
+        "github_updated": True,
+        "error": None,
+    }
 
     if updated_body != body:
-        issue_payload = update_issue_body_via_body_file(args)
-        issue = type("IssuePayload", (), issue_payload)
+        # First attempt GitHub update using a temporary write
+        write_body_file(body_path, updated_body)
+        result = update_issue_body_via_body_file(args)
 
+        if result["success"]:
+            if result["payload"] is not None:
+                issue = type("IssuePayload", (), result["payload"])
+        else:
+            sync_status["github_updated"] = False
+            sync_status["error"] = result["error"]
+
+            if not args.allow_local_fallback:
+                # Revert local file when fallback is not allowed
+                write_body_file(body_path, body)
+
+    setattr(issue, "sync_status", sync_status)
     return dump_payload(issue_number=args.issue_number, issue=issue, mode="check", change=change)
 
 

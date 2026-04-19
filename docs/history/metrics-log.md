@@ -1,3 +1,196 @@
+## 2026/04/18
+- UI test isolation verification: xcodebuild -scheme YoutubeFeeder -destination platform=macOS -derivedDataPath /tmp/YoutubeFeederDerivedData test -only-testing:YoutubeFeederUITests/HomeScreenUITests succeeded; 2 tests passed.
+### All videos tile click opens video
+- 種別: ui
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `4.157s`
+- startup test-without-building: `5.092s`
+- 検証合計時間: `9.249s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+
+### Closable channel detail screen
+- 種別: ui
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `3.424s`
+- startup test-without-building: `5.227s`
+- 検証合計時間: `8.651s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+
+### Mac video tile context menu behavior
+- 種別: ui
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `3.784s`
+- startup test-without-building: `5.174s`
+- 検証合計時間: `8.958s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+
+### channel registry diagnostics logging
+- 種別: logging
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `5.228s`
+- startup test-without-building: `5.168s`
+- 検証合計時間: `10.396s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+
+### platform-specific hint test fix
+- 種別: test
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `2.099s`
+- startup test-without-building: `3.160s`
+- 検証合計時間: `5.259s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+
+### Mac test failure follow-up
+- 種別: tests
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `12.940s`
+- startup test-without-building: `19.953s`
+- 検証合計時間: `32.893s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+
+### Cloudflare sync logging
+- 種別: app
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `7.516s`
+- startup test-without-building: `15.019s`
+- 検証合計時間: `22.535s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+
+## 2026/04/12
+### Mac channel list right click action
+- 種別: ui
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `4.417s`
+- startup test-without-building: `19.601s`
+- 検証合計時間: `24.018s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `620ms`
+- スプラッシュ表示からホーム表示まで: `394ms`
+- 起動からホーム表示まで: `1014ms`
+- 起動から bootstrap 読込完了まで: `718ms`
+- 起動からホーム遷移開始まで: `1010ms`
+
+### Mac channel list refresh command
+- 種別: ui
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `5.081s`
+- startup test-without-building: `37.851s`
+- 検証合計時間: `42.932s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `569ms`
+- スプラッシュ表示からホーム表示まで: `351ms`
+- 起動からホーム表示まで: `920ms`
+- 起動から bootstrap 読込完了まで: `657ms`
+- 起動からホーム遷移開始まで: `916ms`
+
+## 2026/04/10
+### Issue95 verification
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `4.637s`
+- startup test-without-building: `30.937s`
+- 検証合計時間: `35.574s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `606ms`
+- スプラッシュ表示からホーム表示まで: `347ms`
+- 起動からホーム表示まで: `953ms`
+- 起動から bootstrap 読込完了まで: `689ms`
+- 起動からホーム遷移開始まで: `949ms`
+
+### Issue103 temp file naming rule update
+- 種別: docs
+- 実行環境: `skip`
+- 計測: `skip`
+- 理由: ドキュメントのみの変更のため
+
+## 2026/04/08
+### Issue85 verification
+- 種別: design
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `12.591s`
+- startup test-without-building: `18.335s`
+- 検証合計時間: `30.926s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `520ms`
+- スプラッシュ表示からホーム表示まで: `332ms`
+- 起動からホーム表示まで: `852ms`
+- 起動から bootstrap 読込完了まで: `607ms`
+- 起動からホーム遷移開始まで: `849ms`
+
+## 2026/04/07
+### Issue81 todo3 focused verification retry
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `2.748s`
+- startup test-without-building: `8.253s`
+- 検証合計時間: `11.001s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `471ms`
+- スプラッシュ表示からホーム表示まで: `163ms`
+- 起動からホーム表示まで: `634ms`
+- 起動から bootstrap 読込完了まで: `549ms`
+- 起動からホーム遷移開始まで: `631ms`
+
+### Issue81 todo3 focused verification
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `2.708s`
+- startup test-without-building: `3.166s`
+- 検証合計時間: `5.873s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+
+### Issue81 todo2 focused verification
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `4.202s`
+- startup test-without-building: `30.673s`
+- 検証合計時間: `34.874s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `531ms`
+- スプラッシュ表示からホーム表示まで: `326ms`
+- 起動からホーム表示まで: `857ms`
+- 起動から bootstrap 読込完了まで: `634ms`
+- 起動からホーム遷移開始まで: `853ms`
+
+- session-start focused verification: skills/session-start.md updated for git fetch --prune and git branch -d ordering
+- session-start focused verification: skills/session-start.md updated for git fetch --prune and git branch -d ordering
+- session-start focused verification: skills/session-start.md updated for git fetch --prune and git branch -d ordering
+- issue-todo-check focused verification: python3 -m py_compile scripts/github/issue-todo-check.py && issue-todo-check issue#80 todo 1/2
+### Issue69 issue execution skill conduit
+- 種別: docs
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- 計測: `skip`
+- 理由: ドキュメントのみの変更のため
+
+### Issue75 verification
+- 種別: source
+- 実行環境: `platform=iOS Simulator,name=iPhone 17,OS=26.4`
+- build-for-testing: `11.472s`
+- test-without-building: `143.382s`
+- 検証合計時間: `154.854s`
+- 手修正後の再試行回数: `0`
+- 同一コマンド内の自動再試行回数: `0`
+- 起動からスプラッシュ表示まで: `464ms`
+- スプラッシュ表示からホーム表示まで: `166ms`
+- 起動からホーム表示まで: `630ms`
+- 起動から bootstrap 読込完了まで: `546ms`
+- 起動からホーム遷移開始まで: `627ms`
+- Issue75 focused verification blocked: iOS 26.4 runtime unavailable and Mac Catalyst test target requires macOS 26.4 while host is macOS 26.3.1
+
 ## 2026/04/17
 
 ## 2026/04/16
