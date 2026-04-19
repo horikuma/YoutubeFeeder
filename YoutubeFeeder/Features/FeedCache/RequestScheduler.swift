@@ -8,6 +8,33 @@ actor RequestScheduler {
     private var runningRequestCount: Int = 0
     private let minIntervalMs: Int = 300
     private var lastRequestCompletedAt: Date?
+    private var workerTask: Task<Void, Never>?
+
+    func enqueue<Value>(
+        _ operation: @escaping @Sendable () async throws -> Value
+    ) async throws -> Value {
+        try await withCheckedThrowingContinuation { continuation in
+            requestQueue.append {
+                do {
+                    let value = try await operation()
+                    continuation.resume(returning: value)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+            startWorkerLoopIfNeeded()
+        }
+    }
+
+    private func startWorkerLoopIfNeeded() {
+        guard workerTask == nil else {
+            return
+        }
+
+        workerTask = Task {
+            await self.runWorkerLoop()
+        }
+    }
 
     private func waitForMinimumIntervalIfNeeded() async {
         guard let lastRequestCompletedAt else {
