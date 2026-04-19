@@ -1,3 +1,4 @@
+// Viewport は、現在の表示対象の行範囲と整合情報を表す。
 export interface ViewportContext {
 }
 

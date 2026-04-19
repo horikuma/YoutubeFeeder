@@ -1,3 +1,4 @@
+// UpdateController は、Viewport の更新順序を制御して下流へ渡す。
 import { Viewport } from './viewport';
 
 export interface UpdateController {

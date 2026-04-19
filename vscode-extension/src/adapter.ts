@@ -1,3 +1,4 @@
+// Adapter は、固定テキストから要求範囲の行を取り出す。
 const FIXED_LINES: string[] = Array.from({ length: 1000 }, (_, index) => `line ${index + 1}`);
 
 export interface Adapter {

@@ -1,3 +1,4 @@
+// Pipeline は、Viewport から Apply までを 1 回つなぐ。
 import * as vscode from 'vscode';
 
 import { apply } from './apply';
