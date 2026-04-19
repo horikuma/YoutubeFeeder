@@ -3,25 +3,43 @@ import Foundation
 actor RequestScheduler {
     typealias RequestOperation = @Sendable () async throws -> Void
 
-    private var requestQueue: [RequestOperation] = []
+    private struct QueuedRequest {
+        let id: Int
+        let operation: RequestOperation
+    }
+
+    private var requestQueue: [QueuedRequest] = []
     private let maxConcurrent: Int = 3
     private var runningRequestCount: Int = 0
     private let minIntervalMs: Int = 300
     private var lastRequestCompletedAt: Date?
     private var workerTask: Task<Void, Never>?
+    private var nextRequestID: Int = 1
 
     func enqueue<Value>(
         _ operation: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
-        try await withCheckedThrowingContinuation { continuation in
-            requestQueue.append {
+        let requestID = nextRequestID
+        nextRequestID += 1
+
+        AppConsoleLogger.feedRefresh.notice(
+            "request_scheduler_enqueue",
+            metadata: [
+                "request_id": String(requestID),
+                "queued": String(requestQueue.count + 1),
+                "running": String(runningRequestCount)
+            ]
+        )
+
+        return try await withCheckedThrowingContinuation { continuation in
+            requestQueue.append(QueuedRequest(id: requestID) {
                 do {
                     let value = try await operation()
                     continuation.resume(returning: value)
                 } catch {
                     continuation.resume(throwing: error)
                 }
-            }
+            })
             startWorkerLoopIfNeeded()
         }
     }
@@ -71,15 +89,33 @@ actor RequestScheduler {
             }
 
             await waitForMinimumIntervalIfNeeded()
-            let operation = requestQueue.removeFirst()
+            let request = requestQueue.removeFirst()
             runningRequestCount += 1
+
+            AppConsoleLogger.feedRefresh.notice(
+                "request_scheduler_start",
+                metadata: [
+                    "request_id": String(request.id),
+                    "queued": String(requestQueue.count),
+                    "running": String(runningRequestCount)
+                ]
+            )
+
             defer {
                 runningRequestCount -= 1
                 lastRequestCompletedAt = .now
+                AppConsoleLogger.feedRefresh.notice(
+                    "request_scheduler_finish",
+                    metadata: [
+                        "request_id": String(request.id),
+                        "queued": String(requestQueue.count),
+                        "running": String(runningRequestCount)
+                    ]
+                )
             }
 
             do {
-                try await operation()
+                try await request.operation()
             } catch {
                 continue
             }
