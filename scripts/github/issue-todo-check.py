@@ -255,17 +255,23 @@ def main() -> int:
             lines.pop()
         return "\n".join(lines)
 
+    use_local = False
     if normalize(body) != normalize(remote_body):
-        raise SystemExit("Issue body file does not match current remote issue body (normalized)")
+        if args.allow_local_fallback:
+            use_local = True
+        else:
+            raise SystemExit("Issue body file does not match current remote issue body (normalized)")
 
     if args.get:
-        next_todo = find_next_todo(body.splitlines(), section_name=args.todo_section)
+        source_text = body if use_local else remote_body
+        next_todo = find_next_todo(source_text.splitlines(), section_name=args.todo_section)
         return dump_payload(issue_number=args.issue_number, issue=issue, mode="get", next_todo=next_todo)
 
     trailing_newline = body.endswith("\n")
     assert args.todo_number is not None
+    source_text = body if use_local else body
     updated_lines, change = mark_todo_completed(
-        body.splitlines(),
+        source_text.splitlines(),
         section_name=args.todo_section,
         todo_number=args.todo_number,
     )

@@ -70,7 +70,7 @@
 - Issueを実施する指示を受けた時は、`skills/issue-execution.md` が規定する `scripts/command-runner.py 'issue-todo' --get` の `next` で示された `IssueToDo` を 1 件だけ処理する手順を、1 回で終わらせてはならない。
 - 初回の `IssueToDo` 実施は、GitHub との同期が成功している状態でのみ開始しなければならず、同期に失敗した状態でローカル Markdown を起点に処理を開始してはならない。
 - blocker がない限り、`next` が `null` になるまで同じ手順を直列に繰り返して最後まで完了させなければならない。
-- ただし `skills/issue-execution.md` が規定する fallback 条件に該当し、`issue-todo --check` の `sync.github_updated` が `false` で停止条件に該当する場合は、この限りではなく、その時点で以後の `IssueToDo` への進行を中断しなければならない。
+- ただし skills/issue-execution.md が規定する fallback 条件に該当し、issue-todo --check の sync.github_updated が false の場合は、ローカル Markdown を正として以後の IssueToDo への進行を継続しなければならない。この場合、GitHub 未同期状態であることを前提として扱わなければならない。
 - Issueを実施する指示を受けた時に、いずれかの `IssueToDo` が完了条件を満たせない blocker に当たった場合は、その時点で以後の `IssueToDo` への進行を中断し、blocker の内容をユーザーへ報告しなければならない。
 
 ### 先行テストで期待固定
