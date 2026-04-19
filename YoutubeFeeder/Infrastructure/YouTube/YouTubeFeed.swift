@@ -207,13 +207,26 @@ struct YouTubeChannelResolver {
 struct YouTubeFeedService {
     private let checkForUpdatesHandler: (@Sendable (String, FeedValidationToken?) async throws -> FeedCheckResult)?
     private let fetchLatestFeedHandler: (@Sendable (String) async throws -> (videos: [YouTubeVideo], metadata: FeedFetchMetadata))?
+    private let requestScheduler: RequestScheduler?
 
     init(
         checkForUpdates: (@Sendable (String, FeedValidationToken?) async throws -> FeedCheckResult)? = nil,
-        fetchLatestFeed: (@Sendable (String) async throws -> (videos: [YouTubeVideo], metadata: FeedFetchMetadata))? = nil
+        fetchLatestFeed: (@Sendable (String) async throws -> (videos: [YouTubeVideo], metadata: FeedFetchMetadata))? = nil,
+        requestScheduler: RequestScheduler? = nil
     ) {
         self.checkForUpdatesHandler = checkForUpdates
         self.fetchLatestFeedHandler = fetchLatestFeed
+        self.requestScheduler = requestScheduler
+    }
+
+    private func performScheduledData(for request: URLRequest) async throws -> (Data, URLResponse) {
+        if let requestScheduler {
+            return try await requestScheduler.enqueue {
+                try await URLSession.shared.data(for: request)
+            }
+        }
+
+        return try await URLSession.shared.data(for: request)
     }
 
     func checkForUpdates(for channelID: String, validationToken: FeedValidationToken?) async throws -> FeedCheckResult {
@@ -230,7 +243,7 @@ struct YouTubeFeedService {
         request.setValue(validationToken?.etag, forHTTPHeaderField: "If-None-Match")
         request.setValue(validationToken?.lastModified, forHTTPHeaderField: "If-Modified-Since")
 
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await performScheduledData(for: request)
         let httpResponse = response as? HTTPURLResponse
         let metadata = FeedFetchMetadata(
             checkedAt: .now,
@@ -267,7 +280,7 @@ struct YouTubeFeedService {
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 30
         )
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await performScheduledData(for: request)
         let httpResponse = response as? HTTPURLResponse
         AppConsoleLogger.feedRefresh.notice(
             "feed_response_received",
@@ -341,7 +354,7 @@ struct YouTubeFeedService {
         request.setValue(validationToken?.etag, forHTTPHeaderField: "If-None-Match")
         request.setValue(validationToken?.lastModified, forHTTPHeaderField: "If-Modified-Since")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await performScheduledData(for: request)
         let httpResponse = response as? HTTPURLResponse
         let metadata = FeedFetchMetadata(
             checkedAt: .now,
@@ -399,7 +412,7 @@ struct YouTubeFeedService {
             guard let url = components?.url else { continue }
             var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
             request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await performScheduledData(for: request)
             let decoder = JSONDecoder()
             let response = try decoder.decode(FeedVideoListResponse.self, from: data)
             for item in response.items {

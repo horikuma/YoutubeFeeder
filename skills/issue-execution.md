@@ -54,7 +54,7 @@
     - `issue-todo --check` で GitHub 同期失敗時のローカル完了を許可する場合だけ、`--allow-local-fallback` を追加して実行してよい。`--allow-local-fallback` を付けてよいのは、着手時に GitHub 同期成功または上記 fallback 条件成立を確認済みであり、かつ今回着手した `IssueToDo` の前に少なくとも 1 件のチェック済み ToDo が存在する場合に限る。
     - `--allow-local-fallback` を付けない通常呼び出しで `sync.github_updated` が `false` の場合は、今回の `IssueToDo` は未更新のまま blocker として停止しなければならない。
     - `--allow-local-fallback` を付けた呼び出しで `sync.github_updated` が `true` の場合は、通常の `IssueToDo` 更新完了として扱う。
-    - `--allow-local-fallback` を付けた呼び出しで `sync.github_updated` が `false` の場合は、ローカル Markdown だけが更新され GitHub は未反映の状態として扱う。この場合は今回の変更内容と未同期状態を報告して停止しなければならず、そのローカル更新を前提に次の `IssueToDo` 取得へ進んではならない。
+    - `--allow-local-fallback` を付けた呼び出しで `sync.github_updated` が `false` の場合は、ローカル Markdown だけが更新され GitHub は未反映の状態として扱う。この場合は今回の変更内容と未同期状態を報告しなければならない。以降の `IssueToDo` 取得はローカル Markdown を正として継続してよいが、GitHub 未同期状態であることを常に前提として扱わなければならない。
     - `issue-todo --check` は、GitHub 反映に失敗しても stdout に JSON を出力し、終了コードだけが非 0 になる場合がある。この場合は stderr の有無だけで失敗と決め打ちせず、stdout JSON の `sync.github_updated` を確認しなければならない。
 
 ### コミット

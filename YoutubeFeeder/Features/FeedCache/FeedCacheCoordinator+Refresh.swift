@@ -315,47 +315,23 @@ extension FeedCacheCoordinator {
         forceNetworkFetch: Bool = false
     ) async -> FeedRefreshCycleResult {
         var cycleResult = FeedRefreshCycleResult()
-        var nextIndex = 0
+        updateManualRefreshActiveCalls(completed: 0, totalChannels: sortedChannels.count, activeCalls: sortedChannels.isEmpty ? 0 : 1)
 
-        await withTaskGroup(of: FeedChannelProcessResult.self) { group in
-            let initialCount = min(Self.maximumConcurrentChannelRefreshes, sortedChannels.count)
-            updateManualRefreshActiveCalls(completed: 0, totalChannels: sortedChannels.count, activeCalls: initialCount)
+        for (index, channelID) in sortedChannels.enumerated() {
+            let result = await self.processChannel(
+                channelID,
+                states: states,
+                forceNetworkFetch: forceNetworkFetch
+            )
+            cycleResult.record(result)
 
-            for _ in 0 ..< initialCount {
-                let channelID = sortedChannels[nextIndex]
-                nextIndex += 1
-                group.addTask {
-                    await self.processChannel(
-                        channelID,
-                        states: states,
-                        forceNetworkFetch: forceNetworkFetch
-                    )
-                }
-            }
-
-            while let result = await group.next() {
-                cycleResult.record(result)
-
-                let completed = refreshProgress.checkStage.completed + 1
-                let remaining = sortedChannels.count - completed
-                updateManualRefreshActiveCalls(
-                    completed: completed,
-                    totalChannels: sortedChannels.count,
-                    activeCalls: min(Self.maximumConcurrentChannelRefreshes, remaining)
-                )
-
-                if nextIndex < sortedChannels.count {
-                    let channelID = sortedChannels[nextIndex]
-                    nextIndex += 1
-                    group.addTask {
-                        await self.processChannel(
-                            channelID,
-                            states: states,
-                            forceNetworkFetch: forceNetworkFetch
-                        )
-                    }
-                }
-            }
+            let completed = index + 1
+            let remaining = sortedChannels.count - completed
+            updateManualRefreshActiveCalls(
+                completed: completed,
+                totalChannels: sortedChannels.count,
+                activeCalls: remaining > 0 ? 1 : 0
+            )
         }
 
         return cycleResult
@@ -610,27 +586,8 @@ extension FeedCacheCoordinator {
             return lhs < rhs
         }
 
-        await withTaskGroup(of: Void.self) { group in
-            var nextIndex = 0
-            let initialCount = min(Self.maximumConcurrentChannelRefreshes, prioritizedChannelIDs.count)
-
-            for _ in 0 ..< initialCount {
-                let channelID = prioritizedChannelIDs[nextIndex]
-                nextIndex += 1
-                group.addTask {
-                    _ = await self.processChannel(channelID, states: states)
-                }
-            }
-
-            while await group.next() != nil {
-                if nextIndex < prioritizedChannelIDs.count {
-                    let channelID = prioritizedChannelIDs[nextIndex]
-                    nextIndex += 1
-                    group.addTask {
-                        _ = await self.processChannel(channelID, states: states)
-                    }
-                }
-            }
+        for channelID in prioritizedChannelIDs {
+            _ = await self.processChannel(channelID, states: states)
         }
 
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
