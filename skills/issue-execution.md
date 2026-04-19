@@ -61,6 +61,8 @@
 
 - working treeが空の場合は、コミットをスキップしなければならない。
 - コミットは、focused verification と `IssueToDo` 更新が完了した後に、今回完了した 1 件分の変更セットだけを対象として行わなければならない。
+- コミットメッセージは、今回完了した `IssueToDo` の番号を先頭に `<todo_number>: ` 形式で付けなければならない。
+  例: `17: 各層の責務をファイル冒頭へ明記する`
 - `issue-todo --check` を `--allow-local-fallback` 付きで実行し、その出力 JSON の `sync.github_updated` が `false` でも、更新セクションの条件を満たして今回の `IssueToDo` をローカル完了扱いにできる場合に限り、その 1 件分の変更セットを commit してよい。
 
 ### 停止判断
@@ -76,6 +78,7 @@
 - focused verification が、今回の変更範囲に応じた内容で完了していること。
 - Git の staging 前かつ commit 前に、対応する `IssueToDo` が `scripts/command-runner.py 'issue-todo' --check` でチェック済みに更新されていること。
 - コミットが、今回完了した 1 件分の変更セットだけで構成されていること。
+- コミットメッセージの先頭が、今回完了した `IssueToDo` の番号に対応する `<todo_number>: ` 形式であること。
 - blocker がある場合は、変更を拡大せず停止していること。
 
 ## 禁止事項
