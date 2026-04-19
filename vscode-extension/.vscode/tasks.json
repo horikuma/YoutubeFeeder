@@ -13,6 +13,16 @@
 			},
 			"group": {
 				"kind": "build",
+				"isDefault": false
+			}
+		},
+		{
+			"label": "npm: compile",
+			"type": "npm",
+			"script": "compile",
+			"problemMatcher": ["$tsc"],
+			"group": {
+				"kind": "build",
 				"isDefault": true
 			}
 		}

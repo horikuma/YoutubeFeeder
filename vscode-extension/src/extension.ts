@@ -3,7 +3,8 @@
 import * as vscode from 'vscode';
 
 import { runPipeline } from './pipeline';
-import { TsConcatProvider } from './virtualDocument';
+import { TsDocumentProvider } from './infrastructure/tsDocumentProvider';
+import { SwiftDocumentProvider } from './infrastructure/swiftDocumentProvider';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -27,16 +28,32 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(disposable);
-	const provider = new TsConcatProvider();
-	const scheme = 'tsconcat';
+
+	const tsProvider = new TsDocumentProvider();
+	const tsScheme = 'tsconcat';
 
 	context.subscriptions.push(
-		vscode.workspace.registerTextDocumentContentProvider(scheme, provider)
+		vscode.workspace.registerTextDocumentContentProvider(tsScheme, tsProvider)
 	);
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('extension.openTsConcat', async () => {
-			const uri = vscode.Uri.parse(`${scheme}:/all-ts.ts`);
+			const uri = vscode.Uri.parse(`${tsScheme}:/all-ts.ts`);
+			const doc = await vscode.workspace.openTextDocument(uri);
+			vscode.window.showTextDocument(doc, { preview: false });
+		})
+	);
+
+	const swiftProvider = new SwiftDocumentProvider();
+	const swiftScheme = 'swiftconcat';
+
+	context.subscriptions.push(
+		vscode.workspace.registerTextDocumentContentProvider(swiftScheme, swiftProvider)
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('extension.openSwiftConcat', async () => {
+			const uri = vscode.Uri.parse(`${swiftScheme}:/all-swift.swift`);
 			const doc = await vscode.workspace.openTextDocument(uri);
 			vscode.window.showTextDocument(doc, { preview: false });
 		})
