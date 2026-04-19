@@ -10,6 +10,16 @@
     "Other"
   ],
   "main": "./out/extension.js",
+  "vsce": {
+    "ignoreFile": ".vscodeignore"
+  },
+  "activationEvents": [
+    "onCommand:extension.openTsConcat",
+    "onCommand:extension.openSwiftConcat",
+    "onCommand:extension.openSourceView.ts",
+    "onCommand:extension.openSourceView.swift",
+    "onCommand:extension.openSourceView.c"
+  ],
   "contributes": {
     "commands": [
       {
@@ -23,6 +33,45 @@
       {
         "command": "extension.openSwiftConcat",
         "title": "Open Swift Concat View"
+      },
+      {
+        "command": "extension.openSourceView.ts",
+        "title": "Open Source View (TypeScript)"
+      },
+      {
+        "command": "extension.openSourceView.swift",
+        "title": "Open Source View (Swift)"
+      },
+      {
+        "command": "extension.openSourceView.c",
+        "title": "Open Source View (C/C Header)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "submenu": "extension.openSourceViewSubmenu",
+          "when": "explorerResourceIsFolder",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.openSourceView.ts",
+          "submenu": "extension.openSourceViewSubmenu"
+        },
+        {
+          "command": "extension.openSourceView.swift",
+          "submenu": "extension.openSourceViewSubmenu"
+        },
+        {
+          "command": "extension.openSourceView.c",
+          "submenu": "extension.openSourceViewSubmenu"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "extension.openSourceViewSubmenu",
+        "label": "Open Source View"
       }
     ]
   },
