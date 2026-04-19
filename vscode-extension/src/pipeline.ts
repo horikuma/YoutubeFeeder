@@ -1,4 +1,5 @@
 // Pipeline は、Viewport から Apply までを 1 回つなぐ。
+// Pipeline は、各層の内部責務を実装しない。
 import * as vscode from 'vscode';
 
 import { apply } from './apply';

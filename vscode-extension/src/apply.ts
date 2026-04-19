@@ -1,4 +1,5 @@
 // Apply は、装飾群を VS Code の Decoration API に反映する。
+// Apply は、行取得や差分抽出を扱わない。
 import * as vscode from 'vscode';
 
 import { RendererDecoration } from './renderer';

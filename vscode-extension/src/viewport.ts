@@ -1,4 +1,5 @@
 // Viewport は、現在の表示対象の行範囲と整合情報を表す。
+// Viewport は、ログ本文そのものや装飾生成を扱わない。
 export interface ViewportContext {
 }
 
