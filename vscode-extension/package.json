@@ -9,13 +9,68 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
   "main": "./out/extension.js",
+  "vsce": {
+    "ignoreFile": ".vscodeignore"
+  },
+  "activationEvents": [
+    "onCommand:extension.openTsConcat",
+    "onCommand:extension.openSwiftConcat",
+    "onCommand:extension.openSourceView.ts",
+    "onCommand:extension.openSourceView.swift",
+    "onCommand:extension.openSourceView.c"
+  ],
   "contributes": {
     "commands": [
       {
         "command": "helloworld.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "extension.openTsConcat",
+        "title": "Open TS Concat View"
+      },
+      {
+        "command": "extension.openSwiftConcat",
+        "title": "Open Swift Concat View"
+      },
+      {
+        "command": "extension.openSourceView.ts",
+        "title": "TypeScript"
+      },
+      {
+        "command": "extension.openSourceView.swift",
+        "title": "Swift"
+      },
+      {
+        "command": "extension.openSourceView.c",
+        "title": "C / C Header"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "submenu": "extension.openSourceViewSubmenu",
+          "when": "explorerResourceIsFolder",
+          "group": "navigation@1"
+        }
+      ],
+      "extension.openSourceViewSubmenu": [
+        {
+          "command": "extension.openSourceView.ts"
+        },
+        {
+          "command": "extension.openSourceView.swift"
+        },
+        {
+          "command": "extension.openSourceView.c"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "extension.openSourceViewSubmenu",
+        "label": "Open Source View"
       }
     ]
   },
