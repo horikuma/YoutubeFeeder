@@ -36,15 +36,15 @@
       },
       {
         "command": "extension.openSourceView.ts",
-        "title": "Open Source View (TypeScript)"
+        "title": "TypeScript"
       },
       {
         "command": "extension.openSourceView.swift",
-        "title": "Open Source View (Swift)"
+        "title": "Swift"
       },
       {
         "command": "extension.openSourceView.c",
-        "title": "Open Source View (C/C Header)"
+        "title": "C / C Header"
       }
     ],
     "menus": {
@@ -52,19 +52,18 @@
         {
           "submenu": "extension.openSourceViewSubmenu",
           "when": "explorerResourceIsFolder",
-          "group": "navigation"
+          "group": "navigation@1"
+        }
+      ],
+      "extension.openSourceViewSubmenu": [
+        {
+          "command": "extension.openSourceView.ts"
         },
         {
-          "command": "extension.openSourceView.ts",
-          "submenu": "extension.openSourceViewSubmenu"
+          "command": "extension.openSourceView.swift"
         },
         {
-          "command": "extension.openSourceView.swift",
-          "submenu": "extension.openSourceViewSubmenu"
-        },
-        {
-          "command": "extension.openSourceView.c",
-          "submenu": "extension.openSourceViewSubmenu"
+          "command": "extension.openSourceView.c"
         }
       ]
     },
