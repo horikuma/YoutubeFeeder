@@ -7,6 +7,7 @@ struct FeedCacheDependencies {
     let searchService: YouTubeSearchService
     let remoteSearchCacheStore: RemoteVideoSearchCacheStore
     let channelRegistrySyncService: ChannelRegistryCloudflareSyncService
+    let requestScheduler: RequestScheduler? = nil
 
     nonisolated static func live() -> FeedCacheDependencies {
         FeedCacheDependencies(
