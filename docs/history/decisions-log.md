@@ -1,3 +1,17 @@
+## 2026/04/19
+- Source View の言語別コマンドを explorer context の専用サブメニュー配下へ整理し、SourceViewとPipelineの分離構造を文書化する。
+  - 右クリックメニューの表示を簡潔にし、現状の表示系統と拡張方向を追跡できるようにするため。
+- VSCode拡張の連結ビューをSourceViewAdapterへ集約し、言語追加を設定追加で拡張できる構造へ整理する。
+  - 言語別ProviderとAdapterの重複を減らし、今後のファイル構成拡張を容易にするため。
+- VSCode拡張にSwiftファイル連結ビューを追加し、TS/Swiftの連結処理をProviderとAdapterへ分離する。
+  - 言語別のglobと表示ヘッダを分離し、連結ビューを拡張しやすくするため。
+- VSCode拡張にtsconcat仮想ドキュメントでTypeScriptファイルをまとめて表示する機能を追加する。
+  - エディタ上で複数のTypeScriptファイル内容を単一ビューとして確認できるようにするため。
+- Issue実施のコミットメッセージ先頭にIssueToDo番号を付ける。
+  - コミット履歴からIssueToDo単位の対応を追跡できる状態を保つため。
+- issue-todoチェックにGitHub不調時のローカルfallback可否を追加する。
+  - GitHub同期失敗時の作業継続条件を実装とルールで一致させるため。
+
 ## 2026/04/18
 - UIテスト起動時は専用の一時FeedCacheディレクトリを必ず使う。
   - 常用アプリのキャッシュやチャンネル登録情報をfixture seedや削除処理から保護するため。
