@@ -48,7 +48,7 @@ struct YouTubeSearchService {
             stage = "merge_details"
             let videos = Self.mergeDetailedVideos(detailedVideos, preferredOrder: selection.videoIDs)
             let response = YouTubeSearchResponse(videos: videos, totalCount: videos.count, fetchedAt: .now)
-            logger.notice("request_complete", metadata: selection.completionMetadata(
+            logger.info("request_complete", metadata: selection.completionMetadata(
                 keywordPreview: keywordPreview,
                 videoCount: videos.count,
                 startedAt: startedAt
@@ -69,7 +69,7 @@ struct YouTubeSearchService {
             if AppLaunchMode.current.usesMockData {
                 stage = "mock_response"
                 let response = mockChannelSearchResponse(channelID: channelID, limit: limit)
-                logger.notice(
+                logger.info(
                     "channel_request_complete",
                     metadata: [
                         "channelID": channelID,
@@ -100,7 +100,7 @@ struct YouTubeSearchService {
                     )
                 }
             let response = YouTubeSearchResponse(videos: videos, totalCount: videos.count, fetchedAt: .now)
-            logger.notice(
+            logger.info(
                 "channel_request_complete",
                 metadata: [
                     "channelID": channelID,
@@ -139,7 +139,7 @@ struct YouTubeSearchService {
         try? await Task.sleep(nanoseconds: 1_000_000_000)
         stage = "mock_response"
         let response = mockSearchResponse(keyword: keyword, limit: limit)
-        logger.notice(
+        logger.info(
             "request_complete",
             metadata: [
                 "keyword": keywordPreview,
@@ -206,7 +206,7 @@ struct YouTubeSearchService {
             "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
         ]
         if RemoteSearchErrorPolicy.isCancellation(error) {
-            logger.notice("request_cancelled", metadata: metadata)
+            logger.info("request_cancelled", metadata: metadata)
         } else {
             logger.error(
                 "request_failed",
@@ -260,7 +260,7 @@ struct YouTubeSearchService {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
 
-        logger.debug(
+        logger.info(
             "candidate_request_start",
             metadata: ["duration": duration, "max_results": String(maxResults), "keyword": AppConsoleLogger.sanitizedKeyword(keyword)]
         )
@@ -275,7 +275,7 @@ struct YouTubeSearchService {
             guard let videoID = item.id.videoID else { return nil }
             return SearchCandidate(id: videoID, publishedAt: item.snippet.publishedAt)
         }
-        logger.debug(
+        logger.info(
             "candidate_request_complete",
             metadata: [
                 "duration": duration,
@@ -310,7 +310,7 @@ struct YouTubeSearchService {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
 
-        logger.debug(
+        logger.info(
             "channel_candidate_request_start",
             metadata: ["channelID": channelID, "max_results": String(maxResults)]
         )
@@ -327,7 +327,7 @@ struct YouTubeSearchService {
             metadata: ["channelID": channelID]
         )
         let ids = response.items.compactMap(\.id.videoID)
-        logger.debug(
+        logger.info(
             "channel_candidate_request_complete",
             metadata: [
                 "channelID": channelID,
@@ -345,7 +345,7 @@ struct YouTubeSearchService {
         let startedAt = Date()
         var mergedVideos: [YouTubeSearchVideo] = []
         let batches = chunkVideoIDs(videoIDs, size: 50)
-        logger.debug(
+        logger.info(
             "video_details_start",
             metadata: ["video_ids": String(videoIDs.count), "batches": String(batches.count)]
         )
@@ -377,13 +377,13 @@ struct YouTubeSearchService {
             )
             let videos = Self.filterPlayableVideos(response.items)
             mergedVideos.append(contentsOf: videos)
-            logger.debug(
+            logger.info(
                 "video_details_batch_complete",
                 metadata: ["batch": "\(index + 1)/\(batches.count)", "videos": String(videos.count)]
             )
         }
 
-        logger.debug(
+        logger.info(
             "video_details_complete",
             metadata: ["videos": String(mergedVideos.count), "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
         )

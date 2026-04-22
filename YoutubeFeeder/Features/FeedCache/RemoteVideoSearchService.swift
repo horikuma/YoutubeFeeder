@@ -20,7 +20,7 @@ struct RemoteVideoSearchService {
             logger: logger
         )
         let cachedVideos = cachedVideos(from: response)
-        logger.notice(
+        logger.info(
             "remote_refresh_complete",
             metadata: [
                 "keyword": keywordPreview,
@@ -53,7 +53,7 @@ struct RemoteVideoSearchService {
                 "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
             ]
             if RemoteSearchErrorPolicy.isCancellation(error) {
-                logger.notice("remote_refresh_cancelled", metadata: metadata)
+                logger.info("remote_refresh_cancelled", metadata: metadata)
             } else {
                 logger.error(
                     "remote_refresh_failed",

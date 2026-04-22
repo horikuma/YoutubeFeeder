@@ -230,7 +230,7 @@ extension FeedCacheCoordinator {
         result["has_manual_refresh"] = manualRefreshTask != nil ? "true" : "false"
         result["has_automatic_refresh"] = automaticRefreshTask != nil ? "true" : "false"
         result["main_thread"] = AppConsoleLogger.mainThreadFlag()
-        AppConsoleLogger.channelRegistry.notice(event, metadata: result)
+        AppConsoleLogger.channelRegistry.info(event, metadata: result)
     }
 
     func logChannelRegistryUserBoundary(
@@ -249,6 +249,6 @@ extension FeedCacheCoordinator {
         result["after_fingerprint"] = AppConsoleLogger.channelIDsFingerprint(afterChannels)
         result["coordinator_count"] = String(channels.count)
         result["main_thread"] = AppConsoleLogger.mainThreadFlag()
-        AppConsoleLogger.channelRegistry.notice(event, metadata: result)
+        AppConsoleLogger.channelRegistry.info(event, metadata: result)
     }
 }

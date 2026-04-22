@@ -15,7 +15,7 @@ struct FeedChannelSyncService {
             etag: state?.etag,
             lastModified: state?.lastModified
         )
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.debug(
             "channel_refresh_decision",
             metadata: refreshDecisionMetadata(
                 channelID: channelID,
@@ -29,7 +29,7 @@ struct FeedChannelSyncService {
             let checkResult = try await feedService.checkForUpdates(for: channelID, validationToken: token)
             switch checkResult {
             case let .notModified(metadata):
-                AppConsoleLogger.feedRefresh.notice(
+                AppConsoleLogger.feedRefresh.debug(
                     "conditional_refresh_not_modified",
                     metadata: [
                         "channelID": channelID,
@@ -42,7 +42,7 @@ struct FeedChannelSyncService {
                 await writer.recordNotModified(channelID: channelID, metadata: metadata)
             case .updated:
                 let result = try await feedService.fetchLatestFeed(for: channelID)
-                AppConsoleLogger.feedRefresh.notice(
+                AppConsoleLogger.feedRefresh.debug(
                     "conditional_refresh_updated",
                     metadata: [
                         "channelID": channelID,
@@ -80,7 +80,7 @@ struct FeedChannelSyncService {
         state: CachedChannelState? = nil,
         cacheThumbnails: Bool = false
     ) async -> FeedChannelForcedRefreshResult {
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.debug(
             "channel_refresh_decision",
             metadata: refreshDecisionMetadata(
                 channelID: channelID,
@@ -91,7 +91,7 @@ struct FeedChannelSyncService {
         )
         do {
             let result = try await feedService.fetchLatestFeed(for: channelID)
-            AppConsoleLogger.feedRefresh.notice(
+            AppConsoleLogger.feedRefresh.debug(
                 "forced_refresh_fetched",
                 metadata: [
                     "channelID": channelID,

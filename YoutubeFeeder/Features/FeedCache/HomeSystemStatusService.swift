@@ -41,7 +41,7 @@ struct HomeSystemStatusService {
             apiKeyConfigured: apiKeyConfigured,
             searchCacheStatus: cacheStatus
         )
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "home_status_load_complete",
             metadata: [
                 "snapshot_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: snapshotLoadedAt),

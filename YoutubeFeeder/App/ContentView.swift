@@ -61,7 +61,7 @@ struct ContentView: View {
             AppConsoleLogger.appLifecycle.info("bootstrap_start")
             await coordinator.bootstrapMaintenance()
             diagnostics.mark("bootstrapLoaded")
-            AppConsoleLogger.appLifecycle.notice(
+            AppConsoleLogger.appLifecycle.info(
                 "bootstrap_complete",
                 metadata: ["elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)]
             )

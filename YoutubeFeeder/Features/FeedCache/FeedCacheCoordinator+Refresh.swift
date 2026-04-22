@@ -6,7 +6,7 @@ extension FeedCacheCoordinator {
         let snapshot = await readService.loadSnapshot()
         let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let sortedChannels = prioritizedChannelIDs(states: states)
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "manual_refresh_snapshot_evaluated",
             metadata: [
                 "channel_count": String(channels.count),
@@ -29,7 +29,7 @@ extension FeedCacheCoordinator {
 
     func startAutomaticRefreshLoopIfNeeded() {
         guard automaticRefreshTask == nil else {
-            AppConsoleLogger.appLifecycle.notice(
+            AppConsoleLogger.appLifecycle.info(
                 "auto_refresh_loop_start_skipped",
                 metadata: [
                     "reason": "already_running",
@@ -38,7 +38,7 @@ extension FeedCacheCoordinator {
             )
             return
         }
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "auto_refresh_loop_start_requested",
             metadata: [
                 "has_manual_refresh": manualRefreshTask != nil ? "true" : "false",
@@ -53,7 +53,7 @@ extension FeedCacheCoordinator {
     }
 
     func runAutomaticRefreshLoop() async {
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "auto_refresh_loop_entered",
             metadata: [
                 "channel_count": String(channels.count),
@@ -63,7 +63,7 @@ extension FeedCacheCoordinator {
         while !Task.isCancelled {
             self.syncRegisteredChannelsFromStore(reason: "automatic_refresh_loop")
             if manualRefreshTask != nil {
-                AppConsoleLogger.appLifecycle.notice(
+                AppConsoleLogger.appLifecycle.info(
                     "auto_refresh_loop_waiting_for_manual_refresh",
                     metadata: [
                         "channel_count": String(channels.count)
@@ -79,7 +79,7 @@ extension FeedCacheCoordinator {
                 channels: channels,
                 states: states
             )
-            AppConsoleLogger.appLifecycle.notice(
+            AppConsoleLogger.appLifecycle.info(
                 "auto_refresh_loop_snapshot_evaluated",
                 metadata: [
                     "channel_count": String(channels.count),
@@ -89,7 +89,7 @@ extension FeedCacheCoordinator {
             )
 
             if !dueChannels.isEmpty {
-                AppConsoleLogger.appLifecycle.notice(
+                AppConsoleLogger.appLifecycle.info(
                     "auto_refresh_loop_dispatching",
                     metadata: [
                         "due_channels": String(dueChannels.count)
@@ -100,7 +100,7 @@ extension FeedCacheCoordinator {
             }
 
             guard let delay = ChannelRefreshSchedulePolicy.nextRefreshDelay(channels: channels, states: states) else {
-                AppConsoleLogger.appLifecycle.notice(
+                AppConsoleLogger.appLifecycle.info(
                     "auto_refresh_loop_exiting_no_channels",
                     metadata: [
                         "channel_count": String(channels.count),
@@ -111,7 +111,7 @@ extension FeedCacheCoordinator {
             }
 
             if delay > 0 {
-                AppConsoleLogger.appLifecycle.notice(
+                AppConsoleLogger.appLifecycle.info(
                     "auto_refresh_loop_sleeping",
                     metadata: [
                         "delay_ms": String(Int(delay * 1000)),
@@ -120,7 +120,7 @@ extension FeedCacheCoordinator {
                 )
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             } else {
-                AppConsoleLogger.appLifecycle.notice(
+                AppConsoleLogger.appLifecycle.info(
                     "auto_refresh_loop_yielding",
                     metadata: [
                         "channel_count": String(channels.count)
@@ -129,7 +129,7 @@ extension FeedCacheCoordinator {
                 await Task.yield()
             }
         }
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "auto_refresh_loop_exited",
             metadata: [
                 "cancelled": Task.isCancelled ? "true" : "false",
@@ -140,10 +140,11 @@ extension FeedCacheCoordinator {
 
     func runScheduledRefreshCycle(channelIDs: [String], states: [String: CachedChannelState]) async {
         guard manualRefreshTask == nil else { return }
-        AppConsoleLogger.appLifecycle.notice(
-            "auto_refresh_cycle_started",
+        AppConsoleLogger.appLifecycle.info(
+            "scheduled_refresh_started",
             metadata: [
-                "channel_count": String(channelIDs.count)
+                "channel_count": String(channelIDs.count),
+                "refresh_source": "automatic"
             ]
         )
         manualRefreshTask = Task { [channelIDs, states] in
@@ -156,10 +157,11 @@ extension FeedCacheCoordinator {
         }
         await manualRefreshTask?.value
         manualRefreshTask = nil
-        AppConsoleLogger.appLifecycle.notice(
-            "auto_refresh_cycle_finished",
+        AppConsoleLogger.appLifecycle.info(
+            "scheduled_refresh_finished",
             metadata: [
-                "channel_count": String(channelIDs.count)
+                "channel_count": String(channelIDs.count),
+                "refresh_source": "automatic"
             ]
         )
     }
@@ -171,7 +173,7 @@ extension FeedCacheCoordinator {
         refreshSource: String = "automatic"
     ) async -> String? {
         let beforeVideoCount = await readService.loadSnapshot().videos.count
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "refresh_cycle_started",
             metadata: [
                 "channel_count": String(channelIDs.count),
@@ -192,7 +194,7 @@ extension FeedCacheCoordinator {
         let lastError = cycleResult.lastError
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
         let afterVideoCount = await readService.loadSnapshot().videos.count
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "refresh_cycle_finished",
             metadata: [
                 "channel_count": String(channelIDs.count),
@@ -473,7 +475,7 @@ extension FeedCacheCoordinator {
         if let loadedVideos = refreshState.videos {
             videos = loadedVideos
         }
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "refresh_ui_complete",
             metadata: refreshUICompletionMetadata(
                 currentChannelID: currentChannelID,
@@ -493,7 +495,7 @@ extension FeedCacheCoordinator {
         currentChannelID: String?,
         includesVideos: Bool
     ) {
-        AppConsoleLogger.appLifecycle.debug(
+        AppConsoleLogger.appLifecycle.info(
             "refresh_ui_start",
             metadata: [
                 "current_channel": currentChannelID ?? "none",

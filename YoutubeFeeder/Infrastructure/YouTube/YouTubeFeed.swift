@@ -266,7 +266,7 @@ struct YouTubeFeedService {
         }
 
         let startedAt = Date()
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.info(
             "feed_request_started",
             metadata: [
                 "channelID": channelID,
@@ -282,7 +282,7 @@ struct YouTubeFeedService {
         )
         let (data, response) = try await performScheduledData(for: request)
         let httpResponse = response as? HTTPURLResponse
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.info(
             "feed_response_received",
             metadata: YouTubeFeedResponseDiagnostics.responseMetadata(
                 channelID: channelID,
@@ -310,7 +310,7 @@ struct YouTubeFeedService {
                     return false
                 }
             }
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.info(
             "feed_parse_complete",
             metadata: YouTubeFeedResponseDiagnostics.parseMetadata(
                 channelID: channelID,
@@ -320,7 +320,7 @@ struct YouTubeFeedService {
             )
         )
         if parsedVideos.isEmpty {
-            AppConsoleLogger.feedRefresh.notice(
+            AppConsoleLogger.feedRefresh.info(
                 "feed_zero_videos_diagnosed",
                 metadata: YouTubeFeedResponseDiagnostics.parseMetadata(
                     channelID: channelID,
@@ -336,7 +336,7 @@ struct YouTubeFeedService {
         } else {
             parsedVideos
         }
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.info(
             "feed_fetch_complete",
             metadata: [
                 "channelID": channelID,

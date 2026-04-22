@@ -81,7 +81,7 @@ struct HomeScreenView: View {
             )
         }
         .task {
-            AppConsoleLogger.appLifecycle.notice(
+            AppConsoleLogger.appLifecycle.info(
                 "home_auto_refresh_task_started",
                 metadata: [
                     "auto_refresh_on_launch": AppLaunchMode.current.autoRefreshOnLaunch ? "true" : "false",
@@ -90,7 +90,7 @@ struct HomeScreenView: View {
                 ]
             )
             guard AppLaunchMode.current.autoRefreshOnLaunch else {
-                AppConsoleLogger.appLifecycle.notice(
+                AppConsoleLogger.appLifecycle.info(
                     "home_auto_refresh_task_skipped",
                     metadata: [
                         "reason": "disabled_on_launch",
@@ -100,7 +100,7 @@ struct HomeScreenView: View {
                 return
             }
             guard !didRunAutoRefresh else {
-                AppConsoleLogger.appLifecycle.notice(
+                AppConsoleLogger.appLifecycle.info(
                     "home_auto_refresh_task_skipped",
                     metadata: [
                         "reason": "already_ran",
@@ -110,21 +110,21 @@ struct HomeScreenView: View {
                 return
             }
             didRunAutoRefresh = true
-            AppConsoleLogger.appLifecycle.notice(
+            AppConsoleLogger.appLifecycle.info(
                 "home_auto_refresh_manual_refresh_started",
                 metadata: [
                     "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
                 ]
             )
             await coordinator.refreshCacheManually()
-            AppConsoleLogger.appLifecycle.notice(
+            AppConsoleLogger.appLifecycle.info(
                 "home_auto_refresh_manual_refresh_finished",
                 metadata: [
                     "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
                 ]
             )
             guard AppLaunchMode.current.allowsBackgroundRefresh else {
-                AppConsoleLogger.appLifecycle.notice(
+                AppConsoleLogger.appLifecycle.info(
                     "home_auto_refresh_background_loop_skipped",
                     metadata: [
                         "reason": "background_refresh_disabled",
@@ -133,7 +133,7 @@ struct HomeScreenView: View {
                 )
                 return
             }
-            AppConsoleLogger.appLifecycle.notice(
+            AppConsoleLogger.appLifecycle.info(
                 "home_auto_refresh_background_loop_requested",
                 metadata: [
                     "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
