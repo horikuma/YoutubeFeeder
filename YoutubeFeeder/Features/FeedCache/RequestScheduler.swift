@@ -22,7 +22,7 @@ actor RequestScheduler {
         let requestID = nextRequestID
         nextRequestID += 1
 
-        AppConsoleLogger.feedRefresh.info(
+        AppConsoleLogger.feedRefresh.debug(
             "request_scheduler_enqueue",
             metadata: [
                 "request_id": String(requestID),
@@ -92,7 +92,7 @@ actor RequestScheduler {
             let request = requestQueue.removeFirst()
             runningRequestCount += 1
 
-            AppConsoleLogger.feedRefresh.info(
+            AppConsoleLogger.feedRefresh.debug(
                 "request_scheduler_start",
                 metadata: [
                     "request_id": String(request.id),
@@ -104,7 +104,7 @@ actor RequestScheduler {
             defer {
                 runningRequestCount -= 1
                 lastRequestCompletedAt = .now
-                AppConsoleLogger.feedRefresh.info(
+                AppConsoleLogger.feedRefresh.debug(
                     "request_scheduler_finish",
                     metadata: [
                         "request_id": String(request.id),

@@ -21,7 +21,7 @@ final class FeedCacheCoordinator: ObservableObject {
     let homeSystemStatusService: HomeSystemStatusService
     let channelRegistryMaintenanceService: ChannelRegistryMaintenanceService
     let channelRegistrySyncService: ChannelRegistryCloudflareSyncService
-    var manualRefreshTask: Task<Void, Never>?
+    var manualRefreshTask: Task<FeedRefreshCycleResult?, Never>?
     var automaticRefreshTask: Task<Void, Never>?
     var importRefreshTask: Task<Void, Never>?
     var freshnessInterval: TimeInterval
@@ -114,8 +114,9 @@ final class FeedCacheCoordinator: ObservableObject {
                 await performManualRefresh()
             }
             StartupDiagnostics.shared.mark("manualRefreshFinished")
+            return nil
         }
-        await manualRefreshTask?.value
+        _ = await manualRefreshTask?.value
         manualRefreshTask = nil
         AppConsoleLogger.appLifecycle.info(
             "refresh_cache_manual_finished",
@@ -170,8 +171,9 @@ final class FeedCacheCoordinator: ObservableObject {
                     "latestPublishedAt": updatedItem?.latestPublishedAt?.formatted(date: .numeric, time: .standard) ?? ""
                 ]
             )
+            return nil
         }
-        await manualRefreshTask?.value
+        _ = await manualRefreshTask?.value
         manualRefreshTask = nil
     }
 
@@ -292,14 +294,11 @@ final class FeedCacheCoordinator: ObservableObject {
             return FeedChannelProcessResult(
                 errorMessage: result.errorMessage,
                 fetchedVideoCount: result.fetchedVideoCount,
-                uncachedVideoCount: result.uncachedVideos.count
+                uncachedVideoCount: result.uncachedVideos.count,
+                httpStatusCode: result.httpStatusCode
             )
         }
-        return FeedChannelProcessResult(
-            errorMessage: await channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID]),
-            fetchedVideoCount: nil,
-            uncachedVideoCount: 0
-        )
+        return await channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID])
     }
 
     func prioritizedChannelIDs(states: [String: CachedChannelState]) -> [String] {
