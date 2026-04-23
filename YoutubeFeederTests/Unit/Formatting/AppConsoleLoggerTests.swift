@@ -102,6 +102,12 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         )
     }
 
+    func testTraceIDGeneratesUUIDFormattedString() {
+        let traceID = AppConsoleLogger.traceID()
+
+        XCTAssertEqual(UUID(uuidString: traceID)?.uuidString, traceID)
+    }
+
     func testErrorSummaryIncludesDecodingPathForMissingKey() throws {
         struct Example: Decodable {
             let items: [Item]

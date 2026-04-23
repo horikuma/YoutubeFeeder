@@ -146,6 +146,10 @@ struct AppConsoleLogger {
         String(Int(endedAt.timeIntervalSince(startedAt) * 1000))
     }
 
+    static func traceID() -> String {
+        UUID().uuidString
+    }
+
     static func mainThreadFlag() -> String {
         Thread.isMainThread ? "true" : "false"
     }
