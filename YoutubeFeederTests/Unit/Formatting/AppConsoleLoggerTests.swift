@@ -197,6 +197,12 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             "1250"
         )
     }
+
+    func testScopedLoggerNamesUseLayerOperationFormat() {
+        XCTAssertEqual(AppConsoleLogger.channelRegistryTransfer.scope, "channel_registry.transfer")
+        XCTAssertEqual(AppConsoleLogger.homeTransfer.scope, "home.transfer")
+        XCTAssertEqual(AppConsoleLogger.remoteSearchSplitLoad.scope, "remote_search.split_load")
+    }
 #endif
 
     func testErrorSummaryIncludesDecodingPathForMissingKey() throws {

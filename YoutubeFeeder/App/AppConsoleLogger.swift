@@ -25,9 +25,12 @@ enum AppConsoleLogLevel: String {
 struct AppConsoleLogger {
     static let appLifecycle = AppConsoleLogger(scope: "app.lifecycle")
     static let channelRegistry = AppConsoleLogger(scope: "channel.registry")
+    static let channelRegistryTransfer = AppConsoleLogger(scope: "channel_registry.transfer")
     static let cloudflareSync = AppConsoleLogger(scope: "cloudflare.sync")
+    static let homeTransfer = AppConsoleLogger(scope: "home.transfer")
     static let feedRefresh = AppConsoleLogger(scope: "feed.refresh")
     static let youtubeSearch = AppConsoleLogger(scope: "youtube.search")
+    static let remoteSearchSplitLoad = AppConsoleLogger(scope: "remote_search.split_load")
 
     let scope: String
 

@@ -289,7 +289,7 @@ struct RemoteKeywordSearchResultsView: View {
 
     private func performImmediateSplitSelection(_ context: ChannelVideosRouteContext) async {
         let startedAt = Date()
-        AppConsoleLogger.appLifecycle.info(
+        AppConsoleLogger.remoteSearchSplitLoad.info(
             "remote_search_split_load_started",
             metadata: [
                 "channelID": context.channelID,
@@ -318,7 +318,7 @@ struct RemoteKeywordSearchResultsView: View {
             }
         }
 
-        AppConsoleLogger.appLifecycle.info(
+        AppConsoleLogger.remoteSearchSplitLoad.info(
             "remote_search_split_load_completed",
             metadata: [
                 "channelID": context.channelID,
@@ -379,7 +379,7 @@ struct RemoteKeywordSearchResultsView: View {
         scheduledAt: Date,
         startedAt: Date
     ) {
-        AppConsoleLogger.appLifecycle.info(
+        AppConsoleLogger.remoteSearchSplitLoad.info(
             "remote_search_split_load_started",
             metadata: [
                 "channelID": context.channelID,
@@ -405,7 +405,7 @@ struct RemoteKeywordSearchResultsView: View {
         startedAt: Date,
         publishStartedAt: Date
     ) {
-        AppConsoleLogger.appLifecycle.info(
+        AppConsoleLogger.remoteSearchSplitLoad.info(
             "remote_search_split_load_completed",
             metadata: [
                 "channelID": context.channelID,
