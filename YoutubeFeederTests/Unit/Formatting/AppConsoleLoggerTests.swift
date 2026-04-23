@@ -168,6 +168,9 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                 "contract_boundary",
                 traceID: traceID,
                 message: "完了",
+                count: "2",
+                size: "128",
+                result: "success",
                 metadata: [
                     "channels": "2"
                 ]
@@ -184,6 +187,9 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertTrue(line.contains(" INFO cloudflare.sync.contract_boundary "))
         XCTAssertTrue(line.contains(#"trace_id=""#))
         XCTAssertTrue(line.contains(#"channels="2""#))
+        XCTAssertTrue(line.contains(#"count="2""#))
+        XCTAssertTrue(line.contains(#"size="128""#))
+        XCTAssertTrue(line.contains(#"result="success""#))
         XCTAssertTrue(line.contains(#"duration_ms=""#))
         XCTAssertTrue(line.contains(#"message="完了""#))
     }

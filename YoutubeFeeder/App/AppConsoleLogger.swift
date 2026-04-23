@@ -187,10 +187,27 @@ struct AppConsoleLogger {
         return traceID
     }
 
-    func traceEnd(_ event: String, traceID: String, message: String? = nil, metadata: [String: String] = [:]) -> Date? {
+    func traceEnd(
+        _ event: String,
+        traceID: String,
+        message: String? = nil,
+        count: String? = nil,
+        size: String? = nil,
+        result: String? = nil,
+        metadata: [String: String] = [:]
+    ) -> Date? {
         let startedAt = Self.removeTraceStartTime(for: traceID)
         var traceMetadata = metadata
         traceMetadata["trace_id"] = traceID
+        if let count {
+            traceMetadata["count"] = count
+        }
+        if let size {
+            traceMetadata["size"] = size
+        }
+        if let result {
+            traceMetadata["result"] = result
+        }
         if let startedAt {
             traceMetadata["duration_ms"] = Self.traceDurationMilliseconds(since: startedAt)
         }
