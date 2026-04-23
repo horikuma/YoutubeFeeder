@@ -173,6 +173,15 @@ struct AppConsoleLogger {
         return traceStartTimes.removeValue(forKey: traceID)
     }
 
+    func traceStart(_ event: String, message: String? = nil, metadata: [String: String] = [:]) -> String {
+        let traceID = Self.traceID()
+        Self.recordTraceStart(traceID)
+        var traceMetadata = metadata
+        traceMetadata["trace_id"] = traceID
+        emit(level: .info, event: event, message: message, metadata: traceMetadata)
+        return traceID
+    }
+
     static func mainThreadFlag() -> String {
         Thread.isMainThread ? "true" : "false"
     }

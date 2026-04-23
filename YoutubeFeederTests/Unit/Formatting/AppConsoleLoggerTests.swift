@@ -119,6 +119,39 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertNil(AppConsoleLogger.traceStartTime(for: traceID))
     }
 
+#if targetEnvironment(macCatalyst)
+    func testTraceStartLogsTraceIDAndRecordsStartTime() throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let logFileURL = temporaryRoot.appendingPathComponent("runtime.log")
+        var traceID: String?
+        try withRuntimeLogFile(logFileURL) {
+            traceID = AppConsoleLogger.cloudflareSync.traceStart(
+                "contract_boundary",
+                message: "開始",
+                metadata: [
+                    "channels": "2"
+                ]
+            )
+        }
+
+        let resolvedTraceID = try XCTUnwrap(traceID)
+        XCTAssertNotNil(AppConsoleLogger.traceStartTime(for: resolvedTraceID))
+
+        let lines = try String(contentsOf: logFileURL, encoding: .utf8)
+            .split(separator: "\n")
+            .map(String.init)
+        let line = try XCTUnwrap(lines.last)
+        XCTAssertTrue(line.contains(" INFO cloudflare.sync.contract_boundary "))
+        XCTAssertTrue(line.contains(#"trace_id=""#))
+        XCTAssertTrue(line.contains(#"channels="2""#))
+        XCTAssertTrue(line.contains(#"message="開始""#))
+    }
+#endif
+
     func testErrorSummaryIncludesDecodingPathForMissingKey() throws {
         struct Example: Decodable {
             let items: [Item]
