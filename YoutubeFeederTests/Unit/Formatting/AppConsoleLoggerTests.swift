@@ -218,6 +218,13 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertTrue(output.contains(#"T2="2026-04-23T11:00:01.000Z""#))
     }
 
+    @MainActor
+    func testStartupDiagnosticsExposesT0ProcessStartTime() {
+        let diagnostics = StartupDiagnostics()
+
+        XCTAssertLessThanOrEqual(diagnostics.startupProfileT0, Date())
+    }
+
     func testTraceEventAllowsOnlyStateChangeAnomalyAndImportantEvents() throws {
         let logger = AppConsoleLogger(scope: "event.guard")
         let allowedTraceID = AppConsoleLogger.traceID()

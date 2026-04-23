@@ -92,6 +92,10 @@ final class StartupDiagnostics: ObservableObject {
         emitStartupProfileIfReady()
     }
 
+    var startupProfileT0: Date {
+        processStartedAt
+    }
+
     private func encodedTimeline() -> String {
         let origin = events["appLaunched"]
         let payload = events.keys.sorted().reduce(into: [String: [String: String]]()) { partial, key in
