@@ -1,3 +1,24 @@
+## 2026/04/22
+- PRを作成せよ。
+  - PR #154 を作成し、issue-153 を main 向けに push 済みです。本文には Closes #153 を含め、assignee も horikuma に設定済みです。
+- ログを確認せよ。10分間隔で動作していると思ったが、実際には数秒間隔になっている。原因を回答せよ。
+  - 原因は、10分ごとの全体タイマーではなく、due チャンネルが残る限り自動更新ループが sleep せず次の scheduled_refresh を即時開始する実装になっているためです。
+- ここでいう更新サイクルは、自動更新全体の1周を1回とし、成否の統計値がわかるようにせよ。特に404になった場合、全チャンネルがWARNINGになるのは望ましくない。
+  - 自動更新ログを1周単位の開始・終了と統計値へ集約し、チャンネル単位の取得詳細や404診断をDebugへ移した。404はチャンネルごとのWarningではなくscheduled_refresh_finishedのhttp_404_channels/http_non_2xx_channels等で集計される。ビルドとFeedCacheCoordinatorConcurrencyTestsを通し、コミット95f00c9を作成した。
+- リトライせよ。
+  - logsを確認し、INFOからDEBUGへ移動する候補を検討した。runtime.logではschedulerとfeed取得系が主な圧迫要因で、request_scheduler_*、feed_response_received、feed_parse_complete、feed_request_started、feed_fetch_completeをDEBUG候補、feed_zero_videos_diagnosedやrefresh_cycle_started/finished、scheduled_refresh_started/finishedはINFO維持候補として整理した。
+- logsを確認し、INFOからDEBUGへ移動するログを検討せよ。
+- 実施せよ。
+- 通常時のログレベルはInfo以上とする。Debug,Info,Warning,Errorとする。現有のログは全てInfoとする。ただし警告・エラーのログであることが明らかな場合はそちらを優先とする。チャンネル更新時にチャンネル毎にログ出力しているのがログを強く圧迫しているため、これをDebugとする。その上で、Info用に、チャンネル定時更新開始・終了を追加する。
+  - Issue #153 の詳細化を完了し、Description更新、詳細化コメント追加、issue-153ブランチ切り替えを完了しました。
+- リトライせよ。
+  - Issue #153 の詳細化は、通常時の既定出力レベルと導入するログレベル集合が未確定なため、blocker コメントを追加して停止しました。
+- 詳細化せよ
+- Issueを作成せよ。「ログにDebugやInfoといったレベルを追加し、通常時は出力を抑制気味にする」
+  - Issue #153 を作成しました。タイトルは「ログにDebugやInfoといったレベルを追加し、通常時は出力を抑制気味にする」です。
+- セッションを開始せよ。
+  - セッション開始を完了しました。main同期、fetch --prune、履歴ローテーションを実行し、発生した履歴差分をコミットしました。
+
 ## 2026/04/19
 - セッションを終了せよ。
   - セッション終了を完了しました。main は origin/main に追従し、issue-151 は削除されました。

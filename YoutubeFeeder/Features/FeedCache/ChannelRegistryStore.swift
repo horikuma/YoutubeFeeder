@@ -232,6 +232,8 @@ enum ChannelRegistryStore {
 
 enum ChannelRegistryTransferStore {
     static func export(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {
+        let logger = AppConsoleLogger.channelRegistryTransfer
+        logger.info("export_started", metadata: ["backend": backend.rawValue])
         let destinationURL = try transferDocumentURL(fileManager: fileManager, backend: backend, containerURL: containerURL)
         try fileManager.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
 
@@ -241,7 +243,15 @@ enum ChannelRegistryTransferStore {
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(document)
         try write(data, to: destinationURL)
-        return ChannelRegistryTransferResult(backend: backend, fileURL: destinationURL, channelCount: document.channels.count)
+        let result = ChannelRegistryTransferResult(backend: backend, fileURL: destinationURL, channelCount: document.channels.count)
+        logger.info(
+            "export_completed",
+            metadata: [
+                "backend": backend.rawValue,
+                "channel_count": String(result.channelCount)
+            ]
+        )
+        return result
     }
 
     static func `import`(fileManager: FileManager = .default, backend: ChannelRegistryTransferBackend = ChannelRegistryTransferRuntime.preferredBackend, containerURL: URL? = nil) throws -> ChannelRegistryTransferResult {

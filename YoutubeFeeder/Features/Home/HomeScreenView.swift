@@ -296,16 +296,30 @@ struct HomeScreenView: View {
     private func exportRegistry() {
         guard !homeState.isTransferringRegistry else { return }
         homeState.beginRegistryTransfer()
+        let logger = AppConsoleLogger.homeTransfer
+        logger.info("export_started", metadata: ["backend": "localDocuments"])
 
         Task {
             do {
                 let feedback = try coordinator.exportChannelRegistry(backend: .localDocuments)
                 await MainActor.run {
                     homeState.finishRegistryTransfer(feedback)
+                    logger.info(
+                        "export_completed",
+                        metadata: [
+                            "backend": feedback.backend.rawValue,
+                            "channel_count": String(feedback.channelCount)
+                        ]
+                    )
                 }
             } catch {
                 await MainActor.run {
                     homeState.failRegistryTransfer(error)
+                    logger.error(
+                        "export_failed",
+                        message: AppConsoleLogger.errorSummary(error),
+                        metadata: ["backend": "localDocuments"]
+                    )
                 }
             }
         }

@@ -77,7 +77,9 @@ final class StartupDiagnostics: ObservableObject {
 
     @Published private(set) var timelineValue = "{}"
 
+    private let processStartedAt = Date(timeIntervalSinceNow: -ProcessInfo.processInfo.systemUptime)
     private var events: [String: Date] = [:]
+    private var didEmitStartupProfile = false
     private let formatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -87,6 +89,19 @@ final class StartupDiagnostics: ObservableObject {
     func mark(_ event: String, at date: Date = .now) {
         events[event] = date
         timelineValue = encodedTimeline()
+        emitStartupProfileIfReady()
+    }
+
+    var startupProfileT0: Date {
+        processStartedAt
+    }
+
+    var startupProfileT1: Date? {
+        events["appLaunched"]
+    }
+
+    var startupProfileT2: Date? {
+        firstInitialDisplayAt()
     }
 
     private func encodedTimeline() -> String {
@@ -108,6 +123,38 @@ final class StartupDiagnostics: ObservableObject {
         }
 
         return string
+    }
+
+    private func emitStartupProfileIfReady() {
+        guard !didEmitStartupProfile else { return }
+        guard let appLaunchedAt = events["appLaunched"] else { return }
+        guard let initialDisplayAt = firstInitialDisplayAt() else { return }
+
+        didEmitStartupProfile = true
+        AppConsoleLogger.appLifecycle.info(
+            "startup_profile",
+            metadata: [
+                "T0": formatter.string(from: processStartedAt),
+                "T1": formatter.string(from: appLaunchedAt),
+                "T2": formatter.string(from: initialDisplayAt),
+                "T0_T1_ms": String(Int(appLaunchedAt.timeIntervalSince(processStartedAt) * 1000)),
+                "T1_T2_ms": String(Int(initialDisplayAt.timeIntervalSince(appLaunchedAt) * 1000))
+            ]
+        )
+    }
+
+    private func firstInitialDisplayAt() -> Date? {
+        [
+            events["splashShown"],
+            events["bootstrapLoaded"],
+            events["maintenanceEntered"],
+            events["channelListShown"],
+            events["channelVideosShown"],
+            events["keywordSearchShown"],
+            events["allVideosShown"]
+        ]
+        .compactMap { $0 }
+        .min()
     }
 }
 
