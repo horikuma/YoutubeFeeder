@@ -193,6 +193,23 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertNil(AppConsoleLogger.traceStartTime(for: traceID))
     }
 
+    func testTraceLifecycleMismatchDetectionFindsOrphanStartsAndMissingStarts() {
+        let traceID = AppConsoleLogger.traceID()
+        let startedAt = ISO8601DateFormatter().date(from: "2026-04-23T11:13:23Z")!
+
+        AppConsoleLogger.recordTraceStart(traceID, startedAt: startedAt)
+
+        guard case let .unfinishedStarts(traceIDs)? = AppConsoleLogger.traceStartMismatch() else {
+            XCTFail("Expected unfinished starts to be reported")
+            return
+        }
+        XCTAssertTrue(traceIDs.contains(traceID))
+        XCTAssertEqual(
+            AppConsoleLogger.traceEndMismatch(for: traceID, startedAt: nil),
+            .missingStart(traceID: traceID)
+        )
+    }
+
 #if targetEnvironment(macCatalyst)
     func testTraceStartLogsTraceIDAndRecordsStartTime() throws {
         let fileManager = FileManager.default

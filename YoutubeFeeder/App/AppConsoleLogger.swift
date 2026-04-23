@@ -23,6 +23,11 @@ enum AppConsoleLogLevel: String {
 }
 
 struct AppConsoleLogger {
+    enum TraceLifecycleMismatch: Equatable {
+        case missingStart(traceID: String)
+        case unfinishedStarts(traceIDs: [String])
+    }
+
     static let appLifecycle = AppConsoleLogger(scope: "app.lifecycle")
     static let channelRegistry = AppConsoleLogger(scope: "channel.registry")
     static let channelRegistryTransfer = AppConsoleLogger(scope: "channel_registry.transfer")
@@ -203,6 +208,20 @@ struct AppConsoleLogger {
         defer { traceStateLock.unlock() }
 
         return traceStartTimes.removeValue(forKey: traceID)
+    }
+
+    static func traceEndMismatch(for traceID: String, startedAt: Date?) -> TraceLifecycleMismatch? {
+        guard startedAt == nil else { return nil }
+        return .missingStart(traceID: traceID)
+    }
+
+    static func traceStartMismatch() -> TraceLifecycleMismatch? {
+        traceStateLock.lock()
+        defer { traceStateLock.unlock() }
+
+        let traceIDs = traceStartTimes.keys.sorted()
+        guard !traceIDs.isEmpty else { return nil }
+        return .unfinishedStarts(traceIDs: traceIDs)
     }
 
     func traceStart(_ event: String, message: String? = nil, metadata: [String: String] = [:]) -> String {
