@@ -8,6 +8,13 @@ struct FeedValidationToken: Hashable {
 struct FeedFetchMetadata: Hashable {
     let checkedAt: Date
     let validationToken: FeedValidationToken
+    let httpStatusCode: Int?
+
+    init(checkedAt: Date, validationToken: FeedValidationToken, httpStatusCode: Int? = nil) {
+        self.checkedAt = checkedAt
+        self.validationToken = validationToken
+        self.httpStatusCode = httpStatusCode
+    }
 }
 
 enum FeedCheckResult {
@@ -250,7 +257,8 @@ struct YouTubeFeedService {
             validationToken: FeedValidationToken(
                 etag: httpResponse?.value(forHTTPHeaderField: "ETag") ?? validationToken?.etag,
                 lastModified: httpResponse?.value(forHTTPHeaderField: "Last-Modified") ?? validationToken?.lastModified
-            )
+            ),
+            httpStatusCode: httpResponse?.statusCode
         )
 
         if httpResponse?.statusCode == 304 {
@@ -266,7 +274,7 @@ struct YouTubeFeedService {
         }
 
         let startedAt = Date()
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.debug(
             "feed_request_started",
             metadata: [
                 "channelID": channelID,
@@ -282,7 +290,7 @@ struct YouTubeFeedService {
         )
         let (data, response) = try await performScheduledData(for: request)
         let httpResponse = response as? HTTPURLResponse
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.debug(
             "feed_response_received",
             metadata: YouTubeFeedResponseDiagnostics.responseMetadata(
                 channelID: channelID,
@@ -296,7 +304,8 @@ struct YouTubeFeedService {
             validationToken: FeedValidationToken(
                 etag: httpResponse?.value(forHTTPHeaderField: "ETag"),
                 lastModified: httpResponse?.value(forHTTPHeaderField: "Last-Modified")
-            )
+            ),
+            httpStatusCode: httpResponse?.statusCode
         )
 
         let parsedVideos = YouTubeFeedParser().parse(data: data)
@@ -310,7 +319,7 @@ struct YouTubeFeedService {
                     return false
                 }
             }
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.debug(
             "feed_parse_complete",
             metadata: YouTubeFeedResponseDiagnostics.parseMetadata(
                 channelID: channelID,
@@ -320,7 +329,7 @@ struct YouTubeFeedService {
             )
         )
         if parsedVideos.isEmpty {
-            AppConsoleLogger.feedRefresh.notice(
+            AppConsoleLogger.feedRefresh.debug(
                 "feed_zero_videos_diagnosed",
                 metadata: YouTubeFeedResponseDiagnostics.parseMetadata(
                     channelID: channelID,
@@ -336,7 +345,7 @@ struct YouTubeFeedService {
         } else {
             parsedVideos
         }
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.debug(
             "feed_fetch_complete",
             metadata: [
                 "channelID": channelID,
@@ -361,7 +370,8 @@ struct YouTubeFeedService {
             validationToken: FeedValidationToken(
                 etag: httpResponse?.value(forHTTPHeaderField: "ETag") ?? validationToken?.etag,
                 lastModified: httpResponse?.value(forHTTPHeaderField: "Last-Modified") ?? validationToken?.lastModified
-            )
+            ),
+            httpStatusCode: httpResponse?.statusCode
         )
 
         if httpResponse?.statusCode == 304 {

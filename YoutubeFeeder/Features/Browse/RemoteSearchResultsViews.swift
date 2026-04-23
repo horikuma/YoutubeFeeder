@@ -148,7 +148,7 @@ struct RemoteKeywordSearchResultsView: View {
         let logger = AppConsoleLogger.youtubeSearch
         let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
         let startedAt = Date()
-        logger.debug(
+        logger.info(
             "screen_snapshot_load_start",
             metadata: [
                 "keyword": keywordPreview,
@@ -166,7 +166,7 @@ struct RemoteKeywordSearchResultsView: View {
                 )
             }
         }
-        logger.debug(
+        logger.info(
             "screen_snapshot_load_complete",
             metadata: [
                 "keyword": keywordPreview,
@@ -220,7 +220,7 @@ struct RemoteKeywordSearchResultsView: View {
                 }
             }
         }
-        logger.notice(
+        logger.info(
             "screen_refresh_complete",
             metadata: [
                 "keyword": keywordPreview,
@@ -318,7 +318,7 @@ struct RemoteKeywordSearchResultsView: View {
             }
         }
 
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "remote_search_split_load_completed",
             metadata: [
                 "channelID": context.channelID,
@@ -405,7 +405,7 @@ struct RemoteKeywordSearchResultsView: View {
         startedAt: Date,
         publishStartedAt: Date
     ) {
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "remote_search_split_load_completed",
             metadata: [
                 "channelID": context.channelID,
@@ -444,7 +444,7 @@ struct RemoteKeywordSearchResultsView: View {
             "mode": presentationMode.rawValue,
             "videos": String(searchState.result.videos.count),
         ]
-        AppConsoleLogger.youtubeSearch.debug("screen_render_probe", metadata: metadata)
+        AppConsoleLogger.youtubeSearch.info("screen_render_probe", metadata: metadata)
         RuntimeDiagnostics.shared.record(
             "remote_search_render_probe",
             detail: "YouTube検索画面の描画到達点",

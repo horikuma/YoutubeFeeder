@@ -192,7 +192,7 @@ actor FeedCacheStore {
         let resolvedChannelTitle = videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
         let latestPublishedAt = videos.compactMap(\.publishedAt).max()
         let channelVideoCount = snapshot.videos.filter { $0.channelID == channelID }.count
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.debug(
             "feed_cache_record_success",
             metadata: [
                 "channelID": channelID,

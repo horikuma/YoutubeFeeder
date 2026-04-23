@@ -132,7 +132,7 @@ struct ChannelRegistryCloudflareSyncService {
         do {
             (data, response) = try await dataLoader(request)
         } catch let error as CancellationError {
-            logger.notice(
+            logger.info(
                 "http_request_cancelled",
                 metadata: [
                     "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
@@ -197,7 +197,7 @@ struct ChannelRegistryCloudflareSyncService {
             )
             throw ChannelRegistryCloudflareSyncError.httpError(statusCode: httpResponse.statusCode)
         }
-        logger.notice(
+        logger.info(
             "service_complete",
             metadata: [
                 "channels": String(records.count),

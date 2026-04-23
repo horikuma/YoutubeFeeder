@@ -6,6 +6,39 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
         XCTAssertEqual(FeedCacheCoordinator.maximumConcurrentChannelRefreshes, 3)
     }
 
+    func testRefreshCycleMetadataCountsHTTP404WithoutPerChannelWarningRequirement() {
+        var result = FeedRefreshCycleResult()
+
+        result.record(FeedChannelProcessResult(
+            errorMessage: nil,
+            fetchedVideoCount: 0,
+            uncachedVideoCount: 0,
+            httpStatusCode: 404
+        ))
+        result.record(FeedChannelProcessResult(
+            errorMessage: nil,
+            fetchedVideoCount: 15,
+            uncachedVideoCount: 2,
+            httpStatusCode: 200
+        ))
+
+        let metadata = result.metadata(
+            channelCount: 2,
+            forceNetworkFetch: false,
+            refreshSource: "automatic",
+            cachedVideosBefore: 10,
+            cachedVideosAfter: 12
+        )
+
+        XCTAssertEqual(metadata["successful_channels"], "2")
+        XCTAssertEqual(metadata["failed_channels"], "0")
+        XCTAssertEqual(metadata["http_404_channels"], "1")
+        XCTAssertEqual(metadata["http_non_2xx_channels"], "1")
+        XCTAssertEqual(metadata["zero_fetched_channels"], "1")
+        XCTAssertEqual(metadata["fetched_videos_total"], "15")
+        XCTAssertEqual(metadata["cached_videos_delta"], "2")
+    }
+
     @MainActor
     func testSyncRegisteredChannelsFromStoreRestoresEmptyInMemoryChannels() throws {
         let fileManager = FileManager.default

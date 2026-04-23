@@ -198,7 +198,7 @@ enum ChannelRegistryStore {
         afterChannels: [String],
         metadata: [String: String] = [:]
     ) {
-        AppConsoleLogger.channelRegistry.notice(
+        AppConsoleLogger.channelRegistry.info(
             event,
             metadata: registryMetadata(
                 source: source,

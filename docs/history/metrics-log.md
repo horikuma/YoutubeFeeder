@@ -1,3 +1,9 @@
+## 2026/04/19
+- vscode-extension submenu architecture compile: npm run compile
+- vscode-extension source view structure compile: npm run compile
+- vscode-extension Swift concat compile: npm run compile
+- vscode-extension compile: npm run compile
+
 ## 2026/04/18
 - UI test isolation verification: xcodebuild -scheme YoutubeFeeder -destination platform=macOS -derivedDataPath /tmp/YoutubeFeederDerivedData test -only-testing:YoutubeFeederUITests/HomeScreenUITests succeeded; 2 tests passed.
 ### All videos tile click opens video

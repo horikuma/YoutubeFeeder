@@ -21,7 +21,7 @@ final class FeedCacheCoordinator: ObservableObject {
     let homeSystemStatusService: HomeSystemStatusService
     let channelRegistryMaintenanceService: ChannelRegistryMaintenanceService
     let channelRegistrySyncService: ChannelRegistryCloudflareSyncService
-    var manualRefreshTask: Task<Void, Never>?
+    var manualRefreshTask: Task<FeedRefreshCycleResult?, Never>?
     var automaticRefreshTask: Task<Void, Never>?
     var importRefreshTask: Task<Void, Never>?
     var freshnessInterval: TimeInterval
@@ -83,7 +83,7 @@ final class FeedCacheCoordinator: ObservableObject {
         maintenanceItems = bootstrap.maintenanceItems
         await refreshHomeSystemStatus()
         startChannelRegistrySyncIfNeeded()
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "bootstrap_coordinator_complete",
             metadata: [
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
@@ -97,7 +97,7 @@ final class FeedCacheCoordinator: ObservableObject {
         guard manualRefreshTask == nil else { return }
         syncRegisteredChannelsFromStore(reason: "manual_refresh")
 
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "refresh_cache_manual_started",
             metadata: [
                 "channels": String(channels.count),
@@ -114,10 +114,11 @@ final class FeedCacheCoordinator: ObservableObject {
                 await performManualRefresh()
             }
             StartupDiagnostics.shared.mark("manualRefreshFinished")
+            return nil
         }
-        await manualRefreshTask?.value
+        _ = await manualRefreshTask?.value
         manualRefreshTask = nil
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "refresh_cache_manual_finished",
             metadata: [
                 "channels": String(channels.count),
@@ -170,8 +171,9 @@ final class FeedCacheCoordinator: ObservableObject {
                     "latestPublishedAt": updatedItem?.latestPublishedAt?.formatted(date: .numeric, time: .standard) ?? ""
                 ]
             )
+            return nil
         }
-        await manualRefreshTask?.value
+        _ = await manualRefreshTask?.value
         manualRefreshTask = nil
     }
 
@@ -218,7 +220,7 @@ final class FeedCacheCoordinator: ObservableObject {
         let startedAt = Date()
         var mergedVideos = await loadVideosForChannel(channelID)
         guard context.prefersAutomaticRefresh else {
-            AppConsoleLogger.appLifecycle.notice(
+            AppConsoleLogger.appLifecycle.info(
                 "channel_videos_open_complete",
                 metadata: [
                     "channelID": channelID,
@@ -232,7 +234,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
         let shouldRefresh = await shouldAutomaticallyRefreshChannelVideos(context)
         guard shouldRefresh else {
-            AppConsoleLogger.appLifecycle.notice(
+            AppConsoleLogger.appLifecycle.info(
                 "channel_videos_open_complete",
                 metadata: [
                     "channelID": channelID,
@@ -247,7 +249,7 @@ final class FeedCacheCoordinator: ObservableObject {
         await refreshChannelManually(channelID)
         mergedVideos = await loadVideosForChannel(channelID)
         mergedVideos = await loadRemoteSearchChannelFallbackIfNeeded(context: context, currentVideos: mergedVideos)
-        AppConsoleLogger.appLifecycle.notice(
+        AppConsoleLogger.appLifecycle.info(
             "channel_videos_open_complete",
             metadata: [
                 "channelID": channelID,
@@ -292,14 +294,11 @@ final class FeedCacheCoordinator: ObservableObject {
             return FeedChannelProcessResult(
                 errorMessage: result.errorMessage,
                 fetchedVideoCount: result.fetchedVideoCount,
-                uncachedVideoCount: result.uncachedVideos.count
+                uncachedVideoCount: result.uncachedVideos.count,
+                httpStatusCode: result.httpStatusCode
             )
         }
-        return FeedChannelProcessResult(
-            errorMessage: await channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID]),
-            fetchedVideoCount: nil,
-            uncachedVideoCount: 0
-        )
+        return await channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID])
     }
 
     func prioritizedChannelIDs(states: [String: CachedChannelState]) -> [String] {
@@ -369,7 +368,7 @@ final class FeedCacheCoordinator: ObservableObject {
         let logger = AppConsoleLogger.cloudflareSync
         let storedChannels = ChannelRegistryStore.loadAllChannelIDs()
         guard channelRegistrySyncService.isConfigured else {
-            logger.notice(
+            logger.info(
                 "coordinator_skip",
                 metadata: [
                     "coordinator_channels": String(channels.count),
@@ -398,7 +397,7 @@ final class FeedCacheCoordinator: ObservableObject {
             )
             do {
                 try await channelRegistrySyncService.syncChannelRegistry()
-                logger.notice(
+                logger.info(
                     "coordinator_task_complete",
                     metadata: [
                         "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
@@ -406,7 +405,7 @@ final class FeedCacheCoordinator: ObservableObject {
                     ]
                 )
             } catch is CancellationError {
-                logger.notice(
+                logger.info(
                     "coordinator_task_cancelled",
                     metadata: [
                         "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),

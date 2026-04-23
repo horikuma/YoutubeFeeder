@@ -4,18 +4,19 @@ struct FeedChannelForcedRefreshResult {
     let uncachedVideos: [YouTubeVideo]
     let fetchedVideoCount: Int
     let errorMessage: String?
+    let httpStatusCode: Int?
 }
 
 struct FeedChannelSyncService {
     let writer: FeedCacheWriteService
     let feedService: YouTubeFeedService
 
-    func processConditionalRefresh(channelID: String, state: CachedChannelState?) async -> String? {
+    func processConditionalRefresh(channelID: String, state: CachedChannelState?) async -> FeedChannelProcessResult {
         let token = FeedValidationToken(
             etag: state?.etag,
             lastModified: state?.lastModified
         )
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.debug(
             "channel_refresh_decision",
             metadata: refreshDecisionMetadata(
                 channelID: channelID,
@@ -29,7 +30,7 @@ struct FeedChannelSyncService {
             let checkResult = try await feedService.checkForUpdates(for: channelID, validationToken: token)
             switch checkResult {
             case let .notModified(metadata):
-                AppConsoleLogger.feedRefresh.notice(
+                AppConsoleLogger.feedRefresh.debug(
                     "conditional_refresh_not_modified",
                     metadata: [
                         "channelID": channelID,
@@ -40,9 +41,15 @@ struct FeedChannelSyncService {
                     ]
                 )
                 await writer.recordNotModified(channelID: channelID, metadata: metadata)
+                return FeedChannelProcessResult(
+                    errorMessage: nil,
+                    fetchedVideoCount: nil,
+                    uncachedVideoCount: 0,
+                    httpStatusCode: metadata.httpStatusCode
+                )
             case .updated:
                 let result = try await feedService.fetchLatestFeed(for: channelID)
-                AppConsoleLogger.feedRefresh.notice(
+                AppConsoleLogger.feedRefresh.debug(
                     "conditional_refresh_updated",
                     metadata: [
                         "channelID": channelID,
@@ -53,16 +60,21 @@ struct FeedChannelSyncService {
                         "last_modified_present": result.metadata.validationToken.lastModified == nil ? "false" : "true"
                     ]
                 )
-                _ = await writer.recordSuccessCachingThumbnails(
+                let uncachedVideos = await writer.recordSuccessCachingThumbnails(
                     channelID: channelID,
                     videos: result.videos,
                     metadata: result.metadata
                 )
+                return FeedChannelProcessResult(
+                    errorMessage: nil,
+                    fetchedVideoCount: result.videos.count,
+                    uncachedVideoCount: uncachedVideos.count,
+                    httpStatusCode: result.metadata.httpStatusCode
+                )
             }
-            return nil
         } catch {
             let message = error.localizedDescription
-            AppConsoleLogger.feedRefresh.error(
+            AppConsoleLogger.feedRefresh.debug(
                 "channel_refresh_failed",
                 metadata: [
                     "channelID": channelID,
@@ -71,7 +83,11 @@ struct FeedChannelSyncService {
                 ]
             )
             await writer.recordFailure(channelID: channelID, checkedAt: .now, error: message)
-            return message
+            return FeedChannelProcessResult(
+                errorMessage: message,
+                fetchedVideoCount: nil,
+                uncachedVideoCount: 0
+            )
         }
     }
 
@@ -80,7 +96,7 @@ struct FeedChannelSyncService {
         state: CachedChannelState? = nil,
         cacheThumbnails: Bool = false
     ) async -> FeedChannelForcedRefreshResult {
-        AppConsoleLogger.feedRefresh.notice(
+        AppConsoleLogger.feedRefresh.debug(
             "channel_refresh_decision",
             metadata: refreshDecisionMetadata(
                 channelID: channelID,
@@ -91,7 +107,7 @@ struct FeedChannelSyncService {
         )
         do {
             let result = try await feedService.fetchLatestFeed(for: channelID)
-            AppConsoleLogger.feedRefresh.notice(
+            AppConsoleLogger.feedRefresh.debug(
                 "forced_refresh_fetched",
                 metadata: [
                     "channelID": channelID,
@@ -118,7 +134,8 @@ struct FeedChannelSyncService {
             return FeedChannelForcedRefreshResult(
                 uncachedVideos: uncachedVideos,
                 fetchedVideoCount: result.videos.count,
-                errorMessage: nil
+                errorMessage: nil,
+                httpStatusCode: result.metadata.httpStatusCode
             )
         } catch {
             let message = error.localizedDescription
@@ -132,7 +149,12 @@ struct FeedChannelSyncService {
                 ]
             )
             await writer.recordFailure(channelID: channelID, checkedAt: .now, error: message)
-            return FeedChannelForcedRefreshResult(uncachedVideos: [], fetchedVideoCount: 0, errorMessage: message)
+            return FeedChannelForcedRefreshResult(
+                uncachedVideos: [],
+                fetchedVideoCount: 0,
+                errorMessage: message,
+                httpStatusCode: nil
+            )
         }
     }
 

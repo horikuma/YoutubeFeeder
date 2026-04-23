@@ -157,7 +157,7 @@ extension FeedCacheCoordinator {
                 fetchedAt: payload.fetchedAt
             )
             let reloadedVideos = await loadVideosForChannel(context.channelID)
-            AppConsoleLogger.youtubeSearch.notice(
+            AppConsoleLogger.youtubeSearch.info(
                 "channel_fallback_complete",
                 metadata: [
                     "channelID": context.channelID,
@@ -338,7 +338,7 @@ extension FeedCacheCoordinator {
             cacheLifetime: remoteSearchCacheLifetime,
             allowExpired: true
         ) {
-            logger.notice("refresh_cancelled", metadata: cancelledRefreshMetadata(
+            logger.info("refresh_cancelled", metadata: cancelledRefreshMetadata(
                 keywordPreview: keywordPreview,
                 fallback: cached.source == .staleRemoteCache ? "stale_cache" : "cache",
                 cachedVideoCount: cached.videos.count,
@@ -354,7 +354,7 @@ extension FeedCacheCoordinator {
             )
         }
 
-        logger.notice("refresh_cancelled", metadata: cancelledRefreshMetadata(
+        logger.info("refresh_cancelled", metadata: cancelledRefreshMetadata(
             keywordPreview: keywordPreview,
             fallback: "empty",
             cachedVideoCount: nil,

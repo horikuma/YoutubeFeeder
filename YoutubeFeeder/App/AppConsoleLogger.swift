@@ -3,8 +3,23 @@ import Foundation
 enum AppConsoleLogLevel: String {
     case debug = "DEBUG"
     case info = "INFO"
-    case notice = "NOTICE"
+    case warning = "WARNING"
     case error = "ERROR"
+
+    static let notice = AppConsoleLogLevel.info
+
+    var priority: Int {
+        switch self {
+        case .debug:
+            return 0
+        case .info:
+            return 1
+        case .warning:
+            return 2
+        case .error:
+            return 3
+        }
+    }
 }
 
 struct AppConsoleLogger {
@@ -20,6 +35,7 @@ struct AppConsoleLogger {
     private static let fileLogLock = NSLock()
     private static let projectRootMarker = "YoutubeFeeder/App/AppConsoleLogger.swift"
     private static let runtimeLogRelativePath = "logs/youtubefeeder-runtime.log"
+    private static let minimumLogLevel: AppConsoleLogLevel = .info
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -34,8 +50,12 @@ struct AppConsoleLogger {
         emit(level: .info, event: event, message: message, metadata: metadata)
     }
 
+    func warning(_ event: String, message: String? = nil, metadata: [String: String] = [:]) {
+        emit(level: .warning, event: event, message: message, metadata: metadata)
+    }
+
     func notice(_ event: String, message: String? = nil, metadata: [String: String] = [:]) {
-        emit(level: .notice, event: event, message: message, metadata: metadata)
+        emit(level: .info, event: event, message: message, metadata: metadata)
     }
 
     func error(_ event: String, message: String? = nil, metadata: [String: String] = [:]) {
@@ -43,6 +63,7 @@ struct AppConsoleLogger {
     }
 
     private func emit(level: AppConsoleLogLevel, event: String, message: String?, metadata: [String: String]) {
+        guard level.priority >= Self.minimumLogLevel.priority else { return }
         let timestamp = Self.timestampFormatter.string(from: .now)
         let line = Self.renderLine(
             timestamp: timestamp,

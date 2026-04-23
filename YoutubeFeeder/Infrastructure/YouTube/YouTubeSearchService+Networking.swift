@@ -47,7 +47,7 @@ extension YouTubeSearchService {
             throw YouTubeSearchError.httpError(statusCode: httpResponse.statusCode)
         }
 
-        logger.debug("http_success", metadata: responseMetadata)
+        logger.info("http_success", metadata: responseMetadata)
         return data
     }
 
@@ -95,7 +95,7 @@ extension YouTubeSearchService {
         logger: AppConsoleLogger
     ) {
         if RemoteSearchErrorPolicy.isCancellation(error) {
-            logger.notice("http_cancelled", metadata: metadata)
+            logger.info("http_cancelled", metadata: metadata)
         } else {
             logger.error(
                 "http_transport_failure",

@@ -6,7 +6,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertEqual(
             AppConsoleLogger.renderLine(
                 timestamp: "2026-04-18T00:00:00.000Z",
-                level: .notice,
+                level: .info,
                 scope: "cloudflare.sync",
                 event: "http_response_received",
                 message: "保存完了",
@@ -15,7 +15,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                     "endpoint_path": "/channel-registry"
                 ]
             ),
-            #"[YoutubeFeeder] 2026-04-18T00:00:00.000Z NOTICE cloudflare.sync.http_response_received endpoint_path="/channel-registry" status="200" message="保存完了""#
+            #"[YoutubeFeeder] 2026-04-18T00:00:00.000Z INFO cloudflare.sync.http_response_received endpoint_path="/channel-registry" status="200" message="保存完了""#
         )
     }
 
@@ -36,7 +36,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
 
         let logFileURL = temporaryRoot.appendingPathComponent("runtime.log")
         try withRuntimeLogFile(logFileURL) {
-            AppConsoleLogger.cloudflareSync.notice(
+            AppConsoleLogger.cloudflareSync.info(
                 "contract_boundary",
                 message: "同期境界",
                 metadata: [
@@ -51,10 +51,30 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             .map(String.init)
         let line = try XCTUnwrap(lines.last)
         XCTAssertTrue(line.hasPrefix("[YoutubeFeeder] "))
-        XCTAssertTrue(line.contains(" NOTICE cloudflare.sync.contract_boundary "))
+        XCTAssertTrue(line.contains(" INFO cloudflare.sync.contract_boundary "))
         XCTAssertTrue(line.contains(#"channels="2""#))
         XCTAssertTrue(line.contains(#"status="200""#))
         XCTAssertTrue(line.contains(#"message="同期境界""#))
+    }
+
+    func testDebugLogsAreSuppressedAtInfoMinimumLevel() throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let logFileURL = temporaryRoot.appendingPathComponent("runtime.log")
+        try withRuntimeLogFile(logFileURL) {
+            AppConsoleLogger.cloudflareSync.debug(
+                "suppressed_debug",
+                message: "抑制確認",
+                metadata: [
+                    "channels": "2"
+                ]
+            )
+        }
+
+        XCTAssertFalse(fileManager.fileExists(atPath: logFileURL.path))
     }
 #endif
 
