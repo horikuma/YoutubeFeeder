@@ -1,3 +1,5 @@
+## 2026/04/22
+
 ## 2026/04/19
 - vscode-extension submenu architecture compile: npm run compile
 - vscode-extension source view structure compile: npm run compile
