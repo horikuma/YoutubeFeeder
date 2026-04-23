@@ -78,8 +78,12 @@ struct AppConsoleLogger {
             message: message,
             metadata: metadata
         )
-        print(line)
+        Self.writeConsoleLine(line)
         Self.appendRuntimeLogLine(line)
+    }
+
+    static func writeConsoleLine(_ line: String) {
+        print(line)
     }
 
     static func renderLine(

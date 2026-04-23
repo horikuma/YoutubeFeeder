@@ -1,3 +1,4 @@
+import Darwin
 import XCTest
 @testable import YoutubeFeeder
 
@@ -51,6 +52,16 @@ final class AppConsoleLoggerTests: LoggedTestCase {
 
         XCTAssertTrue(line.contains(#"status="200""#))
         XCTAssertTrue(line.contains(#"items="[a, b]""#))
+    }
+
+    func testConsoleOutputWritesLineToStandardOutput() throws {
+        let renderedLine = "[YoutubeFeeder] 2026-04-18T00:00:00.000Z INFO cloudflare.sync.console_written"
+
+        let output = try captureStandardOutput {
+            AppConsoleLogger.writeConsoleLine(renderedLine)
+        }
+
+        XCTAssertTrue(output.contains(renderedLine))
     }
 
 #if targetEnvironment(macCatalyst)
@@ -317,4 +328,20 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         try operation()
     }
 #endif
+
+    private func captureStandardOutput(_ operation: () throws -> Void) rethrows -> String {
+        let pipe = Pipe()
+        let originalStdout = dup(STDOUT_FILENO)
+        fflush(stdout)
+        dup2(pipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO)
+        try operation()
+
+        fflush(stdout)
+        dup2(originalStdout, STDOUT_FILENO)
+        close(originalStdout)
+        pipe.fileHandleForWriting.closeFile()
+
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        return String(decoding: data, as: UTF8.self)
+    }
 }
