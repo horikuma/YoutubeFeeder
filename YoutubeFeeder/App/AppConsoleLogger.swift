@@ -373,6 +373,7 @@ struct AppConsoleLogger {
         message: String? = nil,
         metadata: [String: String] = [:]
     ) {
+        // Event logs are reserved for state transitions, anomalies, and other important events.
         var traceMetadata = metadata
         traceMetadata["trace_id"] = traceID
         emit(level: .info, event: event, message: message, metadata: traceMetadata)
