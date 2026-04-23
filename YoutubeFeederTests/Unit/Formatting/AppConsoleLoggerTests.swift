@@ -64,6 +64,25 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertTrue(output.contains(renderedLine))
     }
 
+    #if targetEnvironment(macCatalyst)
+    func testFileOutputAppendsLineToRuntimeLogFile() throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let logFileURL = temporaryRoot.appendingPathComponent("runtime.log")
+        let renderedLine = "[YoutubeFeeder] 2026-04-18T00:00:00.000Z INFO cloudflare.sync.file_written"
+
+        try withRuntimeLogFile(logFileURL) {
+            AppConsoleLogger.writeFileLine(renderedLine)
+        }
+
+        let output = try String(contentsOf: logFileURL, encoding: .utf8)
+        XCTAssertTrue(output.contains(renderedLine))
+    }
+    #endif
+
 #if targetEnvironment(macCatalyst)
     func testMacRuntimeLogFileURLUsesProjectLogsDirectory() throws {
         let sourceFilePath = "/Repo/YoutubeFeeder/App/AppConsoleLogger.swift"

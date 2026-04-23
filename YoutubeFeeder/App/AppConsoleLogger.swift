@@ -79,11 +79,15 @@ struct AppConsoleLogger {
             metadata: metadata
         )
         Self.writeConsoleLine(line)
-        Self.appendRuntimeLogLine(line)
+        Self.writeFileLine(line)
     }
 
     static func writeConsoleLine(_ line: String) {
         print(line)
+    }
+
+    static func writeFileLine(_ line: String) {
+        appendRuntimeLogLine(line)
     }
 
     static func renderLine(
