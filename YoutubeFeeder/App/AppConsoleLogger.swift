@@ -222,6 +222,17 @@ struct AppConsoleLogger {
         return startedAt
     }
 
+    func traceEvent(
+        _ event: String,
+        traceID: String,
+        message: String? = nil,
+        metadata: [String: String] = [:]
+    ) {
+        var traceMetadata = metadata
+        traceMetadata["trace_id"] = traceID
+        emit(level: .info, event: event, message: message, metadata: traceMetadata)
+    }
+
     static func mainThreadFlag() -> String {
         Thread.isMainThread ? "true" : "false"
     }

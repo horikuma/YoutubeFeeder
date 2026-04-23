@@ -228,6 +228,41 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertTrue(line.contains(#"message="完了""#))
     }
 
+    func testTraceEventLogsTraceIDWithoutClearingStartTime() throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let logFileURL = temporaryRoot.appendingPathComponent("runtime.log")
+        let traceID = AppConsoleLogger.traceID()
+        let startedAt = ISO8601DateFormatter().date(from: "2026-04-23T11:20:23Z")!
+        AppConsoleLogger.recordTraceStart(traceID, startedAt: startedAt)
+
+        try withRuntimeLogFile(logFileURL) {
+            AppConsoleLogger.cloudflareSync.traceEvent(
+                "contract_boundary_event",
+                traceID: traceID,
+                message: "観測",
+                metadata: [
+                    "channels": "2"
+                ]
+            )
+        }
+
+        XCTAssertEqual(AppConsoleLogger.traceStartTime(for: traceID), startedAt)
+
+        let lines = try String(contentsOf: logFileURL, encoding: .utf8)
+            .split(separator: "\n")
+            .map(String.init)
+        let line = try XCTUnwrap(lines.last)
+        XCTAssertTrue(line.contains(" INFO cloudflare.sync.contract_boundary_event "))
+        XCTAssertTrue(line.contains(#"trace_id=""#))
+        XCTAssertTrue(line.contains(#"channels="2""#))
+        XCTAssertTrue(line.contains(#"message="観測""#))
+        XCTAssertFalse(line.contains(#"duration_ms=""#))
+    }
+
     func testTraceDurationMillisecondsComputesElapsedTime() {
         let startedAt = Date(timeIntervalSince1970: 0)
         let endedAt = Date(timeIntervalSince1970: 1.25)
