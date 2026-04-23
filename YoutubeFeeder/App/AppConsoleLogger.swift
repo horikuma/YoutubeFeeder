@@ -224,6 +224,31 @@ struct AppConsoleLogger {
         return .unfinishedStarts(traceIDs: traceIDs)
     }
 
+    static func traceEndMismatchWarning(for traceID: String, startedAt: Date?) -> TraceLifecycleMismatch? {
+        guard let mismatch = traceEndMismatch(for: traceID, startedAt: startedAt) else { return nil }
+        appLifecycle.warning(
+            "trace_lifecycle_mismatch",
+            metadata: [
+                "kind": "missing_start",
+                "trace_id": traceID
+            ]
+        )
+        return mismatch
+    }
+
+    static func traceStartMismatchWarning() -> TraceLifecycleMismatch? {
+        guard case let .unfinishedStarts(traceIDs)? = traceStartMismatch() else { return nil }
+        appLifecycle.warning(
+            "trace_lifecycle_mismatch",
+            metadata: [
+                "count": String(traceIDs.count),
+                "kind": "unfinished_starts",
+                "trace_ids": traceIDs.joined(separator: ",")
+            ]
+        )
+        return .unfinishedStarts(traceIDs: traceIDs)
+    }
+
     func traceStart(_ event: String, message: String? = nil, metadata: [String: String] = [:]) -> String {
         let traceID = Self.traceID()
         Self.recordTraceStart(traceID)

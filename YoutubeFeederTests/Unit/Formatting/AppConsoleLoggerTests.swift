@@ -210,6 +210,34 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         )
     }
 
+    func testTraceEndMismatchWarningWritesWarningLog() throws {
+        let traceID = AppConsoleLogger.traceID()
+
+        let output = try captureStandardError {
+            _ = AppConsoleLogger.traceEndMismatchWarning(for: traceID, startedAt: nil)
+        }
+
+        XCTAssertTrue(output.contains(" WARNING "))
+        XCTAssertTrue(output.contains("trace_lifecycle_mismatch"))
+        XCTAssertTrue(output.contains(traceID))
+    }
+
+    func testTraceStartMismatchWarningWritesWarningLog() throws {
+        let traceID = AppConsoleLogger.traceID()
+        let startedAt = ISO8601DateFormatter().date(from: "2026-04-23T11:13:23Z")!
+
+        AppConsoleLogger.recordTraceStart(traceID, startedAt: startedAt)
+        defer { _ = AppConsoleLogger.removeTraceStartTime(for: traceID) }
+
+        let output = try captureStandardError {
+            _ = AppConsoleLogger.traceStartMismatchWarning()
+        }
+
+        XCTAssertTrue(output.contains(" WARNING "))
+        XCTAssertTrue(output.contains("trace_lifecycle_mismatch"))
+        XCTAssertTrue(output.contains(traceID))
+    }
+
 #if targetEnvironment(macCatalyst)
     func testTraceStartLogsTraceIDAndRecordsStartTime() throws {
         let fileManager = FileManager.default
