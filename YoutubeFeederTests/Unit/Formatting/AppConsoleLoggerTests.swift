@@ -193,6 +193,31 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertNil(AppConsoleLogger.traceStartTime(for: traceID))
     }
 
+    @MainActor
+    func testStartupDiagnosticsEmitsStartupProfileLog() throws {
+        let diagnostics = StartupDiagnostics()
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let logFileURL = temporaryRoot.appendingPathComponent("runtime.log")
+        let appLaunchedAt = ISO8601DateFormatter().date(from: "2026-04-23T11:00:00Z")!
+        let splashShownAt = ISO8601DateFormatter().date(from: "2026-04-23T11:00:01Z")!
+
+        let output = try captureStandardOutput {
+            try withRuntimeLogFile(logFileURL) {
+                diagnostics.mark("appLaunched", at: appLaunchedAt)
+                diagnostics.mark("splashShown", at: splashShownAt)
+            }
+        }
+
+        XCTAssertTrue(output.contains("startup_profile"))
+        XCTAssertTrue(output.contains(#"T0=""#))
+        XCTAssertTrue(output.contains(#"T1="2026-04-23T11:00:00.000Z""#))
+        XCTAssertTrue(output.contains(#"T2="2026-04-23T11:00:01.000Z""#))
+    }
+
     func testTraceEventAllowsOnlyStateChangeAnomalyAndImportantEvents() throws {
         let logger = AppConsoleLogger(scope: "event.guard")
         let allowedTraceID = AppConsoleLogger.traceID()
