@@ -193,6 +193,34 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertNil(AppConsoleLogger.traceStartTime(for: traceID))
     }
 
+    func testTraceEventAllowsOnlyStateChangeAnomalyAndImportantEvents() throws {
+        let logger = AppConsoleLogger(scope: "event.guard")
+        let allowedTraceID = AppConsoleLogger.traceID()
+        let blockedTraceID = AppConsoleLogger.traceID()
+
+        let allowedOutput = try captureStandardOutput {
+            logger.traceEvent(
+                "state_change_selected",
+                traceID: allowedTraceID,
+                message: "選択",
+                metadata: ["reason": "user_action"]
+            )
+        }
+        let blockedOutput = try captureStandardOutput {
+            logger.traceEvent(
+                "diagnostic_snapshot",
+                traceID: blockedTraceID,
+                message: "観測",
+                metadata: ["reason": "debug"]
+            )
+        }
+
+        XCTAssertTrue(allowedOutput.contains("state_change_selected"))
+        XCTAssertTrue(allowedOutput.contains(allowedTraceID))
+        XCTAssertFalse(blockedOutput.contains("diagnostic_snapshot"))
+        XCTAssertFalse(blockedOutput.contains(blockedTraceID))
+    }
+
     #if targetEnvironment(macCatalyst)
     func testScopeInvocationCountsCanBeRecordedReadAndRemoved() throws {
         let logger = AppConsoleLogger(scope: "count.test")
@@ -401,7 +429,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
 
         try withRuntimeLogFile(logFileURL) {
             AppConsoleLogger.cloudflareSync.traceEvent(
-                "contract_boundary_event",
+                "important_contract_boundary_event",
                 traceID: traceID,
                 message: "観測",
                 metadata: [
@@ -416,7 +444,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             .split(separator: "\n")
             .map(String.init)
         let line = try XCTUnwrap(lines.last)
-        XCTAssertTrue(line.contains(" INFO cloudflare.sync.contract_boundary_event "))
+        XCTAssertTrue(line.contains(" INFO cloudflare.sync.important_contract_boundary_event "))
         XCTAssertTrue(line.contains(#"trace_id=""#))
         XCTAssertTrue(line.contains(#"channels="2""#))
         XCTAssertTrue(line.contains(#"message="観測""#))

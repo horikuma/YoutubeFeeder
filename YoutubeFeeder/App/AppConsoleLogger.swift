@@ -374,9 +374,16 @@ struct AppConsoleLogger {
         metadata: [String: String] = [:]
     ) {
         // Event logs are reserved for state transitions, anomalies, and other important events.
+        guard Self.isAllowedEventLog(event) else { return }
         var traceMetadata = metadata
         traceMetadata["trace_id"] = traceID
         emit(level: .info, event: event, message: message, metadata: traceMetadata)
+    }
+
+    private static func isAllowedEventLog(_ event: String) -> Bool {
+        event.hasPrefix("state_change_")
+            || event.hasPrefix("anomaly_")
+            || event.hasPrefix("important_")
     }
 
     static func mainThreadFlag() -> String {
