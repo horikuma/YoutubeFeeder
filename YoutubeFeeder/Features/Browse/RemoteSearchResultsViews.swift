@@ -379,7 +379,7 @@ struct RemoteKeywordSearchResultsView: View {
         scheduledAt: Date,
         startedAt: Date
     ) {
-        AppConsoleLogger.remoteSearchSplitLoad.info(
+        AppConsoleLogger.appLifecycle.info(
             "remote_search_split_load_started",
             metadata: [
                 "channelID": context.channelID,
@@ -405,7 +405,7 @@ struct RemoteKeywordSearchResultsView: View {
         startedAt: Date,
         publishStartedAt: Date
     ) {
-        AppConsoleLogger.remoteSearchSplitLoad.info(
+        AppConsoleLogger.appLifecycle.info(
             "remote_search_split_load_completed",
             metadata: [
                 "channelID": context.channelID,
