@@ -92,6 +92,7 @@ struct AppConsoleLogger {
     ) -> String {
         let renderedMetadata = metadata
             .filter { !$0.value.isEmpty }
+            .filter { shouldIncludeMetadataValue($0.value, level: level) }
             .sorted { $0.key < $1.key }
             .map { "\($0.key)=\(quoted($0.value))" }
             .joined(separator: " ")
@@ -104,6 +105,12 @@ struct AppConsoleLogger {
             return "\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event)"
         }
         return "\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event) \(suffix)"
+    }
+
+    private static func shouldIncludeMetadataValue(_ value: String, level: AppConsoleLogLevel) -> Bool {
+        guard level == .info else { return true }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !(trimmed.hasPrefix("[") && trimmed.hasSuffix("]"))
     }
 
     private static func quoted(_ value: String) -> String {

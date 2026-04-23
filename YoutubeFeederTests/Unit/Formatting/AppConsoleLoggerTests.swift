@@ -19,6 +19,23 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         )
     }
 
+    func testInfoRenderLineOmitsBracketedListLikeMetadataValues() {
+        let line = AppConsoleLogger.renderLine(
+            timestamp: "2026-04-18T00:00:00.000Z",
+            level: .info,
+            scope: "cloudflare.sync",
+            event: "http_response_received",
+            message: nil,
+            metadata: [
+                "items": "[a, b]",
+                "status": "200"
+            ]
+        )
+
+        XCTAssertTrue(line.contains(#"status="200""#))
+        XCTAssertFalse(line.contains(#"items="[a, b]""#))
+    }
+
 #if targetEnvironment(macCatalyst)
     func testMacRuntimeLogFileURLUsesProjectLogsDirectory() throws {
         let sourceFilePath = "/Repo/YoutubeFeeder/App/AppConsoleLogger.swift"
