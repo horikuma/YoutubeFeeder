@@ -184,7 +184,18 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertTrue(line.contains(" INFO cloudflare.sync.contract_boundary "))
         XCTAssertTrue(line.contains(#"trace_id=""#))
         XCTAssertTrue(line.contains(#"channels="2""#))
+        XCTAssertTrue(line.contains(#"duration_ms=""#))
         XCTAssertTrue(line.contains(#"message="完了""#))
+    }
+
+    func testTraceDurationMillisecondsComputesElapsedTime() {
+        let startedAt = Date(timeIntervalSince1970: 0)
+        let endedAt = Date(timeIntervalSince1970: 1.25)
+
+        XCTAssertEqual(
+            AppConsoleLogger.traceDurationMilliseconds(since: startedAt, to: endedAt),
+            "1250"
+        )
     }
 #endif
 

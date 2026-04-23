@@ -148,6 +148,10 @@ struct AppConsoleLogger {
         String(Int(endedAt.timeIntervalSince(startedAt) * 1000))
     }
 
+    static func traceDurationMilliseconds(since startedAt: Date, to endedAt: Date = .now) -> String {
+        elapsedMilliseconds(from: startedAt, to: endedAt)
+    }
+
     static func traceID() -> String {
         UUID().uuidString
     }
@@ -186,6 +190,9 @@ struct AppConsoleLogger {
         let startedAt = Self.removeTraceStartTime(for: traceID)
         var traceMetadata = metadata
         traceMetadata["trace_id"] = traceID
+        if let startedAt {
+            traceMetadata["duration_ms"] = Self.traceDurationMilliseconds(since: startedAt)
+        }
         emit(level: .info, event: event, message: message, metadata: traceMetadata)
         return startedAt
     }
