@@ -58,7 +58,17 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         let renderedLine = "[YoutubeFeeder] 2026-04-18T00:00:00.000Z INFO cloudflare.sync.console_written"
 
         let output = try captureStandardOutput {
-            AppConsoleLogger.writeConsoleLine(renderedLine)
+            AppConsoleLogger.writeConsoleLine(renderedLine, level: .info)
+        }
+
+        XCTAssertTrue(output.contains(renderedLine))
+    }
+
+    func testWarningConsoleOutputWritesLineToStandardError() throws {
+        let renderedLine = "[YoutubeFeeder] 2026-04-18T00:00:00.000Z WARNING cloudflare.sync.console_written"
+
+        let output = try captureStandardError {
+            AppConsoleLogger.writeConsoleLine(renderedLine, level: .warning)
         }
 
         XCTAssertTrue(output.contains(renderedLine))
@@ -358,6 +368,23 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         fflush(stdout)
         dup2(originalStdout, STDOUT_FILENO)
         close(originalStdout)
+        pipe.fileHandleForWriting.closeFile()
+
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    private func captureStandardError(_ operation: () throws -> Void) rethrows -> String {
+        let pipe = Pipe()
+        let originalStderr = dup(STDERR_FILENO)
+        fflush(stderr)
+        dup2(pipe.fileHandleForWriting.fileDescriptor, STDERR_FILENO)
+
+        try operation()
+
+        fflush(stderr)
+        dup2(originalStderr, STDERR_FILENO)
+        close(originalStderr)
         pipe.fileHandleForWriting.closeFile()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()

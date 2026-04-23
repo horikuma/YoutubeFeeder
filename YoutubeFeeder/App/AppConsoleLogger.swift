@@ -78,12 +78,22 @@ struct AppConsoleLogger {
             message: message,
             metadata: metadata
         )
-        Self.writeConsoleLine(line)
+        Self.writeConsoleLine(line, level: level)
         Self.writeFileLine(line)
     }
 
-    static func writeConsoleLine(_ line: String) {
-        print(line)
+    static func writeConsoleLine(_ line: String, level: AppConsoleLogLevel) {
+        switch level {
+        case .warning, .error:
+            Self.writeStandardErrorLine(line)
+        case .debug, .info:
+            print(line)
+        }
+    }
+
+    static func writeStandardErrorLine(_ line: String) {
+        guard let data = (line + "\n").data(using: .utf8) else { return }
+        FileHandle.standardError.write(data)
     }
 
     static func writeFileLine(_ line: String) {
