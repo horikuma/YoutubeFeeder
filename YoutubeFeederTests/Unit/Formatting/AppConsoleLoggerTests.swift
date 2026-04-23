@@ -214,6 +214,42 @@ final class AppConsoleLoggerTests: LoggedTestCase {
     }
     #endif
 
+    func testScopeInvocationWindowSecondsIsFixedValue() {
+        XCTAssertEqual(AppConsoleLogger.scopeInvocationWindowSeconds, 1)
+    }
+
+    func testScopeInvocationThresholdExceededDetectsHighFrequencyCalls() {
+        let scope = "count.threshold.\(UUID().uuidString)"
+        defer { _ = AppConsoleLogger.removeScopeInvocationCount(for: scope) }
+
+        AppConsoleLogger.recordScopeInvocation(for: scope)
+        AppConsoleLogger.recordScopeInvocation(for: scope)
+
+        XCTAssertEqual(
+            AppConsoleLogger.scopeInvocationThresholdExceeded(for: scope, limit: 1),
+            .exceeded(scope: scope, count: 2, limit: 1)
+        )
+        XCTAssertNil(AppConsoleLogger.scopeInvocationThresholdExceeded(for: scope, limit: 2))
+    }
+
+    func testScopeInvocationThresholdExceededWarningWritesWarningLog() throws {
+        let scope = "count.warning.\(UUID().uuidString)"
+        defer { _ = AppConsoleLogger.removeScopeInvocationCount(for: scope) }
+
+        AppConsoleLogger.recordScopeInvocation(for: scope)
+        AppConsoleLogger.recordScopeInvocation(for: scope)
+
+        let output = try captureStandardError {
+            _ = AppConsoleLogger.scopeInvocationThresholdExceededWarning(for: scope, limit: 1)
+        }
+
+        XCTAssertTrue(output.contains(" WARNING "))
+        XCTAssertTrue(output.contains("scope_invocation_threshold_exceeded"))
+        XCTAssertTrue(output.contains(scope))
+        XCTAssertTrue(output.contains(#"count="2""#))
+        XCTAssertTrue(output.contains(#"limit="1""#))
+    }
+
     func testTraceLifecycleMismatchDetectionFindsOrphanStartsAndMissingStarts() {
         let traceID = AppConsoleLogger.traceID()
         let startedAt = ISO8601DateFormatter().date(from: "2026-04-23T11:13:23Z")!

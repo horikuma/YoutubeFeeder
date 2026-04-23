@@ -28,6 +28,10 @@ struct AppConsoleLogger {
         case unfinishedStarts(traceIDs: [String])
     }
 
+    enum ScopeInvocationThresholdExceeded: Equatable {
+        case exceeded(scope: String, count: Int, limit: Int)
+    }
+
     static let appLifecycle = AppConsoleLogger(scope: "app.lifecycle")
     static let channelRegistry = AppConsoleLogger(scope: "channel.registry")
     static let channelRegistryTransfer = AppConsoleLogger(scope: "channel_registry.transfer")
@@ -44,6 +48,7 @@ struct AppConsoleLogger {
     private static let projectRootMarker = "YoutubeFeeder/App/AppConsoleLogger.swift"
     private static let runtimeLogRelativePath = "logs/youtubefeeder-runtime.log"
     private static let minimumLogLevel: AppConsoleLogLevel = .info
+    static let scopeInvocationWindowSeconds: TimeInterval = 1
     private static let traceStateLock = NSLock()
     private static var traceStartTimes: [String: Date] = [:]
     private static let scopeInvocationLock = NSLock()
@@ -127,6 +132,26 @@ struct AppConsoleLogger {
         defer { scopeInvocationLock.unlock() }
 
         return scopeInvocationCounts.removeValue(forKey: scope)
+    }
+
+    static func scopeInvocationThresholdExceeded(for scope: String, limit: Int) -> ScopeInvocationThresholdExceeded? {
+        let count = scopeInvocationCount(for: scope)
+        guard count > limit else { return nil }
+        return .exceeded(scope: scope, count: count, limit: limit)
+    }
+
+    static func scopeInvocationThresholdExceededWarning(for scope: String, limit: Int) -> ScopeInvocationThresholdExceeded? {
+        guard let exceeded = scopeInvocationThresholdExceeded(for: scope, limit: limit) else { return nil }
+        appLifecycle.warning(
+            "scope_invocation_threshold_exceeded",
+            metadata: [
+                "kind": "threshold_exceeded",
+                "scope": scope,
+                "count": "\(scopeInvocationCount(for: scope))",
+                "limit": "\(limit)"
+            ]
+        )
+        return exceeded
     }
 
     static func renderLine(
