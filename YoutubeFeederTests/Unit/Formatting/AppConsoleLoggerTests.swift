@@ -218,6 +218,10 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertEqual(AppConsoleLogger.scopeInvocationWindowSeconds, 1)
     }
 
+    func testScopeInvocationThresholdCountIsFixedValue() {
+        XCTAssertEqual(AppConsoleLogger.scopeInvocationThresholdCount, 50)
+    }
+
     func testScopeInvocationThresholdExceededDetectsHighFrequencyCalls() {
         let scope = "count.threshold.\(UUID().uuidString)"
         defer { _ = AppConsoleLogger.removeScopeInvocationCount(for: scope) }
@@ -230,6 +234,20 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             .exceeded(scope: scope, count: 2, limit: 1)
         )
         XCTAssertNil(AppConsoleLogger.scopeInvocationThresholdExceeded(for: scope, limit: 2))
+    }
+
+    func testScopeInvocationCountsResetAfterOneSecondWindow() {
+        let scope = "count.reset.\(UUID().uuidString)"
+        defer { _ = AppConsoleLogger.removeScopeInvocationCount(for: scope) }
+
+        let base = ISO8601DateFormatter().date(from: "2026-04-23T11:13:23Z")!
+
+        AppConsoleLogger.recordScopeInvocation(for: scope, at: base)
+        AppConsoleLogger.recordScopeInvocation(for: scope, at: base.addingTimeInterval(0.5))
+        XCTAssertEqual(AppConsoleLogger.scopeInvocationCount(for: scope), 2)
+
+        AppConsoleLogger.recordScopeInvocation(for: scope, at: base.addingTimeInterval(1.0))
+        XCTAssertEqual(AppConsoleLogger.scopeInvocationCount(for: scope), 1)
     }
 
     func testScopeInvocationThresholdExceededWarningWritesWarningLog() throws {

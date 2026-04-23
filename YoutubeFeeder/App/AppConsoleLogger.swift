@@ -49,10 +49,16 @@ struct AppConsoleLogger {
     private static let runtimeLogRelativePath = "logs/youtubefeeder-runtime.log"
     private static let minimumLogLevel: AppConsoleLogLevel = .info
     static let scopeInvocationWindowSeconds: TimeInterval = 1
+    static let scopeInvocationThresholdCount: Int = 50
     private static let traceStateLock = NSLock()
     private static var traceStartTimes: [String: Date] = [:]
     private static let scopeInvocationLock = NSLock()
-    private static var scopeInvocationCounts: [String: Int] = [:]
+    private struct ScopeInvocationWindow {
+        var windowStartedAt: Date
+        var count: Int
+    }
+
+    private static var scopeInvocationWindows: [String: ScopeInvocationWindow] = [:]
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -113,31 +119,45 @@ struct AppConsoleLogger {
         appendRuntimeLogLine(line)
     }
 
-    static func recordScopeInvocation(for scope: String) {
+    static func recordScopeInvocation(for scope: String, at timestamp: Date = .now) {
         scopeInvocationLock.lock()
         defer { scopeInvocationLock.unlock() }
 
-        scopeInvocationCounts[scope, default: 0] += 1
+        if let window = scopeInvocationWindows[scope],
+            timestamp.timeIntervalSince(window.windowStartedAt) < scopeInvocationWindowSeconds
+        {
+            scopeInvocationWindows[scope] = ScopeInvocationWindow(
+                windowStartedAt: window.windowStartedAt,
+                count: window.count + 1
+            )
+            return
+        }
+
+        scopeInvocationWindows[scope] = ScopeInvocationWindow(windowStartedAt: timestamp, count: 1)
     }
 
     static func scopeInvocationCount(for scope: String) -> Int {
         scopeInvocationLock.lock()
         defer { scopeInvocationLock.unlock() }
 
-        return scopeInvocationCounts[scope] ?? 0
+        return scopeInvocationWindows[scope]?.count ?? 0
     }
 
     static func removeScopeInvocationCount(for scope: String) -> Int? {
         scopeInvocationLock.lock()
         defer { scopeInvocationLock.unlock() }
 
-        return scopeInvocationCounts.removeValue(forKey: scope)
+        return scopeInvocationWindows.removeValue(forKey: scope)?.count
     }
 
     static func scopeInvocationThresholdExceeded(for scope: String, limit: Int) -> ScopeInvocationThresholdExceeded? {
         let count = scopeInvocationCount(for: scope)
         guard count > limit else { return nil }
         return .exceeded(scope: scope, count: count, limit: limit)
+    }
+
+    static func scopeInvocationThresholdExceeded(for scope: String) -> ScopeInvocationThresholdExceeded? {
+        scopeInvocationThresholdExceeded(for: scope, limit: scopeInvocationThresholdCount)
     }
 
     static func scopeInvocationThresholdExceededWarning(for scope: String, limit: Int) -> ScopeInvocationThresholdExceeded? {
@@ -149,6 +169,20 @@ struct AppConsoleLogger {
                 "scope": scope,
                 "count": "\(scopeInvocationCount(for: scope))",
                 "limit": "\(limit)"
+            ]
+        )
+        return exceeded
+    }
+
+    static func scopeInvocationThresholdExceededWarning(for scope: String) -> ScopeInvocationThresholdExceeded? {
+        guard let exceeded = scopeInvocationThresholdExceeded(for: scope) else { return nil }
+        appLifecycle.warning(
+            "scope_invocation_threshold_exceeded",
+            metadata: [
+                "kind": "threshold_exceeded",
+                "scope": scope,
+                "count": "\(scopeInvocationCount(for: scope))",
+                "limit": "\(scopeInvocationThresholdCount)"
             ]
         )
         return exceeded
