@@ -36,6 +36,8 @@ struct AppConsoleLogger {
     private static let projectRootMarker = "YoutubeFeeder/App/AppConsoleLogger.swift"
     private static let runtimeLogRelativePath = "logs/youtubefeeder-runtime.log"
     private static let minimumLogLevel: AppConsoleLogLevel = .info
+    private static let traceStateLock = NSLock()
+    private static var traceStartTimes: [String: Date] = [:]
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -148,6 +150,27 @@ struct AppConsoleLogger {
 
     static func traceID() -> String {
         UUID().uuidString
+    }
+
+    static func recordTraceStart(_ traceID: String, startedAt: Date = .now) {
+        traceStateLock.lock()
+        defer { traceStateLock.unlock() }
+
+        traceStartTimes[traceID] = startedAt
+    }
+
+    static func traceStartTime(for traceID: String) -> Date? {
+        traceStateLock.lock()
+        defer { traceStateLock.unlock() }
+
+        return traceStartTimes[traceID]
+    }
+
+    static func removeTraceStartTime(for traceID: String) -> Date? {
+        traceStateLock.lock()
+        defer { traceStateLock.unlock() }
+
+        return traceStartTimes.removeValue(forKey: traceID)
     }
 
     static func mainThreadFlag() -> String {

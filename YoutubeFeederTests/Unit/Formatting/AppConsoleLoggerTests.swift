@@ -108,6 +108,17 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertEqual(UUID(uuidString: traceID)?.uuidString, traceID)
     }
 
+    func testTraceStartTimesCanBeRecordedReadAndRemoved() {
+        let traceID = AppConsoleLogger.traceID()
+        let startedAt = ISO8601DateFormatter().date(from: "2026-04-23T11:13:23Z")!
+
+        AppConsoleLogger.recordTraceStart(traceID, startedAt: startedAt)
+
+        XCTAssertEqual(AppConsoleLogger.traceStartTime(for: traceID), startedAt)
+        XCTAssertEqual(AppConsoleLogger.removeTraceStartTime(for: traceID), startedAt)
+        XCTAssertNil(AppConsoleLogger.traceStartTime(for: traceID))
+    }
+
     func testErrorSummaryIncludesDecodingPathForMissingKey() throws {
         struct Example: Decodable {
             let items: [Item]
