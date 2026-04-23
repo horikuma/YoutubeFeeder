@@ -235,6 +235,18 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertEqual(diagnostics.startupProfileT1, appLaunchedAt)
     }
 
+    @MainActor
+    func testStartupDiagnosticsExposesT2InitialDisplayTime() {
+        let diagnostics = StartupDiagnostics()
+        let appLaunchedAt = ISO8601DateFormatter().date(from: "2026-04-23T11:00:00Z")!
+        let splashShownAt = ISO8601DateFormatter().date(from: "2026-04-23T11:00:01Z")!
+
+        diagnostics.mark("appLaunched", at: appLaunchedAt)
+        diagnostics.mark("splashShown", at: splashShownAt)
+
+        XCTAssertEqual(diagnostics.startupProfileT2, splashShownAt)
+    }
+
     func testTraceEventAllowsOnlyStateChangeAnomalyAndImportantEvents() throws {
         let logger = AppConsoleLogger(scope: "event.guard")
         let allowedTraceID = AppConsoleLogger.traceID()
