@@ -46,6 +46,8 @@ struct AppConsoleLogger {
     private static let minimumLogLevel: AppConsoleLogLevel = .info
     private static let traceStateLock = NSLock()
     private static var traceStartTimes: [String: Date] = [:]
+    private static let scopeInvocationLock = NSLock()
+    private static var scopeInvocationCounts: [String: Int] = [:]
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -74,6 +76,7 @@ struct AppConsoleLogger {
 
     private func emit(level: AppConsoleLogLevel, event: String, message: String?, metadata: [String: String]) {
         guard level.priority >= Self.minimumLogLevel.priority else { return }
+        Self.recordScopeInvocation(for: scope)
         let timestamp = Self.timestampFormatter.string(from: .now)
         let line = Self.renderLine(
             timestamp: timestamp,
@@ -103,6 +106,27 @@ struct AppConsoleLogger {
 
     static func writeFileLine(_ line: String) {
         appendRuntimeLogLine(line)
+    }
+
+    static func recordScopeInvocation(for scope: String) {
+        scopeInvocationLock.lock()
+        defer { scopeInvocationLock.unlock() }
+
+        scopeInvocationCounts[scope, default: 0] += 1
+    }
+
+    static func scopeInvocationCount(for scope: String) -> Int {
+        scopeInvocationLock.lock()
+        defer { scopeInvocationLock.unlock() }
+
+        return scopeInvocationCounts[scope] ?? 0
+    }
+
+    static func removeScopeInvocationCount(for scope: String) -> Int? {
+        scopeInvocationLock.lock()
+        defer { scopeInvocationLock.unlock() }
+
+        return scopeInvocationCounts.removeValue(forKey: scope)
     }
 
     static func renderLine(
