@@ -208,9 +208,20 @@ struct AppConsoleLogger {
             .joined(separator: " ")
 
         if suffix.isEmpty {
-            return "\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event)"
+            return jsonWrappedLine("\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event)")
         }
-        return "\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event) \(suffix)"
+        return jsonWrappedLine("\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event) \(suffix)")
+    }
+
+    private static func jsonWrappedLine(_ line: String) -> String {
+        guard
+            let data = try? JSONSerialization.data(withJSONObject: ["line": line], options: [.sortedKeys]),
+            let string = String(data: data, encoding: .utf8)
+        else {
+            return line
+        }
+
+        return string
     }
 
     private static func shouldIncludeMetadataValue(_ value: String, level: AppConsoleLogLevel) -> Bool {

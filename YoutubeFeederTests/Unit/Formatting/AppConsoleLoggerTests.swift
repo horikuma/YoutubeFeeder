@@ -16,12 +16,12 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                     "endpoint_path": "/channel-registry"
                 ]
             ),
-            #"[YoutubeFeeder] 2026-04-18T00:00:00.000Z INFO cloudflare.sync.http_response_received endpoint_path="/channel-registry" status="200" message="保存完了""#
+            #"{"line":"[YoutubeFeeder] 2026-04-18T00:00:00.000Z INFO cloudflare.sync.http_response_received endpoint_path=\"\/channel-registry\" status=\"200\" message=\"保存完了\""}"#
         )
     }
 
     func testInfoRenderLineOmitsBracketedListLikeMetadataValues() {
-        let line = AppConsoleLogger.renderLine(
+        let line = Self.unwrappedLogOutput(AppConsoleLogger.renderLine(
             timestamp: "2026-04-18T00:00:00.000Z",
             level: .info,
             scope: "cloudflare.sync",
@@ -31,14 +31,14 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                 "items": "[a, b]",
                 "status": "200"
             ]
-        )
+        ))
 
         XCTAssertTrue(line.contains(#"status="200""#))
         XCTAssertFalse(line.contains(#"items="[a, b]""#))
     }
 
     func testDebugRenderLineKeepsBracketedListLikeMetadataValues() {
-        let line = AppConsoleLogger.renderLine(
+        let line = Self.unwrappedLogOutput(AppConsoleLogger.renderLine(
             timestamp: "2026-04-18T00:00:00.000Z",
             level: .debug,
             scope: "cloudflare.sync",
@@ -48,7 +48,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                 "items": "[a, b]",
                 "status": "200"
             ]
-        )
+        ))
 
         XCTAssertTrue(line.contains(#"status="200""#))
         XCTAssertTrue(line.contains(#"items="[a, b]""#))
@@ -88,7 +88,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             AppConsoleLogger.writeFileLine(renderedLine)
         }
 
-        let output = try String(contentsOf: logFileURL, encoding: .utf8)
+        let output = Self.unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
         XCTAssertTrue(output.contains(renderedLine))
     }
     #endif
@@ -120,15 +120,23 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             )
         }
 
-        let lines = try String(contentsOf: logFileURL, encoding: .utf8)
+        let rawOutput = try String(contentsOf: logFileURL, encoding: .utf8)
+        let lines = rawOutput
             .split(separator: "\n")
             .map(String.init)
-        let line = try XCTUnwrap(lines.last)
-        XCTAssertTrue(line.hasPrefix("[YoutubeFeeder] "))
-        XCTAssertTrue(line.contains(" INFO cloudflare.sync.contract_boundary "))
-        XCTAssertTrue(line.contains(#"channels="2""#))
-        XCTAssertTrue(line.contains(#"status="200""#))
-        XCTAssertTrue(line.contains(#"message="同期境界""#))
+        let rawLine = try XCTUnwrap(lines.last)
+        XCTAssertTrue(rawLine.hasPrefix(#"{"line":"[YoutubeFeeder] "#))
+
+        let plainLine = try XCTUnwrap(
+            Self.unwrappedLogOutput(rawOutput)
+                .split(separator: "\n")
+                .map(String.init)
+                .last
+        )
+        XCTAssertTrue(plainLine.contains(" INFO cloudflare.sync.contract_boundary "))
+        XCTAssertTrue(plainLine.contains(#"channels="2""#))
+        XCTAssertTrue(plainLine.contains(#"status="200""#))
+        XCTAssertTrue(plainLine.contains(#"message="同期境界""#))
     }
 
     func testDebugLogsAreSuppressedAtInfoMinimumLevel() throws {
@@ -417,7 +425,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         let resolvedTraceID = try XCTUnwrap(traceID)
         XCTAssertNotNil(AppConsoleLogger.traceStartTime(for: resolvedTraceID))
 
-        let lines = try String(contentsOf: logFileURL, encoding: .utf8)
+        let lines = Self.unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
             .split(separator: "\n")
             .map(String.init)
         let line = try XCTUnwrap(lines.last)
@@ -456,7 +464,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertEqual(returnedStartedAt, startedAt)
         XCTAssertNil(AppConsoleLogger.traceStartTime(for: traceID))
 
-        let lines = try String(contentsOf: logFileURL, encoding: .utf8)
+        let lines = Self.unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
             .split(separator: "\n")
             .map(String.init)
         let line = try XCTUnwrap(lines.last)
@@ -494,7 +502,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
 
         XCTAssertEqual(AppConsoleLogger.traceStartTime(for: traceID), startedAt)
 
-        let lines = try String(contentsOf: logFileURL, encoding: .utf8)
+        let lines = Self.unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
             .split(separator: "\n")
             .map(String.init)
         let line = try XCTUnwrap(lines.last)
@@ -573,7 +581,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         pipe.fileHandleForWriting.closeFile()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(decoding: data, as: UTF8.self)
+        return Self.unwrappedLogOutput(String(decoding: data, as: UTF8.self))
     }
 
     private func captureStandardError(_ operation: () throws -> Void) rethrows -> String {
@@ -590,6 +598,24 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         pipe.fileHandleForWriting.closeFile()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(decoding: data, as: UTF8.self)
+        return Self.unwrappedLogOutput(String(decoding: data, as: UTF8.self))
+    }
+
+    private static func unwrappedLogOutput(_ output: String) -> String {
+        output
+            .split(separator: "\n")
+            .map { line -> String in
+                guard
+                    let data = line.data(using: .utf8),
+                    let object = try? JSONSerialization.jsonObject(with: data),
+                    let dictionary = object as? [String: Any],
+                    let wrappedLine = dictionary["line"] as? String
+                else {
+                    return String(line)
+                }
+
+                return wrappedLine
+            }
+            .joined(separator: "\n")
     }
 }
