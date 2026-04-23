@@ -146,9 +146,9 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             .map(String.init)
         let line = try XCTUnwrap(lines.last)
         XCTAssertTrue(line.contains(" INFO cloudflare.sync.contract_boundary "))
-        XCTAssertTrue(line.contains(#"trace_id=""#))
         XCTAssertTrue(line.contains(#"channels="2""#))
         XCTAssertTrue(line.contains(#"message="開始""#))
+        XCTAssertFalse(line.contains(#"trace_id=""#))
     }
 
     func testTraceEndLogsTraceIDAndClearsStartTime() throws {
