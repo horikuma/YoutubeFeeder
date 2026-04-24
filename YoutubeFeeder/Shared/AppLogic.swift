@@ -721,6 +721,21 @@ enum ChannelRefreshSchedulePolicy {
     }
 }
 
+enum ChannelRefreshTrigger: Equatable {
+    case allChannels
+    case recentChannels
+}
+
+enum ChannelRefreshWallClockPolicy {
+    static let triggerMinutes: [Int] = [0, 10, 20, 30, 40, 50]
+
+    static func trigger(at date: Date, calendar: Calendar = .current) -> ChannelRefreshTrigger? {
+        let minute = calendar.component(.minute, from: date)
+        guard triggerMinutes.contains(minute) else { return nil }
+        return minute == 0 ? .allChannels : .recentChannels
+    }
+}
+
 enum RemoteSearchErrorPolicy {
     static func isCancellation(_ error: Error) -> Bool {
         if error is CancellationError {
