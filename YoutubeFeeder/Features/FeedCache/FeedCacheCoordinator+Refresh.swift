@@ -71,12 +71,14 @@ extension FeedCacheCoordinator {
     }
 
     func startAutomaticRefreshLoopIfNeeded() {
+        guard !dropChannelRefreshTriggerIfRunning("automatic_recent_refresh") else { return }
         guard automaticRefreshTask == nil else {
             AppConsoleLogger.appLifecycle.info(
                 "auto_refresh_loop_start_skipped",
                 metadata: [
                     "reason": "already_running",
-                    "has_manual_refresh": manualRefreshTask != nil ? "true" : "false"
+                    "has_manual_refresh": manualRefreshTask != nil ? "true" : "false",
+                    "has_automatic_refresh": automaticRefreshTask != nil ? "true" : "false"
                 ]
             )
             return
@@ -85,6 +87,7 @@ extension FeedCacheCoordinator {
             "auto_refresh_loop_start_requested",
             metadata: [
                 "has_manual_refresh": manualRefreshTask != nil ? "true" : "false",
+                "has_automatic_refresh": automaticRefreshTask != nil ? "true" : "false",
                 "channel_count": String(channels.count)
             ]
         )
@@ -100,7 +103,8 @@ extension FeedCacheCoordinator {
             "auto_refresh_cycle_entered",
             metadata: [
                 "channel_count": String(channels.count),
-                "has_manual_refresh": manualRefreshTask != nil ? "true" : "false"
+                "has_manual_refresh": manualRefreshTask != nil ? "true" : "false",
+                "has_automatic_refresh": automaticRefreshTask != nil ? "true" : "false"
             ]
         )
         await performRecentChannelRefresh(refreshSource: "automatic")

@@ -33,6 +33,10 @@ final class FeedCacheCoordinator: ObservableObject {
 
     static let homeSearchKeyword = "ゆっくり実況"
 
+    var isChannelRefreshRunning: Bool {
+        manualRefreshTask != nil || automaticRefreshTask != nil
+    }
+
     init(
         channels: [String],
         dependencies: FeedCacheDependencies,
@@ -94,7 +98,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func refreshCacheManually() async {
-        guard manualRefreshTask == nil else { return }
+        guard !dropChannelRefreshTriggerIfRunning("manual_home_refresh") else { return }
         syncRegisteredChannelsFromStore(reason: "manual_refresh")
 
         AppConsoleLogger.appLifecycle.info(
@@ -135,14 +139,10 @@ final class FeedCacheCoordinator: ObservableObject {
             RuntimeDiagnostics.shared.record("channel_manual_refresh_ignored", detail: "空の channelID のため更新しない")
             return
         }
-        guard manualRefreshTask == nil else {
-            RuntimeDiagnostics.shared.record(
-                "channel_manual_refresh_ignored",
-                detail: "別の手動更新が進行中のため更新しない",
-                metadata: ["channelID": normalizedChannelID]
-            )
-            return
-        }
+        guard !dropChannelRefreshTriggerIfRunning(
+            "manual_channel_refresh",
+            metadata: ["channelID": normalizedChannelID]
+        ) else { return }
 
         manualRefreshTask = Task {
             StartupDiagnostics.shared.mark("channelManualRefreshStarted")
@@ -307,6 +307,27 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func dictionaryKeepingLastValue<Value>(_ pairs: [(String, Value)]) -> [String: Value] {
         Dictionary(pairs, uniquingKeysWith: { _, rhs in rhs })
+    }
+
+    func dropChannelRefreshTriggerIfRunning(
+        _ trigger: String,
+        metadata additionalMetadata: [String: String] = [:]
+    ) -> Bool {
+        guard isChannelRefreshRunning else { return false }
+        var metadata = additionalMetadata
+        metadata["trigger"] = trigger
+        metadata["has_manual_refresh"] = manualRefreshTask != nil ? "true" : "false"
+        metadata["has_automatic_refresh"] = automaticRefreshTask != nil ? "true" : "false"
+        AppConsoleLogger.appLifecycle.info(
+            "channel_refresh_trigger_dropped",
+            metadata: metadata
+        )
+        RuntimeDiagnostics.shared.record(
+            "channel_refresh_trigger_dropped",
+            detail: "ChannelRefresh 実行中のため新しいトリガーを破棄",
+            metadata: metadata
+        )
+        return true
     }
 
     func performConsistencyMaintenanceIfNeeded(force: Bool) async -> CacheConsistencyMaintenanceResult? {
