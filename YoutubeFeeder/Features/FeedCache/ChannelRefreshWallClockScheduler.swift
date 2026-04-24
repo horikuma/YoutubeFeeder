@@ -12,20 +12,20 @@ struct ChannelRefreshWallClockScheduler {
     }
 
     func nextTriggerDate(after date: Date) -> Date {
-        let currentMinute = calendar.component(.minute, from: date)
-        let currentSecond = calendar.component(.second, from: date)
-        let currentNanosecond = calendar.component(.nanosecond, from: date)
         let triggerMinutes = ChannelRefreshWallClockPolicy.triggerMinutes.sorted()
 
-        for minute in triggerMinutes where minute >= currentMinute {
+        for minute in triggerMinutes {
             guard let candidate = dateInSameHour(as: date, minute: minute) else { continue }
-            if minute > currentMinute || currentSecond > 0 || currentNanosecond > 0 {
+            if candidate > date {
                 return candidate
             }
         }
 
-        let nextHour = calendar.date(byAdding: .hour, value: 1, to: date) ?? date.addingTimeInterval(60 * 60)
-        return dateInSameHour(as: nextHour, minute: triggerMinutes[0]) ?? nextHour
+        let nextHourBase = calendar.date(byAdding: .hour, value: 1, to: date) ?? date.addingTimeInterval(60 * 60)
+        if let candidate = dateInSameHour(as: nextHourBase, minute: triggerMinutes[0]), candidate > date {
+            return candidate
+        }
+        return nextHourBase
     }
 
     private func dateInSameHour(as date: Date, minute: Int) -> Date? {

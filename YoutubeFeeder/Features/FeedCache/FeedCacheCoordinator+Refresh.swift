@@ -139,7 +139,7 @@ extension FeedCacheCoordinator {
             )
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             guard !Task.isCancelled else { break }
-            guard let trigger = scheduler.trigger(at: Date()) else { continue }
+            guard let trigger = scheduler.trigger(at: nextDate) else { continue }
             await runWallClockChannelRefresh(trigger)
         }
         AppConsoleLogger.appLifecycle.info(
@@ -184,7 +184,7 @@ extension FeedCacheCoordinator {
     ) async {
         guard manualRefreshTask == nil else { return }
         let cycleStartedAt = Date()
-        AppConsoleLogger.appLifecycle.info(
+        AppConsoleLogger.appLifecycle.debug(
             "scheduled_refresh_started",
             metadata: [
                 "channel_count": String(channelIDs.count),
@@ -205,7 +205,7 @@ extension FeedCacheCoordinator {
             cachedVideosAfter: cycleResult.cachedVideosAfter
         )
         metadata["elapsed_ms"] = AppConsoleLogger.elapsedMilliseconds(since: cycleStartedAt)
-        AppConsoleLogger.appLifecycle.info(
+        AppConsoleLogger.appLifecycle.debug(
             "scheduled_refresh_finished",
             metadata: metadata
         )
