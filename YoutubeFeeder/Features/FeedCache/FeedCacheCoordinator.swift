@@ -34,7 +34,7 @@ final class FeedCacheCoordinator: ObservableObject {
     static let homeSearchKeyword = "ゆっくり実況"
 
     var isChannelRefreshRunning: Bool {
-        manualRefreshTask != nil || automaticRefreshTask != nil
+        manualRefreshTask != nil
     }
 
     init(
@@ -317,7 +317,7 @@ final class FeedCacheCoordinator: ObservableObject {
         var metadata = additionalMetadata
         metadata["trigger"] = trigger
         metadata["has_manual_refresh"] = manualRefreshTask != nil ? "true" : "false"
-        metadata["has_automatic_refresh"] = automaticRefreshTask != nil ? "true" : "false"
+        metadata["has_wall_clock_scheduler"] = automaticRefreshTask != nil ? "true" : "false"
         AppConsoleLogger.appLifecycle.info(
             "channel_refresh_trigger_dropped",
             metadata: metadata

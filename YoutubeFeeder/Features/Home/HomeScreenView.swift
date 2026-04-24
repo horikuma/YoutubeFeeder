@@ -125,7 +125,7 @@ struct HomeScreenView: View {
             )
             guard AppLaunchMode.current.allowsBackgroundRefresh else {
                 AppConsoleLogger.appLifecycle.info(
-                    "home_auto_refresh_background_loop_skipped",
+                    "home_auto_refresh_wall_clock_scheduler_skipped",
                     metadata: [
                         "reason": "background_refresh_disabled",
                         "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
@@ -134,12 +134,12 @@ struct HomeScreenView: View {
                 return
             }
             AppConsoleLogger.appLifecycle.info(
-                "home_auto_refresh_background_loop_requested",
+                "home_auto_refresh_wall_clock_scheduler_requested",
                 metadata: [
                     "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
                 ]
             )
-            coordinator.startAutomaticRefreshLoopIfNeeded()
+            coordinator.startChannelRefreshWallClockSchedulerIfNeeded()
         }
         .task(priority: .utility) {
             guard !didPrewarmRemoteSearch else { return }

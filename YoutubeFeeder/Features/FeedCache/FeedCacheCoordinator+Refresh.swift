@@ -71,29 +71,32 @@ extension FeedCacheCoordinator {
     }
 
     func startAutomaticRefreshLoopIfNeeded() {
-        guard !dropChannelRefreshTriggerIfRunning("automatic_recent_refresh") else { return }
+        startChannelRefreshWallClockSchedulerIfNeeded()
+    }
+
+    func startChannelRefreshWallClockSchedulerIfNeeded() {
         guard automaticRefreshTask == nil else {
             AppConsoleLogger.appLifecycle.info(
-                "auto_refresh_loop_start_skipped",
+                "channel_refresh_wall_clock_scheduler_start_skipped",
                 metadata: [
                     "reason": "already_running",
                     "has_manual_refresh": manualRefreshTask != nil ? "true" : "false",
-                    "has_automatic_refresh": automaticRefreshTask != nil ? "true" : "false"
+                    "has_wall_clock_scheduler": automaticRefreshTask != nil ? "true" : "false"
                 ]
             )
             return
         }
         AppConsoleLogger.appLifecycle.info(
-            "auto_refresh_loop_start_requested",
+            "channel_refresh_wall_clock_scheduler_start_requested",
             metadata: [
                 "has_manual_refresh": manualRefreshTask != nil ? "true" : "false",
-                "has_automatic_refresh": automaticRefreshTask != nil ? "true" : "false",
+                "has_wall_clock_scheduler": automaticRefreshTask != nil ? "true" : "false",
                 "channel_count": String(channels.count)
             ]
         )
         automaticRefreshTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            await self.runAutomaticRefreshLoop()
+            await self.runChannelRefreshWallClockScheduler()
             self.automaticRefreshTask = nil
         }
     }
@@ -115,6 +118,63 @@ extension FeedCacheCoordinator {
                 "channel_count": String(channels.count)
             ]
         )
+    }
+
+    func runChannelRefreshWallClockScheduler() async {
+        let scheduler = ChannelRefreshWallClockScheduler()
+        AppConsoleLogger.appLifecycle.info(
+            "channel_refresh_wall_clock_scheduler_entered",
+            metadata: [
+                "channel_count": String(channels.count)
+            ]
+        )
+        while !Task.isCancelled {
+            let nextDate = scheduler.nextTriggerDate(after: Date())
+            let delay = max(nextDate.timeIntervalSinceNow, 0)
+            AppConsoleLogger.appLifecycle.debug(
+                "channel_refresh_wall_clock_scheduler_sleeping",
+                metadata: [
+                    "delay_ms": String(Int(delay * 1000))
+                ]
+            )
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { break }
+            guard let trigger = scheduler.trigger(at: Date()) else { continue }
+            await runWallClockChannelRefresh(trigger)
+        }
+        AppConsoleLogger.appLifecycle.info(
+            "channel_refresh_wall_clock_scheduler_exited",
+            metadata: [
+                "cancelled": Task.isCancelled ? "true" : "false",
+                "channel_count": String(channels.count)
+            ]
+        )
+    }
+
+    func runWallClockChannelRefresh(_ trigger: ChannelRefreshTrigger) async {
+        switch trigger {
+        case .allChannels:
+            await runChannelRefreshExecution(trigger: "wall_clock_all_channels") {
+                await self.performFullChannelRefresh(refreshSource: "wall_clock_all_channels")
+            }
+        case .recentChannels:
+            await runChannelRefreshExecution(trigger: "wall_clock_recent_channels") {
+                await self.performRecentChannelRefresh(refreshSource: "wall_clock_recent_channels")
+            }
+        }
+    }
+
+    func runChannelRefreshExecution(
+        trigger: String,
+        operation: @escaping @MainActor () async -> Void
+    ) async {
+        guard !dropChannelRefreshTriggerIfRunning(trigger) else { return }
+        manualRefreshTask = Task { @MainActor in
+            await operation()
+            return nil
+        }
+        _ = await manualRefreshTask?.value
+        manualRefreshTask = nil
     }
 
     func runScheduledRefreshCycle(
