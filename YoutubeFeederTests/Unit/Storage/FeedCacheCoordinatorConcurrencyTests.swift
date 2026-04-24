@@ -152,6 +152,66 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
         }
     }
 
+    @MainActor
+    func testRefreshTriggersAreDroppedWhileRefreshIsRunning() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let channelID = "UC_DROP_RUNNING_REFRESH"
+        let recorder = FeedFetchRecorder()
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager)
+            defer { FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager) }
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceRegisteredChannels([
+                RegisteredChannelRecord(channelID: channelID, addedAt: nil)
+            ])
+
+            let feedService = YouTubeFeedService(
+                fetchLatestFeed: { fetchedChannelID in
+                    await recorder.record(fetchedChannelID)
+                    return (
+                        videos: [],
+                        metadata: FeedFetchMetadata(
+                            checkedAt: Date(timeIntervalSince1970: 10_000),
+                            validationToken: FeedValidationToken(etag: nil, lastModified: nil)
+                        )
+                    )
+                }
+            )
+            let coordinator = FeedCacheCoordinator(
+                channels: [channelID],
+                dependencies: FeedCacheDependencies(
+                    store: FeedCacheStore(),
+                    feedService: feedService,
+                    channelResolver: YouTubeChannelResolver(),
+                    searchService: YouTubeSearchService(),
+                    remoteSearchCacheStore: RemoteVideoSearchCacheStore(),
+                    channelRegistrySyncService: ChannelRegistryCloudflareSyncService(endpointURL: nil)
+                )
+            )
+            coordinator.manualRefreshTask = Task {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                return nil
+            }
+            defer {
+                coordinator.manualRefreshTask?.cancel()
+                coordinator.manualRefreshTask = nil
+            }
+
+            await coordinator.refreshCacheManually()
+            await coordinator.refreshChannelManually(channelID)
+            await coordinator.runWallClockChannelRefresh(.allChannels)
+            await coordinator.runWallClockChannelRefresh(.recentChannels)
+
+            let fetchedChannelIDs = await recorder.fetchedChannelIDs()
+            XCTAssertEqual(fetchedChannelIDs, [])
+        }
+    }
+
     private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () throws -> T) throws -> T {
         let key = "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR"
         let previousValue = ProcessInfo.processInfo.environment[key]
