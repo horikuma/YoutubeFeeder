@@ -57,6 +57,7 @@
   - ホーム画面本体。
   - 手動更新、検索導線、バックアップ、全設定リセット、システム状況表示。
   - ホーム画面の更新操作は `refreshFeed()` 相当のドメインアクションへ束ね、UI はその起動アダプタだけを担う。
+  - 起動時の全チャンネルリフレッシュ、手動操作の全チャンネルリフレッシュ、毎時トリガー用スケジューラ開始の接続だけを担う。
   - YouTube検索タイル選択の runtime diagnostics 記録。
   - ホーム表示と YouTube検索タイル選択の lifecycle ログ。
   - ホーム表示中に YouTube検索用 snapshot を low priority で prewarm し、その後 hidden host で検索画面を事前描画して初回遷移時の待ちを抑える。
@@ -112,11 +113,21 @@
   - UI と永続化の仲介。
   - bootstrap 読込、一覧データ読込、手動更新、単独チャンネル更新、検索結果読込。
   - 更新アクションは `FeedRefreshAction` のようなドメイン単位で受け、UI イベント種別には依存しない。
+  - ChannelRefresh の全チャンネルリフレッシュ入口、短周期リフレッシュ入口、実行中判定、実行中トリガーのドロップを担う。
+  - ChannelRefresh の実行中判定は、起動時、手動操作、毎時00分、毎時10/20/30/40/50分で共通の単一状態として扱う。
   - YouTube 検索の snapshot hit / miss、refresh failure fallback、cancel fallback の境界ログ。
   - YouTube 検索の managed task の生成、再利用管理。
   - feed cache と検索 cache の動画を合流する際は、`video_id` 重複で落とさず、より新しい `publishedAt` / `fetchedAt` を優先して 1 件へ正規化する。
   - remote search 起点のチャンネル動画表示では、feed refresh 後も動画が `1 件以下` の場合に限って YouTube Data API の channel search fallback を実行し、右ペインが単一動画で止まらないようにする。
   - `FeedCacheStore` への直接 mutation を持たず、FeedCache 系の副作用は `FeedCacheWriteService` または副作用専用 service へ委譲する。
+- [ChannelRefreshWallClockScheduler.swift](../../YoutubeFeeder/Features/FeedCache/ChannelRefreshWallClockScheduler.swift)
+  - 毎時 00 / 10 / 20 / 30 / 40 / 50 分の壁時計発火を計算する。
+  - 00 分は全チャンネルリフレッシュ、10 / 20 / 30 / 40 / 50 分は短周期リフレッシュとして発火種別を返す。
+  - feed 取得、キャッシュ反映、整合性メンテナンス、UI 反映を直接持たず、`FeedCacheCoordinator` の ChannelRefresh 入口を呼ぶだけに留める。
+- [FeedCacheCoordinator+Refresh.swift](../../YoutubeFeeder/Features/FeedCache/FeedCacheCoordinator+Refresh.swift)
+  - ChannelRefresh の 1 回分の更新実行を担う。
+  - 全チャンネルリフレッシュと短周期リフレッシュの対象チャンネルを受け取り、feed 取得、キャッシュ反映、整合性メンテナンス、UI 反映までを 1 回で完了させる。
+  - 内部ループ、sleep による自己継続、完了後の自己再起動を持たない。
 - [FeedChannelSyncService.swift](../../YoutubeFeeder/Features/FeedCache/FeedChannelSyncService.swift)
   - feed 取得、更新判定、store 反映を束ねる更新実行サービス。
   - 依存先は `FeedCacheWriteService` と外部 feed service に限定し、`FeedCacheReadService` との相互依存を作らない。
@@ -195,8 +206,12 @@
   - `VideoOpenPolicy`
   - `FeedOrdering`
   - `ChannelBrowseSortDescriptor`
+  - `ChannelRefreshSchedulePolicy`
+  - `ChannelRefreshWallClockPolicy`
   - `RemoteSearchPresentationState`
   - 画面非依存の pure logic と、UI から切り離した状態の正本。
+  - `ChannelRefreshSchedulePolicy` は 10 日以内 10 分、それ以外 1 時間の対象選定ロジックを担う。
+  - `ChannelRefreshWallClockPolicy` は壁時計時刻から全チャンネルリフレッシュまたは短周期リフレッシュの発火種別を判定する。
 
 ## 画面と状態の詳細設計
 
