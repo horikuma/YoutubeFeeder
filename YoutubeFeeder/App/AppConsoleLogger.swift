@@ -153,13 +153,6 @@ struct AppConsoleLogger {
                 at: logFileURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
-            if overrideURL == nil {
-                if let legacyLogFileURL = runtimeLogFileURL(),
-                    legacyLogFileURL != logFileURL
-                {
-                    try? fileManager.removeItem(at: legacyLogFileURL)
-                }
-            }
             try Data().write(to: logFileURL, options: .atomic)
         } catch {
             // Logging must never change app behavior.
