@@ -5,16 +5,22 @@ struct FeedChannelProcessResult {
     let fetchedVideoCount: Int?
     let uncachedVideoCount: Int
     let httpStatusCode: Int?
+    let conditionalCheckAttempted: Bool
+    let networkFetchAttempted: Bool
 
     init(
         errorMessage: String?,
         fetchedVideoCount: Int?,
         uncachedVideoCount: Int,
+        conditionalCheckAttempted: Bool = false,
+        networkFetchAttempted: Bool = false,
         httpStatusCode: Int? = nil
     ) {
         self.errorMessage = errorMessage
         self.fetchedVideoCount = fetchedVideoCount
         self.uncachedVideoCount = uncachedVideoCount
+        self.conditionalCheckAttempted = conditionalCheckAttempted
+        self.networkFetchAttempted = networkFetchAttempted
         self.httpStatusCode = httpStatusCode
     }
 }
@@ -31,8 +37,16 @@ struct FeedRefreshCycleResult {
     var cachedVideosBefore = 0
     var cachedVideosAfter = 0
     var httpStatusCounts: [Int: Int] = [:]
+    var conditionalCheckAttemptedChannels = 0
+    var networkFetchAttemptedChannels = 0
 
     mutating func record(_ result: FeedChannelProcessResult) {
+        if result.conditionalCheckAttempted {
+            conditionalCheckAttemptedChannels += 1
+        }
+        if result.networkFetchAttempted {
+            networkFetchAttemptedChannels += 1
+        }
         if let errorMessage = result.errorMessage {
             lastError = errorMessage
             failedChannels += 1

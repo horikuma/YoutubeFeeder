@@ -315,6 +315,8 @@ final class FeedCacheCoordinator: ObservableObject {
                 errorMessage: result.errorMessage,
                 fetchedVideoCount: result.fetchedVideoCount,
                 uncachedVideoCount: result.uncachedVideos.count,
+                conditionalCheckAttempted: false,
+                networkFetchAttempted: true,
                 httpStatusCode: result.httpStatusCode
             )
         }
