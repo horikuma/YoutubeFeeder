@@ -28,7 +28,7 @@ extension FeedCacheCoordinator {
                 "snapshot_channels": String(snapshot.channels.count),
                 "due_channels": String(sortedChannels.count),
                 "freshness_bypassed": "true",
-                "force_network_fetch": "true",
+                "force_network_fetch": "false",
                 "refresh_source": refreshSource,
                 "snapshot_dependency": "channel_order_only",
                 "snapshot_dependency_detail": "due channels are derived from registered channel ordering only",
@@ -39,12 +39,12 @@ extension FeedCacheCoordinator {
         let cycleResult = await runRefreshCycle(
             channelIDs: sortedChannels,
             states: states,
-            forceNetworkFetch: true,
+            forceNetworkFetch: false,
             refreshSource: refreshSource
         )
         var metadata = cycleResult.metadata(
             channelCount: sortedChannels.count,
-            forceNetworkFetch: true,
+            forceNetworkFetch: false,
             refreshSource: refreshSource,
             cachedVideosBefore: cycleResult.cachedVideosBefore,
             cachedVideosAfter: cycleResult.cachedVideosAfter
