@@ -145,8 +145,16 @@ final class FeedCacheCoordinator: ObservableObject {
             metadata: ["channelID": normalizedChannelID]
         ) else { return }
 
+        let startedAt = Date()
         manualRefreshTask = Task {
             StartupDiagnostics.shared.mark("channelManualRefreshStarted")
+            AppConsoleLogger.appLifecycle.info(
+                "channel_manual_refresh_started",
+                metadata: [
+                    "channelID": normalizedChannelID,
+                    "result_state": "running"
+                ]
+            )
             RuntimeDiagnostics.shared.record(
                 "channel_manual_refresh_started",
                 detail: "チャンネル単独更新を開始",
@@ -162,6 +170,17 @@ final class FeedCacheCoordinator: ObservableObject {
             }
             StartupDiagnostics.shared.mark("channelManualRefreshFinished")
             let updatedItem = maintenanceItems.first(where: { $0.channelID == normalizedChannelID })
+            AppConsoleLogger.appLifecycle.info(
+                "channel_manual_refresh_finished",
+                metadata: [
+                    "channelID": normalizedChannelID,
+                    "result_state": progress.lastError == nil ? "completed" : "completed_with_errors",
+                    "lastError": progress.lastError ?? "",
+                    "cachedVideoCount": String(updatedItem?.cachedVideoCount ?? 0),
+                    "latestPublishedAt": updatedItem?.latestPublishedAt?.formatted(date: .numeric, time: .standard) ?? "",
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+                ]
+            )
             RuntimeDiagnostics.shared.record(
                 "channel_manual_refresh_finished",
                 detail: "チャンネル単独更新を完了",
