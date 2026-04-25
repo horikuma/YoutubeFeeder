@@ -54,6 +54,8 @@ extension FeedCacheCoordinator {
         metadata["channel_count"] = String(channels.count)
         metadata["elapsed_ms"] = AppConsoleLogger.elapsedMilliseconds(since: startedAt)
         metadata["result_state"] = cycleResult.lastError == nil ? "completed" : "completed_with_errors"
+        metadata["conditional_check_attempted_channels"] = String(cycleResult.conditionalCheckAttemptedChannels)
+        metadata["network_fetch_attempted_channels"] = String(cycleResult.networkFetchAttemptedChannels)
         AppConsoleLogger.appLifecycle.info(
             "full_channel_refresh_finished",
             metadata: metadata
@@ -107,23 +109,30 @@ extension FeedCacheCoordinator {
             return
         }
 
-        _ = await runRefreshCycle(
+        let cycleResult = await runRefreshCycle(
             channelIDs: dueChannels,
             states: states,
             forceNetworkFetch: false,
             refreshSource: refreshSource
         )
+        var metadata = cycleResult.metadata(
+            channelCount: dueChannels.count,
+            forceNetworkFetch: false,
+            refreshSource: refreshSource,
+            cachedVideosBefore: cycleResult.cachedVideosBefore,
+            cachedVideosAfter: cycleResult.cachedVideosAfter
+        )
+        metadata["target_channels"] = String(dueChannels.count)
+        metadata["due_channels"] = String(dueChannels.count)
+        metadata["snapshot_channels"] = String(snapshot.channels.count)
+        metadata["channel_count"] = String(channels.count)
+        metadata["elapsed_ms"] = AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+        metadata["result_state"] = cycleResult.lastError == nil ? "completed" : "completed_with_errors"
+        metadata["conditional_check_attempted_channels"] = String(cycleResult.conditionalCheckAttemptedChannels)
+        metadata["network_fetch_attempted_channels"] = String(cycleResult.networkFetchAttemptedChannels)
         AppConsoleLogger.appLifecycle.info(
             "recent_channel_refresh_finished",
-            metadata: [
-                "refresh_source": refreshSource,
-                "target_channels": String(dueChannels.count),
-                "due_channels": String(dueChannels.count),
-                "snapshot_channels": String(snapshot.channels.count),
-                "channel_count": String(channels.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "result_state": "completed"
-            ]
+            metadata: metadata
         )
     }
 
