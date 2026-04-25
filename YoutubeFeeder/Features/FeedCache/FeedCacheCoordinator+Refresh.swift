@@ -107,9 +107,10 @@ extension FeedCacheCoordinator {
             return
         }
 
-        await runScheduledRefreshCycle(
+        _ = await runRefreshCycle(
             channelIDs: dueChannels,
             states: states,
+            forceNetworkFetch: false,
             refreshSource: refreshSource
         )
         AppConsoleLogger.appLifecycle.info(
