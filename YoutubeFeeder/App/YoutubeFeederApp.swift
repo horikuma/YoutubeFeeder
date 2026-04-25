@@ -6,6 +6,7 @@ struct YoutubeFeederApp: App {
 
     init() {
         UITestFixtureSeeder.seedIfNeeded()
+        AppConsoleLogger.prepareRuntimeLogFileForLaunch()
         StartupDiagnostics.shared.mark("appLaunched")
         AppConsoleLogger.appLifecycle.info(
             "app_launch",
