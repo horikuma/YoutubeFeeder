@@ -6,10 +6,12 @@ struct YoutubeFeederApp: App {
 
     init() {
         UITestFixtureSeeder.seedIfNeeded()
+        AppConsoleLogger.prepareRuntimeLogFileForLaunch()
         StartupDiagnostics.shared.mark("appLaunched")
         AppConsoleLogger.appLifecycle.info(
             "app_launch",
             metadata: [
+                "app_version": Self.bundleValue(forInfoDictionaryKey: "CFBundleShortVersionString"),
                 "launch_mode": {
                     switch AppLaunchMode.current {
                     case .normal:
@@ -19,9 +21,17 @@ struct YoutubeFeederApp: App {
                     case .uiTestLive:
                         return "ui_test_live"
                     }
-                }()
+                }(),
+                "build_version": Self.bundleValue(forInfoDictionaryKey: "CFBundleVersion"),
+                "runtime_log_file": AppConsoleLogger.runtimeLogFileName() ?? "unknown",
+                "runtime_log_override_file": AppConsoleLogger.runtimeLogOverrideFileName(),
+                "runtime_log_override_status": AppConsoleLogger.runtimeLogOverrideStatus()
             ]
         )
+    }
+
+    private static func bundleValue(forInfoDictionaryKey key: String) -> String {
+        Bundle.main.object(forInfoDictionaryKey: key) as? String ?? "unknown"
     }
 
     var body: some Scene {
