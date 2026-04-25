@@ -14,6 +14,13 @@
 ### 着手判断
 
 - 着手時は、GitHub 上の対象 Issue の最新 Description を取得し、ローカルの 'llm-temp/issue-todo-<issue_number>.md' と同期させなければならない。
+  - GitHub 上の対象 Issue の最新 Description は、次の usage で取得し、stdout をそのまま `llm-temp/issue-todo-<issue_number>.md` へ保存しなければならない。
+    `./scripts/command-runner.py 'issue-read' --issue-number '<issue_number>' --body-only > 'llm-temp/issue-todo-<issue_number>.md'`
+    例: `./scripts/command-runner.py 'issue-read' --issue-number '69' --body-only > 'llm-temp/issue-todo-69.md'`
+    - `<issue_number>` は、今回実施中の Issue 番号であり、省略してはならない。
+    - この command が成功するまで、`issue-todo --get` を実行してはならない。
+    - この command の出力以外から `llm-temp/issue-todo-<issue_number>.md` を作成してはならない。
+    - `issue-read` から `--body-only` を外した JSON 出力、Issue コメント本文、ブラウザ表示、LLM が整形した本文を `llm-temp/issue-todo-<issue_number>.md` に保存してはならない。
   - 取得は scripts/command-runner.py の対応コマンドを用いて行い、手動でのコピーや直接編集で同期してはならない。
   - 同期後の内容のみを基準として、以降の読取り・判断を行わなければならない。
   - 着手時の GitHub 取得または同期に失敗した場合は、その失敗を無視してローカル Markdown だけで着手してはならない。
