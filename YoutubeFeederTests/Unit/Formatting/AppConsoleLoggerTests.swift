@@ -73,13 +73,24 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             metadata: [
                 "app_version": "1.0",
                 "build_version": "3",
-                "launch_mode": "ui_test_live"
+                "launch_mode": "ui_test_live",
+                "runtime_log_file": "youtubefeeder-runtime-20260423-201323-123-p1234.log"
             ]
         ))
 
         XCTAssertTrue(line.contains(#"app_version="1.0""#))
         XCTAssertTrue(line.contains(#"build_version="3""#))
         XCTAssertTrue(line.contains(#"launch_mode="ui_test_live""#))
+        XCTAssertTrue(line.contains(#"runtime_log_file="youtubefeeder-runtime-20260423-201323-123-p1234.log""#))
+    }
+
+    func testLaunchRuntimeLogFileNameIncludesLaunchSpecificComponents() {
+        let date = ISO8601DateFormatter().date(from: "2026-04-23T11:13:23Z")!
+
+        XCTAssertEqual(
+            AppConsoleLogger.launchRuntimeLogFileName(date: date, processIdentifier: 1234),
+            "youtubefeeder-runtime-20260423-201323-000-pid1234.log"
+        )
     }
 
     func testConsoleOutputWritesLineToStandardOutput() throws {

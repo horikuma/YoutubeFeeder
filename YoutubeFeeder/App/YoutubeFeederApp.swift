@@ -22,7 +22,8 @@ struct YoutubeFeederApp: App {
                         return "ui_test_live"
                     }
                 }(),
-                "build_version": Self.bundleValue(forInfoDictionaryKey: "CFBundleVersion")
+                "build_version": Self.bundleValue(forInfoDictionaryKey: "CFBundleVersion"),
+                "runtime_log_file": AppConsoleLogger.runtimeLogFileName() ?? "unknown"
             ]
         )
     }

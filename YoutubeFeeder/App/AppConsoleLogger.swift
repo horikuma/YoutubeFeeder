@@ -45,9 +45,18 @@ struct AppConsoleLogger {
 
     private static let prefix = "[YoutubeFeeder]"
     private static let fileLogLock = NSLock()
+    private static let runtimeLogLaunchLock = NSLock()
     private static let projectRootMarker = "YoutubeFeeder/App/AppConsoleLogger.swift"
     private static let runtimeLogRelativePath = "logs/youtubefeeder-runtime.log"
     private static let minimumLogLevel: AppConsoleLogLevel = .info
+    private static let runtimeLogLaunchFileNameFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+        formatter.dateFormat = "yyyyMMdd-HHmmss-SSS"
+        return formatter
+    }()
     static let scopeInvocationWindowSeconds: TimeInterval = 1
     static let scopeInvocationThresholdCount: Int = 50
     private static let traceStateLock = NSLock()
@@ -59,6 +68,7 @@ struct AppConsoleLogger {
     }
 
     private static var scopeInvocationWindows: [String: ScopeInvocationWindow] = [:]
+    private static var runtimeLogLaunchFileURL: URL?
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -126,12 +136,19 @@ struct AppConsoleLogger {
 
     static func prepareRuntimeLogFileForLaunch(runtimeLogFileURL overrideURL: URL? = nil) {
 #if targetEnvironment(macCatalyst)
-        guard let logFileURL = overrideURL ?? runtimeLogFileURL() else { return }
-        fileLogLock.lock()
-        defer { fileLogLock.unlock() }
+        let logFileURL = overrideURL ?? launchRuntimeLogFileURL()
+        guard let logFileURL else { return }
 
         do {
             let fileManager = FileManager.default
+            if overrideURL == nil {
+                runtimeLogLaunchLock.lock()
+                runtimeLogLaunchFileURL = logFileURL
+                runtimeLogLaunchLock.unlock()
+            }
+            fileLogLock.lock()
+            defer { fileLogLock.unlock() }
+
             try fileManager.createDirectory(
                 at: logFileURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true
@@ -468,7 +485,7 @@ struct AppConsoleLogger {
 
     private static func appendRuntimeLogLine(_ line: String) {
 #if targetEnvironment(macCatalyst)
-        guard let logFileURL = runtimeLogFileURL() else { return }
+        guard let logFileURL = activeRuntimeLogFileURL() else { return }
         fileLogLock.lock()
         defer { fileLogLock.unlock() }
 
@@ -491,6 +508,51 @@ struct AppConsoleLogger {
             // Logging must never change app behavior.
         }
 #endif
+    }
+
+    static func runtimeLogFileName() -> String? {
+        activeRuntimeLogFileURL()?.lastPathComponent ?? runtimeLogFileURL()?.lastPathComponent
+    }
+
+    private static func activeRuntimeLogFileURL() -> URL? {
+#if targetEnvironment(macCatalyst)
+        runtimeLogLaunchLock.lock()
+        defer { runtimeLogLaunchLock.unlock() }
+
+        if let override = ProcessInfo.processInfo.environment["YOUTUBEFEEDER_RUNTIME_LOG_FILE"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !override.isEmpty
+        {
+            return URL(fileURLWithPath: override)
+        }
+
+        if let runtimeLogLaunchFileURL {
+            return runtimeLogLaunchFileURL
+        }
+        return runtimeLogFileURL()
+#else
+        return nil
+#endif
+    }
+
+    private static func launchRuntimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
+#if targetEnvironment(macCatalyst)
+        guard let logFileURL = runtimeLogFileURL(sourceFilePath: sourceFilePath) else { return nil }
+        let fileName = launchRuntimeLogFileName(
+            date: .now,
+            processIdentifier: ProcessInfo.processInfo.processIdentifier
+        )
+        return logFileURL.deletingLastPathComponent().appendingPathComponent(fileName)
+#else
+        return nil
+#endif
+    }
+
+    static func launchRuntimeLogFileName(
+        date: Date = .now,
+        processIdentifier: Int32 = ProcessInfo.processInfo.processIdentifier
+    ) -> String {
+        "youtubefeeder-runtime-\(runtimeLogLaunchFileNameFormatter.string(from: date))-pid\(processIdentifier).log"
     }
 
     static func runtimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
