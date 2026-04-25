@@ -62,6 +62,7 @@ struct AppConsoleLogger {
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
         return formatter
     }()
 
