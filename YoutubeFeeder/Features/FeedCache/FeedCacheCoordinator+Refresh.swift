@@ -319,7 +319,8 @@ extension FeedCacheCoordinator {
         var cycleResult = await runManualRefreshChannels(
             channelIDs,
             states: states,
-            forceNetworkFetch: forceNetworkFetch
+            forceNetworkFetch: forceNetworkFetch,
+            refreshSource: refreshSource
         )
         finishManualRefreshProgress()
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
@@ -438,9 +439,12 @@ extension FeedCacheCoordinator {
     func runManualRefreshChannels(
         _ sortedChannels: [String],
         states: [String: CachedChannelState],
-        forceNetworkFetch: Bool = false
+        forceNetworkFetch: Bool = false,
+        refreshSource: String
     ) async -> FeedRefreshCycleResult {
         var cycleResult = FeedRefreshCycleResult()
+        let progressInterval = 50
+        let cycleStartedAt = Date()
         updateManualRefreshActiveCalls(completed: 0, totalChannels: sortedChannels.count, activeCalls: sortedChannels.isEmpty ? 0 : 1)
 
         for (index, channelID) in sortedChannels.enumerated() {
@@ -453,6 +457,22 @@ extension FeedCacheCoordinator {
 
             let completed = index + 1
             let remaining = sortedChannels.count - completed
+            if completed % progressInterval == 0 || completed == sortedChannels.count {
+                AppConsoleLogger.appLifecycle.info(
+                    "refresh_cycle_progress",
+                    metadata: [
+                        "refresh_source": refreshSource,
+                        "processed_channels": String(completed),
+                        "total_channels": String(sortedChannels.count),
+                        "conditional_check_attempted_channels": String(cycleResult.conditionalCheckAttemptedChannels),
+                        "network_fetch_attempted_channels": String(cycleResult.networkFetchAttemptedChannels),
+                        "http_200_channels": String(cycleResult.httpStatusCounts[200, default: 0]),
+                        "http_304_channels": String(cycleResult.httpStatusCounts[304, default: 0]),
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: cycleStartedAt),
+                        "result_state": "running"
+                    ]
+                )
+            }
             updateManualRefreshActiveCalls(
                 completed: completed,
                 totalChannels: sortedChannels.count,
