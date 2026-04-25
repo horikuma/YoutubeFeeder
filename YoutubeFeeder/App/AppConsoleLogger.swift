@@ -66,6 +66,10 @@ struct AppConsoleLogger {
         return formatter
     }()
 
+    static func timestamp(for date: Date = .now) -> String {
+        timestampFormatter.string(from: date)
+    }
+
     func debug(_ event: String, message: String? = nil, metadata: [String: String] = [:]) {
         emit(level: .debug, event: event, message: message, metadata: metadata)
     }
@@ -89,7 +93,7 @@ struct AppConsoleLogger {
     private func emit(level: AppConsoleLogLevel, event: String, message: String?, metadata: [String: String]) {
         guard level.priority >= Self.minimumLogLevel.priority else { return }
         Self.recordScopeInvocation(for: scope)
-        let timestamp = Self.timestampFormatter.string(from: .now)
+        let timestamp = Self.timestamp(for: .now)
         let line = Self.renderLine(
             timestamp: timestamp,
             level: level,
@@ -120,9 +124,9 @@ struct AppConsoleLogger {
         appendRuntimeLogLine(line)
     }
 
-    static func prepareRuntimeLogFileForLaunch() {
+    static func prepareRuntimeLogFileForLaunch(runtimeLogFileURL overrideURL: URL? = nil) {
 #if targetEnvironment(macCatalyst)
-        guard let logFileURL = runtimeLogFileURL() else { return }
+        guard let logFileURL = overrideURL ?? runtimeLogFileURL() else { return }
         fileLogLock.lock()
         defer { fileLogLock.unlock() }
 

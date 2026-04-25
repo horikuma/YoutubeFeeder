@@ -37,6 +37,15 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertFalse(line.contains(#"items="[a, b]""#))
     }
 
+    func testTimestampFormattingUsesJST() {
+        let date = ISO8601DateFormatter().date(from: "2026-04-23T11:13:23Z")!
+
+        XCTAssertEqual(
+            AppConsoleLogger.timestamp(for: date),
+            "2026-04-23T20:13:23.000+09:00"
+        )
+    }
+
     func testDebugRenderLineKeepsBracketedListLikeMetadataValues() {
         let line = Self.unwrappedLogOutput(AppConsoleLogger.renderLine(
             timestamp: "2026-04-18T00:00:00.000Z",
@@ -52,6 +61,25 @@ final class AppConsoleLoggerTests: LoggedTestCase {
 
         XCTAssertTrue(line.contains(#"status="200""#))
         XCTAssertTrue(line.contains(#"items="[a, b]""#))
+    }
+
+    func testRenderLineKeepsAppLaunchMetadataReadable() {
+        let line = Self.unwrappedLogOutput(AppConsoleLogger.renderLine(
+            timestamp: "2026-04-23T20:13:23.000+09:00",
+            level: .info,
+            scope: "app.lifecycle",
+            event: "app_launch",
+            message: nil,
+            metadata: [
+                "app_version": "1.0",
+                "build_version": "3",
+                "launch_mode": "ui_test_live"
+            ]
+        ))
+
+        XCTAssertTrue(line.contains(#"app_version="1.0""#))
+        XCTAssertTrue(line.contains(#"build_version="3""#))
+        XCTAssertTrue(line.contains(#"launch_mode="ui_test_live""#))
     }
 
     func testConsoleOutputWritesLineToStandardOutput() throws {
@@ -90,6 +118,20 @@ final class AppConsoleLoggerTests: LoggedTestCase {
 
         let output = Self.unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
         XCTAssertTrue(output.contains(renderedLine))
+    }
+
+    func testPrepareRuntimeLogFileForLaunchTruncatesExistingRuntimeLogFile() throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let logFileURL = temporaryRoot.appendingPathComponent("runtime.log")
+        try "previous line\n".write(to: logFileURL, atomically: true, encoding: .utf8)
+
+        AppConsoleLogger.prepareRuntimeLogFileForLaunch(runtimeLogFileURL: logFileURL)
+
+        XCTAssertEqual(try String(contentsOf: logFileURL, encoding: .utf8), "")
     }
     #endif
 
