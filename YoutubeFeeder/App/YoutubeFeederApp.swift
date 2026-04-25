@@ -11,6 +11,7 @@ struct YoutubeFeederApp: App {
         AppConsoleLogger.appLifecycle.info(
             "app_launch",
             metadata: [
+                "app_version": Self.bundleValue(forInfoDictionaryKey: "CFBundleShortVersionString"),
                 "launch_mode": {
                     switch AppLaunchMode.current {
                     case .normal:
@@ -20,9 +21,14 @@ struct YoutubeFeederApp: App {
                     case .uiTestLive:
                         return "ui_test_live"
                     }
-                }()
+                }(),
+                "build_version": Self.bundleValue(forInfoDictionaryKey: "CFBundleVersion")
             ]
         )
+    }
+
+    private static func bundleValue(forInfoDictionaryKey key: String) -> String {
+        Bundle.main.object(forInfoDictionaryKey: key) as? String ?? "unknown"
     }
 
     var body: some Scene {
