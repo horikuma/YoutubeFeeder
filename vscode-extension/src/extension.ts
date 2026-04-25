@@ -78,6 +78,10 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand('extension.openSourceView.c', (uri) => openSourceView(uri, 'c'))
 	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('extension.openSourceView.md', (uri) => openSourceView(uri, 'md'))
+	);
 }
 
 // This method is called when your extension is deactivated

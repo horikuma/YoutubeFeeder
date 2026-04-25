@@ -44,6 +44,45 @@ final class ChannelRefreshSchedulePolicyTests: LoggedTestCase {
         )
     }
 
+    func testDueSelectionKeepsTenMinuteRecentAndOneHourOlderContract() {
+        let now = Date(timeIntervalSince1970: 10_000)
+        let channels = ["recent", "older"]
+        let states: [String: CachedChannelState] = [
+            "recent": makeState(
+                id: "recent",
+                latestPublishedAt: now.addingTimeInterval(-2 * 24 * 60 * 60),
+                lastCheckedAt: now.addingTimeInterval(-11 * 60)
+            ),
+            "older": makeState(
+                id: "older",
+                latestPublishedAt: now.addingTimeInterval(-11 * 24 * 60 * 60),
+                lastCheckedAt: now.addingTimeInterval(-11 * 60)
+            )
+        ]
+
+        XCTAssertEqual(
+            ChannelRefreshSchedulePolicy.prioritizedDueChannelIDs(channels: channels, states: states, now: now),
+            ["recent"]
+        )
+    }
+
+    func testOlderChannelsBecomeDueAfterOneHour() {
+        let now = Date(timeIntervalSince1970: 10_000)
+        let channels = ["older"]
+        let states: [String: CachedChannelState] = [
+            "older": makeState(
+                id: "older",
+                latestPublishedAt: now.addingTimeInterval(-11 * 24 * 60 * 60),
+                lastCheckedAt: now.addingTimeInterval(-61 * 60)
+            )
+        ]
+
+        XCTAssertEqual(
+            ChannelRefreshSchedulePolicy.prioritizedDueChannelIDs(channels: channels, states: states, now: now),
+            ["older"]
+        )
+    }
+
     func testPrioritizesDueChannelsByLatestPublishedAtDescending() {
         let now = Date(timeIntervalSince1970: 10_000)
         let channels = ["A", "B", "C"]

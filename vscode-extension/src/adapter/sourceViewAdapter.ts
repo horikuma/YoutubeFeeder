@@ -1,5 +1,3 @@
-
-
 import * as vscode from 'vscode';
 
 /**
@@ -100,5 +98,9 @@ export const SOURCE_VIEW_CONFIGS = {
   c: {
     extensions: ['c', 'h'],
     header: (p: string) => `// ===== ${p} =====`
+  },
+  md: {
+    extensions: ['md'],
+    header: (p: string) => `<!-- ===== ${p} ===== -->`
   }
 };
