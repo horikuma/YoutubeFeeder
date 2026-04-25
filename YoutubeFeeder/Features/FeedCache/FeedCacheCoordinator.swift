@@ -35,6 +35,7 @@ final class FeedCacheCoordinator: ObservableObject {
 
     var isChannelRefreshRunning: Bool {
         manualRefreshTask != nil
+            || importRefreshTask != nil
     }
 
     init(
