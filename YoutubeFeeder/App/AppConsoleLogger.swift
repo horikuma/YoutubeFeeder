@@ -47,7 +47,9 @@ struct AppConsoleLogger {
     private static let fileLogLock = NSLock()
     private static let runtimeLogLaunchLock = NSLock()
     private static let projectRootMarker = "YoutubeFeeder/App/AppConsoleLogger.swift"
-    private static let runtimeLogRelativePath = "logs/youtubefeeder-runtime.log"
+    private static let runtimeLogDirectoryRelativePath = "logs"
+    private static let legacyRuntimeLogFileName = "youtubefeeder-runtime.log"
+    private static let maximumPendingRuntimeLogLines = 200
     private static let minimumLogLevel: AppConsoleLogLevel = .info
     private static let runtimeLogLaunchFileNameFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -69,6 +71,7 @@ struct AppConsoleLogger {
 
     private static var scopeInvocationWindows: [String: ScopeInvocationWindow] = [:]
     private static var runtimeLogLaunchFileURL: URL?
+    private static var pendingRuntimeLogLines: [String] = []
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -137,15 +140,27 @@ struct AppConsoleLogger {
     static func prepareRuntimeLogFileForLaunch(runtimeLogFileURL overrideURL: URL? = nil) {
 #if targetEnvironment(macCatalyst)
         let logFileURL = overrideURL ?? launchRuntimeLogFileURL()
-        guard let logFileURL else { return }
+        guard let logFileURL else {
+            fileLogLock.lock()
+            defer { fileLogLock.unlock() }
+            appendPendingRuntimeLogDiagnostic(
+                "runtime_log_file_prepare_failed",
+                level: .warning,
+                metadata: [
+                    "reason": "launch_log_file_url_unavailable",
+                    "pending_lines": "\(pendingRuntimeLogLines.count)",
+                    "process_id": "\(ProcessInfo.processInfo.processIdentifier)",
+                    "stage": "prepare_runtime_log_file"
+                ]
+            )
+            return
+        }
 
         do {
             let fileManager = FileManager.default
-            if overrideURL == nil {
-                runtimeLogLaunchLock.lock()
-                runtimeLogLaunchFileURL = logFileURL
-                runtimeLogLaunchLock.unlock()
-            }
+            runtimeLogLaunchLock.lock()
+            runtimeLogLaunchFileURL = logFileURL
+            runtimeLogLaunchLock.unlock()
             fileLogLock.lock()
             defer { fileLogLock.unlock() }
 
@@ -154,7 +169,24 @@ struct AppConsoleLogger {
                 withIntermediateDirectories: true
             )
             try Data().write(to: logFileURL, options: .atomic)
+            let flushedCount = try flushPendingRuntimeLogLines(to: logFileURL)
+            try writePendingRuntimeLogFlushDiagnosticIfNeeded(
+                flushedCount: flushedCount,
+                logFileURL: logFileURL,
+                recoveryStage: "prepare_runtime_log_file"
+            )
         } catch {
+            fileLogLock.lock()
+            defer { fileLogLock.unlock() }
+            appendPendingRuntimeLogDiagnostic(
+                "runtime_log_file_prepare_failed",
+                level: .warning,
+                metadata: runtimeLogFailureMetadata(
+                    stage: "prepare_runtime_log_file",
+                    logFileURL: logFileURL,
+                    error: error
+                )
+            )
             // Logging must never change app behavior.
         }
 #endif
@@ -485,7 +517,21 @@ struct AppConsoleLogger {
 
     private static func appendRuntimeLogLine(_ line: String) {
 #if targetEnvironment(macCatalyst)
-        guard let logFileURL = activeRuntimeLogFileURL() else { return }
+        guard let logFileURL = activeRuntimeLogFileURL() else {
+            fileLogLock.lock()
+            defer { fileLogLock.unlock() }
+            appendPendingRuntimeLogLine(line)
+            appendPendingRuntimeLogDiagnostic(
+                "runtime_log_file_write_deferred",
+                level: .warning,
+                metadata: [
+                    "reason": "active_log_file_missing",
+                    "pending_lines": "\(pendingRuntimeLogLines.count)",
+                    "process_id": "\(ProcessInfo.processInfo.processIdentifier)"
+                ]
+            )
+            return
+        }
         fileLogLock.lock()
         defer { fileLogLock.unlock() }
 
@@ -496,6 +542,12 @@ struct AppConsoleLogger {
                 withIntermediateDirectories: true
             )
             let data = Data((line + "\n").utf8)
+            let flushedCount = try flushPendingRuntimeLogLines(to: logFileURL)
+            try writePendingRuntimeLogFlushDiagnosticIfNeeded(
+                flushedCount: flushedCount,
+                logFileURL: logFileURL,
+                recoveryStage: "append_runtime_log_line"
+            )
             if fileManager.fileExists(atPath: logFileURL.path) {
                 let handle = try FileHandle(forWritingTo: logFileURL)
                 try handle.seekToEnd()
@@ -505,13 +557,155 @@ struct AppConsoleLogger {
                 try data.write(to: logFileURL, options: .atomic)
             }
         } catch {
+            appendPendingRuntimeLogLine(line)
+            appendPendingRuntimeLogDiagnostic(
+                "runtime_log_file_write_deferred",
+                level: .warning,
+                metadata: runtimeLogFailureMetadata(
+                    stage: "append_runtime_log_line",
+                    logFileURL: logFileURL,
+                    error: error
+                )
+            )
             // Logging must never change app behavior.
         }
 #endif
     }
 
+    private static func flushPendingRuntimeLogLines(to logFileURL: URL) throws -> Int {
+        guard !pendingRuntimeLogLines.isEmpty else { return 0 }
+        let lines = pendingRuntimeLogLines
+        pendingRuntimeLogLines.removeAll()
+
+        do {
+            try writeRuntimeLogLines(lines, to: logFileURL)
+            return lines.count
+        } catch {
+            pendingRuntimeLogLines = Array((lines + pendingRuntimeLogLines).suffix(maximumPendingRuntimeLogLines))
+            throw error
+        }
+    }
+
+    private static func appendPendingRuntimeLogLine(_ line: String) {
+        pendingRuntimeLogLines.append(line)
+        if pendingRuntimeLogLines.count > maximumPendingRuntimeLogLines {
+            pendingRuntimeLogLines.removeFirst(pendingRuntimeLogLines.count - maximumPendingRuntimeLogLines)
+        }
+    }
+
+    private static func appendPendingRuntimeLogDiagnostic(
+        _ event: String,
+        level: AppConsoleLogLevel,
+        metadata: [String: String]
+    ) {
+        appendPendingRuntimeLogLine(runtimeLogDiagnosticLine(event, level: level, metadata: metadata))
+    }
+
+    private static func writePendingRuntimeLogFlushDiagnosticIfNeeded(
+        flushedCount: Int,
+        logFileURL: URL,
+        recoveryStage: String
+    ) throws {
+        guard flushedCount > 0 else { return }
+        try writeRuntimeLogLines(
+            [
+                runtimeLogDiagnosticLine(
+                    "runtime_log_pending_lines_flushed",
+                    level: .info,
+                    metadata: [
+                        "flushed_lines": "\(flushedCount)",
+                        "log_file": logFileURL.lastPathComponent,
+                        "process_id": "\(ProcessInfo.processInfo.processIdentifier)",
+                        "recovery_stage": recoveryStage
+                    ]
+                )
+            ],
+            to: logFileURL
+        )
+    }
+
+    private static func writeRuntimeLogLines(_ lines: [String], to logFileURL: URL) throws {
+        guard !lines.isEmpty else { return }
+        let data = Data((lines.joined(separator: "\n") + "\n").utf8)
+        let fileManager = FileManager.default
+        if fileManager.fileExists(atPath: logFileURL.path) {
+            let handle = try FileHandle(forWritingTo: logFileURL)
+            defer { try? handle.close() }
+            try handle.seekToEnd()
+            try handle.write(contentsOf: data)
+        } else {
+            try data.write(to: logFileURL, options: .atomic)
+        }
+    }
+
+    private static func runtimeLogDiagnosticLine(
+        _ event: String,
+        level: AppConsoleLogLevel,
+        metadata: [String: String]
+    ) -> String {
+        renderLine(
+            timestamp: timestamp(for: .now),
+            level: level,
+            scope: "app.lifecycle",
+            event: event,
+            message: nil,
+            metadata: metadata
+        )
+    }
+
+    private static func runtimeLogFailureMetadata(
+        stage: String,
+        logFileURL: URL,
+        error: Error
+    ) -> [String: String] {
+        let fileManager = FileManager.default
+        let directoryURL = logFileURL.deletingLastPathComponent()
+        let directoryPath = directoryURL.path
+        return [
+            "directory_exists": "\(fileManager.fileExists(atPath: directoryPath))",
+            "directory_writable": "\(fileManager.isWritableFile(atPath: directoryPath))",
+            "error": errorSummary(error, limit: 160),
+            "log_file": logFileURL.lastPathComponent,
+            "pending_lines": "\(pendingRuntimeLogLines.count)",
+            "process_id": "\(ProcessInfo.processInfo.processIdentifier)",
+            "stage": stage
+        ]
+    }
+
+    private static func runtimeLogFailureMetadata(stage: String, logFileURL: URL?, error: Error) -> [String: String] {
+        guard let logFileURL else {
+            return [
+                "error": errorSummary(error, limit: 160),
+                "log_file": "unknown",
+                "pending_lines": "\(pendingRuntimeLogLines.count)",
+                "process_id": "\(ProcessInfo.processInfo.processIdentifier)",
+                "stage": stage
+            ]
+        }
+        return runtimeLogFailureMetadata(stage: stage, logFileURL: logFileURL, error: error)
+    }
+
     static func runtimeLogFileName() -> String? {
         activeRuntimeLogFileURL()?.lastPathComponent
+    }
+
+    static func runtimeLogOverrideStatus() -> String {
+#if targetEnvironment(macCatalyst)
+        guard let override = runtimeLogOverrideFileURL() else {
+            return "none"
+        }
+        return isLegacyRuntimeLogFileURL(override) ? "ignored_legacy_runtime_log_file" : "active"
+#else
+        return "unsupported"
+#endif
+    }
+
+    static func runtimeLogOverrideFileName() -> String {
+#if targetEnvironment(macCatalyst)
+        runtimeLogOverrideFileURL()?.lastPathComponent ?? "none"
+#else
+        "unsupported"
+#endif
     }
 
     private static func activeRuntimeLogFileURL() -> URL? {
@@ -519,11 +713,11 @@ struct AppConsoleLogger {
         runtimeLogLaunchLock.lock()
         defer { runtimeLogLaunchLock.unlock() }
 
-        if let override = ProcessInfo.processInfo.environment["YOUTUBEFEEDER_RUNTIME_LOG_FILE"]?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !override.isEmpty
-        {
-            return URL(fileURLWithPath: override)
+        if let override = runtimeLogOverrideFileURL() {
+            guard !isLegacyRuntimeLogFileURL(override) else {
+                return runtimeLogLaunchFileURL
+            }
+            return override
         }
 
         if let runtimeLogLaunchFileURL {
@@ -537,12 +731,12 @@ struct AppConsoleLogger {
 
     private static func launchRuntimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
 #if targetEnvironment(macCatalyst)
-        guard let logFileURL = runtimeLogFileURL(sourceFilePath: sourceFilePath) else { return nil }
+        guard let logDirectoryURL = defaultRuntimeLogDirectoryURL(sourceFilePath: sourceFilePath) else { return nil }
         let fileName = launchRuntimeLogFileName(
             date: .now,
             processIdentifier: ProcessInfo.processInfo.processIdentifier
         )
-        return logFileURL.deletingLastPathComponent().appendingPathComponent(fileName)
+        return logDirectoryURL.appendingPathComponent(fileName)
 #else
         return nil
 #endif
@@ -557,18 +751,42 @@ struct AppConsoleLogger {
 
     static func runtimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
 #if targetEnvironment(macCatalyst)
-        if let override = ProcessInfo.processInfo.environment["YOUTUBEFEEDER_RUNTIME_LOG_FILE"]?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !override.isEmpty
-        {
-            return URL(fileURLWithPath: override)
+        if let override = runtimeLogOverrideFileURL() {
+            return override
         }
 
-        guard let markerRange = sourceFilePath.range(of: projectRootMarker) else { return nil }
-        let projectRoot = String(sourceFilePath[..<markerRange.lowerBound])
-        return URL(fileURLWithPath: projectRoot).appendingPathComponent(runtimeLogRelativePath)
+        guard let logDirectoryURL = defaultRuntimeLogDirectoryURL(sourceFilePath: sourceFilePath) else { return nil }
+        return logDirectoryURL.appendingPathComponent(legacyRuntimeLogFileName)
 #else
         return nil
 #endif
+    }
+
+    private static func defaultRuntimeLogDirectoryURL(sourceFilePath: String = #filePath) -> URL? {
+#if targetEnvironment(macCatalyst)
+        guard let markerRange = sourceFilePath.range(of: projectRootMarker) else { return nil }
+        let projectRoot = String(sourceFilePath[..<markerRange.lowerBound])
+        return URL(fileURLWithPath: projectRoot).appendingPathComponent(runtimeLogDirectoryRelativePath, isDirectory: true)
+#else
+        return nil
+#endif
+    }
+
+    private static func runtimeLogOverrideFileURL() -> URL? {
+#if targetEnvironment(macCatalyst)
+        guard let override = ProcessInfo.processInfo.environment["YOUTUBEFEEDER_RUNTIME_LOG_FILE"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !override.isEmpty
+        else {
+            return nil
+        }
+        return URL(fileURLWithPath: override)
+#else
+        return nil
+#endif
+    }
+
+    private static func isLegacyRuntimeLogFileURL(_ url: URL) -> Bool {
+        url.lastPathComponent == legacyRuntimeLogFileName
     }
 }

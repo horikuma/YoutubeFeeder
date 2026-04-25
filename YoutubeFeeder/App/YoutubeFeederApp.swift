@@ -23,7 +23,9 @@ struct YoutubeFeederApp: App {
                     }
                 }(),
                 "build_version": Self.bundleValue(forInfoDictionaryKey: "CFBundleVersion"),
-                "runtime_log_file": AppConsoleLogger.runtimeLogFileName() ?? "unknown"
+                "runtime_log_file": AppConsoleLogger.runtimeLogFileName() ?? "unknown",
+                "runtime_log_override_file": AppConsoleLogger.runtimeLogOverrideFileName(),
+                "runtime_log_override_status": AppConsoleLogger.runtimeLogOverrideStatus()
             ]
         )
     }
