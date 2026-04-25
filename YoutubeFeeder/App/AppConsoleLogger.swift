@@ -120,6 +120,25 @@ struct AppConsoleLogger {
         appendRuntimeLogLine(line)
     }
 
+    static func prepareRuntimeLogFileForLaunch() {
+#if targetEnvironment(macCatalyst)
+        guard let logFileURL = runtimeLogFileURL() else { return }
+        fileLogLock.lock()
+        defer { fileLogLock.unlock() }
+
+        do {
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(
+                at: logFileURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try Data().write(to: logFileURL, options: .atomic)
+        } catch {
+            // Logging must never change app behavior.
+        }
+#endif
+    }
+
     static func recordScopeInvocation(for scope: String, at timestamp: Date = .now) {
         scopeInvocationLock.lock()
         defer { scopeInvocationLock.unlock() }
