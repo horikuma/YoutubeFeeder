@@ -1,3 +1,5 @@
+import Darwin
+import Foundation
 import XCTest
 @testable import YoutubeFeeder
 
@@ -13,12 +15,16 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             errorMessage: nil,
             fetchedVideoCount: 0,
             uncachedVideoCount: 0,
+            conditionalCheckAttempted: true,
+            networkFetchAttempted: false,
             httpStatusCode: 404
         ))
         result.record(FeedChannelProcessResult(
             errorMessage: nil,
             fetchedVideoCount: 15,
             uncachedVideoCount: 2,
+            conditionalCheckAttempted: true,
+            networkFetchAttempted: true,
             httpStatusCode: 200
         ))
 
@@ -37,6 +43,8 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
         XCTAssertEqual(metadata["zero_fetched_channels"], "1")
         XCTAssertEqual(metadata["fetched_videos_total"], "15")
         XCTAssertEqual(metadata["cached_videos_delta"], "2")
+        XCTAssertEqual(result.conditionalCheckAttemptedChannels, 2)
+        XCTAssertEqual(result.networkFetchAttemptedChannels, 1)
     }
 
     @MainActor
@@ -69,7 +77,7 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
     }
 
     @MainActor
-    func testManualRefreshForcesNetworkFetchEvenWhenSnapshotIsFresh() async throws {
+    func testFullRefreshUsesConditionalFetchWhenSnapshotIsFresh() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
@@ -77,7 +85,7 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
 
         let channelID = "UC_FORCE_REFRESH"
         let now = Date(timeIntervalSince1970: 10_000)
-        let recorder = FeedFetchRecorder()
+        let recorder = FeedRefreshCallRecorder()
 
         try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
             FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager)
@@ -108,24 +116,29 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             )
 
             let feedService = YouTubeFeedService(
-                fetchLatestFeed: { fetchedChannelID in
-                    await recorder.record(fetchedChannelID)
+                checkForUpdates: { fetchedChannelID, validationToken in
+                    await recorder.recordCheck(
+                        validationToken: validationToken,
+                        manualTaskVisible: false
+                    )
+                    return .notModified(
+                        FeedFetchMetadata(
+                            checkedAt: now,
+                            validationToken: FeedValidationToken(
+                                etag: "cached-etag",
+                                lastModified: "cached-last-modified"
+                            ),
+                            httpStatusCode: 304
+                        )
+                    )
+                },
+                fetchLatestFeed: { _ in
+                    await recorder.recordFetch()
                     return (
-                        videos: [
-                            YouTubeVideo(
-                                id: "forced-video",
-                                title: "forced video",
-                                channelTitle: "Forced Channel",
-                                publishedAt: now,
-                                videoURL: URL(string: "https://example.com/watch?v=forced-video"),
-                                thumbnailURL: nil,
-                                durationSeconds: 600,
-                                viewCount: 10
-                            )
-                        ],
+                        videos: [],
                         metadata: FeedFetchMetadata(
                             checkedAt: now,
-                            validationToken: FeedValidationToken(etag: "forced-etag", lastModified: "forced-last-modified")
+                            validationToken: FeedValidationToken(etag: nil, lastModified: nil)
                         )
                     )
                 }
@@ -142,14 +155,183 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
                 )
             )
 
-            await coordinator.performManualRefresh()
+            await coordinator.performFullChannelRefresh(refreshSource: "test")
             let snapshot = database.loadFeedSnapshot()
-            let fetchedChannelIDs = await recorder.fetchedChannelIDs()
+            let callSummary = await recorder.snapshot()
 
-            XCTAssertEqual(fetchedChannelIDs, [channelID])
-            XCTAssertEqual(snapshot.videos.map(\.id), ["forced-video"])
-            XCTAssertEqual(snapshot.channels.first?.etag, "forced-etag")
+            XCTAssertEqual(callSummary.checkCount, 1)
+            XCTAssertEqual(callSummary.fetchCount, 0)
+            XCTAssertEqual(callSummary.manualTaskObservedDuringCheck, false)
+            XCTAssertEqual(callSummary.validationTokens, ["cached-etag"])
+            XCTAssertTrue(snapshot.videos.isEmpty)
+            XCTAssertEqual(snapshot.channels.first?.etag, "cached-etag")
         }
+    }
+
+    @MainActor
+    func testWallClockRecentRefreshEntersExecutionWhileManualTaskIsActive() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let channelID = "UC_RECENT_REFRESH"
+        let now = Date(timeIntervalSince1970: 10_000)
+        let recorder = FeedRefreshCallRecorder()
+        let coordinatorBox = CoordinatorBox()
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager)
+            defer { FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager) }
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceRegisteredChannels([
+                RegisteredChannelRecord(channelID: channelID, addedAt: nil)
+            ])
+            database.replaceFeedSnapshot(
+                FeedCacheSnapshot(
+                    savedAt: now,
+                    channels: [
+                        CachedChannelState(
+                            channelID: channelID,
+                            channelTitle: "Cached Channel",
+                            lastAttemptAt: now.addingTimeInterval(-60),
+                            lastCheckedAt: now.addingTimeInterval(-60),
+                            lastSuccessAt: now.addingTimeInterval(-60),
+                            latestPublishedAt: now.addingTimeInterval(-60),
+                            cachedVideoCount: 1,
+                            lastError: nil,
+                            etag: "cached-etag",
+                            lastModified: "cached-last-modified"
+                        )
+                    ],
+                    videos: []
+                )
+            )
+
+            let feedService = YouTubeFeedService(
+                checkForUpdates: { fetchedChannelID, validationToken in
+                    let manualTaskVisible = await MainActor.run {
+                        coordinatorBox.coordinator?.manualRefreshTask != nil
+                    }
+                    await recorder.recordCheck(
+                        validationToken: validationToken,
+                        manualTaskVisible: manualTaskVisible
+                    )
+                    return .notModified(
+                        FeedFetchMetadata(
+                            checkedAt: now,
+                            validationToken: FeedValidationToken(
+                                etag: "cached-etag",
+                                lastModified: "cached-last-modified"
+                            ),
+                            httpStatusCode: 304
+                        )
+                    )
+                },
+                fetchLatestFeed: { _ in
+                    await recorder.recordFetch()
+                    return (
+                        videos: [],
+                        metadata: FeedFetchMetadata(
+                            checkedAt: now,
+                            validationToken: FeedValidationToken(etag: nil, lastModified: nil)
+                        )
+                    )
+                }
+            )
+            coordinatorBox.coordinator = FeedCacheCoordinator(
+                channels: [channelID],
+                dependencies: FeedCacheDependencies(
+                    store: FeedCacheStore(),
+                    feedService: feedService,
+                    channelResolver: YouTubeChannelResolver(),
+                    searchService: YouTubeSearchService(),
+                    remoteSearchCacheStore: RemoteVideoSearchCacheStore(),
+                    channelRegistrySyncService: ChannelRegistryCloudflareSyncService(endpointURL: nil)
+                )
+            )
+
+            await coordinatorBox.coordinator?.runWallClockChannelRefresh(.recentChannels)
+            let callSummary = await recorder.snapshot()
+
+            XCTAssertEqual(callSummary.checkCount, 1)
+            XCTAssertEqual(callSummary.fetchCount, 0)
+            XCTAssertTrue(callSummary.manualTaskObservedDuringCheck)
+        }
+    }
+
+    @MainActor
+    func testRefreshCycleProgressLogsEveryFiftyChannels() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let now = Date(timeIntervalSince1970: 10_000)
+        let channelIDs = (1...51).map { "UC_PROGRESS_\($0)" }
+
+        let (_, output) = try await captureStandardOutput {
+            try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+                FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager)
+                defer { FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager) }
+
+                let feedService = YouTubeFeedService(
+                    checkForUpdates: { _, _ in
+                        .notModified(
+                            FeedFetchMetadata(
+                                checkedAt: now,
+                                validationToken: FeedValidationToken(etag: nil, lastModified: nil),
+                                httpStatusCode: 304
+                            )
+                        )
+                    }
+                )
+                let coordinator = FeedCacheCoordinator(
+                    channels: channelIDs,
+                    dependencies: FeedCacheDependencies(
+                        store: FeedCacheStore(),
+                        feedService: feedService,
+                        channelResolver: YouTubeChannelResolver(),
+                        searchService: YouTubeSearchService(),
+                        remoteSearchCacheStore: RemoteVideoSearchCacheStore(),
+                        channelRegistrySyncService: ChannelRegistryCloudflareSyncService(endpointURL: nil)
+                    )
+                )
+                let states = Dictionary(
+                    uniqueKeysWithValues: channelIDs.map {
+                        (
+                            $0,
+                            CachedChannelState(
+                                channelID: $0,
+                                channelTitle: "Channel \($0)",
+                                lastAttemptAt: now.addingTimeInterval(-60),
+                                lastCheckedAt: now.addingTimeInterval(-60),
+                                lastSuccessAt: now.addingTimeInterval(-60),
+                                latestPublishedAt: now.addingTimeInterval(-60),
+                                cachedVideoCount: 0,
+                                lastError: nil,
+                                etag: nil,
+                                lastModified: nil
+                            )
+                        )
+                    }
+                )
+                _ = await coordinator.runManualRefreshChannels(
+                    channelIDs,
+                    states: states,
+                    forceNetworkFetch: false,
+                    refreshSource: "test"
+                )
+            }
+        }
+
+        let progressLines = Self.unwrappedLogOutput(output)
+            .split(separator: "\n")
+            .filter { $0.contains("refresh_cycle_progress") }
+
+        XCTAssertEqual(progressLines.count, 2)
+        XCTAssertTrue(progressLines.contains { $0.contains(#"processed_channels="50""#) })
+        XCTAssertTrue(progressLines.contains { $0.contains(#"processed_channels="51""#) })
     }
 
     @MainActor
@@ -241,6 +423,85 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
         }
         return try await operation()
     }
+
+    private func captureStandardOutput<T>(
+        _ operation: () async throws -> T
+    ) async throws -> (T, String) {
+        let pipe = Pipe()
+        let originalStdout = dup(STDOUT_FILENO)
+        fflush(stdout)
+        dup2(pipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO)
+
+        func restore() {
+            fflush(stdout)
+            dup2(originalStdout, STDOUT_FILENO)
+            close(originalStdout)
+            pipe.fileHandleForWriting.closeFile()
+        }
+
+        do {
+            let value = try await operation()
+            restore()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            return (value, String(decoding: data, as: UTF8.self))
+        } catch {
+            restore()
+            throw error
+        }
+    }
+
+    private static func unwrappedLogOutput(_ output: String) -> String {
+        output
+            .split(separator: "\n")
+            .map { line -> String in
+                guard
+                    let data = line.data(using: .utf8),
+                    let object = try? JSONSerialization.jsonObject(with: data),
+                    let dictionary = object as? [String: Any],
+                    let wrappedLine = dictionary["line"] as? String
+                else {
+                    return String(line)
+                }
+
+                return wrappedLine
+            }
+            .joined(separator: "\n")
+    }
+}
+
+private actor FeedRefreshCallRecorder {
+    private var checkCount = 0
+    private var fetchCount = 0
+    private var manualTaskObservedDuringCheck = false
+    private var validationTokens: [String?] = []
+
+    func recordCheck(validationToken: FeedValidationToken?, manualTaskVisible: Bool) {
+        checkCount += 1
+        manualTaskObservedDuringCheck = manualTaskObservedDuringCheck || manualTaskVisible
+        validationTokens.append(validationToken?.etag)
+    }
+
+    func recordFetch() {
+        fetchCount += 1
+    }
+
+    func snapshot() -> (
+        checkCount: Int,
+        fetchCount: Int,
+        manualTaskObservedDuringCheck: Bool,
+        validationTokens: [String?]
+    ) {
+        (
+            checkCount: checkCount,
+            fetchCount: fetchCount,
+            manualTaskObservedDuringCheck: manualTaskObservedDuringCheck,
+            validationTokens: validationTokens
+        )
+    }
+}
+
+private final class CoordinatorBox {
+    var coordinator: FeedCacheCoordinator?
 }
 
 private actor FeedFetchRecorder {

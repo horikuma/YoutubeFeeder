@@ -28,7 +28,7 @@ extension FeedCacheCoordinator {
                 "snapshot_channels": String(snapshot.channels.count),
                 "due_channels": String(sortedChannels.count),
                 "freshness_bypassed": "true",
-                "force_network_fetch": "true",
+                "force_network_fetch": "false",
                 "refresh_source": refreshSource,
                 "snapshot_dependency": "channel_order_only",
                 "snapshot_dependency_detail": "due channels are derived from registered channel ordering only",
@@ -39,12 +39,12 @@ extension FeedCacheCoordinator {
         let cycleResult = await runRefreshCycle(
             channelIDs: sortedChannels,
             states: states,
-            forceNetworkFetch: true,
+            forceNetworkFetch: false,
             refreshSource: refreshSource
         )
         var metadata = cycleResult.metadata(
             channelCount: sortedChannels.count,
-            forceNetworkFetch: true,
+            forceNetworkFetch: false,
             refreshSource: refreshSource,
             cachedVideosBefore: cycleResult.cachedVideosBefore,
             cachedVideosAfter: cycleResult.cachedVideosAfter
@@ -54,6 +54,8 @@ extension FeedCacheCoordinator {
         metadata["channel_count"] = String(channels.count)
         metadata["elapsed_ms"] = AppConsoleLogger.elapsedMilliseconds(since: startedAt)
         metadata["result_state"] = cycleResult.lastError == nil ? "completed" : "completed_with_errors"
+        metadata["conditional_check_attempted_channels"] = String(cycleResult.conditionalCheckAttemptedChannels)
+        metadata["network_fetch_attempted_channels"] = String(cycleResult.networkFetchAttemptedChannels)
         AppConsoleLogger.appLifecycle.info(
             "full_channel_refresh_finished",
             metadata: metadata
@@ -107,22 +109,30 @@ extension FeedCacheCoordinator {
             return
         }
 
-        await runScheduledRefreshCycle(
+        let cycleResult = await runRefreshCycle(
             channelIDs: dueChannels,
             states: states,
+            forceNetworkFetch: false,
             refreshSource: refreshSource
         )
+        var metadata = cycleResult.metadata(
+            channelCount: dueChannels.count,
+            forceNetworkFetch: false,
+            refreshSource: refreshSource,
+            cachedVideosBefore: cycleResult.cachedVideosBefore,
+            cachedVideosAfter: cycleResult.cachedVideosAfter
+        )
+        metadata["target_channels"] = String(dueChannels.count)
+        metadata["due_channels"] = String(dueChannels.count)
+        metadata["snapshot_channels"] = String(snapshot.channels.count)
+        metadata["channel_count"] = String(channels.count)
+        metadata["elapsed_ms"] = AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+        metadata["result_state"] = cycleResult.lastError == nil ? "completed" : "completed_with_errors"
+        metadata["conditional_check_attempted_channels"] = String(cycleResult.conditionalCheckAttemptedChannels)
+        metadata["network_fetch_attempted_channels"] = String(cycleResult.networkFetchAttemptedChannels)
         AppConsoleLogger.appLifecycle.info(
             "recent_channel_refresh_finished",
-            metadata: [
-                "refresh_source": refreshSource,
-                "target_channels": String(dueChannels.count),
-                "due_channels": String(dueChannels.count),
-                "snapshot_channels": String(snapshot.channels.count),
-                "channel_count": String(channels.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "result_state": "completed"
-            ]
+            metadata: metadata
         )
     }
 
@@ -309,7 +319,8 @@ extension FeedCacheCoordinator {
         var cycleResult = await runManualRefreshChannels(
             channelIDs,
             states: states,
-            forceNetworkFetch: forceNetworkFetch
+            forceNetworkFetch: forceNetworkFetch,
+            refreshSource: refreshSource
         )
         finishManualRefreshProgress()
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
@@ -428,9 +439,12 @@ extension FeedCacheCoordinator {
     func runManualRefreshChannels(
         _ sortedChannels: [String],
         states: [String: CachedChannelState],
-        forceNetworkFetch: Bool = false
+        forceNetworkFetch: Bool = false,
+        refreshSource: String
     ) async -> FeedRefreshCycleResult {
         var cycleResult = FeedRefreshCycleResult()
+        let progressInterval = 50
+        let cycleStartedAt = Date()
         updateManualRefreshActiveCalls(completed: 0, totalChannels: sortedChannels.count, activeCalls: sortedChannels.isEmpty ? 0 : 1)
 
         for (index, channelID) in sortedChannels.enumerated() {
@@ -443,6 +457,22 @@ extension FeedCacheCoordinator {
 
             let completed = index + 1
             let remaining = sortedChannels.count - completed
+            if completed % progressInterval == 0 || completed == sortedChannels.count {
+                AppConsoleLogger.appLifecycle.info(
+                    "refresh_cycle_progress",
+                    metadata: [
+                        "refresh_source": refreshSource,
+                        "processed_channels": String(completed),
+                        "total_channels": String(sortedChannels.count),
+                        "conditional_check_attempted_channels": String(cycleResult.conditionalCheckAttemptedChannels),
+                        "network_fetch_attempted_channels": String(cycleResult.networkFetchAttemptedChannels),
+                        "http_200_channels": String(cycleResult.httpStatusCounts[200, default: 0]),
+                        "http_304_channels": String(cycleResult.httpStatusCounts[304, default: 0]),
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: cycleStartedAt),
+                        "result_state": "running"
+                    ]
+                )
+            }
             updateManualRefreshActiveCalls(
                 completed: completed,
                 totalChannels: sortedChannels.count,

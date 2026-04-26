@@ -45,6 +45,8 @@ struct FeedChannelSyncService {
                     errorMessage: nil,
                     fetchedVideoCount: nil,
                     uncachedVideoCount: 0,
+                    conditionalCheckAttempted: true,
+                    networkFetchAttempted: false,
                     httpStatusCode: metadata.httpStatusCode
                 )
             case .updated:
@@ -69,6 +71,8 @@ struct FeedChannelSyncService {
                     errorMessage: nil,
                     fetchedVideoCount: result.videos.count,
                     uncachedVideoCount: uncachedVideos.count,
+                    conditionalCheckAttempted: true,
+                    networkFetchAttempted: true,
                     httpStatusCode: result.metadata.httpStatusCode
                 )
             }
@@ -86,7 +90,9 @@ struct FeedChannelSyncService {
             return FeedChannelProcessResult(
                 errorMessage: message,
                 fetchedVideoCount: nil,
-                uncachedVideoCount: 0
+                uncachedVideoCount: 0,
+                conditionalCheckAttempted: true,
+                networkFetchAttempted: false
             )
         }
     }
