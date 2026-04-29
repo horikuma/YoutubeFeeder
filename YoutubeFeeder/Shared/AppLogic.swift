@@ -308,11 +308,26 @@ struct ChannelBrowseLogic: Hashable {
     var selectedChannelID: String?
     var videosByChannelID: [String: [CachedVideo]] = [:]
     var loadingChannelIDs: Set<String> = []
+    var selectedChannelRefreshSource: String?
 
     mutating func setItems(_ items: [ChannelBrowseItem]) {
+        let previousItems = self.items
         self.items = items
         if let selectedChannelID, !items.contains(where: { $0.channelID == selectedChannelID }) {
             self.selectedChannelID = nil
+            loadingChannelIDs.remove(selectedChannelID)
+            videosByChannelID[selectedChannelID] = nil
+            selectedChannelRefreshSource = nil
+            return
+        }
+
+        guard let selectedChannelID else { return }
+        guard let previousSelectedItem = previousItems.first(where: { $0.channelID == selectedChannelID }) else { return }
+        guard let currentSelectedItem = items.first(where: { $0.channelID == selectedChannelID }) else { return }
+        if previousSelectedItem != currentSelectedItem {
+            loadingChannelIDs.remove(selectedChannelID)
+            videosByChannelID[selectedChannelID] = nil
+            selectedChannelRefreshSource = "channel_list_update"
         }
     }
 

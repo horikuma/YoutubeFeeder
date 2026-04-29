@@ -15,6 +15,42 @@ final class ChannelBrowseLogicTests: LoggedTestCase {
         XCTAssertNil(state.selectedChannelID)
     }
 
+    func testSetItemsInvalidatesSelectedChannelVideosWhenSelectedItemChanges() {
+        var state = ChannelBrowseLogic()
+        let initialVideo = makeVideo(id: "video-1", channelID: "UC001", channelTitle: "Alpha")
+        state.setItems([
+            makeItem(channelID: "UC001", title: "Alpha", latestVideo: initialVideo, cachedVideoCount: 1)
+        ])
+        state.selectChannel("UC001")
+        state.videosByChannelID["UC001"] = [initialVideo]
+
+        state.setItems([
+            makeItem(
+                channelID: "UC001",
+                title: "Alpha",
+                latestVideo: makeVideo(id: "video-2", channelID: "UC001", channelTitle: "Alpha"),
+                cachedVideoCount: 2
+            )
+        ])
+
+        XCTAssertNil(state.videosByChannelID["UC001"])
+        XCTAssertEqual(state.selectedChannelRefreshSource, "channel_list_update")
+    }
+
+    func testSetItemsKeepsSelectedChannelVideosWhenSelectedItemIsUnchanged() {
+        var state = ChannelBrowseLogic()
+        let initialVideo = makeVideo(id: "video-1", channelID: "UC001", channelTitle: "Alpha")
+        let item = makeItem(channelID: "UC001", title: "Alpha", latestVideo: initialVideo, cachedVideoCount: 1)
+        state.setItems([item])
+        state.selectChannel("UC001")
+        state.videosByChannelID["UC001"] = [initialVideo]
+
+        state.setItems([item])
+
+        XCTAssertEqual(state.videosByChannelID["UC001"], [initialVideo])
+        XCTAssertNil(state.selectedChannelRefreshSource)
+    }
+
     func testApplyDefaultSelectionUsesFirstAvailableChannel() {
         var state = ChannelBrowseLogic()
         state.setItems([
@@ -72,15 +108,20 @@ final class ChannelBrowseLogicTests: LoggedTestCase {
         XCTAssertEqual(state.selectedTitle(), "Alpha")
     }
 
-    private func makeItem(channelID: String, title: String) -> ChannelBrowseItem {
+    private func makeItem(
+        channelID: String,
+        title: String,
+        latestVideo: CachedVideo? = nil,
+        cachedVideoCount: Int = 0
+    ) -> ChannelBrowseItem {
         ChannelBrowseItem(
             id: channelID,
             channelID: channelID,
             channelTitle: title,
             latestPublishedAt: nil,
             registeredAt: nil,
-            latestVideo: nil,
-            cachedVideoCount: 0
+            latestVideo: latestVideo,
+            cachedVideoCount: cachedVideoCount
         )
     }
 
