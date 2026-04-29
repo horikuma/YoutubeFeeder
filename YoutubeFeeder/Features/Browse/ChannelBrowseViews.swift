@@ -425,6 +425,19 @@ private struct ChannelBrowseRegularView: View {
                 withAnimation(.easeOut(duration: 0.25)) {
                     state.finishLoadingVideos(loadedVideos, for: channelID)
                 }
+                if state.selectedChannelID == channelID,
+                   let refreshSource = state.selectedChannelRefreshSource {
+                    RuntimeDiagnostics.shared.record(
+                        "channel_split_detail_reload_finished",
+                        detail: "分割表示の右ペイン動画一覧が一覧更新に追随した",
+                        metadata: [
+                            "channelID": channelID,
+                            "refresh_source": refreshSource,
+                            "videoCount": String(loadedVideos.count)
+                        ]
+                    )
+                    state.selectedChannelRefreshSource = nil
+                }
             }
         }
     }
