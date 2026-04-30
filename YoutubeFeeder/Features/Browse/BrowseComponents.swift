@@ -64,10 +64,10 @@ private struct TileHighlightBorder: View {
 
     private var borderColor: Color {
         if isSelected {
-            return .cyan.opacity(0.95)
+            return .red.opacity(0.95)
         }
         if isHovered {
-            return .accentColor
+            return .blue.opacity(0.95)
         }
         return .clear
     }
@@ -243,22 +243,66 @@ struct VideoTile: View {
 
         if AppInteractionPlatform.current.usesPrimaryClickForMenus, desktopMenuTriggerStyle == .primaryClick, menu.hasActions {
             tile
-                .onHover { isHovered = $0 }
+                .onHover {
+                    isHovered = $0
+                    AppConsoleLogger.browseTileInteraction.debug(
+                        "tile_hover_state_changed",
+                        metadata: [
+                            "kind": "video_primary_menu",
+                            "videoID": video.id,
+                            "channelID": video.channelID,
+                            "isHovered": "\($0)"
+                        ]
+                    )
+                }
         } else if AppInteractionPlatform.current.usesPrimaryClickForMenus, let desktopPrimaryClickAction {
             Button(action: desktopPrimaryClickAction) {
                 tile
             }
             .buttonStyle(.plain)
-            .onHover { isHovered = $0 }
+            .onHover {
+                isHovered = $0
+                AppConsoleLogger.browseTileInteraction.debug(
+                    "tile_hover_state_changed",
+                    metadata: [
+                        "kind": "video_primary_click",
+                        "videoID": video.id,
+                        "channelID": video.channelID,
+                        "isHovered": "\($0)"
+                    ]
+                )
+            }
         } else if let tapAction {
             Button(action: tapAction) {
                 tile
             }
             .buttonStyle(.plain)
-            .onHover { isHovered = $0 }
+            .onHover {
+                isHovered = $0
+                AppConsoleLogger.browseTileInteraction.debug(
+                    "tile_hover_state_changed",
+                    metadata: [
+                        "kind": "video_tap",
+                        "videoID": video.id,
+                        "channelID": video.channelID,
+                        "isHovered": "\($0)"
+                    ]
+                )
+            }
         } else {
             tile
-                .onHover { isHovered = $0 }
+                .onHover {
+                    isHovered = $0
+                    AppConsoleLogger.browseTileInteraction.debug(
+                        "tile_hover_state_changed",
+                        metadata: [
+                            "kind": "video_fallback",
+                            "videoID": video.id,
+                            "channelID": video.channelID,
+                            "isHovered": "\($0)"
+                        ]
+                    )
+                }
         }
     }
 
@@ -441,7 +485,17 @@ struct ChannelNavigationTile: View {
 
     var body: some View {
         ChannelTile(item: item, appearance: .navigation, index: index, isHovered: isHovered)
-            .onHover { isHovered = $0 }
+            .onHover {
+                isHovered = $0
+                AppConsoleLogger.browseTileInteraction.debug(
+                    "tile_hover_state_changed",
+                    metadata: [
+                        "kind": "channel_navigation",
+                        "channelID": item.channelID,
+                        "isHovered": "\($0)"
+                    ]
+                )
+            }
     }
 }
 
@@ -459,7 +513,18 @@ struct ChannelSelectionTile: View {
             isHovered: isHovered
         )
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .onHover { isHovered = $0 }
+            .onHover {
+                isHovered = $0
+                AppConsoleLogger.browseTileInteraction.debug(
+                    "tile_hover_state_changed",
+                    metadata: [
+                        "kind": "channel_selection",
+                        "channelID": item.channelID,
+                        "isSelected": "\(isSelected)",
+                        "isHovered": "\($0)"
+                    ]
+                )
+            }
     }
 }
 
