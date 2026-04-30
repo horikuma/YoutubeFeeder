@@ -58,6 +58,30 @@ enum TileMenuTriggerStyle {
     case contextMenu
 }
 
+private struct TileHighlightBorder: View {
+    let isHovered: Bool
+    let isSelected: Bool
+
+    private var borderColor: Color {
+        if isSelected {
+            return .cyan.opacity(0.95)
+        }
+        if isHovered {
+            return .accentColor
+        }
+        return .clear
+    }
+
+    private var borderWidth: CGFloat {
+        (isHovered || isSelected) ? 3 : 0
+    }
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .strokeBorder(borderColor, lineWidth: borderWidth)
+    }
+}
+
 struct TileMenuConfiguration {
     let primaryAction: TileMenuAction?
     let secondaryActions: [TileMenuAction]
@@ -173,6 +197,7 @@ struct VideoTile: View {
     let desktopPrimaryClickAction: (() -> Void)?
     let desktopMenuTriggerStyle: TileMenuTriggerStyle
     let includesOpenVideoInMenu: Bool
+    @State private var isHovered = false
     @State private var shareURL: URL?
 
     init(
@@ -199,7 +224,7 @@ struct VideoTile: View {
 
     var body: some View {
         let menu = buildMenuConfiguration()
-        let tile = VideoHeroTile(video: video, index: index)
+        let tile = VideoHeroTile(video: video, index: index, isHovered: isHovered)
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .tileActionMenu(menu: menu, desktopTriggerStyle: desktopMenuTriggerStyle)
             .sheet(
@@ -218,18 +243,22 @@ struct VideoTile: View {
 
         if AppInteractionPlatform.current.usesPrimaryClickForMenus, desktopMenuTriggerStyle == .primaryClick, menu.hasActions {
             tile
+                .onHover { isHovered = $0 }
         } else if AppInteractionPlatform.current.usesPrimaryClickForMenus, let desktopPrimaryClickAction {
             Button(action: desktopPrimaryClickAction) {
                 tile
             }
             .buttonStyle(.plain)
+            .onHover { isHovered = $0 }
         } else if let tapAction {
             Button(action: tapAction) {
                 tile
             }
             .buttonStyle(.plain)
+            .onHover { isHovered = $0 }
         } else {
             tile
+                .onHover { isHovered = $0 }
         }
     }
 
@@ -335,13 +364,11 @@ private enum ChannelSummaryTileAppearance {
         }
     }
 
-    var selectionBorderColor: Color {
-        switch self {
-        case .selected:
-            .white.opacity(0.95)
-        case .navigation, .unselected:
-            .clear
+    var isSelected: Bool {
+        if case .selected = self {
+            return true
         }
+        return false
     }
 }
 
@@ -349,6 +376,7 @@ fileprivate struct ChannelTile: View {
     let item: ChannelBrowseItem
     let appearance: ChannelSummaryTileAppearance
     let index: Int?
+    let isHovered: Bool
 
     var body: some View {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -374,8 +402,10 @@ fileprivate struct ChannelTile: View {
                 )
             }
             .overlay {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(appearance.selectionBorderColor, lineWidth: 3)
+                TileHighlightBorder(
+                    isHovered: isHovered && !appearance.isSelected,
+                    isSelected: appearance.isSelected
+                )
             }
             .overlay(alignment: .bottomLeading) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -407,9 +437,11 @@ fileprivate struct ChannelTile: View {
 struct ChannelNavigationTile: View {
     let item: ChannelBrowseItem
     let index: Int?
+    @State private var isHovered = false
 
     var body: some View {
-        ChannelTile(item: item, appearance: .navigation, index: index)
+        ChannelTile(item: item, appearance: .navigation, index: index, isHovered: isHovered)
+            .onHover { isHovered = $0 }
     }
 }
 
@@ -417,20 +449,24 @@ struct ChannelSelectionTile: View {
     let item: ChannelBrowseItem
     let isSelected: Bool
     let index: Int?
+    @State private var isHovered = false
 
     var body: some View {
         ChannelTile(
             item: item,
             appearance: isSelected ? .selected : .unselected,
-            index: index
+            index: index,
+            isHovered: isHovered
         )
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .onHover { isHovered = $0 }
     }
 }
 
 struct VideoHeroTile: View {
     let video: CachedVideo
     let index: Int?
+    let isHovered: Bool
 
     var body: some View {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -469,6 +505,9 @@ struct VideoHeroTile: View {
                     TileIndexBadge(index: index)
                         .padding(12)
                 }
+            }
+            .overlay {
+                TileHighlightBorder(isHovered: isHovered, isSelected: false)
             }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
