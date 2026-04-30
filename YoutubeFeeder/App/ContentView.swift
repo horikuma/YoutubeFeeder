@@ -23,6 +23,15 @@ struct ContentView: View {
     }
 
     var body: some View {
+        if #available(iOS 18.0, *) {
+            mainBody.allowsWindowActivationEvents()
+        } else {
+            mainBody
+        }
+    }
+
+    @ViewBuilder
+    private var mainBody: some View {
         GeometryReader { geometry in
             let layout = AppLayout.current(
                 size: geometry.size,
