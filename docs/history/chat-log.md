@@ -1,3 +1,35 @@
+## 2026/04/30
+- 指定を間違えたので巻き戻した。feed.refresh.request_scheduler_progressをDEBUGにし、ビルドせよ。
+  - feed.refresh.request_scheduler_progress を DEBUG に変更し、xcodebuild -scheme YoutubeFeeder -destination platform=macOS -derivedDataPath build build でビルド成功を確認しました。
+- app.lifecycle.refresh_cycle_progressをDEBUGに変更してビルドせよ。
+  - app.lifecycle.refresh_cycle_progress を DEBUG に変更し、xcodebuild -scheme YoutubeFeeder -destination platform=macOS -derivedDataPath build build でビルド成功を確認しました。
+- ビルドファイルの出力先を、プロジェクト直下の/buildを指定せよ。
+  - ビルド出力先を project-local の ./build に寄せ、xcodebuild でもそのパスに成果物が出ることを確認しました。コミットはしていません。
+- セッションを完了せよ。
+  - セッションを完了しました。git-main-sync で main を origin/main へ最新化し、issue-166 ブランチを削除しました。
+- 結構。結果は、更新前のアプリプロセスが残留している、だった。問題ないことを確認できたので、PRを作成せよ。
+  - PR を作成しました。ブランチ issue-166 を origin に push したうえで、Pull Request #167 を作成しています。タイトルは「Issue 166: デスクトップの動画/チャンネルカード強調と first-mouse 対応を追加する」で、本文には Closes #166 を含めています。
+- チャンネルを3つ選択したが、ハイライトは白だった。コードとログとこの動作確認を元に、何が起こっているかを検証し回答せよ。
+  - 検証結果として、現在のソースは選択時を赤、ホバー時を青に描画する実装ですが、実行中のアプリのランタイムログには browse.tile.interaction の debug ログが出ておらず、ライブ画面でも選択枠は白っぽく見えました。選択状態自体は右ペインの切り替わりで反映されていますが、表示されている枠色は現在のソースの TileHighlightBorder とは一致しません。したがって、観測している UI は更新済みコードを反映した再起動後のプロセスではなく、古い実行バイナリまたは別の system accent/focus ring の影響を見ている可能性が高いです。
+- UIテストの追加を削除せよ。
+  - 選択時のアクセントカラーを赤、ホバー時のアクセントカラーを青に変更し、BrowseComponents.swift にホバー判定のデバッグログを追加しました。AppConsoleLogger.swift では DEBUG ビルド時のみ debug ログを出すようにし、browse.tile.interaction スコープを追加しています。xcodebuild -scheme YoutubeFeeder -destination platform=macOS -derivedDataPath /tmp/YoutubeFeederDerivedData build は成功しました。コミットはしていません。
+  - Issue #166 の ToDo 3 を実施しました。ContentView.swift に、iOS 18 以上では allowsWindowActivationEvents() を適用し、それ未満では従来経路へフォールバックする first-mouse 対応を追加しました。xcodebuild -scheme YoutubeFeeder -destination platform=macOS -derivedDataPath /tmp/YoutubeFeederDerivedData build は成功し、IssueToDo 3 もチェック済みです。コミットは 345ab05 (3: first-mouse を有効化する) で、作業ツリーはクリーンです。
+  - Issue #166からUIテスト追加のToDoを削除し、内容を3件に整理しました。
+- 全て採用し、Issueを詳細化せよ。のちに、ブランチを切り替えよ。
+  - Issue #166を詳細化し、issue-166ブランチへ切り替えました。
+- 以下の目的の実現妥当性を検討し回答せよ。動画やチャンネルカードの上にマウスがオーバーした時、アクセント色の枠でカードを強調する。クリックし選択した場合、別のアクセント色の枠でカードを強調し、選択されていることをユーザにフィードバックする。マウスオーバーで強調した状態でクリックした場合、非アクティブ状態から最初のクリックでも、アクティブかではなくカードがクリックされたものとみなして処理する。
+  - 現状の実装では概ね実現可能ですが、動画側の選択状態追加とMacのfirst-mouse制御は追加実装が必要です。
+- Issueを追加せよ。「非アクティブ時のマウスオーバレイをリッチにする」
+  - Issue #166「非アクティブ時のマウスオーバレイをリッチにする」を作成しました。
+- コミットせよ。
+  - AGENTS.mdへの運用方針追記をコミットしました。
+- AGENTSに追加せよ。「ChatGPT Plusのクォーターを前提とし、ChatGPT5.4-Miniでのセミエージェント運用を志向する。」
+  - AGENTS.mdの共通原則に、ChatGPT Plusのクォーター前提でChatGPT5.4-Miniのセミエージェント運用を志向する旨を追記しました。
+- Generate 0 to 3 ambient suggestions for this local project. [引用要約: recent Codex threadsと過去提案を踏まえ、Git履歴・ブランチ・周辺コード・接続アプリを確認し、このプロジェクトで今すぐ着手できる新規提案だけを返す。]
+  - 2件の新規提案を返した。 [引用要約: Apr 30 runtime log と最近の main 履歴を根拠に、home_status_load_complete の 697 秒停滞と wall_clock_recent_channels が全300件へ拡大する挙動を調べる新規スレッド案を提示した。]
+  - セッション開始を完了し、main同期・履歴ローテーション・コミットまで済ませました。
+- セッションを開始せよ。
+
 ## 2026/04/29
 - セッションを完了せよ。
   - セッションを完了しました。main は origin/main に追随し、作業ブランチ issue-163 は削除済みです。
