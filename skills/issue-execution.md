@@ -46,7 +46,7 @@
 
 ### 検証
 
-- focused verification は、変更が `tools`、`skills`、`scripts` だけに閉じる場合は対象ファイルの構文確認と代表的な 1 経路の確認に限定し、アプリ本体へ影響する場合は対応するテストと build 確認へ広げなければならない。
+- focused verification は、変更が `tools`、`skills`、`scripts` だけに閉じる場合は対象ファイルの構文確認と代表的な 1 経路の確認に限定し、アプリ本体へ影響する場合は対応するテストと `./scripts/command-runner.py 'build-debug'` / `./scripts/command-runner.py 'build-release'` による build 確認へ広げなければならない。
 
 ### 更新
 
