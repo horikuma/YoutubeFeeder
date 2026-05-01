@@ -1,3 +1,44 @@
+## 2026/05/01
+- リリースビルドせよ。
+  - リリースビルドを実行し、build-release は成功しました。成果物は build/release 配下に出ています。
+- セッションを終了せよ。
+  - セッションを終了しました。git-main-sync が成功し、main は origin/main まで最新化されました。issue-168 ブランチは削除されています。
+- Issue168のPRを作成せよ。
+  - Issue 168 の PR を作成しました。ブランチ issue-168 を origin に push したうえで、PR #170 (https://github.com/horikuma/YoutubeFeeder/pull/170) を作成しています。本文には Closes #168 を含めています。
+- Issueを作成せよ。「Macで非フォーカス時のカードクリックイベントがカードまで届いていない」
+  - Issue #169「Macで非フォーカス時のカードクリックイベントがカードまで届いていない」を作成しました。
+- acceptsFirstMouseを触っていないのはなぜか回答せよ。
+  - acceptsFirstMouseは触っていません。今回の問題はSwiftUIのカードが選択アクションに入る経路の問題として扱い、Buttonとdefault actionへの寄せ替えで先に切り分けたからです。acceptsFirstMouseはAppKit寄りの低レベル対策で、SwiftUI/Mac Catalystのこの画面では導入のための影響範囲が大きく、まず必要なクリック経路だけを直す方が安全でした。
+- acceptsMouseMovedEventsをセットしなくて良いと判断した理由を回答せよ。
+  - acceptsMouseMovedEventsは不要と判断しました。hoverはSwiftUIの.onHoverで足りており、クリックはButton/アクセシビリティのdefault actionで選択処理に入るため、AppKitの連続mouseMovedイベントを受ける必要がないからです。
+- では予定していた対策を行い、デバッグビルドまで進めよ。
+  - 非フォーカスクリック対策を Button ベースに切り替え、デバッグビルドは成功しました。
+- 操作をしたのでyoutubefeeder-runtime-20260501-184754-636-pid8115.logを検証せよ。最後に、非フォーカス状態でクリックしている。
+  - ログを確認した結果、該当 runtime ログには channel_selection_requested がなく、最後の関連イベントは 18:48:09.890/09.907/09.940 の tile_hover_state_changed だけで、非フォーカスクリックが選択処理まで届いていないことを示しています。
+- デバッグビルドせよ。
+  - デバッグビルドは成功しました。
+- 既存プロセスを一掃した。再開せよ。
+  - AX default action を追加して再ビルドしたが、UI操作ログは選択経路でまだ出ず、refresh の干渉もあり、現時点では未解決です。
+- コミットしてはならない。マウスをカードの上に重ねるとフォーカスがなくとも青強調されるが、その状態でクリックしても選択状態にならず、フォーカスが移動するだけになる。設計意図は、アプリがアンフォーカス状態からの青強調のカードクリックで、赤強調になるというものである。specsで規定しているか確認せよ。また、そのように動かすためにどうするべきか検討し回答せよ。
+- Issueブランチを作成し切り替えよ。
+  - Issue #168 のブランチ `issue-168` を作成し、`main` 最新化後に切り替えました。
+- Issueを作成せよ。「ビルドパスをスキルで固定する」
+  - Issue #168「ビルドパスをスキルで固定する」を作成しました。
+- 開発中のビルドはdebugと明示せよ。Issue実施の終端に到達し、nextがnullになった時、releaseビルドをするようにせよ。
+  - 開発中の build は `debug` と明示し、Issue 実施の終端では `build-release` を必須化しました。
+- skills/build.mdを追加せよ。debugもしくはreleaseの指定を必須とせよ。scriptsのビルドを呼び出すよう設計せよ。
+  - `skills/build.md` を追加し、`debug` / `release` 必須で `build-debug` / `build-release` を呼ぶ構成にしました。
+  - 2件の ambient suggestion を返す [引用要約: 5月1日の長時間 refresh 調査と offline 時の refresh 暴走停止を、最新 runtime log と refresh 関連コードに基づく新規スレッド提案として返す。]
+- Generate 0 to 3 ambient suggestions for this local project [引用要約: recent Codex threads, avoid repeating prior suggestions, inspect git history and nearby code, use connected-app context only if directly relevant, return JSON suggestions with title/description/prompt/threadAction/appId.]
+- 工程にビルドを含んでいるスキルについて、本スクリプトを参照するように修正せよ。本スキルで同じ処理を置き換えられない場合は、対処せずにスキップし、最後に報告せよ。その場合コミットをしてはならない。
+  - ビルド工程を含む `skills/verification.md`、`skills/issue-detailing.md`、`skills/issue-execution.md` を `build-debug` / `build-release` 参照へ置き換えました。
+- ビルドスキルをskillsはいかに作成せよ。debugとrereaseを用意せよ。出力先は本プロジェクトのbuild配下とせよ。
+  - ビルド用スキルを `scripts/xcode-build` に追加し、`build-debug` と `build-release` を `build/debug` と `build/release` へ出力する形で反映しました。
+- セッションを開始せよ。
+  - セッション開始を完了し、`main` 最新化・`fetch --prune`・履歴ローテーション・コミットまで反映しました。
+- セッションを開始せよ。
+  - セッション開始は、既存の未整理差分により `git-main-sync` が失敗して止まりました。
+
 ## 2026/04/30
 - 指定を間違えたので巻き戻した。feed.refresh.request_scheduler_progressをDEBUGにし、ビルドせよ。
   - feed.refresh.request_scheduler_progress を DEBUG に変更し、xcodebuild -scheme YoutubeFeeder -destination platform=macOS -derivedDataPath build build でビルド成功を確認しました。
