@@ -5,13 +5,14 @@
 ## Build
 
 - build とは、`scripts` で定義された build コマンドを使って、`YoutubeFeeder` を `debug` または `release` のどちらか 1 つでビルドするタスクである。
+- 開発中の build は `debug` と明示する。
 - このタスクでは、mode の確定、対応する command の選択、実行結果の確認だけをこの文書で判断しなければならない。
 - mode は必須であり、`debug` か `release` のどちらかを明示しなければならない。
 - mode が未指定、曖昧、または両方指定された場合は、実行へ進まず不足分を確認しなければならない。
 
 ## 実施内容
 
-- `debug` を指定する場合は、次の command を実行する。
+- `debug` を指定する場合は、開発中の build として次の command を実行する。
   `./scripts/command-runner.py 'build-debug'`
 - `release` を指定する場合は、次の command を実行する。
   `./scripts/command-runner.py 'build-release'`
