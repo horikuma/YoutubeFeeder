@@ -14,8 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROJECT = REPO_ROOT / "YoutubeFeeder.xcodeproj"
 SCHEME = "YoutubeFeeder"
-DERIVED_DATA_BASE = Path.home() / "Library" / "Caches" / "Codex" / "YoutubeFeeder"
-DERIVED_DATA = DERIVED_DATA_BASE / "DerivedData"
+DERIVED_DATA = REPO_ROOT / "build"
 METRICS_DIR = REPO_ROOT / ".metrics"
 METRICS_DOC = REPO_ROOT / "docs" / "history" / "metrics-latest.md"
 HISTORY_JSON_DOC = REPO_ROOT / "docs" / "metrics" / "metrics-history.json"
@@ -377,7 +376,7 @@ def update_metrics_outputs(
 def main() -> int:
     args = parse_args()
     METRICS_DIR.mkdir(parents=True, exist_ok=True)
-    DERIVED_DATA_BASE.mkdir(parents=True, exist_ok=True)
+    DERIVED_DATA.mkdir(parents=True, exist_ok=True)
     for path in (STARTUP_JSON, BUILD_LOG, STARTUP_TEST_LOG):
         if path.exists():
             path.unlink()

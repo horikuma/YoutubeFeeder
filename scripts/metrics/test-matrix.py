@@ -10,8 +10,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROJECT = REPO_ROOT / "YoutubeFeeder.xcodeproj"
 SCHEME = "YoutubeFeeder"
-DERIVED_DATA_BASE = Path.home() / "Library" / "Caches" / "Codex" / "YoutubeFeeder"
-DERIVED_DATA = DERIVED_DATA_BASE / "DerivedData"
+DERIVED_DATA = REPO_ROOT / "build"
 PREFERRED_DESTINATIONS = ["iPhone 17", "iPhone 12 mini"]
 
 
@@ -62,7 +61,7 @@ def resolve_destinations(devices_text: str) -> list[tuple[str, str]]:
 
 
 def main() -> int:
-    DERIVED_DATA_BASE.mkdir(parents=True, exist_ok=True)
+    DERIVED_DATA.mkdir(parents=True, exist_ok=True)
     devices_text = available_devices()
     destinations = resolve_destinations(devices_text)
     if not destinations:

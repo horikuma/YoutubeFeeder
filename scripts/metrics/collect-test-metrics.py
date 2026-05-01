@@ -16,8 +16,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROJECT = REPO_ROOT / "YoutubeFeeder.xcodeproj"
 SCHEME = "YoutubeFeeder"
-DERIVED_DATA_BASE = Path.home() / "Library" / "Caches" / "Codex" / "YoutubeFeeder"
-DERIVED_DATA = DERIVED_DATA_BASE / "DerivedData"
+DERIVED_DATA = REPO_ROOT / "build"
 PREFERRED_DEVICE_NAMES = ["iPhone 17", "iPhone 12 mini"]
 OUTPUT_DOC = REPO_ROOT / "docs" / "metrics" / "metrics-test.md"
 
@@ -81,7 +80,7 @@ def run_logged(command: list[str], log_path: Path, *, env: dict[str, str] | None
 
 def main() -> int:
     args = parse_args()
-    DERIVED_DATA_BASE.mkdir(parents=True, exist_ok=True)
+    DERIVED_DATA.mkdir(parents=True, exist_ok=True)
     tmp_root = Path(
         tempfile.mkdtemp(prefix=f"youtubefeeder-collect-test-metrics-{datetime.now().strftime('%Y%m%d-%H%M%S')}-")
     )

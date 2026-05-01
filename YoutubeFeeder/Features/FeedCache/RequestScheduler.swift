@@ -130,13 +130,13 @@ actor RequestScheduler {
                     ]
                 )
                 if finishedRequestCount % aggregateLogInterval == 0 {
-                    AppConsoleLogger.feedRefresh.info(
+                    AppConsoleLogger.feedRefresh.debug(
                         "request_scheduler_progress",
                         metadata: aggregateMetadata(reason: "progress")
                     )
                     lastLoggedFinishedRequestCount = finishedRequestCount
                 } else if requestQueue.isEmpty, runningRequestCount == 0, lastLoggedFinishedRequestCount != finishedRequestCount {
-                    AppConsoleLogger.feedRefresh.info(
+                    AppConsoleLogger.feedRefresh.debug(
                         "request_scheduler_progress",
                         metadata: aggregateMetadata(reason: "idle")
                     )
