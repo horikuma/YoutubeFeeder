@@ -1,0 +1,42 @@
+{
+  "commands": [
+    {
+      "name": "build-debug",
+      "entry_point": "build.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "fixed_args": [
+        "debug"
+      ],
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
+      },
+      "runtime": {
+        "use_repo_venv": false,
+        "required_modules": []
+      },
+      "description": "Build YoutubeFeeder in Debug configuration and place derived data under build/debug."
+    },
+    {
+      "name": "build-release",
+      "entry_point": "build.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "fixed_args": [
+        "release"
+      ],
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
+      },
+      "runtime": {
+        "use_repo_venv": false,
+        "required_modules": []
+      },
+      "description": "Build YoutubeFeeder in Release configuration and place derived data under build/release."
+    }
+  ]
+}

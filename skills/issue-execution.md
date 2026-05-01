@@ -46,7 +46,7 @@
 
 ### 検証
 
-- focused verification は、変更が `tools`、`skills`、`scripts` だけに閉じる場合は対象ファイルの構文確認と代表的な 1 経路の確認に限定し、アプリ本体へ影響する場合は対応するテストと build 確認へ広げなければならない。
+- focused verification は、変更が `tools`、`skills`、`scripts` だけに閉じる場合は対象ファイルの構文確認と代表的な 1 経路の確認に限定し、アプリ本体へ影響する場合は対応するテストと `./scripts/command-runner.py 'build-debug'` / `./scripts/command-runner.py 'build-release'` による build 確認へ広げなければならない。
 
 ### 更新
 
@@ -77,6 +77,8 @@
 - `IssueToDo` が完了条件を満たせない blocker に当たった場合は、変更を広げず、確認した内容と停止理由をユーザーへ報告して停止しなければならない。
 - GitHub 同期失敗を伴う fallback で停止する場合は、`IssueToDo` のローカル更新有無、`sync.github_updated` の値、次の `IssueToDo` へ進まない理由を明示して報告しなければならない。
 - コミット後に次の未完了 `IssueToDo` へ進むか、Issue実施を終了するかは、次の `./scripts/command-runner.py 'issue-todo' --get` の出力 JSON に含まれる `next` だけを根拠に判断しなければならない。
+- `next` が `null` の場合は、Issue 実施の終端に到達したものとして、終了前に `./scripts/command-runner.py 'build-release'` を実行しなければならない。
+- `build-release` は、Issue 実施を締める最終確認として扱い、`next` が `null` になった時だけ実行しなければならない。
 
 ## 完了条件
 
@@ -87,6 +89,7 @@
 - コミットが、今回完了した 1 件分の変更セットだけで構成されていること。
 - コミットメッセージの先頭が、今回完了した `IssueToDo` の番号に対応する `<todo_number>: ` 形式であること。
 - blocker がある場合は、変更を拡大せず停止していること。
+- `next` が `null` になった場合は、`build-release` が完了していること。
 
 ## 禁止事項
 

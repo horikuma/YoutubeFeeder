@@ -12,7 +12,7 @@
 
 ## 実施内容
 
-- 検証では、変更内容に応じたテストと build 確認を行い、`error 0` かつ `warning 0` を確認しなければならない。
+- 検証では、変更内容に応じたテストと build 確認を行い、アプリ本体の build 確認には `./scripts/command-runner.py 'build-debug'` または `./scripts/command-runner.py 'build-release'` を使い、`error 0` かつ `warning 0` を確認しなければならない。
 - アプリ本体に対する build 確認を行う場合は、build 時のチェック項目として build 結果、`warning 0`、`error 0` に加えて SwiftLint 実行結果を並べて記録しなければならない。
 - SwiftLint 実行結果は観測値として扱い、build 成否や `warning 0` / `error 0` の判定へ混ぜてはならず、報告だけを行わなければならない。
 - SwiftLint 観測を行う場合は、次の command を実行し、その標準出力または標準エラーへ出た違反内容をそのまま観測結果として扱わなければならない。
@@ -29,11 +29,11 @@
   例: `./scripts/command-runner.py 'metrics-test-collect'`
 - 最終の全体テストを、別スクリプトで重複実行してはならない。
 - `tools`、`skills`、`scripts` だけを変更した場合は、アプリ本体の build や test は実施せず、対象ツールの構文確認と代表的な 1 経路の実行確認で検証しなければならない。
-- 機能追加、不具合対応、設計変更を含む場合は、変更内容に対応するテストと build 確認を省略してはならない。
+- 機能追加、不具合対応、設計変更を含む場合は、変更内容に対応するテストと `build-debug` / `build-release` による build 確認を省略してはならない。
 
 ## 完了条件
 
-- 変更内容に応じたテストと build 確認が完了していること。
+- 変更内容に応じたテストと `build-debug` / `build-release` による build 確認が完了していること。
 - 最終確認で `error 0` かつ `warning 0` を確認していること。
 - build 確認を行った場合は、SwiftLint 実行結果が観測値として記録または報告されていること。
 - `scripts/command-runner.py 'metrics-collect'` と `scripts/command-runner.py 'metrics-test-collect'` の両方が必要な場面では、その両方が成功していること。
