@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 from github import Auth, Github, GithubIntegration
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "llm-cache" / "github-app.json"
+INSTALLATION_ID_KEYS = ("installationId", "installation_id")
 
 
 def resolve_config_path(config_path: str | None = None) -> Path:
@@ -22,7 +23,12 @@ def load_settings(config_path: str | None = None) -> dict:
     config_file = resolve_config_path(config_path)
     if not config_file.is_file():
         raise SystemExit(f"GitHub App config not found: {config_file}")
-    return json.loads(config_file.read_text())
+    return json.loads(config_file.read_text(encoding="utf-8"))
+
+
+def write_settings(config_path: str | None, payload: dict) -> None:
+    config_file = resolve_config_path(config_path)
+    config_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def load_config(config_path: str | None = None) -> tuple[str, str]:
@@ -42,6 +48,34 @@ def load_config(config_path: str | None = None) -> tuple[str, str]:
         raise SystemExit(f"Private key not found: {private_key_file}")
 
     return str(app_id), private_key_file.read_text()
+
+
+def resolve_installation_id(
+    repo_slug: str,
+    config_path: str | None = None,
+) -> int:
+    payload = load_settings(config_path)
+    for key in INSTALLATION_ID_KEYS:
+        installation_id = payload.get(key)
+        if installation_id is not None and str(installation_id).strip():
+            try:
+                return int(installation_id)
+            except ValueError as exc:
+                raise SystemExit(f"Config installation id must be numeric: {key}") from exc
+
+    owner, repo_name = split_repo_slug(repo_slug)
+    app_id, private_key = load_config(config_path)
+    auth = Auth.AppAuth(app_id, private_key)
+    integration = GithubIntegration(auth=auth)
+    installation = integration.get_repo_installation(owner, repo_name)
+    resolved_id = int(installation.id)
+
+    payload["installationId"] = resolved_id
+    for key in INSTALLATION_ID_KEYS:
+        if key != "installationId":
+            payload.pop(key, None)
+    write_settings(config_path, payload)
+    return resolved_id
 
 
 def get_operation_mode(config_path: str | None = None) -> str:
@@ -88,25 +122,23 @@ def get_project_settings(repo_slug: str | None = None, config_path: str | None =
 
 
 def get_repository(repo_slug: str, config_path: str | None = None, per_page: int = 100):
-    owner, repo_name = split_repo_slug(repo_slug)
     app_id, private_key = load_config(config_path)
+    installation_id = resolve_installation_id(repo_slug, config_path=config_path)
 
     auth = Auth.AppAuth(app_id, private_key)
     integration = GithubIntegration(auth=auth)
-    installation = integration.get_repo_installation(owner, repo_name)
-    access_token = integration.get_access_token(installation.id)
+    access_token = integration.get_access_token(installation_id)
     github_client = Github(auth=Auth.Token(access_token.token), per_page=per_page)
     return github_client.get_repo(repo_slug)
 
 
 def get_installation_token(repo_slug: str, config_path: str | None = None) -> str:
-    owner, repo_name = split_repo_slug(repo_slug)
     app_id, private_key = load_config(config_path)
+    installation_id = resolve_installation_id(repo_slug, config_path=config_path)
 
     auth = Auth.AppAuth(app_id, private_key)
     integration = GithubIntegration(auth=auth)
-    installation = integration.get_repo_installation(owner, repo_name)
-    access_token = integration.get_access_token(installation.id)
+    access_token = integration.get_access_token(installation_id)
     return access_token.token
 
 
