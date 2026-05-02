@@ -17,6 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PROJECT = REPO_ROOT / "YoutubeFeeder.xcodeproj"
 SCHEME = "YoutubeFeeder"
 DERIVED_DATA = REPO_ROOT / "build"
+COMMAND_RUNNER = REPO_ROOT / "scripts" / "command-runner.py"
 PREFERRED_DEVICE_NAMES = ["iPhone 17", "iPhone 12 mini"]
 OUTPUT_DOC = REPO_ROOT / "docs" / "metrics" / "metrics-test.md"
 
@@ -102,8 +103,8 @@ def main() -> int:
         print(f"Building tests on {device_name}...")
         run_logged(
             [
-                "xcodebuild",
-                "build-for-testing",
+                str(COMMAND_RUNNER),
+                "xcodebuild-build-for-testing",
                 "-project",
                 str(PROJECT),
                 "-scheme",
@@ -122,8 +123,8 @@ def main() -> int:
         unit_args = [f"-only-testing:{test_id}" for test_id in args.logic_only_testing] or ["-only-testing:YoutubeFeederTests"]
         run_logged(
             [
-                "xcodebuild",
-                "test-without-building",
+                str(COMMAND_RUNNER),
+                "xcodebuild-test-without-building",
                 "-project",
                 str(PROJECT),
                 "-scheme",
@@ -144,8 +145,8 @@ def main() -> int:
         ui_args = [f"-only-testing:{test_id}" for test_id in args.ui_only_testing] or ["-only-testing:YoutubeFeederUITests"]
         run_logged(
             [
-                "xcodebuild",
-                "test-without-building",
+                str(COMMAND_RUNNER),
+                "xcodebuild-test-without-building",
                 "-project",
                 str(PROJECT),
                 "-scheme",

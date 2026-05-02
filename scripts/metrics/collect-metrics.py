@@ -21,6 +21,7 @@ HISTORY_JSON_DOC = REPO_ROOT / "docs" / "metrics" / "metrics-history.json"
 STARTUP_JSON = METRICS_DIR / "startup-metrics.json"
 BUILD_LOG = METRICS_DIR / "build-for-testing.log"
 STARTUP_TEST_LOG = METRICS_DIR / "startup-test.log"
+COMMAND_RUNNER = REPO_ROOT / "scripts" / "command-runner.py"
 PREFERRED_DEVICE_NAMES = ["iPhone 17", "iPhone 12 mini"]
 STARTUP_ONLY_TEST_ID = "YoutubeFeederUITests/HomeScreenUITests/testHomeStartupMetrics"
 SECONDS_PATTERN = re.compile(r"`(?P<value>[0-9.]+)s`$")
@@ -104,8 +105,8 @@ def run_startup_metrics_test(*, destination: str) -> float:
     start_at = now_seconds()
     run_command(
         [
-            "xcodebuild",
-            "test-without-building",
+            str(COMMAND_RUNNER),
+            "xcodebuild-test-without-building",
             "-project",
             str(PROJECT),
             "-scheme",
@@ -390,13 +391,13 @@ def main() -> int:
         destination, destination_display = resolve_destination()
         build_start = now_seconds()
         run_command(
-            [
-                "xcodebuild",
-                "build-for-testing",
-                "-project",
-                str(PROJECT),
-                "-scheme",
-                SCHEME,
+        [
+            str(COMMAND_RUNNER),
+            "xcodebuild-build-for-testing",
+            "-project",
+            str(PROJECT),
+            "-scheme",
+            SCHEME,
                 "-destination",
                 destination,
                 "-derivedDataPath",

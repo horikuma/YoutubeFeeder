@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import subprocess
 import sys
 from pathlib import Path
+
+from xcodebuild import run_xcodebuild
 
 
 SCHEME_NAME = "YoutubeFeeder"
@@ -35,9 +36,8 @@ def run_build(mode: str) -> int:
     derived_data_path = repo_root / "build" / mode
     derived_data_path.mkdir(parents=True, exist_ok=True)
 
-    process = subprocess.run(
+    return run_xcodebuild(
         [
-            "xcodebuild",
             "-scheme",
             SCHEME_NAME,
             "-configuration",
@@ -50,10 +50,8 @@ def run_build(mode: str) -> int:
             "CODE_SIGNING_REQUIRED=NO",
             "CODE_SIGN_IDENTITY=",
             "build",
-        ],
-        check=False,
+        ]
     )
-    return process.returncode
 
 
 def main() -> int:

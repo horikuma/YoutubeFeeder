@@ -37,6 +37,63 @@
         "required_modules": []
       },
       "description": "Build YoutubeFeeder in Release configuration and place derived data under build/release."
+    },
+    {
+      "name": "xcodebuild-build-for-testing",
+      "entry_point": "xcodebuild.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "fixed_args": [
+        "build-for-testing"
+      ],
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
+      },
+      "runtime": {
+        "use_repo_venv": false,
+        "required_modules": []
+      },
+      "description": "Run xcodebuild build-for-testing through the xcode-build wrapper."
+    },
+    {
+      "name": "xcodebuild-test-without-building",
+      "entry_point": "xcodebuild.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "fixed_args": [
+        "test-without-building"
+      ],
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
+      },
+      "runtime": {
+        "use_repo_venv": false,
+        "required_modules": []
+      },
+      "description": "Run xcodebuild test-without-building through the xcode-build wrapper."
+    },
+    {
+      "name": "xcodebuild-test",
+      "entry_point": "xcodebuild.py",
+      "args": {
+        "mode": "passthrough"
+      },
+      "fixed_args": [
+        "test"
+      ],
+      "required_inputs": {
+        "all_of": [],
+        "one_of": []
+      },
+      "runtime": {
+        "use_repo_venv": false,
+        "required_modules": []
+      },
+      "description": "Run xcodebuild test through the xcode-build wrapper."
     }
   ]
 }
