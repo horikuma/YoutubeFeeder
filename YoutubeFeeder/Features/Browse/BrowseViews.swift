@@ -11,6 +11,9 @@ struct ChannelVideosView: View {
     let layout: AppLayout
 
     @State private var videoState = VideoListLogic()
+    @State private var didRequestLoadMore = false
+    @State private var nextPageToken: String?
+    @State private var hasStartedPaging = false
 
     var body: some View {
         InteractiveListView(
@@ -91,6 +94,10 @@ struct ChannelVideosView: View {
                             },
                             desktopMenuTriggerStyle: .contextMenu
                         )
+                        .onAppear {
+                            guard offset >= videoState.videos.count - 1 else { return }
+                            requestLoadMoreIfNeeded()
+                        }
                         .listInsertionTransition()
                     }
                 }
@@ -203,6 +210,9 @@ struct ChannelVideosView: View {
                 withAnimation(.easeOut(duration: 0.25)) {
                     videoState.finishAutomaticRefresh(loadedVideos)
                 }
+                nextPageToken = nil
+                hasStartedPaging = false
+                didRequestLoadMore = false
             }
         } else {
             let loadedVideos = await coordinator.loadVideosForChannel(context.channelID)
@@ -210,6 +220,9 @@ struct ChannelVideosView: View {
                 withAnimation(.easeOut(duration: 0.25)) {
                     videoState.setVideos(loadedVideos)
                 }
+                nextPageToken = nil
+                hasStartedPaging = false
+                didRequestLoadMore = false
             }
         }
         RuntimeDiagnostics.shared.record(
@@ -221,5 +234,32 @@ struct ChannelVideosView: View {
                 "title": channelTitle
             ]
         )
+    }
+
+    private func requestLoadMoreIfNeeded() {
+        guard !didRequestLoadMore else { return }
+        guard nextPageToken != nil || !hasStartedPaging else { return }
+        didRequestLoadMore = true
+        RuntimeDiagnostics.shared.record(
+            "channel_videos_load_more_requested",
+            detail: "チャンネル動画一覧の末端到達で追加取得要求を受け付けた",
+            metadata: [
+                "channelID": context.channelID,
+                "videoCount": String(videoState.videos.count)
+            ]
+        )
+        Task {
+            let page = await coordinator.loadChannelVideosPage(
+                channelID: context.channelID,
+                pageToken: nextPageToken,
+                limit: 50
+            )
+            await MainActor.run {
+                videoState.appendVideos(page.videos)
+                nextPageToken = page.nextPageToken
+                hasStartedPaging = true
+                didRequestLoadMore = false
+            }
+        }
     }
 }

@@ -17,7 +17,7 @@
 - `release` を指定する場合は、次の command を実行する。
   `./scripts/command-runner.py 'build-release'`
 - build 出力は、それぞれ `build/debug` または `build/release` を成果物の基準点として扱う。
-- `xcodebuild` を直接呼び出してはならず、必ず `scripts` の build command を経由しなければならない。
+- `xcodebuild` を直接呼び出してよいのは `scripts/xcode-build` 配下の command 実装だけであり、それ以外からは `scripts` の build / test command を経由しなければならない。
 
 ## 完了条件
 

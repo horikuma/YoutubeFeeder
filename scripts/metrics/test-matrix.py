@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PROJECT = REPO_ROOT / "YoutubeFeeder.xcodeproj"
 SCHEME = "YoutubeFeeder"
 DERIVED_DATA = REPO_ROOT / "build"
+COMMAND_RUNNER = REPO_ROOT / "scripts" / "command-runner.py"
 PREFERRED_DESTINATIONS = ["iPhone 17", "iPhone 12 mini"]
 
 
@@ -79,8 +80,8 @@ def main() -> int:
 
         process = subprocess.run(
             [
-                "xcodebuild",
-                "test",
+                str(COMMAND_RUNNER),
+                "xcodebuild-test",
                 "-project",
                 str(PROJECT),
                 "-scheme",

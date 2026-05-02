@@ -233,6 +233,32 @@ final class FeedCacheCoordinator: ObservableObject {
         await readService.loadMergedVideosForChannel(channelID)
     }
 
+    func loadChannelVideosPage(
+        channelID: String,
+        pageToken: String?,
+        limit: Int = 50
+    ) async -> ChannelVideoPageResult {
+        do {
+            return try await remoteSearchService.refreshChannelVideosPage(
+                channelID: channelID,
+                pageToken: pageToken,
+                limit: limit
+            )
+        } catch {
+            RuntimeDiagnostics.shared.record(
+                "channel_page_load_failed",
+                detail: "チャンネル動画のページ取得に失敗",
+                metadata: [
+                    "channelID": channelID,
+                    "pageToken": pageToken ?? "",
+                    "limit": String(limit),
+                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
+                ]
+            )
+            return ChannelVideoPageResult(videos: [], totalCount: 0, fetchedAt: .now, nextPageToken: pageToken)
+        }
+    }
+
     func openChannelVideos(_ context: ChannelVideosRouteContext) async -> [CachedVideo] {
         let channelID = context.channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !channelID.isEmpty else { return [] }

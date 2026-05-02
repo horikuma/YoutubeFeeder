@@ -28,6 +28,13 @@ struct VideoSearchResult: Hashable {
     }
 }
 
+struct ChannelVideoPageResult: Hashable {
+    let videos: [CachedVideo]
+    let totalCount: Int
+    let fetchedAt: Date
+    let nextPageToken: String?
+}
+
 enum VideoSearchSource: String, Hashable {
     case localCache
     case remoteAPI

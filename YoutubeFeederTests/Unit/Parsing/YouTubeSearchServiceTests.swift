@@ -247,6 +247,109 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
         XCTAssertEqual(videos.map(\.durationSeconds), [1_630, 2_700])
     }
 
+    func testFetchChannelVideosPageUsesUploadsPlaylistAndPlaylistItemsPageToken() async throws {
+        let recorder = ChannelVideosRequestRecorder()
+        let service = YouTubeSearchService { request in
+            guard let url = request.url,
+                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            else {
+                throw YouTubeSearchError.invalidResponse
+            }
+
+            await recorder.record(path: components.path, queryItems: components.queryItems ?? [])
+
+            switch components.path {
+            case "/youtube/v3/channels":
+                return (
+                    Self.channelsListResponseJSON(uploadsPlaylistID: "UU123"),
+                    Self.httpResponse(for: url)
+                )
+            case "/youtube/v3/playlistItems":
+                return (
+                    Self.playlistItemsResponseJSON(
+                        videoIDs: ["video-1", "video-2"],
+                        nextPageToken: "NEXT_PAGE"
+                    ),
+                    Self.httpResponse(for: url)
+                )
+            case "/youtube/v3/videos":
+                return (
+                    Self.videoDetailsResponseJSON(
+                        items: [
+                            Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
+                            Self.videoDetailsItemJSON(id: "video-2", duration: "PT45M00S"),
+                        ]
+                    ),
+                    Self.httpResponse(for: url)
+                )
+            default:
+                throw YouTubeSearchError.invalidResponse
+            }
+        }
+
+        let page = try await service.fetchChannelVideosPage(
+            channelID: "UC123",
+            pageToken: "PAGE-2",
+            limit: 2
+        )
+        let requests = await recorder.snapshot()
+
+        XCTAssertEqual(requests.map(\.path), [
+            "/youtube/v3/channels",
+            "/youtube/v3/playlistItems",
+            "/youtube/v3/videos"
+        ])
+        XCTAssertEqual(requests[0].queryValue(named: "id"), "UC123")
+        XCTAssertEqual(requests[1].queryValue(named: "playlistId"), "UU123")
+        XCTAssertEqual(requests[1].queryValue(named: "pageToken"), "PAGE-2")
+        XCTAssertEqual(requests[1].queryValue(named: "maxResults"), "2")
+        XCTAssertEqual(requests[2].queryValue(named: "id"), "video-1,video-2")
+        XCTAssertEqual(page.videos.map(\.id), ["video-1", "video-2"])
+        XCTAssertEqual(page.totalCount, 3)
+        XCTAssertEqual(page.nextPageToken, "NEXT_PAGE")
+    }
+
+    func testFetchChannelVideosPageFiltersShortVideos() async throws {
+        let service = YouTubeSearchService { request in
+            guard let url = request.url,
+                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            else {
+                throw YouTubeSearchError.invalidResponse
+            }
+
+            switch components.path {
+            case "/youtube/v3/channels":
+                return (
+                    Self.channelsListResponseJSON(uploadsPlaylistID: "UU123"),
+                    Self.httpResponse(for: url)
+                )
+            case "/youtube/v3/playlistItems":
+                return (
+                    Self.playlistItemsResponseJSON(videoIDs: ["video-short", "video-long"], nextPageToken: nil),
+                    Self.httpResponse(for: url)
+                )
+            case "/youtube/v3/videos":
+                return (
+                    Self.videoDetailsResponseJSON(
+                        items: [
+                            Self.videoDetailsItemJSON(id: "video-short", duration: "PT10S"),
+                            Self.videoDetailsItemJSON(id: "video-long", duration: "PT27M10S"),
+                        ]
+                    ),
+                    Self.httpResponse(for: url)
+                )
+            default:
+                throw YouTubeSearchError.invalidResponse
+            }
+        }
+
+        let page = try await service.fetchChannelVideosPage(channelID: "UC123", pageToken: nil, limit: 2)
+
+        XCTAssertEqual(page.videos.map(\.id), ["video-long"])
+        XCTAssertEqual(page.totalCount, 2)
+        XCTAssertNil(page.nextPageToken)
+    }
+
     private static func videoDetailsResponseJSON(items: [String]) -> Data {
         """
         {
@@ -287,6 +390,60 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
         }
         """
     }
+
+    private static func channelsListResponseJSON(uploadsPlaylistID: String) -> Data {
+        """
+        {
+          "items": [
+            {
+              "contentDetails": {
+                "relatedPlaylists": {
+                  "uploads": "\(uploadsPlaylistID)"
+                }
+              }
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+    }
+
+    private static func playlistItemsResponseJSON(videoIDs: [String], nextPageToken: String?) -> Data {
+        let items = videoIDs.map { videoID in
+            """
+            {
+              "contentDetails": {
+                "videoId": "\(videoID)"
+              }
+            }
+            """
+        }
+
+        let nextPageTokenJSON = if let nextPageToken {
+            """
+            "nextPageToken": "\(nextPageToken)",
+            """
+        } else {
+            ""
+        }
+
+        let totalResults = videoIDs.count + (nextPageToken == nil ? 0 : 1)
+
+        return """
+        {
+          \(nextPageTokenJSON)
+          "pageInfo": {
+            "totalResults": \(totalResults)
+          },
+          "items": [
+            \(items.joined(separator: ",\n"))
+          ]
+        }
+        """.data(using: .utf8)!
+    }
+
+    private static func httpResponse(for url: URL) -> HTTPURLResponse {
+        HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+    }
 }
 
 private actor VideoDetailsRequestRecorder {
@@ -298,5 +455,28 @@ private actor VideoDetailsRequestRecorder {
 
     func snapshot() -> [[String]] {
         requestedIDs
+    }
+}
+
+private actor ChannelVideosRequestRecorder {
+    struct CapturedRequest {
+        let path: String
+        let queryItems: [URLQueryItem]
+    }
+
+    private var requests: [CapturedRequest] = []
+
+    func record(path: String, queryItems: [URLQueryItem]) {
+        requests.append(CapturedRequest(path: path, queryItems: queryItems))
+    }
+
+    func snapshot() -> [CapturedRequest] {
+        requests
+    }
+}
+
+private extension ChannelVideosRequestRecorder.CapturedRequest {
+    func queryValue(named name: String) -> String? {
+        queryItems.first(where: { $0.name == name })?.value
     }
 }

@@ -18,6 +18,13 @@ struct YouTubeSearchResponse: Hashable {
     let fetchedAt: Date
 }
 
+struct YouTubeChannelVideosPage: Hashable {
+    let videos: [YouTubeSearchVideo]
+    let totalCount: Int
+    let fetchedAt: Date
+    let nextPageToken: String?
+}
+
 enum YouTubeSearchError: LocalizedError {
     case apiKeyMissing
     case invalidResponse

@@ -26,4 +26,3 @@ llm-temp/
 llm-cache/
 __pycache__/
 docs/history/*-latest.md
-chatgpt-harness/

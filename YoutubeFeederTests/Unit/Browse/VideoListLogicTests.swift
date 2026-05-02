@@ -31,6 +31,20 @@ final class VideoListLogicTests: LoggedTestCase {
         XCTAssertFalse(state.isAutomaticRefreshInProgress)
     }
 
+    func testAppendVideosDeduplicatesExistingItemsAndPreservesOrder() {
+        var state = VideoListLogic()
+        let existing = makeVideo(id: "video-1", channelID: "UC001", channelTitle: "Alpha")
+        let appended = [
+            makeVideo(id: "video-1", channelID: "UC001", channelTitle: "Alpha"),
+            makeVideo(id: "video-2", channelID: "UC001", channelTitle: "Alpha")
+        ]
+
+        state.setVideos([existing])
+        state.appendVideos(appended)
+
+        XCTAssertEqual(state.videos.map(\.id), ["video-1", "video-2"])
+    }
+
     func testRemovalFeedbackAndPendingRemovalCanBeManagedIndependently() {
         var state = VideoListLogic()
         let item = makeItem(channelID: "UC001", title: "Alpha")
