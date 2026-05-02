@@ -95,6 +95,20 @@ final class ChannelBrowseLogicTests: LoggedTestCase {
         XCTAssertEqual(state.videosForSelectedChannel(), [])
     }
 
+    func testAppendSelectedChannelVideosDeduplicatesExistingItemsAndPreservesOrder() {
+        var state = ChannelBrowseLogic()
+        state.setItems([makeItem(channelID: "UC001", title: "Alpha")])
+        state.selectChannel("UC001")
+        state.videosByChannelID["UC001"] = [makeVideo(id: "video-1", channelID: "UC001", channelTitle: "Alpha")]
+
+        state.appendSelectedChannelVideos([
+            makeVideo(id: "video-1", channelID: "UC001", channelTitle: "Alpha"),
+            makeVideo(id: "video-2", channelID: "UC001", channelTitle: "Alpha")
+        ])
+
+        XCTAssertEqual(state.videosByChannelID["UC001"]?.map(\.id), ["video-1", "video-2"])
+    }
+
     func testRefreshSelectedChannelVideosReplacesSelectedChannelVideos() {
         var state = ChannelBrowseLogic()
         state.setItems([makeItem(channelID: "UC001", title: "Alpha")])

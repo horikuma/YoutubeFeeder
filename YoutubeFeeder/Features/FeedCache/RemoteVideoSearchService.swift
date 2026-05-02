@@ -66,7 +66,11 @@ struct RemoteVideoSearchService {
     }
 
     private func cachedVideos(from response: YouTubeSearchResponse) -> [CachedVideo] {
-        response.videos.compactMap { video in
+        cachedVideos(from: response.videos, fetchedAt: response.fetchedAt)
+    }
+
+    private func cachedVideos(from videos: [YouTubeSearchVideo], fetchedAt: Date) -> [CachedVideo] {
+        videos.compactMap { video in
             guard !ShortVideoMaskPolicy.shouldMask(
                 durationSeconds: video.durationSeconds,
                 videoURL: video.videoURL,
@@ -83,7 +87,7 @@ struct RemoteVideoSearchService {
                 videoURL: video.videoURL,
                 thumbnailRemoteURL: video.thumbnailURL,
                 thumbnailLocalFilename: nil,
-                fetchedAt: response.fetchedAt,
+                fetchedAt: fetchedAt,
                 searchableText: [video.title, video.channelTitle, video.id].joined(separator: "\n").lowercased(),
                 durationSeconds: video.durationSeconds,
                 viewCount: video.viewCount
@@ -92,12 +96,29 @@ struct RemoteVideoSearchService {
     }
 
     func refreshChannelVideos(channelID: String, limit: Int = 50) async throws -> RemoteVideoSearchRefreshPayload {
-        let response = try await searchService.searchChannelVideos(channelID: channelID, limit: limit)
-        let cachedVideos = cachedVideos(from: response)
+        let response = try await refreshChannelVideosPage(channelID: channelID, pageToken: nil, limit: limit)
         return RemoteVideoSearchRefreshPayload(
-            videos: cachedVideos,
+            videos: response.videos,
             totalCount: response.totalCount,
             fetchedAt: response.fetchedAt
+        )
+    }
+
+    func refreshChannelVideosPage(
+        channelID: String,
+        pageToken: String?,
+        limit: Int = 50
+    ) async throws -> ChannelVideoPageResult {
+        let response = try await searchService.fetchChannelVideosPage(
+            channelID: channelID,
+            pageToken: pageToken,
+            limit: limit
+        )
+        return ChannelVideoPageResult(
+            videos: cachedVideos(from: response.videos, fetchedAt: response.fetchedAt),
+            totalCount: response.totalCount,
+            fetchedAt: response.fetchedAt,
+            nextPageToken: response.nextPageToken
         )
     }
 }

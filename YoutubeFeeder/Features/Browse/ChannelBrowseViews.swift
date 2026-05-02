@@ -235,6 +235,8 @@ private struct ChannelBrowseRegularView: View {
     @Binding var state: ChannelBrowseLogic
     let onRefresh: () async -> Void
     @State private var didRequestLoadMore = false
+    @State private var nextPageToken: String?
+    @State private var hasStartedPaging = false
 
     private var usesDesktopMenus: Bool {
         AppInteractionPlatform.current.usesPrimaryClickForMenus
@@ -410,6 +412,8 @@ private struct ChannelBrowseRegularView: View {
 
     private func selectChannel(_ channelID: String) {
         state.selectChannel(channelID)
+        nextPageToken = nil
+        hasStartedPaging = false
         didRequestLoadMore = false
         loadVideosIfNeeded(for: channelID)
     }
@@ -420,6 +424,8 @@ private struct ChannelBrowseRegularView: View {
             return
         }
         guard let firstChannelID = state.applyDefaultSelectionIfNeeded() else { return }
+        nextPageToken = nil
+        hasStartedPaging = false
         didRequestLoadMore = false
         loadVideosIfNeeded(for: firstChannelID)
     }
@@ -432,6 +438,8 @@ private struct ChannelBrowseRegularView: View {
                 withAnimation(.easeOut(duration: 0.25)) {
                     state.finishLoadingVideos(loadedVideos, for: channelID)
                 }
+                nextPageToken = nil
+                hasStartedPaging = false
                 didRequestLoadMore = false
                 if state.selectedChannelID == channelID,
                    let refreshSource = state.selectedChannelRefreshSource {
@@ -466,6 +474,8 @@ private struct ChannelBrowseRegularView: View {
             withAnimation(.easeOut(duration: 0.25)) {
                 state.refreshSelectedChannelVideos(refreshedVideos)
             }
+            nextPageToken = nil
+            hasStartedPaging = false
             didRequestLoadMore = false
         }
         RuntimeDiagnostics.shared.record(
@@ -482,6 +492,7 @@ private struct ChannelBrowseRegularView: View {
         guard let channelID else { return }
         guard state.selectedChannelID == channelID else { return }
         guard !didRequestLoadMore else { return }
+        guard nextPageToken != nil || !hasStartedPaging else { return }
         didRequestLoadMore = true
         RuntimeDiagnostics.shared.record(
             "channel_split_detail_load_more_requested",
@@ -491,6 +502,21 @@ private struct ChannelBrowseRegularView: View {
                 "videoCount": String(state.videosForSelectedChannel().count)
             ]
         )
+        Task {
+            let page = await coordinator.loadChannelVideosPage(
+                channelID: channelID,
+                pageToken: nextPageToken,
+                limit: 50
+            )
+            await MainActor.run {
+                if state.selectedChannelID == channelID {
+                    state.appendSelectedChannelVideos(page.videos)
+                    nextPageToken = page.nextPageToken
+                    hasStartedPaging = true
+                }
+                didRequestLoadMore = false
+            }
+        }
     }
 
     private var tipsSummary: ChannelBrowseTipsSummary {

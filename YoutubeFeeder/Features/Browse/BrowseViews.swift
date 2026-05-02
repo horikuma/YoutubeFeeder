@@ -12,6 +12,8 @@ struct ChannelVideosView: View {
 
     @State private var videoState = VideoListLogic()
     @State private var didRequestLoadMore = false
+    @State private var nextPageToken: String?
+    @State private var hasStartedPaging = false
 
     var body: some View {
         InteractiveListView(
@@ -208,6 +210,8 @@ struct ChannelVideosView: View {
                 withAnimation(.easeOut(duration: 0.25)) {
                     videoState.finishAutomaticRefresh(loadedVideos)
                 }
+                nextPageToken = nil
+                hasStartedPaging = false
                 didRequestLoadMore = false
             }
         } else {
@@ -216,6 +220,8 @@ struct ChannelVideosView: View {
                 withAnimation(.easeOut(duration: 0.25)) {
                     videoState.setVideos(loadedVideos)
                 }
+                nextPageToken = nil
+                hasStartedPaging = false
                 didRequestLoadMore = false
             }
         }
@@ -232,6 +238,7 @@ struct ChannelVideosView: View {
 
     private func requestLoadMoreIfNeeded() {
         guard !didRequestLoadMore else { return }
+        guard nextPageToken != nil || !hasStartedPaging else { return }
         didRequestLoadMore = true
         RuntimeDiagnostics.shared.record(
             "channel_videos_load_more_requested",
@@ -241,5 +248,18 @@ struct ChannelVideosView: View {
                 "videoCount": String(videoState.videos.count)
             ]
         )
+        Task {
+            let page = await coordinator.loadChannelVideosPage(
+                channelID: context.channelID,
+                pageToken: nextPageToken,
+                limit: 50
+            )
+            await MainActor.run {
+                videoState.appendVideos(page.videos)
+                nextPageToken = page.nextPageToken
+                hasStartedPaging = true
+                didRequestLoadMore = false
+            }
+        }
     }
 }

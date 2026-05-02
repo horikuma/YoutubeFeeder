@@ -373,9 +373,26 @@ struct ChannelBrowseLogic: Hashable {
         }
     }
 
+    mutating func appendLoadingVideos(_ videos: [CachedVideo], for channelID: String) {
+        loadingChannelIDs.remove(channelID)
+        guard !videos.isEmpty else { return }
+        let existingIDs = Set(videosByChannelID[channelID]?.map(\.id) ?? [])
+        let appendedVideos = videos.filter { !existingIDs.contains($0.id) }
+        guard !appendedVideos.isEmpty else { return }
+        videosByChannelID[channelID, default: []].append(contentsOf: appendedVideos)
+    }
+
     mutating func refreshSelectedChannelVideos(_ videos: [CachedVideo]) {
         guard let selectedChannelID else { return }
         videosByChannelID[selectedChannelID] = videos
+    }
+
+    mutating func appendSelectedChannelVideos(_ videos: [CachedVideo]) {
+        guard let selectedChannelID else { return }
+        let existingIDs = Set(videosByChannelID[selectedChannelID]?.map(\.id) ?? [])
+        let appendedVideos = videos.filter { !existingIDs.contains($0.id) }
+        guard !appendedVideos.isEmpty else { return }
+        videosByChannelID[selectedChannelID, default: []].append(contentsOf: appendedVideos)
     }
 
     func videosForSelectedChannel() -> [CachedVideo] {
@@ -407,6 +424,14 @@ struct VideoListLogic: Hashable {
     mutating func finishAutomaticRefresh(_ videos: [CachedVideo]) {
         self.videos = videos
         isAutomaticRefreshInProgress = false
+    }
+
+    mutating func appendVideos(_ videos: [CachedVideo]) {
+        guard !videos.isEmpty else { return }
+        let existingIDs = Set(self.videos.map(\.id))
+        let appendedVideos = videos.filter { !existingIDs.contains($0.id) }
+        guard !appendedVideos.isEmpty else { return }
+        self.videos.append(contentsOf: appendedVideos)
     }
 
     mutating func requestRemoval(for item: ChannelBrowseItem) {

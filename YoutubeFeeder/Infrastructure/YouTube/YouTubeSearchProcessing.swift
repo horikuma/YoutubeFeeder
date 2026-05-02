@@ -98,6 +98,11 @@ extension YouTubeSearchService {
     }
 
     func mockChannelSearchResponse(channelID: String, limit: Int) -> YouTubeSearchResponse {
+        let page = mockChannelVideosPageResponse(channelID: channelID, limit: limit)
+        return YouTubeSearchResponse(videos: page.videos, totalCount: page.totalCount, fetchedAt: page.fetchedAt)
+    }
+
+    func mockChannelVideosPageResponse(channelID: String, limit: Int) -> YouTubeChannelVideosPage {
         let videos = (1 ... 15).map { index in
             YouTubeSearchVideo(
                 id: "mock-channel-\(channelID)-\(index)",
@@ -111,10 +116,11 @@ extension YouTubeSearchService {
                 viewCount: 1000 + index
             )
         }
-        return YouTubeSearchResponse(
+        return YouTubeChannelVideosPage(
             videos: Array(videos.prefix(limit)),
-            totalCount: min(videos.count, limit),
-            fetchedAt: .now
+            totalCount: videos.count,
+            fetchedAt: .now,
+            nextPageToken: nil
         )
     }
 }
