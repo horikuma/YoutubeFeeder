@@ -234,6 +234,7 @@ private struct ChannelBrowseRegularView: View {
     let sortDescriptor: ChannelBrowseSortDescriptor
     @Binding var state: ChannelBrowseLogic
     let onRefresh: () async -> Void
+    @State private var didRequestLoadMore = false
 
     private var usesDesktopMenus: Bool {
         AppInteractionPlatform.current.usesPrimaryClickForMenus
@@ -367,6 +368,10 @@ private struct ChannelBrowseRegularView: View {
                                     desktopMenuTriggerStyle: .contextMenu,
                                     includesOpenVideoInMenu: false
                                 )
+                                .onAppear {
+                                    guard offset >= videosForSelectedChannel.count - 1 else { return }
+                                    requestLoadMoreIfNeeded(for: selectedChannelID)
+                                }
                                 .listInsertionTransition()
                             }
                         }
@@ -405,6 +410,7 @@ private struct ChannelBrowseRegularView: View {
 
     private func selectChannel(_ channelID: String) {
         state.selectChannel(channelID)
+        didRequestLoadMore = false
         loadVideosIfNeeded(for: channelID)
     }
 
@@ -414,6 +420,7 @@ private struct ChannelBrowseRegularView: View {
             return
         }
         guard let firstChannelID = state.applyDefaultSelectionIfNeeded() else { return }
+        didRequestLoadMore = false
         loadVideosIfNeeded(for: firstChannelID)
     }
 
@@ -425,6 +432,7 @@ private struct ChannelBrowseRegularView: View {
                 withAnimation(.easeOut(duration: 0.25)) {
                     state.finishLoadingVideos(loadedVideos, for: channelID)
                 }
+                didRequestLoadMore = false
                 if state.selectedChannelID == channelID,
                    let refreshSource = state.selectedChannelRefreshSource {
                     RuntimeDiagnostics.shared.record(
@@ -458,12 +466,28 @@ private struct ChannelBrowseRegularView: View {
             withAnimation(.easeOut(duration: 0.25)) {
                 state.refreshSelectedChannelVideos(refreshedVideos)
             }
+            didRequestLoadMore = false
         }
         RuntimeDiagnostics.shared.record(
             "channel_refresh_view_reload_finished",
             detail: "スプリット表示の動画一覧リロード完了",
             metadata: [
                 "channelID": selectedChannelID,
+                "videoCount": String(state.videosForSelectedChannel().count)
+            ]
+        )
+    }
+
+    private func requestLoadMoreIfNeeded(for channelID: String?) {
+        guard let channelID else { return }
+        guard state.selectedChannelID == channelID else { return }
+        guard !didRequestLoadMore else { return }
+        didRequestLoadMore = true
+        RuntimeDiagnostics.shared.record(
+            "channel_split_detail_load_more_requested",
+            detail: "分割表示のチャンネル動画一覧の末端到達で追加取得要求を受け付けた",
+            metadata: [
+                "channelID": channelID,
                 "videoCount": String(state.videosForSelectedChannel().count)
             ]
         )
