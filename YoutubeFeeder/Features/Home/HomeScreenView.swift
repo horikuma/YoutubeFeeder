@@ -5,11 +5,26 @@ struct HomeScreenView: View {
     let layout: AppLayout
     let diagnostics: StartupDiagnostics
     let navigationPath: Binding<NavigationPath>
-    @State private var didRunAutoRefresh = false
-    @State private var homeState = HomeScreenLogic()
-    @State private var didPrewarmRemoteSearch = false
-    @State private var shouldMountRemoteSearchPrewarmHost = false
-    @State private var remoteSearchPrewarmPath = NavigationPath()
+    @StateObject private var viewModel: HomeScreenViewModel
+
+    init(
+        coordinator: FeedCacheCoordinator,
+        layout: AppLayout,
+        diagnostics: StartupDiagnostics,
+        navigationPath: Binding<NavigationPath>
+    ) {
+        self.coordinator = coordinator
+        self.layout = layout
+        self.diagnostics = diagnostics
+        self.navigationPath = navigationPath
+        _viewModel = StateObject(
+            wrappedValue: HomeScreenViewModel(
+                coordinator: coordinator,
+                layout: layout,
+                diagnostics: diagnostics
+            )
+        )
+    }
 
     var body: some View {
         ZStack {
@@ -29,13 +44,13 @@ struct HomeScreenView: View {
                     navigationSection
                     SystemStatusTile(status: coordinator.homeSystemStatus)
 
-                    if let transferFeedback = homeState.transferFeedback {
+                    if let transferFeedback = viewModel.state.transferFeedback {
                         registryTransferFeedbackCard(transferFeedback)
                             .accessibilityIdentifier("home.transferFeedback")
-                    } else if let resetFeedback = homeState.resetFeedback {
+                    } else if let resetFeedback = viewModel.state.resetFeedback {
                         resetFeedbackCard(resetFeedback)
                             .accessibilityIdentifier("home.resetFeedback")
-                    } else if let transferErrorMessage = homeState.transferErrorMessage {
+                    } else if let transferErrorMessage = viewModel.state.transferErrorMessage {
                         registryTransferErrorCard(transferErrorMessage)
                             .accessibilityIdentifier("home.transferError")
                     }
@@ -46,12 +61,12 @@ struct HomeScreenView: View {
                 .padding(.vertical, 20)
             }
 
-            if shouldMountRemoteSearchPrewarmHost {
+            if viewModel.shouldMountRemoteSearchPrewarmHost {
                 BasicGUIRemoteSearchScreen(
                     keyword: FeedCacheCoordinator.homeSearchKeyword,
                     coordinator: coordinator,
                     openVideo: { _ in },
-                    path: $remoteSearchPrewarmPath,
+                    path: $viewModel.remoteSearchPrewarmPath,
                     layout: layout,
                     presentationMode: .prewarm
                 )
@@ -64,98 +79,27 @@ struct HomeScreenView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
         .refreshable {
-            _ = await coordinator.performRefreshAction(.home)
+            await viewModel.refreshHome()
         }
         .bindRefreshCommand {
-            _ = await coordinator.performRefreshAction(.home)
+            await viewModel.refreshHome()
         }
         .onAppear {
-            diagnostics.mark("maintenanceShown")
-            AppConsoleLogger.appLifecycle.info(
-                "home_shown",
-                metadata: [
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
-                    "registered_channels": String(coordinator.homeSystemStatus.registeredChannelCount),
-                    "cached_videos": String(coordinator.homeSystemStatus.cachedVideoCount),
-                ]
-            )
+            viewModel.onAppear()
         }
         .task {
-            AppConsoleLogger.appLifecycle.info(
-                "home_auto_refresh_task_started",
-                metadata: [
-                    "auto_refresh_on_launch": AppLaunchMode.current.autoRefreshOnLaunch ? "true" : "false",
-                    "background_refresh": AppLaunchMode.current.allowsBackgroundRefresh ? "true" : "false",
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                ]
-            )
-            guard AppLaunchMode.current.autoRefreshOnLaunch else {
-                AppConsoleLogger.appLifecycle.info(
-                    "home_auto_refresh_task_skipped",
-                    metadata: [
-                        "reason": "disabled_on_launch",
-                        "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                    ]
-                )
-                return
-            }
-            guard !didRunAutoRefresh else {
-                AppConsoleLogger.appLifecycle.info(
-                    "home_auto_refresh_task_skipped",
-                    metadata: [
-                        "reason": "already_ran",
-                        "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                    ]
-                )
-                return
-            }
-            didRunAutoRefresh = true
-            AppConsoleLogger.appLifecycle.info(
-                "home_auto_refresh_manual_refresh_started",
-                metadata: [
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                ]
-            )
-            await coordinator.refreshCacheManually()
-            AppConsoleLogger.appLifecycle.info(
-                "home_auto_refresh_manual_refresh_finished",
-                metadata: [
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                ]
-            )
-            guard AppLaunchMode.current.allowsBackgroundRefresh else {
-                AppConsoleLogger.appLifecycle.info(
-                    "home_auto_refresh_wall_clock_scheduler_skipped",
-                    metadata: [
-                        "reason": "background_refresh_disabled",
-                        "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                    ]
-                )
-                return
-            }
-            AppConsoleLogger.appLifecycle.info(
-                "home_auto_refresh_wall_clock_scheduler_requested",
-                metadata: [
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                ]
-            )
-            coordinator.startChannelRefreshWallClockSchedulerIfNeeded()
+            await viewModel.performAutoRefreshTaskIfNeeded()
         }
         .task(priority: .utility) {
-            guard !didPrewarmRemoteSearch else { return }
-            didPrewarmRemoteSearch = true
-            coordinator.prewarmRemoteSearchSnapshot(keyword: FeedCacheCoordinator.homeSearchKeyword)
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            guard !Task.isCancelled else { return }
-            shouldMountRemoteSearchPrewarmHost = true
+            await viewModel.prewarmRemoteSearchIfNeeded()
         }
         .confirmationDialog(
             "この端末の設定をリセットしますか",
-            isPresented: $homeState.shouldConfirmReset,
+            isPresented: $viewModel.state.shouldConfirmReset,
             titleVisibility: .visible
         ) {
             Button("全設定をリセット", role: .destructive) {
-                resetAllSettings()
+                viewModel.resetAllSettings()
             }
             Button("キャンセル", role: .cancel) {}
         } message: {
@@ -171,12 +115,12 @@ struct HomeScreenView: View {
                         ForEach(SortDirection.allCases, id: \.self) { direction in
                             let option = ChannelBrowseSortDescriptor(metric: metric, direction: direction)
                             Button {
-                                homeState.selectChannelSortDescriptor(option)
+                                viewModel.selectChannelSortDescriptor(option)
                                 navigationPath.wrappedValue.append(MaintenanceRoute.channelList(option))
                             } label: {
                                 HStack {
                                     Text(option.shortLabel)
-                                    if option == homeState.channelSortDescriptor {
+                                    if option == viewModel.state.channelSortDescriptor {
                                         Spacer()
                                         Image(systemName: "checkmark")
                                     }
@@ -188,7 +132,7 @@ struct HomeScreenView: View {
             } label: {
                 MetricTile(
                     title: "チャンネル",
-                    value: homeState.channelSortDescriptor.shortLabel,
+                    value: viewModel.state.channelSortDescriptor.shortLabel,
                     detail: "並び順を選んでチャンネル一覧へ"
                 )
             }
@@ -256,108 +200,40 @@ struct HomeScreenView: View {
 
             Menu {
                 Button {
-                    exportRegistry()
+                    viewModel.exportRegistry()
                 } label: {
                     Label("バックアップを書き出し", systemImage: "square.and.arrow.up")
                 }
 
                 Button {
-                    importRegistry()
+                    viewModel.importRegistry()
                 } label: {
                     Label("バックアップを読み込み", systemImage: "square.and.arrow.down")
                 }
             } label: {
                 MetricTile(
                     title: "バックアップ",
-                    value: homeState.isTransferringRegistry ? "処理中..." : "",
-                    detail: homeState.transferFeedback?.detail ?? "この端末内の固定JSONへ書き出し / 読み戻し"
+                    value: viewModel.state.isTransferringRegistry ? "処理中..." : "",
+                    detail: viewModel.state.transferFeedback?.detail ?? "この端末内の固定JSONへ書き出し / 読み戻し"
                 )
             }
             .menuStyle(.borderlessButton)
-            .disabled(homeState.isTransferringRegistry)
+            .disabled(viewModel.state.isTransferringRegistry)
             .accessibilityIdentifier("nav.registryTransfer")
 
             Button {
-                homeState.requestResetAllSettings()
+                viewModel.requestResetAllSettings()
             } label: {
                 MetricTile(
                     title: "全設定リセット",
-                    value: homeState.isResettingAllSettings ? "処理中..." : "",
+                    value: viewModel.state.isResettingAllSettings ? "処理中..." : "",
                     detail: "この端末の設定とキャッシュを削除。バックアップ JSON は残す"
                 )
             }
             .buttonStyle(.plain)
-            .disabled(homeState.isTransferringRegistry || homeState.isResettingAllSettings)
+            .disabled(viewModel.state.isTransferringRegistry || viewModel.state.isResettingAllSettings)
             .tint(.red)
             .accessibilityIdentifier("nav.resetAllSettings")
-        }
-    }
-
-    private func exportRegistry() {
-        guard !homeState.isTransferringRegistry else { return }
-        homeState.beginRegistryTransfer()
-        let logger = AppConsoleLogger.homeTransfer
-        logger.info("export_started", metadata: ["backend": "localDocuments"])
-
-        Task {
-            do {
-                let feedback = try coordinator.exportChannelRegistry(backend: .localDocuments)
-                await MainActor.run {
-                    homeState.finishRegistryTransfer(feedback)
-                    logger.info(
-                        "export_completed",
-                        metadata: [
-                            "backend": feedback.backend.rawValue,
-                            "channel_count": String(feedback.channelCount)
-                        ]
-                    )
-                }
-            } catch {
-                await MainActor.run {
-                    homeState.failRegistryTransfer(error)
-                    logger.error(
-                        "export_failed",
-                        message: AppConsoleLogger.errorSummary(error),
-                        metadata: ["backend": "localDocuments"]
-                    )
-                }
-            }
-        }
-    }
-
-    private func importRegistry() {
-        guard !homeState.isTransferringRegistry else { return }
-        homeState.beginRegistryTransfer()
-
-        Task {
-            do {
-                let feedback = try await coordinator.importChannelRegistry(backend: .localDocuments)
-                await MainActor.run {
-                    homeState.finishRegistryTransfer(feedback)
-                }
-            } catch {
-                await MainActor.run {
-                    homeState.failRegistryTransfer(error)
-                }
-            }
-        }
-    }
-
-    private func resetAllSettings() {
-        guard !homeState.isResettingAllSettings else { return }
-        homeState.beginResetAllSettings()
-
-        Task {
-            do {
-                let feedback = try await coordinator.resetAllSettings()
-                await MainActor.run {
-                    homeState.finishResetAllSettings(feedback)
-                }
-            } catch {
-                await MainActor.run {
-                    homeState.failResetAllSettings(error)
-                }
-            }
         }
     }
 

@@ -93,6 +93,7 @@ struct RemoteKeywordSearchResultsRegularView: View {
     let onLoadMoreSplitVideos: () -> Void
     let onSelectSplitChannel: (ChannelVideosRouteContext) -> Void
     let onRefresh: () async -> Void
+    let onRefreshSplit: () async -> Void
     let onDismissChip: () -> Void
     let onLoadMore: () -> Void
     let normalizedChannelTitle: (CachedVideo) -> String?
@@ -176,6 +177,7 @@ struct RemoteKeywordSearchResultsRegularView: View {
                 presentationMode: presentationMode,
                 onRenderProbe: onRenderProbe,
                 onLoadMore: onLoadMoreSplitVideos,
+                onRefresh: onRefreshSplit,
                 onAppearOnce: nil
             )
         }
@@ -196,6 +198,7 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
     let presentationMode: RemoteSearchPresentationMode
     let onRenderProbe: (String) -> Void
     let onLoadMore: () -> Void
+    let onRefresh: () async -> Void
     let onAppearOnce: ((String?) -> Void)?
     @State private var hasLoggedDetailRender = false
 
@@ -271,15 +274,7 @@ struct RemoteKeywordSearchResultsSplitDetailView: View {
             onAppearOnce?(splitContext?.channelID)
         }
         .refreshable {
-            guard let splitContext else { return }
-            if case let .channelVideos(reloadedVideos) = await coordinator.performRefreshAction(.channel(splitContext)) {
-                await MainActor.run {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        splitVideos = reloadedVideos
-                        splitVisibleCount = min(20, splitVideos.count)
-                    }
-                }
-            }
+            await onRefresh()
         }
     }
 
