@@ -1,13 +1,6 @@
 import SwiftUI
 import Combine
 
-struct PendingChannelRemoval: Identifiable, Hashable {
-    let channelID: String
-    let channelTitle: String
-
-    var id: String { channelID }
-}
-
 struct ChannelBrowseView: View {
     let coordinator: FeedCacheCoordinator
     let openVideo: (CachedVideo) -> Void
