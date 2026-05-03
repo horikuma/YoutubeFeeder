@@ -264,7 +264,7 @@ final class FeedCacheCoordinator: ObservableObject {
         }
     }
 
-    func loadChannelPlaylists(channelID: String, limit: Int = 50) async -> [YouTubePlaylistListItem] {
+    func loadChannelPlaylists(channelID: String, limit: Int = 50) async -> [PlaylistBrowseItem] {
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedChannelID.isEmpty else { return [] }
 
@@ -309,10 +309,10 @@ final class FeedCacheCoordinator: ObservableObject {
         playlistID: String,
         pageToken: String?,
         limit: Int = 50
-    ) async -> YouTubePlaylistVideosPage {
+    ) async -> PlaylistBrowseVideosPage {
         let normalizedPlaylistID = playlistID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedPlaylistID.isEmpty else {
-            return YouTubePlaylistVideosPage(
+            return PlaylistBrowseVideosPage(
                 playlistID: playlistID,
                 videos: [],
                 totalCount: 0,
@@ -357,7 +357,7 @@ final class FeedCacheCoordinator: ObservableObject {
                     "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
                 ]
             )
-            return YouTubePlaylistVideosPage(
+            return PlaylistBrowseVideosPage(
                 playlistID: normalizedPlaylistID,
                 videos: [],
                 totalCount: 0,
