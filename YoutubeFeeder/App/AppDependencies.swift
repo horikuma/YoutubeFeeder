@@ -5,6 +5,7 @@ struct FeedCacheDependencies {
     let feedService: YouTubeFeedService
     let channelResolver: YouTubeChannelResolver
     let searchService: YouTubeSearchService
+    let playlistService: YouTubePlaylistService = YouTubePlaylistService()
     let remoteSearchCacheStore: RemoteVideoSearchCacheStore
     let channelRegistrySyncService: ChannelRegistryCloudflareSyncService
     var requestScheduler: RequestScheduler? = nil

@@ -234,6 +234,7 @@ private struct ChannelBrowseRegularView: View {
     let sortDescriptor: ChannelBrowseSortDescriptor
     @Binding var state: ChannelBrowseLogic
     let onRefresh: () async -> Void
+    @Environment(\.openURL) private var openURL
     @State private var didRequestLoadMore = false
     @State private var nextPageToken: String?
     @State private var hasStartedPaging = false
@@ -252,6 +253,35 @@ private struct ChannelBrowseRegularView: View {
 
     private var videosForSelectedChannel: [CachedVideo] {
         state.videosForSelectedChannel()
+    }
+
+    private var displayMode: ChannelBrowseDisplayMode {
+        guard let selectedChannelID else { return .videos }
+        return state.displayMode(for: selectedChannelID)
+    }
+
+    private var playlistsForSelectedChannel: [PlaylistBrowseItem] {
+        guard let selectedChannelID else { return [] }
+        return state.playlists(for: selectedChannelID)
+    }
+
+    private var selectedPlaylistID: String? {
+        guard let selectedChannelID else { return nil }
+        return state.selectedPlaylistID(for: selectedChannelID)
+    }
+
+    private var selectedPlaylist: PlaylistBrowseItem? {
+        guard let selectedChannelID else { return nil }
+        return state.selectedPlaylist(for: selectedChannelID)
+    }
+
+    private var selectedPlaylistVideos: [PlaylistBrowseVideo] {
+        guard let selectedChannelID else { return [] }
+        return state.selectedPlaylistVideos(for: selectedChannelID)
+    }
+
+    private var selectedPlaylistPage: PlaylistBrowseVideosPage? {
+        selectedPlaylistID.flatMap { state.playlistVideosPage(for: $0) }
     }
 
     private var selectedTitle: String {
@@ -327,56 +357,18 @@ private struct ChannelBrowseRegularView: View {
                 Text(selectedTitle)
                     .font(.system(size: 34, weight: .black, design: .rounded))
 
-                Text("このチャンネルの動画を新しい順に表示")
+                Text(detailSubtitle)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
                 if selectedChannelID != nil {
-                    if AppLaunchMode.current.usesMockData {
-                        UITestMarker(
-                            identifier: "screen.channelVideos.loaded",
-                            value: videosForSelectedChannel.first?.id ?? "none"
-                        )
-                    }
+                    displayModeToggle
 
-                    if videosForSelectedChannel.isEmpty {
-                        MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
-                    } else {
-                        LazyVGrid(columns: layout.listColumns, spacing: 20) {
-                            ForEach(Array(videosForSelectedChannel.enumerated()), id: \.element.id) { offset, video in
-                                VideoTile(
-                                    video: video,
-                                    tapAction: nil,
-                                    openVideoAction: {
-                                        openVideo(video)
-                                    },
-                                    removeChannel: {
-                                        state.requestRemoval(for:
-                                            ChannelBrowseItem(
-                                                id: video.channelID,
-                                                channelID: video.channelID,
-                                                channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle,
-                                                latestPublishedAt: video.publishedAt,
-                                                registeredAt: nil,
-                                                latestVideo: video,
-                                                cachedVideoCount: 0
-                                            )
-                                        )
-                                    },
-                                    index: offset + 1,
-                                    desktopPrimaryClickAction: {
-                                        openVideo(video)
-                                    },
-                                    desktopMenuTriggerStyle: .contextMenu,
-                                    includesOpenVideoInMenu: false
-                                )
-                                .onAppear {
-                                    guard offset >= videosForSelectedChannel.count - 1 else { return }
-                                    requestLoadMoreIfNeeded(for: selectedChannelID)
-                                }
-                                .listInsertionTransition()
-                            }
-                        }
+                    switch displayMode {
+                    case .videos:
+                        videosContent
+                    case .playlists:
+                        playlistsContent
                     }
                 } else {
                     MetricTile(title: "動画一覧", value: "チャンネル未選択", detail: "左側のチャンネルを選ぶと動画を表示します")
@@ -390,6 +382,182 @@ private struct ChannelBrowseRegularView: View {
         .background(Color(.systemGroupedBackground))
         .refreshable {
             await refreshSelectedChannel()
+        }
+    }
+
+    private var detailSubtitle: String {
+        guard selectedChannelID != nil else { return "左側のチャンネルを選ぶと詳細が表示されます" }
+        switch displayMode {
+        case .videos:
+            return "このチャンネルの動画を新しい順に表示"
+        case .playlists:
+            if let selectedPlaylist {
+                return "\(selectedPlaylist.title) の動画を表示"
+            }
+            return "このチャンネルのプレイリストを表示"
+        }
+    }
+
+    private var displayModeToggle: some View {
+        HStack(spacing: 8) {
+            displayModeButton(title: "動画一覧", mode: .videos)
+            displayModeButton(title: "プレイリスト一覧", mode: .playlists)
+        }
+    }
+
+    private func displayModeButton(title: String, mode: ChannelBrowseDisplayMode) -> some View {
+        let isSelected = displayMode == mode
+        return Button {
+            setDisplayMode(mode)
+        } label: {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .foregroundStyle(isSelected ? .white : .primary)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(isSelected ? Color.accentColor : Color(.secondarySystemBackground))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var videosContent: some View {
+        Group {
+            if AppLaunchMode.current.usesMockData {
+                UITestMarker(
+                    identifier: "screen.channelVideos.loaded",
+                    value: videosForSelectedChannel.first?.id ?? "none"
+                )
+            }
+
+            if videosForSelectedChannel.isEmpty {
+                MetricTile(title: "動画一覧", value: "まだありません", detail: "このチャンネルのキャッシュがあるとここに表示します")
+            } else {
+                LazyVGrid(columns: layout.listColumns, spacing: 20) {
+                    ForEach(Array(videosForSelectedChannel.enumerated()), id: \.element.id) { offset, video in
+                        VideoTile(
+                            video: video,
+                            tapAction: nil,
+                            openVideoAction: {
+                                openVideo(video)
+                            },
+                            removeChannel: {
+                                state.requestRemoval(for:
+                                    ChannelBrowseItem(
+                                        id: video.channelID,
+                                        channelID: video.channelID,
+                                        channelTitle: video.channelTitle.isEmpty ? video.channelID : video.channelTitle,
+                                        latestPublishedAt: video.publishedAt,
+                                        registeredAt: nil,
+                                        latestVideo: video,
+                                        cachedVideoCount: 0
+                                    )
+                                )
+                            },
+                            index: offset + 1,
+                            desktopPrimaryClickAction: {
+                                openVideo(video)
+                            },
+                            desktopMenuTriggerStyle: .contextMenu,
+                            includesOpenVideoInMenu: false
+                        )
+                        .onAppear {
+                            guard offset >= videosForSelectedChannel.count - 1 else { return }
+                            requestLoadMoreIfNeeded(for: selectedChannelID)
+                        }
+                        .listInsertionTransition()
+                    }
+                }
+            }
+        }
+    }
+
+    private var playlistsContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let selectedPlaylist {
+                HStack(spacing: 12) {
+                    Button("プレイリスト一覧へ戻る") {
+                        clearSelectedPlaylist()
+                    }
+                    .buttonStyle(.bordered)
+
+                    Text(selectedPlaylist.title)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+                }
+                .accessibilityIdentifier("channel.playlist.back")
+
+                playlistVideosContent
+            } else {
+                playlistListContent
+            }
+        }
+    }
+
+    private var playlistListContent: some View {
+        Group {
+            if playlistsForSelectedChannel.isEmpty {
+                MetricTile(title: "プレイリスト一覧", value: "まだありません", detail: "このチャンネルのプレイリストがあるとここに表示します")
+            } else {
+                LazyVGrid(columns: layout.listColumns, spacing: 20) {
+                    ForEach(Array(playlistsForSelectedChannel.enumerated()), id: \.element.id) { offset, playlist in
+                        Button {
+                            selectPlaylist(playlist.playlistID)
+                        } label: {
+                            PlaylistBrowseTile(
+                                item: playlist,
+                                previewVideo: playlistPreviewVideo(for: playlist),
+                                index: offset + 1,
+                                isSelected: selectedPlaylistID == playlist.playlistID
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .tileActionMenu(
+                            menu: playlistMenu(for: playlist),
+                            accessibilityIdentifier: "playlist.tile.\(playlist.playlistID)",
+                            desktopTriggerStyle: .contextMenu
+                        )
+                        .listInsertionTransition()
+                    }
+                }
+            }
+        }
+    }
+
+    private var playlistVideosContent: some View {
+        Group {
+            if let selectedPlaylistPage = selectedPlaylistPage {
+                if selectedPlaylistPage.videos.isEmpty {
+                    MetricTile(title: "プレイリスト内動画", value: "まだありません", detail: "このプレイリストの動画があるとここに表示します")
+                } else {
+                    LazyVGrid(columns: layout.listColumns, spacing: 20) {
+                        ForEach(Array(selectedPlaylistVideos.enumerated()), id: \.element.id) { offset, video in
+                            let cachedVideo = playlistCachedVideo(for: video)
+                            VideoTile(
+                                video: cachedVideo,
+                                tapAction: nil,
+                                openVideoAction: {
+                                    openVideo(cachedVideo)
+                                },
+                                removeChannel: nil,
+                                index: offset + 1,
+                                desktopPrimaryClickAction: {
+                                    openVideo(cachedVideo)
+                                },
+                                desktopMenuTriggerStyle: .contextMenu,
+                                includesOpenVideoInMenu: true
+                            )
+                            .listInsertionTransition()
+                        }
+                    }
+                }
+            } else {
+                MetricTile(title: "プレイリスト内動画", value: "読み込み中", detail: "プレイリストを準備しています")
+            }
         }
     }
 
@@ -415,19 +583,19 @@ private struct ChannelBrowseRegularView: View {
         nextPageToken = nil
         hasStartedPaging = false
         didRequestLoadMore = false
-        loadVideosIfNeeded(for: channelID)
+        loadCurrentChannelContentIfNeeded(for: channelID)
     }
 
     private func applyDefaultSelectionIfNeeded() {
         if let selectedChannelID, items.contains(where: { $0.channelID == selectedChannelID }) {
-            loadVideosIfNeeded(for: selectedChannelID)
+            loadCurrentChannelContentIfNeeded(for: selectedChannelID)
             return
         }
         guard let firstChannelID = state.applyDefaultSelectionIfNeeded() else { return }
         nextPageToken = nil
         hasStartedPaging = false
         didRequestLoadMore = false
-        loadVideosIfNeeded(for: firstChannelID)
+        loadCurrentChannelContentIfNeeded(for: firstChannelID)
     }
 
     private func loadVideosIfNeeded(for channelID: String) {
@@ -460,32 +628,174 @@ private struct ChannelBrowseRegularView: View {
 
     private func refreshSelectedChannel() async {
         guard let selectedChannelID else { return }
-        RuntimeDiagnostics.shared.record(
-            "channel_refresh_gesture",
-            detail: "スプリット表示の動画一覧で下スワイプ更新",
-            metadata: [
-                "channelID": selectedChannelID,
-                "screen": "splitChannelVideos"
-        ]
-        )
-        await coordinator.refreshChannelManually(selectedChannelID)
-        let refreshedVideos = await coordinator.loadVideosForChannel(selectedChannelID)
-        await MainActor.run {
-            withAnimation(.easeOut(duration: 0.25)) {
-                state.refreshSelectedChannelVideos(refreshedVideos)
+        switch displayMode {
+        case .videos:
+            RuntimeDiagnostics.shared.record(
+                "channel_refresh_gesture",
+                detail: "スプリット表示の動画一覧で下スワイプ更新",
+                metadata: [
+                    "channelID": selectedChannelID,
+                    "screen": "splitChannelVideos"
+            ]
+            )
+            await coordinator.refreshChannelManually(selectedChannelID)
+            let refreshedVideos = await coordinator.loadVideosForChannel(selectedChannelID)
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    state.refreshSelectedChannelVideos(refreshedVideos)
+                }
+                nextPageToken = nil
+                hasStartedPaging = false
+                didRequestLoadMore = false
             }
-            nextPageToken = nil
-            hasStartedPaging = false
-            didRequestLoadMore = false
+            RuntimeDiagnostics.shared.record(
+                "channel_refresh_view_reload_finished",
+                detail: "スプリット表示の動画一覧リロード完了",
+                metadata: [
+                    "channelID": selectedChannelID,
+                    "videoCount": String(state.videosForSelectedChannel().count)
+                ]
+            )
+        case .playlists:
+            if let selectedPlaylistID {
+                let page = await coordinator.loadPlaylistVideosPage(
+                    playlistID: selectedPlaylistID,
+                    pageToken: nil,
+                    limit: 50
+                )
+                await MainActor.run {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        state.refreshPlaylistVideos(page)
+                    }
+                }
+            } else {
+                let playlists = await coordinator.loadChannelPlaylists(channelID: selectedChannelID)
+                await MainActor.run {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        state.refreshPlaylists(playlists, for: selectedChannelID)
+                    }
+                }
+            }
         }
-        RuntimeDiagnostics.shared.record(
-            "channel_refresh_view_reload_finished",
-            detail: "スプリット表示の動画一覧リロード完了",
-            metadata: [
-                "channelID": selectedChannelID,
-                "videoCount": String(state.videosForSelectedChannel().count)
+    }
+
+    private func loadCurrentChannelContentIfNeeded(for channelID: String, forceReload: Bool = false) {
+        switch state.displayMode(for: channelID) {
+        case .videos:
+            loadVideosIfNeeded(for: channelID)
+        case .playlists:
+            loadPlaylistsIfNeeded(for: channelID, forceReload: forceReload)
+        }
+    }
+
+    private func setDisplayMode(_ mode: ChannelBrowseDisplayMode) {
+        guard let channelID = selectedChannelID else { return }
+        state.setDisplayMode(mode, for: channelID)
+        if mode == .videos {
+            loadVideosIfNeeded(for: channelID)
+        } else {
+            loadPlaylistsIfNeeded(for: channelID)
+        }
+    }
+
+    private func clearSelectedPlaylist() {
+        guard let channelID = selectedChannelID else { return }
+        state.selectPlaylist(nil, for: channelID)
+    }
+
+    private func selectPlaylist(_ playlistID: String) {
+        guard let channelID = selectedChannelID else { return }
+        state.selectPlaylist(playlistID, for: channelID)
+        loadPlaylistVideosIfNeeded(for: playlistID)
+    }
+
+    private func loadPlaylistsIfNeeded(for channelID: String, forceReload: Bool = false) {
+        guard forceReload || !state.hasLoadedPlaylists(for: channelID) else {
+            if let selectedPlaylistID = state.selectedPlaylistID(for: channelID),
+               state.playlistVideosPage(for: selectedPlaylistID) == nil {
+                loadPlaylistVideosIfNeeded(for: selectedPlaylistID)
+            }
+            return
+        }
+
+        Task {
+            let loadedPlaylists = await coordinator.loadChannelPlaylists(channelID: channelID)
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    state.refreshPlaylists(loadedPlaylists, for: channelID)
+                }
+            }
+            if let selectedPlaylistID = state.selectedPlaylistID(for: channelID),
+               state.playlistVideosPage(for: selectedPlaylistID) == nil {
+                loadPlaylistVideosIfNeeded(for: selectedPlaylistID)
+            }
+        }
+    }
+
+    private func loadPlaylistVideosIfNeeded(for playlistID: String, forceReload: Bool = false) {
+        guard forceReload || state.playlistVideosPage(for: playlistID) == nil else { return }
+
+        Task {
+            let page = await coordinator.loadPlaylistVideosPage(playlistID: playlistID, pageToken: nil, limit: 50)
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    state.refreshPlaylistVideos(page)
+                }
+            }
+        }
+    }
+
+    private func playlistPreviewVideo(for item: PlaylistBrowseItem) -> CachedVideo {
+        CachedVideo(
+            id: item.playlistID,
+            channelID: item.channelID,
+            channelTitle: item.channelTitle,
+            channelDisplayTitle: item.channelTitle,
+            title: item.title,
+            publishedAt: item.publishedAt,
+            videoURL: coordinator.playlistContinuousPlayURL(playlistID: item.playlistID),
+            thumbnailRemoteURL: item.thumbnailURL,
+            thumbnailLocalFilename: nil,
+            fetchedAt: .now,
+            searchableText: [item.title, item.channelTitle, item.playlistID].joined(separator: "\n").lowercased(),
+            durationSeconds: nil,
+            viewCount: item.itemCount,
+            metadataBadgeText: item.itemCount.map { "\($0)本" }
+        )
+    }
+
+    private func playlistCachedVideo(for video: PlaylistBrowseVideo) -> CachedVideo {
+        CachedVideo(
+            id: video.id,
+            channelID: video.channelID,
+            channelTitle: video.channelTitle,
+            channelDisplayTitle: video.channelTitle,
+            title: video.title,
+            publishedAt: video.publishedAt,
+            videoURL: video.videoURL,
+            thumbnailRemoteURL: video.thumbnailURL,
+            thumbnailLocalFilename: nil,
+            fetchedAt: .now,
+            searchableText: [video.title, video.channelTitle, video.id].joined(separator: "\n").lowercased(),
+            durationSeconds: video.durationSeconds,
+            viewCount: video.viewCount
+        )
+    }
+
+    private func playlistMenu(for item: PlaylistBrowseItem) -> TileMenuConfiguration {
+        TileMenuConfiguration(
+            primaryAction: nil,
+            secondaryActions: [
+                TileMenuAction(title: "連続再生", role: nil) {
+                    openPlaylistContinuousPlay(item)
+                }
             ]
         )
+    }
+
+    private func openPlaylistContinuousPlay(_ item: PlaylistBrowseItem) {
+        guard let url = coordinator.playlistContinuousPlayURL(playlistID: item.playlistID) else { return }
+        openURL(url)
     }
 
     private func requestLoadMoreIfNeeded(for channelID: String?) {
@@ -559,6 +869,94 @@ private struct ChannelSelectionActionModifier: ViewModifier {
                     accessibilityIdentifier: "channel.tile.\(item.channelID)"
                 )
         }
+    }
+}
+
+private struct PlaylistBrowseTile: View {
+    let item: PlaylistBrowseItem
+    let previewVideo: CachedVideo
+    let index: Int?
+    let isSelected: Bool
+    @State private var isHovered = false
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [.indigo, .purple],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .overlay {
+                ThumbnailView(video: previewVideo, contentMode: .fill)
+                    .opacity(0.9)
+            }
+            .overlay {
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.82)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(isSelected ? Color.red.opacity(0.95) : (isHovered ? Color.blue.opacity(0.95) : .clear), lineWidth: (isHovered || isSelected) ? 3 : 0)
+            }
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.title)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+
+                    Text(item.channelTitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .lineLimit(1)
+
+                    Text(item.itemCount.map { "\($0)本" } ?? "件数不明")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(16)
+            }
+            .overlay(alignment: .topTrailing) {
+                if let index {
+                    PlaylistTileIndexBadge(index: index)
+                        .padding(12)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .onHover {
+                isHovered = $0
+                AppConsoleLogger.browseTileInteraction.debug(
+                    "tile_hover_state_changed",
+                    metadata: [
+                        "kind": "playlist_browse",
+                        "playlistID": item.playlistID,
+                        "isHovered": "\($0)"
+                    ]
+                )
+            }
+    }
+}
+
+private struct PlaylistTileIndexBadge: View {
+    let index: Int
+
+    var body: some View {
+        Text("\(index + 1)")
+            .font(.caption.bold())
+            .foregroundStyle(.white)
+            .frame(width: 26, height: 26)
+            .background(
+                Circle().fill(Color.black.opacity(0.72))
+            )
+            .overlay(
+                Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+            )
     }
 }
 

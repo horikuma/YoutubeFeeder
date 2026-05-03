@@ -1,3 +1,65 @@
+## 2026/05/02
+- Generate 0 to 3 ambient suggestions for this local project. [引用要約: recent Codex threads, repo git history, branch activity, nearby code, and connected-app context only when directly relevant; avoid prior suggestions and return fresh project-grounded next actions.]
+  - Returned 1 ambient suggestion. [引用要約: grounded in the latest runtime log and recent git activity, focused on the fresh feed-refresh anomaly with 404-heavy noon cycles and zero observed 304 reuse.]
+- セッションを終了せよ。
+  - セッションを終了しました。`main` は最新化され、`issue-171` は削除されました。
+- PRを作成せよ。
+  - Pull Request #172 を作成しました。issue-171 を head にして、Closes #171 を含む本文で連携しました。
+- 本来の順序は、ブランチを作成し、切り替えることだった。順序が逆である。現在ブランチの位置を、refを遡って先端へ移動せよ。
+  - issue-171 の先端を reflog 上の直前コミット `b887af1` に戻しました。現在ブランチはクリーンです。
+- 171である。
+  - Issue-171 ブランチを作成し、`main` を最新化したうえで `issue-171` に切り替えました。
+- Issueブランチを作成し切り替えよ。
+  - 対象 Issue 番号がこの指示だけでは確定できないため、issue-<issue_number> の番号を指定してください。
+- 差分をすべてコミットせよ。
+  - 差分をすべてコミットしました。作業ツリーはクリーンです。
+- ではxcodebuildの整理を進めよ。直接アクセスするのは、scripts/xcode-buildは以下のみからとし、それ以外からは本スクリプトを経由するものとする。
+  - xcodebuild の直接呼び出しを scripts/xcode-build 配下へ集約するため、build 共有ラッパーと xcodebuild 用 command-runner 入口を追加し、metrics/test 系を wrapper 経由へ切り替えました。
+- まず既存のgit差分を適切なメッセージでコミットせよ。
+  - scripts/github/github-app.py の差分を `Cache GitHub App installation ID` としてコミットしました。作業ツリーはクリーンです。
+- scodebuildもcommand-runner経由にしなければならない。今回の用途を踏まえ、ビルドスキルおよびビルドスクリプトの拡充が必要か検討し回答せよ。操作してはならない。
+  - はい。現状の build skill は「command-runner 経由で build を起動する」までしか保証しておらず、`scripts/xcode-build/build.py` と metrics/test 系スクリプトの `xcodebuild` 直呼びをカバーできていません。したがって、skill の明文化拡充と、`xcodebuild` を wrapper 化して command-runner からのみ呼ぶ script 側の拡充が必要です。
+- 本スレッドを点検し、xbuildを直接コールしている箇所を洗い出し、原因を回答せよ。
+  - 本スレッドで直接呼ばれていたのは `xcodebuild ... build` と `xcodebuild ... test` の検証コマンドで、`build-release` は wrapper 経由でした。原因は、検証用の focused build/test をその場で最短実行する運用になっており、Git のような強制 wrapper ルールが xcodebuild には無いことです。
+- コミットせよ。
+  - Issue #171 の実施分をコミットしました。`scripts/github/github-app.py` は未コミットのまま残しています。
+- ではIssueを実施せよ。
+  - Issue #171 を実施し、チャンネル別動画一覧の onLoadMore ページング対応を実装して build-release まで成功しました。
+- ではIssueを実施せよ。
+- 実施せよ。
+  - issue-read を昇格付きで再実行し、llm-cache/github-app.json に installationId が書き込まれていることを確認しました。
+- Issueを取得し、insttlationidが書き込まれることを確認せよ。
+  - issue-read を試しましたが api.github.com の DNS 解決で失敗し、llm-cache/github-app.json に installationId は書き込まれていませんでした。
+- curlでgoogleへのアクセスが解決できることを確認せよ。
+  - curlでのGoogle到達確認は成功しました。サンドボックス内ではDNS解決に失敗しましたが、外部ネットワーク許可付きでは curl -I -L --max-time 10 https://www.google.com が HTTP/2 200 を返しました。
+- リトライせよ。
+  - curl の再試行でも www.google.com の名前解決は失敗し、Could not resolve host のままでした。
+- Googleへのアクセス解決を確認せよ。
+  - curl で www.google.com の名前解決は失敗し、Could not resolve host でした。
+- curlでアクセス解決を確認せよ。
+  - curl で api.github.com の名前解決は失敗し、Could not resolve host でした。
+- もう一度。
+  - issue-read を3回再試行しましたが、いずれも GitHub の installation 取得前段で失敗し、installationId のローカル保存は確認できませんでした。
+- ではissue取得処理を実行せよ。3回までリトライし、JWTから取得したidがローカルに格納されることを確認せよ。
+  - issue-read を3回試しましたが、いずれも GitHub 接続失敗で、llm-cache/github-app.json に installationId はまだ書き込まれていません。
+- スクリプトの耐性を上げる。まずgithub-app.jsonからinstallationidが取得できない場合は、従来通りJWTで取得し、値をJsonに格納するようにせよ。これで、以後はinstallationを省略できる。コミットはするな。
+  - github-app.py に installationId のキャッシュ読み書きと再利用を追加し、初回のみJWT経由で取得して github-app.json に保存するようにしました。
+- 今回は何の対応も行わない。ネットワークが回復したことを前提に、再開せよ。
+  - ネットワーク回復前提で再開を試みましたが、issue-read はまだ GitHub 接続失敗で停止しました。
+- ロングランタスクに入る前に、コンテキストを明示的に圧縮できるか。
+  - はい。ロングラン前に、現在の作業状態・未確定点・再開条件を短い引き継ぎ文に圧縮できます。
+- Issueを詳細化せよ。上記の検討を含めて、playlistItemsでページ末端までページングするが、タイミングはonLoadMoreを契機とする。すなわち、一度にすべてを取得するのではなく、必要に応じて取得を拡張する。表示件数自体は要件に含めず、ユーザスクロール操作とチャンネルの構成任せとする。unit消費が激しいsearchを、本件で使ってはならない。
+  - issue-read の失敗要因を点検し、実装上は GitHub 依存の強さが主因であると判断しました。
+  - Issue #171 を詳細化し、タイトル・Description・コメントを更新しました。
+- Issueを作成せよ。「動画リストをonLoadMoreに対応する」
+  - Issue #171 を作成しました。
+- チャンネル一覧の個別チャンネル選択時の、動画一覧について検討する。スクロールして末端に辿り着いた際、DataAPIを使って当該チャンネルの動画リストを取得し、1ページ50件までスクロール可能にする。ただし、マスク条件は従来のままなので、ショート等が混ざると50件には到達しない。実装可能性と不確定要素を検討し回答せよ。APIの仕様を検索して良い。修正してはならない。
+  - チャンネル別動画一覧の末端追加取得はYouTube Data APIのuploads playlistとページングで実装可能だが、現行実装は追加読み込み状態を持たず、50件はマスク後件数か原件数かとShorts判定の限界が不確定です。
+- コミットせよ。
+  - AGENTS.md のルール追加をコミットしました。
+- AGENTSに以下を追加する。「推論でインターネットアクセスが必要になった場合、中断してユーザに可否を問い合わせなければならない。許可を得ずにインターネットにアクセスしてはならない。」
+  - AGENTS.md にインターネットアクセス可否の確認ルールを共通原則へ追記しました。
+
 ## 2026/05/01
 - リリースビルドせよ。
   - リリースビルドを実行し、build-release は成功しました。成果物は build/release 配下に出ています。

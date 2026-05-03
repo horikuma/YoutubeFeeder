@@ -68,6 +68,38 @@ struct ChannelBrowseItem: Identifiable, Hashable {
     }
 }
 
+struct PlaylistBrowseItem: Identifiable, Hashable {
+    let id: String
+    let playlistID: String
+    let channelID: String
+    let channelTitle: String
+    let title: String
+    let description: String?
+    let publishedAt: Date?
+    let itemCount: Int?
+    let thumbnailURL: URL?
+}
+
+struct PlaylistBrowseVideo: Identifiable, Hashable {
+    let id: String
+    let channelID: String
+    let channelTitle: String
+    let title: String
+    let publishedAt: Date?
+    let videoURL: URL?
+    let thumbnailURL: URL?
+    let durationSeconds: Int?
+    let viewCount: Int?
+}
+
+struct PlaylistBrowseVideosPage: Hashable {
+    let playlistID: String
+    let videos: [PlaylistBrowseVideo]
+    let totalCount: Int
+    let fetchedAt: Date
+    let nextPageToken: String?
+}
+
 enum ChannelRegistrationStatus: Hashable {
     case added
     case alreadyRegistered
