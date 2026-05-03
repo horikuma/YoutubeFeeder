@@ -16,7 +16,29 @@ struct ChannelBrowseView: View {
     let sortDescriptor: ChannelBrowseSortDescriptor
     let presentation: BasicGUIBrowsePresentation
 
-    @State private var browseState = ChannelBrowseLogic()
+    @StateObject private var viewModel: ChannelBrowseViewModel
+
+    init(
+        coordinator: FeedCacheCoordinator,
+        openVideo: @escaping (CachedVideo) -> Void,
+        path: Binding<NavigationPath>,
+        layout: AppLayout,
+        sortDescriptor: ChannelBrowseSortDescriptor,
+        presentation: BasicGUIBrowsePresentation
+    ) {
+        self.coordinator = coordinator
+        self.openVideo = openVideo
+        _path = path
+        self.layout = layout
+        self.sortDescriptor = sortDescriptor
+        self.presentation = presentation
+        _viewModel = StateObject(
+            wrappedValue: ChannelBrowseViewModel(
+                coordinator: coordinator,
+                sortDescriptor: sortDescriptor
+            )
+        )
+    }
 
     var body: some View {
         Group {
@@ -28,8 +50,11 @@ struct ChannelBrowseView: View {
                     path: $path,
                     layout: layout,
                     sortDescriptor: sortDescriptor,
-                    state: $browseState,
-                    onRefresh: refreshChannelBrowseItems
+                    viewModel: viewModel,
+                    state: $viewModel.state,
+                    onRefresh: {
+                        await viewModel.refreshChannelBrowseItems()
+                    }
                 )
             case .compact:
                 ChannelBrowseCompactView(
@@ -37,53 +62,39 @@ struct ChannelBrowseView: View {
                     layout: layout,
                     path: $path,
                     sortDescriptor: sortDescriptor,
-                    state: $browseState,
-                    onRefresh: refreshChannelBrowseItems
+                    state: $viewModel.state,
+                    onRefresh: {
+                        await viewModel.refreshChannelBrowseItems()
+                    }
                 )
             }
         }
         .task {
-            await loadChannelBrowseItems()
+            await viewModel.loadChannelBrowseItems()
         }
         .onReceive(coordinator.$maintenanceItems.dropFirst()) { _ in
-            RuntimeDiagnostics.shared.record(
-                "channel_list_received_update",
-                detail: "チャンネル一覧が maintenanceItems の更新を受信",
-                metadata: [
-                    "itemCount": String(coordinator.maintenanceItems.count),
-                    "sort": sortDescriptor.shortLabel
-                ]
-            )
-            Task {
-                await loadChannelBrowseItems()
-            }
+            viewModel.maintenanceItemsDidChange()
         }
         .confirmationDialog(
-            browseState.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
+            viewModel.state.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
             isPresented: Binding(
-                get: { browseState.pendingChannelRemoval != nil },
-                set: { if !$0 { browseState.clearPendingRemoval() } }
+                get: { viewModel.state.pendingChannelRemoval != nil },
+                set: { if !$0 { viewModel.clearPendingRemoval() } }
             ),
             titleVisibility: .visible
         ) {
             Button("チャンネルを削除", role: .destructive) {
-                guard let pendingChannelRemoval = browseState.pendingChannelRemoval else { return }
                 Task {
-                    if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
-                        await MainActor.run {
-                            handleRemovalFeedback(feedback)
-                        }
-                    }
+                    await viewModel.confirmPendingRemoval()
                 }
-                browseState.clearPendingRemoval()
             }
             Button("キャンセル", role: .cancel) {
-                browseState.clearPendingRemoval()
+                viewModel.clearPendingRemoval()
             }
         } message: {
             Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")
         }
-        .alert(item: $browseState.removalFeedback) { feedback in
+        .alert(item: $viewModel.state.removalFeedback) { feedback in
             Alert(
                 title: Text(feedback.title),
                 message: Text(feedback.detail),
@@ -91,37 +102,8 @@ struct ChannelBrowseView: View {
             )
         }
         .onAppear {
-            StartupDiagnostics.shared.mark("channelListShown")
+            viewModel.onAppear()
         }
-    }
-
-    private func requestRemoval(_ item: ChannelBrowseItem) {
-        browseState.requestRemoval(for: item)
-    }
-
-    private func handleRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
-        browseState.applyRemovalFeedback(feedback)
-        Task {
-            await loadChannelBrowseItems()
-        }
-    }
-
-    private var tipsSummary: ChannelBrowseTipsSummary {
-        ChannelBrowseTipsSummary.build(items: browseState.items, sortDescriptor: sortDescriptor)
-    }
-
-    private func loadChannelBrowseItems() async {
-        let items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
-        await MainActor.run {
-            withAnimation(.easeOut(duration: 0.25)) {
-                browseState.setItems(items)
-            }
-        }
-    }
-
-    private func refreshChannelBrowseItems() async {
-        _ = await coordinator.performRefreshAction(.home)
-        await loadChannelBrowseItems()
     }
 }
 
@@ -232,6 +214,7 @@ private struct ChannelBrowseRegularView: View {
     @Binding var path: NavigationPath
     let layout: AppLayout
     let sortDescriptor: ChannelBrowseSortDescriptor
+    let viewModel: ChannelBrowseViewModel
     @Binding var state: ChannelBrowseLogic
     let onRefresh: () async -> Void
     @Environment(\.openURL) private var openURL
@@ -579,207 +562,51 @@ private struct ChannelBrowseRegularView: View {
     }
 
     private func selectChannel(_ channelID: String) {
-        state.selectChannel(channelID)
-        nextPageToken = nil
-        hasStartedPaging = false
-        didRequestLoadMore = false
-        loadCurrentChannelContentIfNeeded(for: channelID)
+        viewModel.selectChannel(channelID)
     }
 
     private func applyDefaultSelectionIfNeeded() {
-        if let selectedChannelID, items.contains(where: { $0.channelID == selectedChannelID }) {
-            loadCurrentChannelContentIfNeeded(for: selectedChannelID)
-            return
-        }
-        guard let firstChannelID = state.applyDefaultSelectionIfNeeded() else { return }
-        nextPageToken = nil
-        hasStartedPaging = false
-        didRequestLoadMore = false
-        loadCurrentChannelContentIfNeeded(for: firstChannelID)
+        viewModel.applyDefaultSelectionIfNeeded()
     }
 
     private func loadVideosIfNeeded(for channelID: String) {
-        guard state.beginLoadingVideos(for: channelID) else { return }
-        Task {
-            let loadedVideos = await coordinator.loadVideosForChannel(channelID)
-            await MainActor.run {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    state.finishLoadingVideos(loadedVideos, for: channelID)
-                }
-                nextPageToken = nil
-                hasStartedPaging = false
-                didRequestLoadMore = false
-                if state.selectedChannelID == channelID,
-                   let refreshSource = state.selectedChannelRefreshSource {
-                    RuntimeDiagnostics.shared.record(
-                        "channel_split_detail_reload_finished",
-                        detail: "分割表示の右ペイン動画一覧が一覧更新に追随した",
-                        metadata: [
-                            "channelID": channelID,
-                            "refresh_source": refreshSource,
-                            "videoCount": String(loadedVideos.count)
-                        ]
-                    )
-                    state.selectedChannelRefreshSource = nil
-                }
-            }
-        }
+        viewModel.loadCurrentChannelContentIfNeeded(for: channelID)
     }
 
     private func refreshSelectedChannel() async {
-        guard let selectedChannelID else { return }
-        switch displayMode {
-        case .videos:
-            RuntimeDiagnostics.shared.record(
-                "channel_refresh_gesture",
-                detail: "スプリット表示の動画一覧で下スワイプ更新",
-                metadata: [
-                    "channelID": selectedChannelID,
-                    "screen": "splitChannelVideos"
-            ]
-            )
-            await coordinator.refreshChannelManually(selectedChannelID)
-            let refreshedVideos = await coordinator.loadVideosForChannel(selectedChannelID)
-            await MainActor.run {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    state.refreshSelectedChannelVideos(refreshedVideos)
-                }
-                nextPageToken = nil
-                hasStartedPaging = false
-                didRequestLoadMore = false
-            }
-            RuntimeDiagnostics.shared.record(
-                "channel_refresh_view_reload_finished",
-                detail: "スプリット表示の動画一覧リロード完了",
-                metadata: [
-                    "channelID": selectedChannelID,
-                    "videoCount": String(state.videosForSelectedChannel().count)
-                ]
-            )
-        case .playlists:
-            if let selectedPlaylistID {
-                let page = await coordinator.loadPlaylistVideosPage(
-                    playlistID: selectedPlaylistID,
-                    pageToken: nil,
-                    limit: 50
-                )
-                await MainActor.run {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        state.refreshPlaylistVideos(page)
-                    }
-                }
-            } else {
-                let playlists = await coordinator.loadChannelPlaylists(channelID: selectedChannelID)
-                await MainActor.run {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        state.refreshPlaylists(playlists, for: selectedChannelID)
-                    }
-                }
-            }
-        }
+        await viewModel.refreshSelectedChannel()
     }
 
     private func loadCurrentChannelContentIfNeeded(for channelID: String, forceReload: Bool = false) {
-        switch state.displayMode(for: channelID) {
-        case .videos:
-            loadVideosIfNeeded(for: channelID)
-        case .playlists:
-            loadPlaylistsIfNeeded(for: channelID, forceReload: forceReload)
-        }
+        viewModel.loadCurrentChannelContentIfNeeded(for: channelID, forceReload: forceReload)
     }
 
     private func setDisplayMode(_ mode: ChannelBrowseDisplayMode) {
-        guard let channelID = selectedChannelID else { return }
-        state.setDisplayMode(mode, for: channelID)
-        if mode == .videos {
-            loadVideosIfNeeded(for: channelID)
-        } else {
-            loadPlaylistsIfNeeded(for: channelID)
-        }
+        viewModel.setDisplayMode(mode)
     }
 
     private func clearSelectedPlaylist() {
-        guard let channelID = selectedChannelID else { return }
-        state.selectPlaylist(nil, for: channelID)
+        viewModel.clearSelectedPlaylist()
     }
 
     private func selectPlaylist(_ playlistID: String) {
-        guard let channelID = selectedChannelID else { return }
-        state.selectPlaylist(playlistID, for: channelID)
-        loadPlaylistVideosIfNeeded(for: playlistID)
+        viewModel.selectPlaylist(playlistID)
     }
 
     private func loadPlaylistsIfNeeded(for channelID: String, forceReload: Bool = false) {
-        guard forceReload || !state.hasLoadedPlaylists(for: channelID) else {
-            if let selectedPlaylistID = state.selectedPlaylistID(for: channelID),
-               state.playlistVideosPage(for: selectedPlaylistID) == nil {
-                loadPlaylistVideosIfNeeded(for: selectedPlaylistID)
-            }
-            return
-        }
-
-        Task {
-            let loadedPlaylists = await coordinator.loadChannelPlaylists(channelID: channelID)
-            await MainActor.run {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    state.refreshPlaylists(loadedPlaylists, for: channelID)
-                }
-            }
-            if let selectedPlaylistID = state.selectedPlaylistID(for: channelID),
-               state.playlistVideosPage(for: selectedPlaylistID) == nil {
-                loadPlaylistVideosIfNeeded(for: selectedPlaylistID)
-            }
-        }
+        viewModel.loadPlaylistsIfNeeded(for: channelID, forceReload: forceReload)
     }
 
     private func loadPlaylistVideosIfNeeded(for playlistID: String, forceReload: Bool = false) {
-        guard forceReload || state.playlistVideosPage(for: playlistID) == nil else { return }
-
-        Task {
-            let page = await coordinator.loadPlaylistVideosPage(playlistID: playlistID, pageToken: nil, limit: 50)
-            await MainActor.run {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    state.refreshPlaylistVideos(page)
-                }
-            }
-        }
+        viewModel.loadPlaylistVideosIfNeeded(for: playlistID, forceReload: forceReload)
     }
 
     private func playlistPreviewVideo(for item: PlaylistBrowseItem) -> CachedVideo {
-        CachedVideo(
-            id: item.playlistID,
-            channelID: item.channelID,
-            channelTitle: item.channelTitle,
-            channelDisplayTitle: item.channelTitle,
-            title: item.title,
-            publishedAt: item.publishedAt,
-            videoURL: coordinator.playlistContinuousPlayURL(playlistID: item.playlistID),
-            thumbnailRemoteURL: item.thumbnailURL,
-            thumbnailLocalFilename: nil,
-            fetchedAt: .now,
-            searchableText: [item.title, item.channelTitle, item.playlistID].joined(separator: "\n").lowercased(),
-            durationSeconds: nil,
-            viewCount: item.itemCount,
-            metadataBadgeText: item.itemCount.map { "\($0)本" }
-        )
+        viewModel.playlistPreviewVideo(for: item)
     }
 
     private func playlistCachedVideo(for video: PlaylistBrowseVideo) -> CachedVideo {
-        CachedVideo(
-            id: video.id,
-            channelID: video.channelID,
-            channelTitle: video.channelTitle,
-            channelDisplayTitle: video.channelTitle,
-            title: video.title,
-            publishedAt: video.publishedAt,
-            videoURL: video.videoURL,
-            thumbnailRemoteURL: video.thumbnailURL,
-            thumbnailLocalFilename: nil,
-            fetchedAt: .now,
-            searchableText: [video.title, video.channelTitle, video.id].joined(separator: "\n").lowercased(),
-            durationSeconds: video.durationSeconds,
-            viewCount: video.viewCount
-        )
+        viewModel.playlistCachedVideo(for: video)
     }
 
     private func playlistMenu(for item: PlaylistBrowseItem) -> TileMenuConfiguration {
@@ -799,48 +626,21 @@ private struct ChannelBrowseRegularView: View {
     }
 
     private func requestLoadMoreIfNeeded(for channelID: String?) {
-        guard let channelID else { return }
-        guard state.selectedChannelID == channelID else { return }
-        guard !didRequestLoadMore else { return }
-        guard nextPageToken != nil || !hasStartedPaging else { return }
-        didRequestLoadMore = true
-        RuntimeDiagnostics.shared.record(
-            "channel_split_detail_load_more_requested",
-            detail: "分割表示のチャンネル動画一覧の末端到達で追加取得要求を受け付けた",
-            metadata: [
-                "channelID": channelID,
-                "videoCount": String(state.videosForSelectedChannel().count)
-            ]
-        )
-        Task {
-            let page = await coordinator.loadChannelVideosPage(
-                channelID: channelID,
-                pageToken: nextPageToken,
-                limit: 50
-            )
-            await MainActor.run {
-                if state.selectedChannelID == channelID {
-                    state.appendSelectedChannelVideos(page.videos)
-                    nextPageToken = page.nextPageToken
-                    hasStartedPaging = true
-                }
-                didRequestLoadMore = false
-            }
-        }
+        viewModel.requestLoadMoreIfNeeded(for: channelID)
     }
 
     private var tipsSummary: ChannelBrowseTipsSummary {
-        ChannelBrowseTipsSummary.build(items: state.items, sortDescriptor: sortDescriptor)
+        viewModel.tipsSummary()
     }
 
     private func selectionMenu(for item: ChannelBrowseItem) -> TileMenuConfiguration {
         TileMenuConfiguration(
             primaryAction: usesDesktopMenus ? TileMenuAction(title: "このチャンネルを表示", role: nil) {
-                selectChannel(item.channelID)
+                viewModel.selectChannel(item.channelID)
             } : nil,
             secondaryActions: [
                 TileMenuAction(title: "チャンネルを削除", role: .destructive) {
-                    state.requestRemoval(for: item)
+                    viewModel.requestRemoval(for: item)
                 }
             ]
         )
