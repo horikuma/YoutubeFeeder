@@ -50,6 +50,17 @@ class UITestCaseSupport: XCTestCase {
         XCTAssertTrue(element("screen.home", in: app).waitForExistence(timeout: timeout))
     }
 
+    func openContextMenu(on element: XCUIElement) {
+        element.rightClick()
+    }
+
+    func waitForActionMenuItem(_ title: String, in app: XCUIApplication, timeout: TimeInterval = 5) -> Bool {
+        if app.menuItems[title].waitForExistence(timeout: timeout) {
+            return true
+        }
+        return app.buttons[title].waitForExistence(timeout: timeout)
+    }
+
     private func makeIsolatedFeedCacheBaseDirectory() -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("YoutubeFeederUITests", isDirectory: true)
