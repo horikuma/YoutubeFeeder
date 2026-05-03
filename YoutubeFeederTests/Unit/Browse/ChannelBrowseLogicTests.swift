@@ -122,6 +122,64 @@ final class ChannelBrowseLogicTests: LoggedTestCase {
         XCTAssertEqual(state.selectedTitle(), "Alpha")
     }
 
+    func testDisplayModeDefaultsToVideosAndCanSwitchPerChannel() {
+        var state = ChannelBrowseLogic()
+
+        XCTAssertEqual(state.displayMode(for: "UC001"), .videos)
+
+        state.setDisplayMode(.playlists, for: "UC001")
+        XCTAssertEqual(state.displayMode(for: "UC001"), .playlists)
+
+        state.setDisplayMode(.videos, for: "UC001")
+        XCTAssertEqual(state.displayMode(for: "UC001"), .videos)
+    }
+
+    func testRefreshPlaylistsTracksSelectionAndPlaylistVideos() {
+        var state = ChannelBrowseLogic()
+
+        state.refreshPlaylists(
+            [
+                makePlaylist(id: "PL001", title: "Playlist 1"),
+                makePlaylist(id: "PL002", title: "Playlist 2")
+            ],
+            for: "UC001"
+        )
+        state.selectPlaylist("PL002", for: "UC001")
+        state.refreshPlaylistVideos(
+            makePlaylistPage(
+                playlistID: "PL002",
+                videos: [
+                    makePlaylistVideo(id: "video-1", title: "Video 1"),
+                    makePlaylistVideo(id: "video-2", title: "Video 2")
+                ],
+                nextPageToken: "NEXT"
+            )
+        )
+
+        XCTAssertTrue(state.hasLoadedPlaylists(for: "UC001"))
+        XCTAssertEqual(state.selectedPlaylistID(for: "UC001"), "PL002")
+        XCTAssertEqual(state.selectedPlaylistTitle(for: "UC001"), "Playlist 2")
+        XCTAssertEqual(state.selectedPlaylistVideos(for: "UC001").map(\.id), ["video-1", "video-2"])
+        XCTAssertEqual(state.playlistVideosPage(for: "PL002")?.nextPageToken, "NEXT")
+    }
+
+    func testSetItemsClearsPlaylistStateWhenSelectedChannelDisappears() {
+        var state = ChannelBrowseLogic()
+        state.setItems([makeItem(channelID: "UC001", title: "Alpha")])
+        state.selectChannel("UC001")
+        state.setDisplayMode(.playlists, for: "UC001")
+        state.refreshPlaylists([makePlaylist(id: "PL001", title: "Playlist 1")], for: "UC001")
+        state.selectPlaylist("PL001", for: "UC001")
+        state.refreshPlaylistVideos(makePlaylistPage(playlistID: "PL001", videos: [makePlaylistVideo(id: "video-1", title: "Video 1")]))
+
+        state.setItems([makeItem(channelID: "UC002", title: "Beta")])
+
+        XCTAssertNil(state.selectedChannelID)
+        XCTAssertEqual(state.displayMode(for: "UC001"), .videos)
+        XCTAssertFalse(state.hasLoadedPlaylists(for: "UC001"))
+        XCTAssertNil(state.selectedPlaylistID(for: "UC001"))
+    }
+
     private func makeItem(
         channelID: String,
         title: String,
@@ -153,6 +211,48 @@ final class ChannelBrowseLogicTests: LoggedTestCase {
             searchableText: "search",
             durationSeconds: nil,
             viewCount: nil
+        )
+    }
+
+    private func makePlaylist(id: String, title: String) -> PlaylistBrowseItem {
+        PlaylistBrowseItem(
+            id: id,
+            playlistID: id,
+            channelID: "UC001",
+            channelTitle: "Alpha",
+            title: title,
+            description: nil,
+            publishedAt: nil,
+            itemCount: nil,
+            thumbnailURL: nil
+        )
+    }
+
+    private func makePlaylistVideo(id: String, title: String) -> PlaylistBrowseVideo {
+        PlaylistBrowseVideo(
+            id: id,
+            channelID: "UC001",
+            channelTitle: "Alpha",
+            title: title,
+            publishedAt: Date(timeIntervalSince1970: 1_742_000_000),
+            videoURL: nil,
+            thumbnailURL: nil,
+            durationSeconds: nil,
+            viewCount: nil
+        )
+    }
+
+    private func makePlaylistPage(
+        playlistID: String,
+        videos: [PlaylistBrowseVideo],
+        nextPageToken: String? = nil
+    ) -> PlaylistBrowseVideosPage {
+        PlaylistBrowseVideosPage(
+            playlistID: playlistID,
+            videos: videos,
+            totalCount: videos.count,
+            fetchedAt: Date(timeIntervalSince1970: 1_742_000_000),
+            nextPageToken: nextPageToken
         )
     }
 }
