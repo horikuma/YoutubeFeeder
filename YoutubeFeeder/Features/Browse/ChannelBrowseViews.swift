@@ -924,7 +924,7 @@ private struct PlaylistBrowseTile: View {
             }
             .overlay(alignment: .topTrailing) {
                 if let index {
-                    TileIndexBadge(index: index)
+                    PlaylistTileIndexBadge(index: index)
                         .padding(12)
                 }
             }
@@ -940,6 +940,23 @@ private struct PlaylistBrowseTile: View {
                     ]
                 )
             }
+    }
+}
+
+private struct PlaylistTileIndexBadge: View {
+    let index: Int
+
+    var body: some View {
+        Text("\(index + 1)")
+            .font(.caption.bold())
+            .foregroundStyle(.white)
+            .frame(width: 26, height: 26)
+            .background(
+                Circle().fill(Color.black.opacity(0.72))
+            )
+            .overlay(
+                Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+            )
     }
 }
 
