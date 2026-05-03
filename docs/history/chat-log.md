@@ -1,3 +1,41 @@
+## 2026/05/03
+- コミットし、pushせよ。
+  - コミット 930704e を作成し、main を origin へ push しました。[引用要約: docs 3 ファイルの責務配置反映を日本語コミットし、push 成功、作業ツリー clean、検証は npm run check:mermaid 成功と報告]
+- 本スレッドでの対応を、docsへ反映せよ。[引用要約: docs を読む者が本アプリの構造、変更箇所、変更方法、全体構造を一意に理解し、局所変更でも破壊しないように反映する指示]
+  - docs に、ViewModel 固定の責務配置と変更時の判断導線を反映しました。[引用要約: specs-architecture、specs-design、human-view design overview を更新し、View/ViewModel/Coordinator/Logic/Service の責務境界、Logging 配置、変更時の参照先、Mermaid 検証結果を報告]
+- セッションを完了せよ。
+  - セッションを完了しました。main は最新化済みです。
+- PRを作成せよ。
+  - PR #176 を作成しました: Viewに凝集した責務を画面単位ViewModelへ再配置する
+- ネットワーク通信権限昇格リクエスト込みで再開せよ。
+  - Issue #175 の ToDo 3〜16 を完了し、Remote search / Channel browse / Home の責務を ViewModel へ移し、Shared の画面固有 pure logic を feature-local に移設しました。
+- ネットワーク通信権限昇格リクエスト込みで再開せよ。
+- architecture-responsibility-reallocation-plan.mdをもとに、Issueを詳細化せよ。
+  - Issue実施は block されました。`issue-read --body-only` が GitHub 接続失敗で止まり、直前の Issue実施のローカル fallback 条件も満たしていないため、`issue-todo --get` へ進めません。
+  - Issue #175 を architecture-responsibility-reallocation-plan.md に基づいて詳細化し、Description 更新、詳細化コメント追加、issue-175 ブランチ準備まで完了しました。
+- issueを作成せよ。「Viewに凝集した責務を再配置する」
+  - Issue #175「Viewに凝集した責務を再配置する」を作成しました。URL は https://github.com/horikuma/YoutubeFeeder/issues/175 です。
+- 責務をどこから外すかは明確だが、どこに固定するかが弱い。毎回判断すると暴れるので、画面単位の非同期・分岐・副作用起動はすべて ViewModel に固定することとする。またLoggingについては、イベントログはViewModelへ、レンダリング観測はViewへ寄せるようにせよ。architecture-responsibility-reallocation-plan.mdを更新せよ。
+  - architecture-responsibility-reallocation-plan.md を更新し、画面単位の非同期・分岐・副作用起動を ViewModel に固定し、イベントログは ViewModel、レンダリング観測は View へ固定しました。
+- llm-cache/files2.listを見ると、実装健康度が閾値を超え、責務がViewに集約し始めている兆候が見える。状態解釈がViewの分岐を指数爆発に寄せ、副作用が密集している。アーキテクトレベルで俯瞰し、適切に再配置する計画を立てよ。目指すべきは場当たり的なものではなく、今後の機能追加に耐えうる粒度と関係の調整である。計画を立て、llmーtempへ出力せよこの段階では、まだ方針を選定する意図があるため、実装を前提に詳細化するとトークン効率が悪化するためあくまで方針がわかる範囲に止めよ。
+  - 実装健康度悪化に対する責務再配置計画を llm-temp/architecture-responsibility-reallocation-plan.md に出力しました。実装詳細には踏み込まず、方針選定に必要な粒度へ止めています。
+- セッションを開始せよ。
+  - セッション開始を完了しました。main の同期、fetch --prune、履歴ローテーションまで成功しています。
+- リリースビルドせよ。
+  - セッションを終了し、main を最新化しました。
+  - PR #174 を作成し、issue-173 ブランチを push したうえで、Closes #173 を含む PR 本文を登録した。
+- Issueを実施せよ。
+  - Issue 173 の 15 と 16 は完了しました。17 は UI テスト実行が macOS UI testing の automation mode 有効化タイムアウトで止まり、コード側の観測点追加は入れたものの実行検証を完了できていません。18 へは進めていません。
+- 用語がぶれていたのでプレイリストに統一する。検索機能はコストが高いので使用を禁止する。実現できない場合は中断して報告せよ。局所最適化に変調し、アプリのアーキテクトを崩さないように拡張せよ。上記のコンテキストおよびllm-tempのメモも含めて、Issueを詳細化せよ。
+  - Issue #173 をプレイリスト用語へ統一し、検索機能禁止とアーキテクチャ境界を含めて詳細化しました。
+- コードベースで検討せよ。マイリスト一覧を取得する方法、その時のUnit数、動画一覧とマイリスト一覧を切り替える方法、マイリストを選択した時、右クリックからそのマイリストを連続再生するメニューを追加する方法、クリックの場合はマイリスト内の動画を表示する方法である。llm-tempへ中間出力を行い、後程の詳細化や実施時に再探索しなくても良いようにせよ。コードそのものに手を入れてはいけない。
+  - マイリスト一覧対応の調査結果をllm-tempに出力しました。
+- Issueを作成せよ。「チャンネル一覧からチャンネルを選択した時、動画一覧だけでなくマイリスト一覧を表示できるようにする。」
+  - Issue #173 を作成しました。
+- Issueを作成せよ。ネットワークアクセス許可を求めよ。「チャンネル一覧からチャンネルを選択した時、動画一覧だけでなくマイリスト一覧を表示できるようにする。」
+- セッションを開始せよ。
+  - セッション開始を完了しました。main同期、git fetch --prune、history-rotate、履歴差分のコミットまで済ませています。
+
 ## 2026/05/02
 - Generate 0 to 3 ambient suggestions for this local project. [引用要約: recent Codex threads, repo git history, branch activity, nearby code, and connected-app context only when directly relevant; avoid prior suggestions and return fresh project-grounded next actions.]
   - Returned 1 ambient suggestion. [引用要約: grounded in the latest runtime log and recent git activity, focused on the fresh feed-refresh anomaly with 404-heavy noon cycles and zero observed 304 reuse.]
