@@ -30,6 +30,7 @@
 - [AppDependencies.swift](../../YoutubeFeeder/App/AppDependencies.swift)
   - composition root。
   - live dependency の組み立て。
+  - プレイリスト閲覧で使う use case と YouTube playlist service の組み立てを、検索系 dependency と分けて扱う。
 - [ContentView.swift](../../YoutubeFeeder/App/ContentView.swift)
   - ルート画面。
   - `LaunchScreenView` からホーム画面への遷移。
@@ -119,6 +120,7 @@
   - YouTube 検索の managed task の生成、再利用管理。
   - feed cache と検索 cache の動画を合流する際は、`video_id` 重複で落とさず、より新しい `publishedAt` / `fetchedAt` を優先して 1 件へ正規化する。
   - remote search 起点のチャンネル動画表示では、feed refresh 後も動画が `1 件以下` の場合に限って YouTube Data API の channel search fallback を実行し、右ペインが単一動画で止まらないようにする。
+  - プレイリスト閲覧の入口は専用 use case へ委譲し、検索系 cache や remote search の state へ流用しない。
   - `FeedCacheStore` への直接 mutation を持たず、FeedCache 系の副作用は `FeedCacheWriteService` または副作用専用 service へ委譲する。
 - [ChannelRefreshWallClockScheduler.swift](../../YoutubeFeeder/Features/FeedCache/ChannelRefreshWallClockScheduler.swift)
   - 毎時 00 / 10 / 20 / 30 / 40 / 50 分の壁時計発火を計算する。
@@ -179,6 +181,10 @@
   - 進捗表示、ホーム集約、検索キャッシュ状態の値型。
 - [FeedCacheChannelModels.swift](../../YoutubeFeeder/Features/FeedCache/FeedCacheChannelModels.swift)
   - チャンネル保守、登録 / 削除 / バックアップ feedback の値型。
+  - プレイリスト一覧やプレイリスト内動画の表示用値型を追加する場合は、Browse 専用の軽量 state として閉じ込める。
+- [ChannelPlaylistBrowseService.swift](../../YoutubeFeeder/Features/FeedCache/ChannelPlaylistBrowseService.swift)
+  - Infrastructure のプレイリスト結果を Browse 表示用モデルへ変換する use case。
+  - 検索機能、検索 cache、remote search の読み書きには依存しない。
 - [RemoteSearchModels.swift](../../YoutubeFeeder/Features/FeedCache/RemoteSearchModels.swift)
   - YouTube 検索結果、検索キャッシュ、動画 query の値型。
 
@@ -186,6 +192,13 @@
 
 - [YouTubeFeed.swift](../../YoutubeFeeder/Infrastructure/YouTube/YouTubeFeed.swift)
   - feed 取得、更新判定、XML パース、URL / handle 解決。
+- [YouTubePlaylistModels.swift](../../YoutubeFeeder/Infrastructure/YouTube/YouTubePlaylistModels.swift)
+  - プレイリスト一覧 item とプレイリスト内動画 page の公開モデル。
+- [YouTubePlaylistResponses.swift](../../YoutubeFeeder/Infrastructure/YouTube/YouTubePlaylistResponses.swift)
+  - プレイリスト一覧取得とプレイリスト内動画取得に必要な response DTO。
+- [YouTubePlaylistService.swift](../../YoutubeFeeder/Infrastructure/YouTube/YouTubePlaylistService.swift)
+  - プレイリスト一覧、プレイリスト内動画 page、連続再生 URL を扱う service。
+  - search endpoint を使わず、playlist 専用の通信と decode に閉じ込める。
 - [YouTubeSearchService.swift](../../YoutubeFeeder/Infrastructure/YouTube/YouTubeSearchService.swift)
   - YouTube Data API v3 search / videos.list 呼び出し。
   - API キー解決、HTTP / decode error handling、検索 orchestration。
