@@ -189,6 +189,11 @@ struct ChannelBrowseSortDescriptor: Hashable {
     }
 }
 
+enum ChannelBrowseDisplayMode: String, Hashable {
+    case videos
+    case playlists
+}
+
 struct HomeScreenLogic: Hashable {
     var channelSortDescriptor: ChannelBrowseSortDescriptor = .default
     var transferFeedback: ChannelRegistryTransferFeedback?
@@ -309,6 +314,10 @@ struct ChannelBrowseLogic: Hashable {
     var videosByChannelID: [String: [CachedVideo]] = [:]
     var loadingChannelIDs: Set<String> = []
     var selectedChannelRefreshSource: String?
+    var browseDisplayModeByChannelID: [String: ChannelBrowseDisplayMode] = [:]
+    var playlistsByChannelID: [String: [PlaylistBrowseItem]] = [:]
+    var selectedPlaylistIDByChannelID: [String: String] = [:]
+    var playlistVideosByPlaylistID: [String: PlaylistBrowseVideosPage] = [:]
 
     mutating func setItems(_ items: [ChannelBrowseItem]) {
         let previousItems = self.items
@@ -317,6 +326,9 @@ struct ChannelBrowseLogic: Hashable {
             self.selectedChannelID = nil
             loadingChannelIDs.remove(selectedChannelID)
             videosByChannelID[selectedChannelID] = nil
+            browseDisplayModeByChannelID[selectedChannelID] = nil
+            playlistsByChannelID[selectedChannelID] = nil
+            selectedPlaylistIDByChannelID[selectedChannelID] = nil
             selectedChannelRefreshSource = nil
             return
         }
@@ -345,6 +357,57 @@ struct ChannelBrowseLogic: Hashable {
 
     mutating func selectChannel(_ channelID: String) {
         selectedChannelID = channelID
+    }
+
+    mutating func setDisplayMode(_ mode: ChannelBrowseDisplayMode, for channelID: String) {
+        browseDisplayModeByChannelID[channelID] = mode
+    }
+
+    func displayMode(for channelID: String) -> ChannelBrowseDisplayMode {
+        browseDisplayModeByChannelID[channelID] ?? .videos
+    }
+
+    mutating func refreshPlaylists(_ playlists: [PlaylistBrowseItem], for channelID: String) {
+        playlistsByChannelID[channelID] = playlists
+        if let selectedPlaylistID = selectedPlaylistIDByChannelID[channelID],
+           !playlists.contains(where: { $0.playlistID == selectedPlaylistID }) {
+            selectedPlaylistIDByChannelID[channelID] = nil
+        }
+    }
+
+    func playlists(for channelID: String) -> [PlaylistBrowseItem] {
+        playlistsByChannelID[channelID] ?? []
+    }
+
+    mutating func selectPlaylist(_ playlistID: String?, for channelID: String) {
+        let normalizedPlaylistID = playlistID?.trimmingCharacters(in: .whitespacesAndNewlines)
+        selectedPlaylistIDByChannelID[channelID] = normalizedPlaylistID?.isEmpty == true ? nil : normalizedPlaylistID
+    }
+
+    func selectedPlaylistID(for channelID: String) -> String? {
+        selectedPlaylistIDByChannelID[channelID]
+    }
+
+    func selectedPlaylist(for channelID: String) -> PlaylistBrowseItem? {
+        guard let selectedPlaylistID = selectedPlaylistID(for: channelID) else { return nil }
+        return playlists(for: channelID).first(where: { $0.playlistID == selectedPlaylistID })
+    }
+
+    func selectedPlaylistTitle(for channelID: String) -> String {
+        selectedPlaylist(for: channelID)?.title ?? "プレイリスト未選択"
+    }
+
+    mutating func refreshPlaylistVideos(_ page: PlaylistBrowseVideosPage) {
+        playlistVideosByPlaylistID[page.playlistID] = page
+    }
+
+    func playlistVideos(for playlistID: String) -> [PlaylistBrowseVideo] {
+        playlistVideosByPlaylistID[playlistID]?.videos ?? []
+    }
+
+    func selectedPlaylistVideos(for channelID: String) -> [PlaylistBrowseVideo] {
+        guard let selectedPlaylistID = selectedPlaylistID(for: channelID) else { return [] }
+        return playlistVideos(for: selectedPlaylistID)
     }
 
     mutating func applyDefaultSelectionIfNeeded() -> String? {
