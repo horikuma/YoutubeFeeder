@@ -18,6 +18,7 @@ final class FeedCacheCoordinator: ObservableObject {
     let writeService: FeedCacheWriteService
     let channelSyncService: FeedChannelSyncService
     let remoteSearchService: RemoteVideoSearchService
+    let channelPlaylistBrowseService: ChannelPlaylistBrowseService
     let homeSystemStatusService: HomeSystemStatusService
     let channelRegistryMaintenanceService: ChannelRegistryMaintenanceService
     let channelRegistrySyncService: ChannelRegistryCloudflareSyncService
@@ -46,6 +47,9 @@ final class FeedCacheCoordinator: ObservableObject {
         let remoteSearchService = RemoteVideoSearchService(
             searchService: dependencies.searchService
         )
+        let channelPlaylistBrowseService = ChannelPlaylistBrowseService(
+            playlistService: dependencies.playlistService
+        )
         let readService = FeedCacheReadService(
             store: dependencies.store,
             remoteSearchCacheStore: dependencies.remoteSearchCacheStore
@@ -59,6 +63,7 @@ final class FeedCacheCoordinator: ObservableObject {
         self.writeService = writeService
         self.channelSyncService = FeedChannelSyncService(writer: writeService, feedService: dependencies.feedService)
         self.remoteSearchService = remoteSearchService
+        self.channelPlaylistBrowseService = channelPlaylistBrowseService
         self.homeSystemStatusService = HomeSystemStatusService(
             readService: readService,
             apiKeyConfigured: remoteSearchService.isConfigured,
@@ -257,6 +262,115 @@ final class FeedCacheCoordinator: ObservableObject {
             )
             return ChannelVideoPageResult(videos: [], totalCount: 0, fetchedAt: .now, nextPageToken: pageToken)
         }
+    }
+
+    func loadChannelPlaylists(channelID: String, limit: Int = 50) async -> [YouTubePlaylistListItem] {
+        let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedChannelID.isEmpty else { return [] }
+
+        let startedAt = Date()
+        do {
+            let playlists = try await channelPlaylistBrowseService.loadPlaylists(
+                channelID: normalizedChannelID,
+                limit: limit
+            )
+            AppConsoleLogger.appLifecycle.info(
+                "channel_playlist_list_complete",
+                metadata: [
+                    "channelID": normalizedChannelID,
+                    "items": String(playlists.count),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
+            return playlists
+        } catch {
+            RuntimeDiagnostics.shared.record(
+                "channel_playlist_list_failed",
+                detail: "チャンネルのプレイリスト一覧取得に失敗",
+                metadata: [
+                    "channelID": normalizedChannelID,
+                    "limit": String(limit),
+                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
+                ]
+            )
+            AppConsoleLogger.appLifecycle.error(
+                "channel_playlist_list_failed",
+                metadata: [
+                    "channelID": normalizedChannelID,
+                    "limit": String(limit),
+                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                ]
+            )
+            return []
+        }
+    }
+
+    func loadPlaylistVideosPage(
+        playlistID: String,
+        pageToken: String?,
+        limit: Int = 50
+    ) async -> YouTubePlaylistVideosPage {
+        let normalizedPlaylistID = playlistID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedPlaylistID.isEmpty else {
+            return YouTubePlaylistVideosPage(
+                playlistID: playlistID,
+                videos: [],
+                totalCount: 0,
+                fetchedAt: .now,
+                nextPageToken: pageToken
+            )
+        }
+
+        let startedAt = Date()
+        do {
+            let page = try await channelPlaylistBrowseService.loadPlaylistVideosPage(
+                playlistID: normalizedPlaylistID,
+                pageToken: pageToken,
+                limit: limit
+            )
+            AppConsoleLogger.appLifecycle.info(
+                "playlist_videos_page_complete",
+                metadata: [
+                    "playlistID": normalizedPlaylistID,
+                    "videos": String(page.videos.count),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                ]
+            )
+            return page
+        } catch {
+            RuntimeDiagnostics.shared.record(
+                "playlist_videos_page_failed",
+                detail: "プレイリスト内動画のページ取得に失敗",
+                metadata: [
+                    "playlistID": normalizedPlaylistID,
+                    "pageToken": pageToken ?? "",
+                    "limit": String(limit),
+                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
+                ]
+            )
+            AppConsoleLogger.appLifecycle.error(
+                "playlist_videos_page_failed",
+                metadata: [
+                    "playlistID": normalizedPlaylistID,
+                    "pageToken": pageToken ?? "",
+                    "limit": String(limit),
+                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                ]
+            )
+            return YouTubePlaylistVideosPage(
+                playlistID: normalizedPlaylistID,
+                videos: [],
+                totalCount: 0,
+                fetchedAt: .now,
+                nextPageToken: pageToken
+            )
+        }
+    }
+
+    func playlistContinuousPlayURL(playlistID: String) -> URL? {
+        let normalizedPlaylistID = playlistID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedPlaylistID.isEmpty else { return nil }
+        return channelPlaylistBrowseService.continuousPlayURL(playlistID: normalizedPlaylistID)
     }
 
     func openChannelVideos(_ context: ChannelVideosRouteContext) async -> [CachedVideo] {
