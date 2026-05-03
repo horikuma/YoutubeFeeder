@@ -60,6 +60,7 @@
 - `Browse`
   - 一覧表示、検索結果表示、詳細表示などの閲覧機能を担う。
   - ローカルキャッシュ検索と YouTube 検索は同じ feature に置くが、検索 state の orchestration と compact / regular / split detail の表示責務は別ファイルへ分けて保つ。
+  - プレイリスト閲覧は、`View -> Coordinator / ViewModel -> Playlist Use Case -> Infrastructure` の経路で扱い、検索機能や検索結果キャッシュへ依存しない。
 - `FeedCache`
   - データ更新、キャッシュ保守、初期表示用データ、状態集約を担う。
   - 値型は storage / progress / channel / remote search のように意味単位で分け、巨大な model ファイルへ再集約しない。
@@ -72,6 +73,7 @@
 
 - YouTube feed、YouTube search API、URL / handle 解決など、外部接続の責務を担う。
 - YouTube search は service 本体、公開 model、API response DTO、結果整列や mock 応答の補助ロジックを分け、通信 orchestration と decode 詳細を 1 ファイルへ混在させない。
+- プレイリスト一覧取得、プレイリスト内動画取得、連続再生 URL 生成は、YouTube search API とは別の service / DTO 群へ閉じ込める。
 
 ### Shared
 
