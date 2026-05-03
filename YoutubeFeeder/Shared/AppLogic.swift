@@ -379,6 +379,10 @@ struct ChannelBrowseLogic: Hashable {
         playlistsByChannelID[channelID] ?? []
     }
 
+    func hasLoadedPlaylists(for channelID: String) -> Bool {
+        playlistsByChannelID[channelID] != nil
+    }
+
     mutating func selectPlaylist(_ playlistID: String?, for channelID: String) {
         let normalizedPlaylistID = playlistID?.trimmingCharacters(in: .whitespacesAndNewlines)
         selectedPlaylistIDByChannelID[channelID] = normalizedPlaylistID?.isEmpty == true ? nil : normalizedPlaylistID
@@ -403,6 +407,10 @@ struct ChannelBrowseLogic: Hashable {
 
     func playlistVideos(for playlistID: String) -> [PlaylistBrowseVideo] {
         playlistVideosByPlaylistID[playlistID]?.videos ?? []
+    }
+
+    func playlistVideosPage(for playlistID: String) -> PlaylistBrowseVideosPage? {
+        playlistVideosByPlaylistID[playlistID]
     }
 
     func selectedPlaylistVideos(for channelID: String) -> [PlaylistBrowseVideo] {
