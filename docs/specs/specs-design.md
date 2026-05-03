@@ -56,15 +56,23 @@
 
 - [HomeScreenView.swift](../../YoutubeFeeder/Features/Home/HomeScreenView.swift)
   - ホーム画面本体。
-  - 手動更新、検索導線、バックアップ、全設定リセット、システム状況表示。
-  - ホーム画面の更新操作は `refreshFeed()` 相当のドメインアクションへ束ね、UI はその起動アダプタだけを担う。
-  - 起動時の全チャンネルリフレッシュ、手動操作の全チャンネルリフレッシュ、毎時トリガー用スケジューラ開始の接続だけを担う。
-  - YouTube検索タイル選択の runtime diagnostics 記録。
-  - ホーム表示と YouTube検索タイル選択の lifecycle ログ。
-  - ホーム表示中に YouTube検索用 snapshot を low priority で prewarm し、その後 hidden host で検索画面を事前描画して初回遷移時の待ちを抑える。
+  - 検索導線、バックアップ、全設定リセット、システム状況表示の UI 写像。
+  - 手動更新、起動時 refresh、scheduler 起動、YouTube検索 prewarm、export / import / reset の実行開始は `HomeScreenViewModel` へ渡す。
+  - View は `NavigationLink`、`Menu`、confirmation dialog、feedback card、hidden prewarm host の表示責務だけを持つ。
+- [HomeScreenViewModel.swift](../../YoutubeFeeder/Features/Home/HomeScreenViewModel.swift)
+  - ホーム画面の feature-local ViewModel。
+  - 起動時の全チャンネル refresh、壁時計 scheduler 起動、YouTube検索 snapshot prewarm、hidden host mount、export / import / reset、event log を担う。
+  - `FeedCacheCoordinator` の共有入口を呼び、ファイル形式、API 通信、永続化詳細を持たない。
+- [HomeScreenLogic.swift](../../YoutubeFeeder/Features/Home/HomeScreenLogic.swift)
+  - ホーム画面固有の pure logic。
+  - channel sort、transfer feedback、reset feedback、confirm reset、処理中 state を担う。
+  - I/O、logger、task 起動を持たない。
 - [ChannelRegistrationView.swift](../../YoutubeFeeder/Features/Home/ChannelRegistrationView.swift)
   - チャンネル登録画面。
   - 入力、解決、登録、結果表示。
+- [ChannelRegistrationLogic.swift](../../YoutubeFeeder/Features/Home/ChannelRegistrationLogic.swift)
+  - チャンネル登録画面固有の pure logic。
+  - submit / CSV import の入力状態、feedback、error、import presentation state を担う。
 - [HomeUIComponents.swift](../../YoutubeFeeder/Features/Home/HomeUIComponents.swift)
   - ホーム画面の表示部品。
   - splash 表示の lifecycle ログ。
@@ -76,31 +84,48 @@
 
 - [ChannelBrowseViews.swift](../../YoutubeFeeder/Features/Browse/ChannelBrowseViews.swift)
   - `ChannelBrowseView`、全動画一覧、分割チャンネル閲覧。
-  - `Tips` タイル、並び順反映、削除導線。
-  - 分割レイアウトでは、初回選択したチャンネルの動画一覧を自動読込し、右ペインの表示を選択と同じ経路で揃える。
+  - `Tips` タイル、並び順反映、削除導線の UI 写像。
+  - 分割レイアウトでは、選択、読込、paging、playlist 表示、削除実行、refresh 起動を `ChannelBrowseViewModel` へ渡す。
   - チャンネルタイルの削除メニューは `openTileMenu(item:)` 相当の共通アクションへ寄せ、`iPhone` / `iPad` の長押しと `Mac` の左クリックは UI アダプタ差分として扱う。
+- [ChannelBrowseViewModel.swift](../../YoutubeFeeder/Features/Browse/ChannelBrowseViewModel.swift)
+  - チャンネル一覧画面の feature-local ViewModel。
+  - split detail 選択、初回選択、動画読込、playlist 表示、playlist 動画読込、paging、削除実行、refresh 起動、event log を担う。
+  - View へ公開する state は `ChannelBrowseLogic` を正本にし、Coordinator には service / use case 入口として依存する。
+- [ChannelBrowseLogic.swift](../../YoutubeFeeder/Features/Browse/ChannelBrowseLogic.swift)
+  - チャンネル一覧画面固有の pure logic。
+  - item 一覧、選択 channel、削除確認、動画配列、playlist 配列、display mode、selected playlist、Tips summary を担う。
+  - I/O、logger、task 起動、Coordinator 呼び出しを持たない。
 - [SearchResultsViews.swift](../../YoutubeFeeder/Features/Browse/SearchResultsViews.swift)
   - 固定キーワード検索結果と共通チップ UI。
   - ローカルキャッシュ検索結果の UI 写像。
+- [KeywordSearchLogic.swift](../../YoutubeFeeder/Features/Browse/KeywordSearchLogic.swift)
+  - ローカルキャッシュ検索結果画面固有の pure logic。
+  - 検索結果 state の保持と差し替えだけを担う。
 - [RemoteSearchResultsViews.swift](../../YoutubeFeeder/Features/Browse/RemoteSearchResultsViews.swift)
   - YouTube 検索結果画面本体。
-  - snapshot 読込、再検索、split 初期読込予約、進行表示の状態束ね。
-  - 先に prewarm 済み snapshot があれば、それを優先して初回表示へ使う。
-  - `visible` と `prewarm` を分けて root 描画、split 初期読込、画面出入りをログで観測する。
-  - 画面出入り、snapshot 読込、再検索開始完了の境界ログ。
-  - `refreshable` や `Refresh` コマンドは trigger のみを担い、検索本体はドメインアクション経由で coordinator の managed task へ委譲する。
-  - iPad split では初期右ペイン読込を短く遅延させ、遷移直後はプレースホルダを表示する。
-  - iPad split のチャンネル切替では、選択文脈の更新、古い動画タイルの退避、右ペイン再読込の開始を親 View で同時に管理し、タイトルと動画タイルが別チャンネルを指す中間状態を作らない。
-  - iPad split の初期右ペイン読込について、予約・開始・完了を runtime diagnostics へ記録する。
+  - `RemoteSearchResultsViewModel` を保持し、result、presentation state、split state の表示写像を担う。
+  - root render probe、refresh chip、toolbar、safe area chip、gesture、animation、prewarm / visible の表示差分を担う。
+  - snapshot 読込、再検索、split 初期読込予約、split paging、画面出入りの event log は ViewModel へ渡す。
+- [RemoteSearchResultsViewModel.swift](../../YoutubeFeeder/Features/Browse/RemoteSearchResultsViewModel.swift)
+  - YouTube 検索結果画面の feature-local ViewModel。
+  - snapshot 読込、refresh、clear history、chip dismiss、visible paging、split 初期選択、split 遅延読込、split refresh、split paging、event log を担う。
+  - `FeedCacheCoordinator` の managed task / snapshot / refresh 入口を呼び、検索 API や永続化詳細を持たない。
+- [RemoteSearchLogic.swift](../../YoutubeFeeder/Features/Browse/RemoteSearchLogic.swift)
+  - YouTube 検索結果画面固有の pure logic。
+  - `RemoteSearchPresentationState`、chip mode、visible count、split context、split videos、split visible count、split loading state を担う。
+  - split 初期選択は `routeSource = .remoteSearch` を含む `ChannelVideosRouteContext` を返し、後続の自動 refresh / fallback 判定へ文脈を引き渡す。
 - [RemoteSearchResultsContentViews.swift](../../YoutubeFeeder/Features/Browse/RemoteSearchResultsContentViews.swift)
   - YouTube 検索結果の compact / regular / split detail の表示責務。
   - regular 左ペインと split detail の描画到達点を render probe で観測する。
-  - split 詳細の表示本体は持つが、チャンネル切替に伴う状態遷移や読込開始は親 View へ委譲する。
+  - split 詳細の表示本体は持つが、チャンネル切替に伴う状態遷移や読込開始は ViewModel へ委譲する。
   - remote search 起点でチャンネル一覧へ遷移する時は、`ChannelVideosRouteContext.routeSource = .remoteSearch` を必ず引き継ぐ。
 - [BrowseViews.swift](../../YoutubeFeeder/Features/Browse/BrowseViews.swift)
   - チャンネル別動画一覧。
   - 単独チャンネル更新は `refreshFeed()` 相当のドメインアクションへ束ね、UI からはジェスチャー種別を持ち込まない。
   - 自動 feed 更新時の上部進行表示。
+- [VideoListLogic.swift](../../YoutubeFeeder/Features/Browse/VideoListLogic.swift)
+  - 全動画一覧画面固有の pure logic。
+  - 動画配列、automatic refresh 表示 state、削除確認、削除 feedback を担う。
 - [BrowseComponents.swift](../../YoutubeFeeder/Features/Browse/BrowseComponents.swift)
   - 一覧系共通コンテナ `InteractiveListView`。
   - `ChannelTile` を機能共通核とし、`ChannelNavigationTile` と `ChannelSelectionTile` へ操作差分を分離する。
@@ -111,9 +136,10 @@
 ### Features/FeedCache
 
 - [FeedCacheCoordinator.swift](../../YoutubeFeeder/Features/FeedCache/FeedCacheCoordinator.swift)
-  - UI と永続化の仲介。
+  - ViewModel と永続化 / service / use case の共有入口。
   - bootstrap 読込、一覧データ読込、手動更新、単独チャンネル更新、検索結果読込。
   - 更新アクションは `FeedRefreshAction` のようなドメイン単位で受け、UI イベント種別には依存しない。
+  - 特定 View の presentation mode、visible count、split 遅延選択、playlist paging cursor、prewarm host mount state を持たない。
   - ChannelRefresh の全チャンネルリフレッシュ入口、短周期リフレッシュ入口、実行中判定、実行中トリガーのドロップを担う。
   - ChannelRefresh の実行中判定は、起動時、手動操作、毎時00分、毎時10/20/30/40/50分で共通の単一状態として扱う。
   - YouTube 検索の snapshot hit / miss、refresh failure fallback、cancel fallback の境界ログ。
@@ -221,15 +247,19 @@
   - `ChannelBrowseSortDescriptor`
   - `ChannelRefreshSchedulePolicy`
   - `ChannelRefreshWallClockPolicy`
-  - `RemoteSearchPresentationState`
-  - 画面非依存の pure logic と、UI から切り離した状態の正本。
+  - 画面非依存の pure logic と共有 policy。
+  - feature-local ViewModel / Logic から再利用される、画面に閉じない判定だけを置く。
+  - 画面固有の presentation state、selected item、paging cursor、feedback state を置かない。
   - `ChannelRefreshSchedulePolicy` は 10 日以内 10 分、それ以外 1 時間の対象選定ロジックを担う。
   - `ChannelRefreshWallClockPolicy` は壁時計時刻から全チャンネルリフレッシュまたは短周期リフレッシュの発火種別を判定する。
 
 ## 画面と状態の詳細設計
 
-- `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような表示上の一時状態は `SearchResultsViews.swift` / `RemoteSearchResultsViews.swift` に閉じ、複数 View 間で共有される選択状態や進行状態、非同期結果に依存する状態は `RemoteSearchPresentationState` に寄せる。
-- `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択の正本を持つ pure logic とする。
+- `FeedCacheCoordinator` は複数画面から使う状態を公開するが、検索中表示やチップ可視状態のような画面固有 presentation state は feature-local ViewModel / Logic に閉じる。
+- 画面単位の非同期 orchestration、状態分岐、副作用起動、event log は対象画面の ViewModel に置く。
+- View は render、binding、animation、dialog、表示写像、render probe、描画到達の観測を担う。
+- Pure logic は feature-local に置き、I/O、logger、`Task.sleep`、`MainActor.run`、副作用起動を持たない。
+- `RemoteSearchPresentationState` は YouTube 検索結果画面の段階表示件数、refresh 状態、split 初期選択の正本を持つ feature-local pure logic とする。
 - `RemoteSearchPresentationState` の split 初期選択は `routeSource = .remoteSearch` を含む `ChannelVideosRouteContext` を返し、後続の自動 refresh / fallback 判定へ文脈を引き渡す。
 - アクションは `refreshFeed()` や `openTileMenu(item:)` のようなドメイン単位で定義し、UI イベント単位の共通入口を作らない。
 - UI はドメインアクションを呼び出すアダプタとして扱い、プラットフォーム差分は UI 層で吸収してアクション層へ持ち込まない。
@@ -242,6 +272,16 @@
 - `InteractiveListView` の更新 UI は gesture や command の違いを持たず、現在画面の refresh action を command 層へ登録するアダプタとして振る舞う。
 - チャンネル一覧のタイルでは、`channel title`、件数、最新投稿日、サムネイルの表示責務を `ChannelTile` へ集約し、遷移か選択かという操作モデルの差は外側の wrapper で表現する。
 - `VideoTile` は画面ごとの差分があっても共有や削除の action 定義は共通で持ち、YouTube検索、チャンネル動画、動画一覧、キャッシュ検索のどこからでも同じ share sheet と menu action を開ける。
+
+## 変更時の責務照合
+
+- 画面の見た目、layout、animation、dialog、render probe を変える場合は、対象 `View` / 表示部品を変更する。
+- 画面単位の async、refresh、prewarm、paging、split selection、delete / export / import / reset、event log を変える場合は、対象画面の `ViewModel` を変更する。
+- 画面固有の状態遷移、選択保持、表示件数、feedback state、chip mode を変える場合は、対象 feature の `Logic` を変更する。
+- 複数画面で共有する refresh state、manual refresh count、home system status、remote search managed task、service / use case 入口を変える場合は、`FeedCacheCoordinator` または関連 extension を変更する。
+- 永続化、キャッシュ保存、削除、整合性メンテナンス、外部 API 通信を変える場合は、`Service / Use Case`、`Store`、`Infrastructure` を変更する。
+- `Shared/AppLogic.swift` へ追加してよいのは、複数 feature から再利用でき、画面 state を持たない pure policy だけとする。
+- 局所的な修正でも、View に非同期処理を戻したり、Coordinator に画面固有 cursor を置いたり、Shared に feature-local state を戻したりしない。
 
 ## 命名規則
 

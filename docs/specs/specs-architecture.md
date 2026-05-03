@@ -17,9 +17,14 @@
 - 現在の基本モデルは `MVVM + Clean Architecture` とする。
 - `View`
   - SwiftUI の画面と表示部品を担う。
-  - 表示上の一時状態だけを持ち、状態遷移や判定ロジックの正本は PureLogic に置く。
-- `Coordinator / ViewModel`
-  - 画面や機能単位の state と orchestration を担う。
+  - 表示上の一時状態、binding、animation、dialog、render probe、描画到達の観測だけを持つ。
+  - 画面単位の非同期 orchestration、状態分岐、副作用起動、event log を持たない。
+- `ViewModel`
+  - 画面単位の state、非同期 orchestration、状態分岐、副作用起動、event log を担う。
+  - 対象画面と同じ feature 配下に置き、View からは UI trigger と表示写像だけを受ける。
+- `Coordinator`
+  - 複数画面から共有される state と service / use case 入口を担う。
+  - 特定 View の presentation mode、paging cursor、遅延選択、画面固有 orchestration を持たない。
 - `Service / Use Case`
   - 機能単位で意味のある処理のまとまりを担う。
 - `Store / Infrastructure`
@@ -30,21 +35,35 @@
 
 ## レイヤ責務と依存方向
 
-- 依存方向は `View -> Coordinator / ViewModel -> Service / Use Case -> Store or Infrastructure` を原則とする。
+- 依存方向は `View -> ViewModel -> Coordinator -> Service / Use Case -> Store or Infrastructure` を原則とする。
 - `View` は I/O を直接持たず、外部通信、永続化、複雑な判定は内側の層へ委譲する。
 - `View` は表示上の一時状態、アニメーション状態、入力途中値、フォーカス状態、ダイアログ状態を持ってよいが、複数 View 間で共有される状態、永続化される状態、非同期結果に依存する状態は PureLogic 側の正本として扱う。
 - `View` や表示部品の命名では、機能を先に、操作差分を後ろに置き、共通核と wrapper の関係が名前から読める状態を保つ。
-- `Coordinator / ViewModel` は UI と永続化の仲介を担うが、ファイル形式や API 呼び出しの細部を抱え込まない。
-- `Coordinator / ViewModel` は `1 画面` もしくは `1 機能の orchestration` に責務を寄せ、画面描画専用の細かな値変換や単純な表示状態まで過剰に抱え込まない。
-- `Coordinator / ViewModel` の健全性改善では、警告を消すためだけに private 状態や内部 helper を外へ公開せず、まず値型、表示部品、DTO、純粋補助ロジックの順に外出しする。
+- `ViewModel` は UI と Coordinator の仲介を担うが、ファイル形式や API 呼び出しの細部を抱え込まない。
+- `ViewModel` は `1 画面の orchestration` に責務を寄せ、画面描画専用の細かな値変換や単純な表示状態まで過剰に抱え込まない。
+- `Coordinator` は UI と永続化の共有入口を担うが、画面固有の presentation state を集約しない。
+- `ViewModel` / `Coordinator` の健全性改善では、警告を消すためだけに private 状態や内部 helper を外へ公開せず、まず値型、表示部品、DTO、純粋補助ロジックの順に外出しする。
 - `Service / Use Case` は UI 文脈から独立して成立する判定、状態遷移、マージ、更新フローを持つ。
 - `Service / Use Case` を `Read` / `Write` で分ける場合は、依存方向と副作用境界を固定するための分解として扱い、同じデータを扱うことだけを根拠に共通 superclass や抽象親型へ再統合してはならない。
 - `Store / Infrastructure` はデータの保存、読込、問い合わせ、外部接続の詳細を閉じ込める。
 - 固定パス、永続ファイル、検索キャッシュ、秘密情報解決のような `スコープの広いリソース` は、専用の `Paths` / `Store` / `Service` 型へ閉じ込め、View や汎用 model ファイルへ散らしてはならない。
 - ホームのように `件数` や `鮮度` だけが欲しい導線では、動画配列を含む大きい永続本体を毎回 decode せず、summary 用の軽量永続物から先に読む。
 - 動画・チャンネル・検索履歴の正本は `SQLite` に寄せ、表示に直接使う固定文字列は row 側へ保持してよい。ただし raw 値と表示値の重複は同一更新点から生成されることを前提にする。
-- `Shared` には画面から切り離せる pure logic を置き、複数画面から再利用できる状態の正本を保つ。
+- `Shared` には複数 feature から再利用できる画面非依存 pure logic だけを置く。
+- 画面固有 pure logic は、対象画面と同じ feature 配下へ置く。
 - 画面導線から起動される機能でも、UI と無関係に成立すべき判定や状態遷移は domain / logic 側へ置き、UI はその状態の写像として組み立てる。
+
+## 画面責務の固定配置
+
+- 画面単位の `async task`、`refresh`、`prewarm`、`paging`、`split selection`、`delete / export / import / reset` の実行開始は、対象画面の ViewModel に固定する。
+- View は gesture、button、menu、refresh command の UI trigger を ViewModel へ渡すだけにする。
+- View は render probe、描画到達、表示用 binding、animation、dialog、UI 部品の組み立てを担う。
+- event log は ViewModel に置く。
+- rendering observation は View に置く。
+- PureLogic は I/O、logger、`Task.sleep`、`MainActor.run`、副作用起動を持たない。
+- Coordinator は複数画面で共有される refresh progress、manual refresh count、home system status、remote search managed task、service / use case 入口を持ってよい。
+- Coordinator は特定画面の visible count、chip mode、selected split context、playlist paging cursor、prewarm host mounting state を持たない。
+- 局所変更で迷う場合は、まず `View`、`ViewModel`、`feature-local Logic`、`Coordinator`、`Service / Use Case` の順に責務を照合する。
 
 ## モジュール境界
 
@@ -57,10 +76,15 @@
 
 - `Home`
   - ホーム画面と、その周辺の設定系機能を担う。
+  - 起動時 refresh、scheduler 起動、YouTube 検索 prewarm、export / import / reset の画面 orchestration は `HomeScreenViewModel` に置く。
+  - ホーム画面固有の pure logic は `Home` feature 配下へ置く。
 - `Browse`
   - 一覧表示、検索結果表示、詳細表示などの閲覧機能を担う。
   - ローカルキャッシュ検索と YouTube 検索は同じ feature に置くが、検索 state の orchestration と compact / regular / split detail の表示責務は別ファイルへ分けて保つ。
-  - プレイリスト閲覧は、`View -> Coordinator / ViewModel -> Playlist Use Case -> Infrastructure` の経路で扱い、検索機能や検索結果キャッシュへ依存しない。
+  - YouTube 検索の snapshot 読込、refresh、split 遅延選択、paging、event log は `RemoteSearchResultsViewModel` に置く。
+  - チャンネル一覧の split detail 選択、playlist 表示、paging、削除実行、refresh 起動、event log は `ChannelBrowseViewModel` に置く。
+  - Browse 画面固有の pure logic は `Browse` feature 配下へ置く。
+  - プレイリスト閲覧は、`View -> ViewModel -> Coordinator -> Playlist Use Case -> Infrastructure` の経路で扱い、検索機能や検索結果キャッシュへ依存しない。
 - `FeedCache`
   - データ更新、キャッシュ保守、初期表示用データ、状態集約を担う。
   - 値型は storage / progress / channel / remote search のように意味単位で分け、巨大な model ファイルへ再集約しない。
@@ -77,7 +101,8 @@
 
 ### Shared
 
-- 画面非依存の pure logic と共有状態モデルを担う。
+- 複数 feature で再利用する画面非依存の pure logic と共有 policy を担う。
+- 画面固有の presentation state や feature-local state を置かない。
 
 ## 主要データフロー
 
@@ -108,7 +133,9 @@
 - 外部検索は、既存キャッシュの読込と明示的な再取得を分離する。
 - 検索結果は複数の取得経路を統合し、詳細補完と不要データ除外を経て 1 つの結果集合へ正規化する。
 - 検索結果キャッシュは通常の閲覧キャッシュと分離し、履歴更新やマージ規則は内側の層で決定する。
-- 表示件数や進行状態のような presentation state は UI 部品ではなく logic 側で保持し、UI はその写像を表示する。
+- 表示件数や進行状態のような presentation state は UI 部品ではなく feature-local logic / ViewModel 側で保持し、UI はその写像を表示する。
+- YouTube 検索画面では、snapshot 読込、明示 refresh、split 初期選択、split 遅延読込、split paging、event log を ViewModel が束ねる。
+- YouTube 検索結果の compact / regular / split detail View は表示写像と render observation に閉じる。
 
 ## データとキャッシュの境界
 
@@ -146,6 +173,7 @@
 
 - 実機調査で必要なランタイムログは、Xcode コンソールへ `[YoutubeFeeder]` を先頭に付けた 1 行ログとして出力する。
 - ログは `app launch`、`splash / home 表示`、`検索開始`、`キャッシュ hit / miss`、`外部 API 要求の開始 / 完了`、`キャッシュ反映`、`失敗時の fallback` のような境界イベントへ絞り、動画単位や item 単位の大量出力は避ける。
+- 画面イベントログは ViewModel に置き、render probe や描画到達の観測は View に置く。
 - API キー、完全な request URL、巨大な response body は出力せず、失敗時も本文は短い preview に切り詰める。
 - キャンセルは通信失敗と分けて記録し、`画面`, `coordinator`, `service`, `transport` のどこで中断を観測したか追える形にする。
 - キャンセルはユーザー向け失敗文言へそのまま出さず、必要な情報は調査ログで追う。
