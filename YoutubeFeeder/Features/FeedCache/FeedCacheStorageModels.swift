@@ -121,8 +121,21 @@ struct FeedCacheSnapshot {
     var savedAt: Date
     var channels: [CachedChannelState]
     var videos: [CachedVideo]
+    var playlists: FeedCachePlaylistSnapshot = .empty
 
-    nonisolated static let empty = FeedCacheSnapshot(savedAt: .distantPast, channels: [], videos: [])
+    nonisolated static let empty = FeedCacheSnapshot(savedAt: .distantPast, channels: [], videos: [], playlists: .empty)
+}
+
+struct FeedCachePlaylistSnapshot: Hashable {
+    var playlistsByChannelID: [String: [PlaylistBrowseItem]]
+    var playlistPagesByPlaylistID: [String: PlaylistBrowseVideosPage]
+    var playlistContinuousPlayURLsByPlaylistID: [String: URL]
+
+    nonisolated static let empty = FeedCachePlaylistSnapshot(
+        playlistsByChannelID: [:],
+        playlistPagesByPlaylistID: [:],
+        playlistContinuousPlayURLsByPlaylistID: [:]
+    )
 }
 
 struct FeedCacheSummary: Hashable {
@@ -140,6 +153,7 @@ struct FeedCacheSummary: Hashable {
 }
 
 nonisolated extension FeedCacheSnapshot: Codable {}
+nonisolated extension FeedCachePlaylistSnapshot: Codable {}
 nonisolated extension FeedCacheSummary: Codable {}
 
 extension CachedVideo: Codable {

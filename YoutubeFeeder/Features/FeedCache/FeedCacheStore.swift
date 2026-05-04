@@ -23,6 +23,11 @@ actor FeedCacheStore {
         return database.loadFeedSnapshot()
     }
 
+    func loadPlaylistSnapshot() -> FeedCachePlaylistSnapshot {
+        try? createDirectories()
+        return database.loadPlaylistSnapshot()
+    }
+
     func loadSummary() -> FeedCacheSummary? {
         let snapshot = loadSnapshot()
         guard !snapshot.channels.isEmpty || !snapshot.videos.isEmpty || snapshot.savedAt != .distantPast else {
@@ -101,6 +106,14 @@ actor FeedCacheStore {
                 cachedVideoCount: state?.cachedVideoCount ?? groupedVideos[channelID]?.count ?? 0
             )
         }
+    }
+
+    func savePlaylistItems(_ items: [PlaylistBrowseItem], channelID: String) {
+        database.savePlaylistItems(items, channelID: channelID)
+    }
+
+    func savePlaylistVideosPage(_ page: PlaylistBrowseVideosPage) {
+        database.savePlaylistVideosPage(page)
     }
 
     func recordFailure(channelID: String, checkedAt: Date, error: String) {

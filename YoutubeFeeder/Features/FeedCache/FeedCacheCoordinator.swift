@@ -285,6 +285,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 channelID: normalizedChannelID,
                 limit: limit
             )
+            await writeService.savePlaylistItems(playlists, channelID: normalizedChannelID)
             AppConsoleLogger.appLifecycle.info(
                 "channel_playlist_list_complete",
                 metadata: [
@@ -351,6 +352,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 pageToken: pageToken,
                 limit: limit
             )
+            await writeService.savePlaylistVideosPage(page)
             AppConsoleLogger.appLifecycle.info(
                 "playlist_videos_page_complete",
                 metadata: [
