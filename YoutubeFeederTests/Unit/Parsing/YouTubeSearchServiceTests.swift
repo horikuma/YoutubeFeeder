@@ -26,51 +26,10 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     func testFilterPlayableVideosExcludesLiveEntries() {
-        let json = Data("""
-        {
-          "items": [
-            {
-              "id": "video-1",
-              "contentDetails": {
-                "duration": "PT27M10S"
-              },
-              "statistics": {
-                "viewCount": "12345"
-              },
-              "snippet": {
-                "publishedAt": "2026-03-15T02:00:00Z",
-                "channelId": "UC111",
-                "channelTitle": "One",
-                "title": "Playable",
-                "liveBroadcastContent": "none",
-                "thumbnails": {
-                  "high": { "url": "https://example.com/1.jpg" }
-                }
-              }
-            },
-            {
-              "id": "video-2",
-              "contentDetails": {
-                "duration": "PT45M00S"
-              },
-              "statistics": {
-                "viewCount": "67890"
-              },
-              "snippet": {
-                "publishedAt": "2026-03-15T01:00:00Z",
-                "channelId": "UC222",
-                "channelTitle": "Two",
-                "title": "Live now",
-                "liveBroadcastContent": "live",
-                "thumbnails": {
-                  "high": { "url": "https://example.com/2.jpg" }
-                }
-              },
-              "liveStreamingDetails": {}
-            }
-          ]
-        }
-        """.utf8)
+        let json = Self.videoDetailsResponseJSON(items: [
+            Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
+            Self.videoDetailsItemJSON(id: "video-2", duration: "PT45M00S", liveBroadcastContent: "live", includeLiveStreamingDetails: true)
+        ])
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -83,55 +42,11 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     func testVideoListResponseDecodesItemsWithMissingContentDetailsDuration() throws {
-        let json = Data("""
-        {
-          "items": [
-            {
-              "id": "video-1",
-              "contentDetails": {
-                "duration": "PT27M10S"
-              },
-              "snippet": {
-                "publishedAt": "2026-03-15T02:00:00Z",
-                "channelId": "UC111",
-                "channelTitle": "One",
-                "title": "Playable",
-                "liveBroadcastContent": "none",
-                "thumbnails": {
-                  "high": { "url": "https://example.com/1.jpg" }
-                }
-              }
-            },
-            {
-              "id": "video-2",
-              "contentDetails": {},
-              "snippet": {
-                "publishedAt": "2026-03-15T01:00:00Z",
-                "channelId": "UC222",
-                "channelTitle": "Two",
-                "title": "Missing duration",
-                "liveBroadcastContent": "none",
-                "thumbnails": {
-                  "high": { "url": "https://example.com/2.jpg" }
-                }
-              }
-            },
-            {
-              "id": "video-3",
-              "snippet": {
-                "publishedAt": "2026-03-15T00:00:00Z",
-                "channelId": "UC333",
-                "channelTitle": "Three",
-                "title": "Missing content details",
-                "liveBroadcastContent": "none",
-                "thumbnails": {
-                  "high": { "url": "https://example.com/3.jpg" }
-                }
-              }
-            }
-          ]
-        }
-        """.utf8)
+        let json = Self.videoDetailsResponseJSON(items: [
+            Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
+            Self.videoDetailsItemJSON(id: "video-2", duration: nil),
+            Self.videoDetailsItemJSON(id: "video-3", duration: nil, publishedAt: "2026-03-15T00:00:00Z", channelID: "UC333", channelTitle: "Three", title: "Missing content details")
+        ])
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -141,55 +56,11 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     func testFilterPlayableVideosExcludesItemsMissingDuration() throws {
-        let json = Data("""
-        {
-          "items": [
-            {
-              "id": "video-1",
-              "contentDetails": {
-                "duration": "PT27M10S"
-              },
-              "snippet": {
-                "publishedAt": "2026-03-15T02:00:00Z",
-                "channelId": "UC111",
-                "channelTitle": "One",
-                "title": "Playable",
-                "liveBroadcastContent": "none",
-                "thumbnails": {
-                  "high": { "url": "https://example.com/1.jpg" }
-                }
-              }
-            },
-            {
-              "id": "video-2",
-              "contentDetails": {},
-              "snippet": {
-                "publishedAt": "2026-03-15T01:00:00Z",
-                "channelId": "UC222",
-                "channelTitle": "Two",
-                "title": "Missing duration",
-                "liveBroadcastContent": "none",
-                "thumbnails": {
-                  "high": { "url": "https://example.com/2.jpg" }
-                }
-              }
-            },
-            {
-              "id": "video-3",
-              "snippet": {
-                "publishedAt": "2026-03-15T00:00:00Z",
-                "channelId": "UC333",
-                "channelTitle": "Three",
-                "title": "Missing content details",
-                "liveBroadcastContent": "none",
-                "thumbnails": {
-                  "high": { "url": "https://example.com/3.jpg" }
-                }
-              }
-            }
-          ]
-        }
-        """.utf8)
+        let json = Self.videoDetailsResponseJSON(items: [
+            Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
+            Self.videoDetailsItemJSON(id: "video-2", duration: nil),
+            Self.videoDetailsItemJSON(id: "video-3", duration: nil, publishedAt: "2026-03-15T00:00:00Z", channelID: "UC333", channelTitle: "Three", title: "Missing content details")
+        ])
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -249,43 +120,16 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
 
     func testFetchChannelVideosPageUsesUploadsPlaylistAndPlaylistItemsPageToken() async throws {
         let recorder = ChannelVideosRequestRecorder()
-        let service = YouTubeSearchService { request in
-            guard let url = request.url,
-                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            else {
-                throw YouTubeSearchError.invalidResponse
-            }
-
-            await recorder.record(path: components.path, queryItems: components.queryItems ?? [])
-
-            switch components.path {
-            case "/youtube/v3/channels":
-                return (
-                    Self.channelsListResponseJSON(uploadsPlaylistID: "UU123"),
-                    Self.httpResponse(for: url)
-                )
-            case "/youtube/v3/playlistItems":
-                return (
-                    Self.playlistItemsResponseJSON(
-                        videoIDs: ["video-1", "video-2"],
-                        nextPageToken: "NEXT_PAGE"
-                    ),
-                    Self.httpResponse(for: url)
-                )
-            case "/youtube/v3/videos":
-                return (
-                    Self.videoDetailsResponseJSON(
-                        items: [
-                            Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
-                            Self.videoDetailsItemJSON(id: "video-2", duration: "PT45M00S")
-                        ]
-                    ),
-                    Self.httpResponse(for: url)
-                )
-            default:
-                throw YouTubeSearchError.invalidResponse
-            }
-        }
+        let service = makeChannelVideosService(
+            recording: recorder,
+            uploadsPlaylistID: "UU123",
+            playlistVideoIDs: ["video-1", "video-2"],
+            playlistNextPageToken: "NEXT_PAGE",
+            videoDetails: [
+                Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
+                Self.videoDetailsItemJSON(id: "video-2", duration: "PT45M00S")
+            ]
+        )
 
         let page = try await service.fetchChannelVideosPage(
             channelID: "UC123",
@@ -310,38 +154,15 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     func testFetchChannelVideosPageFiltersShortVideos() async throws {
-        let service = YouTubeSearchService { request in
-            guard let url = request.url,
-                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            else {
-                throw YouTubeSearchError.invalidResponse
-            }
-
-            switch components.path {
-            case "/youtube/v3/channels":
-                return (
-                    Self.channelsListResponseJSON(uploadsPlaylistID: "UU123"),
-                    Self.httpResponse(for: url)
-                )
-            case "/youtube/v3/playlistItems":
-                return (
-                    Self.playlistItemsResponseJSON(videoIDs: ["video-short", "video-long"], nextPageToken: nil),
-                    Self.httpResponse(for: url)
-                )
-            case "/youtube/v3/videos":
-                return (
-                    Self.videoDetailsResponseJSON(
-                        items: [
-                            Self.videoDetailsItemJSON(id: "video-short", duration: "PT10S"),
-                            Self.videoDetailsItemJSON(id: "video-long", duration: "PT27M10S")
-                        ]
-                    ),
-                    Self.httpResponse(for: url)
-                )
-            default:
-                throw YouTubeSearchError.invalidResponse
-            }
-        }
+        let service = makeChannelVideosService(
+            uploadsPlaylistID: "UU123",
+            playlistVideoIDs: ["video-short", "video-long"],
+            playlistNextPageToken: nil,
+            videoDetails: [
+                Self.videoDetailsItemJSON(id: "video-short", duration: "PT10S"),
+                Self.videoDetailsItemJSON(id: "video-long", duration: "PT27M10S")
+            ]
+        )
 
         let page = try await service.fetchChannelVideosPage(channelID: "UC123", pageToken: nil, limit: 2)
 
@@ -360,7 +181,16 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
         """.utf8)
     }
 
-    private static func videoDetailsItemJSON(id: String, duration: String?) -> String {
+    private static func videoDetailsItemJSON(
+        id: String,
+        duration: String?,
+        publishedAt: String = "2026-03-15T02:00:00Z",
+        channelID: String = "UC111",
+        channelTitle: String = "One",
+        title: String = "Playable \(id)",
+        liveBroadcastContent: String = "none",
+        includeLiveStreamingDetails: Bool = false
+    ) -> String {
         let contentDetails = if let duration {
             """
             "contentDetails": {
@@ -378,15 +208,16 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
           "id": "\(id)",
           \(contentDetails)
           "snippet": {
-            "publishedAt": "2026-03-15T02:00:00Z",
-            "channelId": "UC111",
-            "channelTitle": "One",
-            "title": "Playable \(id)",
-            "liveBroadcastContent": "none",
+            "publishedAt": "\(publishedAt)",
+            "channelId": "\(channelID)",
+            "channelTitle": "\(channelTitle)",
+            "title": "\(title)",
+            "liveBroadcastContent": "\(liveBroadcastContent)",
             "thumbnails": {
               "high": { "url": "https://example.com/\(id).jpg" }
             }
           }
+          \(includeLiveStreamingDetails ? ",\n  \"liveStreamingDetails\": {}" : "")
         }
         """
     }
@@ -443,6 +274,47 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
 
     private static func httpResponse(for url: URL) -> HTTPURLResponse {
         HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+    }
+
+    private static func makeChannelVideosService(
+        recording recorder: ChannelVideosRequestRecorder,
+        uploadsPlaylistID: String = "UU123",
+        playlistVideoIDs: [String] = ["video-1", "video-2"],
+        playlistNextPageToken: String? = "NEXT_PAGE",
+        videoDetails: [String]
+    ) -> YouTubeSearchService {
+        YouTubeSearchService { request in
+            guard let url = request.url,
+                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            else {
+                throw YouTubeSearchError.invalidResponse
+            }
+
+            await recorder.record(path: components.path, queryItems: components.queryItems ?? [])
+
+            switch components.path {
+            case "/youtube/v3/channels":
+                return (
+                    Self.channelsListResponseJSON(uploadsPlaylistID: uploadsPlaylistID),
+                    Self.httpResponse(for: url)
+                )
+            case "/youtube/v3/playlistItems":
+                return (
+                    Self.playlistItemsResponseJSON(
+                        videoIDs: playlistVideoIDs,
+                        nextPageToken: playlistNextPageToken
+                    ),
+                    Self.httpResponse(for: url)
+                )
+            case "/youtube/v3/videos":
+                return (
+                    Self.videoDetailsResponseJSON(items: videoDetails),
+                    Self.httpResponse(for: url)
+                )
+            default:
+                throw YouTubeSearchError.invalidResponse
+            }
+        }
     }
 }
 

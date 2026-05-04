@@ -11,54 +11,21 @@ extension FeedCacheCoordinator {
         let snapshot = await readService.loadSnapshot()
         let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let sortedChannels = prioritizedChannelIDs(states: states)
-        AppConsoleLogger.appLifecycle.info(
-            "full_channel_refresh_started",
-            metadata: [
-                "refresh_source": refreshSource,
-                "target_channels": String(sortedChannels.count),
-                "snapshot_channels": String(snapshot.channels.count),
-                "channel_count": String(channels.count),
-                "result_state": "running"
-            ]
-        )
-        AppConsoleLogger.appLifecycle.info(
-            "full_channel_refresh_snapshot_evaluated",
-            metadata: [
-                "channel_count": String(channels.count),
-                "snapshot_channels": String(snapshot.channels.count),
-                "due_channels": String(sortedChannels.count),
-                "freshness_bypassed": "true",
-                "force_network_fetch": "false",
-                "refresh_source": refreshSource,
-                "snapshot_dependency": "channel_order_only",
-                "snapshot_dependency_detail": "due channels are derived from registered channel ordering only",
-                "channel_fingerprint": AppConsoleLogger.channelIDsFingerprint(channels),
-                "snapshot_fingerprint": AppConsoleLogger.channelIDsFingerprint(snapshot.channels.map(\.channelID))
-            ]
-        )
+        logFullRefreshCycleStarted(refreshSource: refreshSource, snapshot: snapshot, sortedChannels: sortedChannels)
         let cycleResult = await runRefreshCycle(
             channelIDs: sortedChannels,
             states: states,
             forceNetworkFetch: false,
             refreshSource: refreshSource
         )
-        var metadata = cycleResult.metadata(
-            channelCount: sortedChannels.count,
-            forceNetworkFetch: false,
-            refreshSource: refreshSource,
-            cachedVideosBefore: cycleResult.cachedVideosBefore,
-            cachedVideosAfter: cycleResult.cachedVideosAfter
-        )
-        metadata["target_channels"] = String(sortedChannels.count)
-        metadata["snapshot_channels"] = String(snapshot.channels.count)
-        metadata["channel_count"] = String(channels.count)
-        metadata["elapsed_ms"] = AppConsoleLogger.elapsedMilliseconds(since: startedAt)
-        metadata["result_state"] = cycleResult.lastError == nil ? "completed" : "completed_with_errors"
-        metadata["conditional_check_attempted_channels"] = String(cycleResult.conditionalCheckAttemptedChannels)
-        metadata["network_fetch_attempted_channels"] = String(cycleResult.networkFetchAttemptedChannels)
-        AppConsoleLogger.appLifecycle.info(
-            "full_channel_refresh_finished",
-            metadata: metadata
+        logRefreshCycleFinished(
+            event: "full_channel_refresh_finished",
+            startedAt: startedAt,
+            cycleResult: cycleResult,
+            channelCount: channels.count,
+            targetChannelsCount: sortedChannels.count,
+            snapshotChannelCount: snapshot.channels.count,
+            refreshSource: refreshSource
         )
     }
 
@@ -71,26 +38,7 @@ extension FeedCacheCoordinator {
             channels: channels,
             states: states
         )
-        AppConsoleLogger.appLifecycle.info(
-            "recent_channel_refresh_started",
-            metadata: [
-                "refresh_source": refreshSource,
-                "target_channels": String(dueChannels.count),
-                "due_channels": String(dueChannels.count),
-                "snapshot_channels": String(snapshot.channels.count),
-                "channel_count": String(channels.count),
-                "result_state": "running"
-            ]
-        )
-        AppConsoleLogger.appLifecycle.debug(
-            "recent_channel_refresh_snapshot_evaluated",
-            metadata: [
-                "channel_count": String(channels.count),
-                "snapshot_channels": String(snapshot.channels.count),
-                "due_channels": String(dueChannels.count),
-                "refresh_source": refreshSource
-            ]
-        )
+        logRecentRefreshCycleStarted(refreshSource: refreshSource, snapshot: snapshot, dueChannels: dueChannels)
 
         guard !dueChannels.isEmpty else {
             AppConsoleLogger.appLifecycle.info(
@@ -115,25 +63,137 @@ extension FeedCacheCoordinator {
             forceNetworkFetch: false,
             refreshSource: refreshSource
         )
+        logRefreshCycleFinished(
+            event: "recent_channel_refresh_finished",
+            startedAt: startedAt,
+            cycleResult: cycleResult,
+            channelCount: channels.count,
+            targetChannelsCount: dueChannels.count,
+            snapshotChannelCount: snapshot.channels.count,
+            refreshSource: refreshSource,
+            dueChannelsCount: dueChannels.count
+        )
+    }
+
+    private func logRefreshCycleStart(
+        startedEvent: String,
+        evaluatedEvent: String,
+        evaluationIsDebug: Bool,
+        refreshSource: String,
+        targetChannelsCount: Int,
+        snapshotChannelCount: Int,
+        channelCount: Int,
+        dueChannelsCount: Int,
+        freshnessBypassed: String?,
+        forceNetworkFetch: String?,
+        snapshotDependency: String?,
+        snapshotDependencyDetail: String?,
+        channelFingerprint: String?,
+        snapshotFingerprint: String?
+    ) {
+        AppConsoleLogger.appLifecycle.info(
+            startedEvent,
+            metadata: [
+                "refresh_source": refreshSource,
+                "target_channels": String(targetChannelsCount),
+                "snapshot_channels": String(snapshotChannelCount),
+                "channel_count": String(channelCount),
+                "result_state": "running"
+            ]
+        )
+        var metadata: [String: String] = [
+            "channel_count": String(channelCount),
+            "snapshot_channels": String(snapshotChannelCount),
+            "due_channels": String(dueChannelsCount),
+            "refresh_source": refreshSource
+        ]
+        if let freshnessBypassed { metadata["freshness_bypassed"] = freshnessBypassed }
+        if let forceNetworkFetch { metadata["force_network_fetch"] = forceNetworkFetch }
+        if let snapshotDependency { metadata["snapshot_dependency"] = snapshotDependency }
+        if let snapshotDependencyDetail { metadata["snapshot_dependency_detail"] = snapshotDependencyDetail }
+        if let channelFingerprint { metadata["channel_fingerprint"] = channelFingerprint }
+        if let snapshotFingerprint { metadata["snapshot_fingerprint"] = snapshotFingerprint }
+        if evaluationIsDebug {
+            AppConsoleLogger.appLifecycle.debug(evaluatedEvent, metadata: metadata)
+        } else {
+            AppConsoleLogger.appLifecycle.info(evaluatedEvent, metadata: metadata)
+        }
+    }
+
+    private func logFullRefreshCycleStarted(
+        refreshSource: String,
+        snapshot: FeedCacheSnapshot,
+        sortedChannels: [String]
+    ) {
+        logRefreshCycleStart(
+            startedEvent: "full_channel_refresh_started",
+            evaluatedEvent: "full_channel_refresh_snapshot_evaluated",
+            evaluationIsDebug: false,
+            refreshSource: refreshSource,
+            targetChannelsCount: sortedChannels.count,
+            snapshotChannelCount: snapshot.channels.count,
+            channelCount: channels.count,
+            dueChannelsCount: sortedChannels.count,
+            freshnessBypassed: "true",
+            forceNetworkFetch: "false",
+            snapshotDependency: "channel_order_only",
+            snapshotDependencyDetail: "due channels are derived from registered channel ordering only",
+            channelFingerprint: AppConsoleLogger.channelIDsFingerprint(channels),
+            snapshotFingerprint: AppConsoleLogger.channelIDsFingerprint(snapshot.channels.map(\.channelID))
+        )
+    }
+
+    private func logRecentRefreshCycleStarted(
+        refreshSource: String,
+        snapshot: FeedCacheSnapshot,
+        dueChannels: [String]
+    ) {
+        logRefreshCycleStart(
+            startedEvent: "recent_channel_refresh_started",
+            evaluatedEvent: "recent_channel_refresh_snapshot_evaluated",
+            evaluationIsDebug: true,
+            refreshSource: refreshSource,
+            targetChannelsCount: dueChannels.count,
+            snapshotChannelCount: snapshot.channels.count,
+            channelCount: channels.count,
+            dueChannelsCount: dueChannels.count,
+            freshnessBypassed: nil,
+            forceNetworkFetch: nil,
+            snapshotDependency: nil,
+            snapshotDependencyDetail: nil,
+            channelFingerprint: nil,
+            snapshotFingerprint: nil
+        )
+    }
+
+    private func logRefreshCycleFinished(
+        event: String,
+        startedAt: Date,
+        cycleResult: FeedRefreshCycleResult,
+        channelCount: Int,
+        targetChannelsCount: Int,
+        snapshotChannelCount: Int,
+        refreshSource: String,
+        dueChannelsCount: Int? = nil
+    ) {
         var metadata = cycleResult.metadata(
-            channelCount: dueChannels.count,
+            channelCount: targetChannelsCount,
             forceNetworkFetch: false,
             refreshSource: refreshSource,
             cachedVideosBefore: cycleResult.cachedVideosBefore,
             cachedVideosAfter: cycleResult.cachedVideosAfter
         )
-        metadata["target_channels"] = String(dueChannels.count)
-        metadata["due_channels"] = String(dueChannels.count)
-        metadata["snapshot_channels"] = String(snapshot.channels.count)
-        metadata["channel_count"] = String(channels.count)
+        metadata["target_channels"] = String(targetChannelsCount)
+        metadata["snapshot_channels"] = String(snapshotChannelCount)
+        metadata["channel_count"] = String(channelCount)
         metadata["elapsed_ms"] = AppConsoleLogger.elapsedMilliseconds(since: startedAt)
         metadata["result_state"] = cycleResult.lastError == nil ? "completed" : "completed_with_errors"
         metadata["conditional_check_attempted_channels"] = String(cycleResult.conditionalCheckAttemptedChannels)
         metadata["network_fetch_attempted_channels"] = String(cycleResult.networkFetchAttemptedChannels)
-        AppConsoleLogger.appLifecycle.info(
-            "recent_channel_refresh_finished",
-            metadata: metadata
-        )
+        if let dueChannelsCount {
+            metadata["due_channels"] = String(dueChannelsCount)
+        }
+        AppConsoleLogger.appLifecycle.info(event, metadata: metadata)
     }
 
     func startAutomaticRefreshLoopIfNeeded() {

@@ -347,15 +347,20 @@ final class FeedCacheSQLiteDatabase {
     }
 
     private func createSchema() {
-        let statements = [
-            """
+        for statement in Self.schemaStatements {
+            execute(statement)
+        }
+    }
+
+    private static let schemaStatements: [String] = [
+        """
             CREATE TABLE IF NOT EXISTS metadata (
                 key TEXT PRIMARY KEY,
                 real_value REAL,
                 text_value TEXT
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS cached_channels (
                 channel_id TEXT PRIMARY KEY,
                 channel_title TEXT,
@@ -371,7 +376,7 @@ final class FeedCacheSQLiteDatabase {
                 last_modified TEXT
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS cached_videos (
                 video_id TEXT PRIMARY KEY,
                 channel_id TEXT NOT NULL,
@@ -391,14 +396,14 @@ final class FeedCacheSQLiteDatabase {
                 metadata_badge_text TEXT NOT NULL
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS remote_search_queries (
                 keyword TEXT PRIMARY KEY,
                 total_count INTEGER NOT NULL,
                 fetched_at REAL NOT NULL
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS remote_search_videos (
                 keyword TEXT NOT NULL,
                 sort_index INTEGER NOT NULL,
@@ -422,19 +427,17 @@ final class FeedCacheSQLiteDatabase {
                 FOREIGN KEY(keyword) REFERENCES remote_search_queries(keyword) ON DELETE CASCADE
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS registered_channels (
                 channel_id TEXT PRIMARY KEY,
                 added_at REAL
             );
             """,
-            "CREATE INDEX IF NOT EXISTS idx_cached_videos_channel_id ON cached_videos(channel_id);",
-            "CREATE INDEX IF NOT EXISTS idx_cached_videos_searchable_text ON cached_videos(searchable_text);",
-            "CREATE INDEX IF NOT EXISTS idx_remote_search_videos_keyword_sort ON remote_search_videos(keyword, sort_index);",
-            "CREATE INDEX IF NOT EXISTS idx_remote_search_videos_channel_id ON remote_search_videos(channel_id);"
-        ]
-        statements.forEach { execute($0) }
-    }
+        "CREATE INDEX IF NOT EXISTS idx_cached_videos_channel_id ON cached_videos(channel_id);",
+        "CREATE INDEX IF NOT EXISTS idx_cached_videos_searchable_text ON cached_videos(searchable_text);",
+        "CREATE INDEX IF NOT EXISTS idx_remote_search_videos_keyword_sort ON remote_search_videos(keyword, sort_index);",
+        "CREATE INDEX IF NOT EXISTS idx_remote_search_videos_channel_id ON remote_search_videos(channel_id);"
+    ]
 
     private func migrateSchemaIfNeeded() {
         addColumnIfMissing(

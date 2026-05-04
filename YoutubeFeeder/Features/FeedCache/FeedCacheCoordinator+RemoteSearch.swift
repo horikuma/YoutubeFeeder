@@ -33,59 +33,10 @@ extension FeedCacheCoordinator {
         }
 
         let logger = AppConsoleLogger.youtubeSearch
-
         if AppLaunchMode.current.usesMockData {
-            if let cached = await readService.loadRemoteSearchSnapshot(
-                keyword: normalizedKeyword,
-                limit: limit,
-                cacheLifetime: remoteSearchCacheLifetime,
-                allowExpired: true
-            ) {
-                remoteSearchSnapshotCache[normalizedKeyword] = cached
-                logger.info(
-                    "snapshot_hit",
-                    metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "source": cached.source.label, "videos": String(cached.videos.count)]
-                )
-                return cached
-            }
-            let local = await searchVideos(keyword: normalizedKeyword, limit: limit)
-            logger.info(
-                "snapshot_mock_local",
-                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "videos": String(local.videos.count)]
-            )
-            let result = VideoSearchResult(
-                keyword: normalizedKeyword,
-                videos: local.videos,
-                totalCount: local.totalCount,
-                source: .mockData,
-                fetchedAt: .now,
-                expiresAt: Date().addingTimeInterval(remoteSearchCacheLifetime)
-            )
-            remoteSearchSnapshotCache[normalizedKeyword] = result
-            return result
+            return await loadMockRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit, logger: logger)
         }
-
-        if let cached = await readService.loadRemoteSearchSnapshot(
-            keyword: normalizedKeyword,
-            limit: limit,
-            cacheLifetime: remoteSearchCacheLifetime,
-            allowExpired: true
-        ) {
-            remoteSearchSnapshotCache[normalizedKeyword] = cached
-            logger.info(
-                "snapshot_hit",
-                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "source": cached.source.label, "videos": String(cached.videos.count)]
-            )
-            return cached
-        }
-
-        logger.info(
-            "snapshot_miss",
-            metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword), "limit": String(limit)]
-        )
-        let result = VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
-        remoteSearchSnapshotCache[normalizedKeyword] = result
-        return result
+        return await loadLiveRemoteSearchSnapshot(keyword: normalizedKeyword, limit: limit, logger: logger)
     }
 
     func search(keyword: String, limit: Int = 100, forceRefresh: Bool = false) async -> VideoSearchResult {
@@ -241,6 +192,69 @@ extension FeedCacheCoordinator {
         remoteSearchTasks[key] = nil
         remoteSearchSnapshotCache[keyword] = result
         await refreshHomeSystemStatus()
+        return result
+    }
+
+    private func loadMockRemoteSearchSnapshot(
+        keyword: String,
+        limit: Int,
+        logger: AppConsoleLogger
+    ) async -> VideoSearchResult {
+        if let cached = await readService.loadRemoteSearchSnapshot(
+            keyword: keyword,
+            limit: limit,
+            cacheLifetime: remoteSearchCacheLifetime,
+            allowExpired: true
+        ) {
+            remoteSearchSnapshotCache[keyword] = cached
+            logger.info(
+                "snapshot_hit",
+                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword), "source": cached.source.label, "videos": String(cached.videos.count)]
+            )
+            return cached
+        }
+        let local = await searchVideos(keyword: keyword, limit: limit)
+        logger.info(
+            "snapshot_mock_local",
+            metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword), "videos": String(local.videos.count)]
+        )
+        let result = VideoSearchResult(
+            keyword: keyword,
+            videos: local.videos,
+            totalCount: local.totalCount,
+            source: .mockData,
+            fetchedAt: .now,
+            expiresAt: Date().addingTimeInterval(remoteSearchCacheLifetime)
+        )
+        remoteSearchSnapshotCache[keyword] = result
+        return result
+    }
+
+    private func loadLiveRemoteSearchSnapshot(
+        keyword: String,
+        limit: Int,
+        logger: AppConsoleLogger
+    ) async -> VideoSearchResult {
+        if let cached = await readService.loadRemoteSearchSnapshot(
+            keyword: keyword,
+            limit: limit,
+            cacheLifetime: remoteSearchCacheLifetime,
+            allowExpired: true
+        ) {
+            remoteSearchSnapshotCache[keyword] = cached
+            logger.info(
+                "snapshot_hit",
+                metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword), "source": cached.source.label, "videos": String(cached.videos.count)]
+            )
+            return cached
+        }
+
+        logger.info(
+            "snapshot_miss",
+            metadata: ["keyword": AppConsoleLogger.sanitizedKeyword(keyword), "limit": String(limit)]
+        )
+        let result = VideoSearchResult(keyword: keyword, videos: [], totalCount: 0, source: .remoteCache)
+        remoteSearchSnapshotCache[keyword] = result
         return result
     }
 
