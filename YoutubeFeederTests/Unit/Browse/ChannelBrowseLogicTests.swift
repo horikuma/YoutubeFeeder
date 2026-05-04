@@ -163,6 +163,37 @@ final class ChannelBrowseLogicTests: LoggedTestCase {
         XCTAssertEqual(state.playlistVideosPage(for: "PL002")?.nextPageToken, "NEXT")
     }
 
+    func testSelectedPlaylistVideosDefaultToNewestFirstAndCanSwitchToOldestFirst() {
+        var state = ChannelBrowseLogic()
+        state.setItems([makeItem(channelID: "UC001", title: "Alpha")])
+        state.selectChannel("UC001")
+        state.refreshPlaylists([makePlaylist(id: "PL001", title: "Playlist 1")], for: "UC001")
+        state.selectPlaylist("PL001", for: "UC001")
+        state.refreshPlaylistVideos(
+            makePlaylistPage(
+                playlistID: "PL001",
+                videos: [
+                    makePlaylistVideo(
+                        id: "video-old",
+                        title: "Old",
+                        publishedAt: Date(timeIntervalSince1970: 1_742_000_000)
+                    ),
+                    makePlaylistVideo(
+                        id: "video-new",
+                        title: "New",
+                        publishedAt: Date(timeIntervalSince1970: 1_742_100_000)
+                    )
+                ]
+            )
+        )
+
+        XCTAssertEqual(state.selectedPlaylistVideos(for: "UC001").map(\.id), ["video-new", "video-old"])
+
+        state.setPlaylistVideoSortOrder(.oldestFirst, for: "PL001")
+
+        XCTAssertEqual(state.selectedPlaylistVideos(for: "UC001").map(\.id), ["video-old", "video-new"])
+    }
+
     func testSetItemsClearsPlaylistStateWhenSelectedChannelDisappears() {
         var state = ChannelBrowseLogic()
         state.setItems([makeItem(channelID: "UC001", title: "Alpha")])
@@ -228,13 +259,17 @@ final class ChannelBrowseLogicTests: LoggedTestCase {
         )
     }
 
-    private func makePlaylistVideo(id: String, title: String) -> PlaylistBrowseVideo {
+    private func makePlaylistVideo(
+        id: String,
+        title: String,
+        publishedAt: Date = Date(timeIntervalSince1970: 1_742_000_000)
+    ) -> PlaylistBrowseVideo {
         PlaylistBrowseVideo(
             id: id,
             channelID: "UC001",
             channelTitle: "Alpha",
             title: title,
-            publishedAt: Date(timeIntervalSince1970: 1_742_000_000),
+            publishedAt: publishedAt,
             videoURL: nil,
             thumbnailURL: nil,
             durationSeconds: nil,

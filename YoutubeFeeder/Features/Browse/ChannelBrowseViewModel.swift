@@ -242,7 +242,7 @@ final class ChannelBrowseViewModel: ObservableObject {
             title: item.title,
             publishedAt: item.publishedAt,
             videoURL: coordinator.playlistContinuousPlayURL(playlistID: item.playlistID),
-            thumbnailRemoteURL: item.thumbnailURL,
+            thumbnailRemoteURL: item.firstVideoThumbnailURL ?? item.thumbnailURL,
             thumbnailLocalFilename: nil,
             fetchedAt: .now,
             searchableText: [item.title, item.channelTitle, item.playlistID].joined(separator: "\n").lowercased(),
