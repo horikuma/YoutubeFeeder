@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 import subprocess
 import sys
 
 
+DEFAULT_DERIVED_DATA_DIR = "xcodebuild"
+
+
+def resolve_repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def ensure_local_derived_data(args: list[str]) -> list[str]:
+    if "-derivedDataPath" in args:
+        return args
+
+    repo_root = resolve_repo_root()
+    derived_data_path = repo_root / "build" / DEFAULT_DERIVED_DATA_DIR
+    derived_data_path.mkdir(parents=True, exist_ok=True)
+    return [*args, "-derivedDataPath", str(derived_data_path)]
+
+
 def run_xcodebuild(args: list[str]) -> int:
-    process = subprocess.run(["xcodebuild", *args], check=False)
+    process = subprocess.run(["xcodebuild", *ensure_local_derived_data(args)], check=False)
     return process.returncode
 
 
