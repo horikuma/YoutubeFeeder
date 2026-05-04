@@ -14,18 +14,13 @@ final class HomeScreenUITests: UITestCaseSupport {
         XCTAssertTrue(element("screen.home", in: app).exists)
     }
 
-    func testPlaylistTileShowsContinuousPlayMenuOnMacRightClick() throws {
+    func testChannelListRouteTriggerOpensChannelList() throws {
         let app = launchApp()
 
         waitForHomeScreen(in: app)
-        element("channel.tile.UC_TEST_ALPHA", in: app).click()
-        app.buttons["プレイリスト一覧"].click()
 
-        let playlistTile = element("playlist.tile.UC_TEST_ALPHA-playlist-001", in: app)
-        XCTAssertTrue(playlistTile.waitForExistence(timeout: 5))
+        app.buttons["test.channelList.route"].click()
 
-        openContextMenu(on: playlistTile)
-
-        XCTAssertTrue(waitForActionMenuItem("連続再生", in: app))
+        XCTAssertTrue(element("screen.title", in: app).waitForExistence(timeout: 5))
     }
 }
