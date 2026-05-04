@@ -93,6 +93,59 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
         }
     }
 
+    func testLoadPlaylistsPassesFirstVideoThumbnailURLToPlaylistBrowseItem() async throws {
+        let recorder = PlaylistRequestRecorder()
+        try await withEnvironment([
+            "YOUTUBEFEEDER_UI_TEST_MODE": "1",
+            "YOUTUBEFEEDER_UI_TEST_USE_MOCK": "0",
+            "YOUTUBEFEEDER_YOUTUBE_API_KEY": "test-key"
+        ]) {
+            let service = ChannelPlaylistBrowseService(
+                playlistService: YouTubePlaylistService { request in
+                    try await recorder.record(request)
+                    guard let url = request.url,
+                          let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+                    else {
+                        throw YouTubeSearchError.invalidResponse
+                    }
+
+                    switch components.path {
+                    case "/youtube/v3/playlists":
+                        return (
+                            Self.playlistsResponseData(),
+                            Self.httpResponse(for: url)
+                        )
+                    case "/youtube/v3/playlistItems":
+                        return (
+                            Self.playlistItemsResponseData(),
+                            Self.httpResponse(for: url)
+                        )
+                    case "/youtube/v3/videos":
+                        return (
+                            Self.videoDetailsResponseData(),
+                            Self.httpResponse(for: url)
+                        )
+                    default:
+                        throw YouTubeSearchError.invalidResponse
+                    }
+                }
+            )
+
+            let playlists = try await service.loadPlaylists(channelID: "UC_TEST", limit: 50)
+            let requests = await recorder.snapshot()
+
+            XCTAssertEqual(playlists.count, 1)
+            XCTAssertEqual(
+                playlists.first?.firstVideoThumbnailURL?.absoluteString,
+                "https://example.com/video-1.jpg"
+            )
+            XCTAssertEqual(requests.map(\.path), ["/youtube/v3/playlists", "/youtube/v3/playlistItems", "/youtube/v3/videos"])
+            XCTAssertEqual(requests[1].queryValue(named: "maxResults"), "1")
+            XCTAssertEqual(requests[1].queryValue(named: "playlistId"), "PL-001")
+            XCTAssertNil(requests.first(where: { $0.path == "/youtube/v3/search" }))
+        }
+    }
+
     func testFetchPlaylistVideosPageUsesPlaylistItemsAndVideosEndpointsWithoutSearchEndpoint() async throws {
         let recorder = PlaylistRequestRecorder()
         try await withEnvironment([

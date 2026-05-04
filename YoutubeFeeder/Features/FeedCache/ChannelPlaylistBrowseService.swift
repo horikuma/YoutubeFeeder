@@ -9,7 +9,22 @@ struct ChannelPlaylistBrowseService {
 
     func loadPlaylists(channelID: String, limit: Int = 50) async throws -> [PlaylistBrowseItem] {
         let playlists = try await playlistService.fetchPlaylists(channelID: channelID, limit: limit)
-        return sortPlaylists(playlists.map(mapPlaylistItem))
+        var playlistItems: [PlaylistBrowseItem] = []
+        playlistItems.reserveCapacity(playlists.count)
+        for playlist in playlists {
+            let firstVideoPage = try await playlistService.fetchPlaylistVideosPage(
+                playlistID: playlist.id,
+                pageToken: nil,
+                limit: 1
+            )
+            playlistItems.append(
+                mapPlaylistItem(
+                    playlist,
+                    firstVideoThumbnailURL: firstVideoPage.videos.first?.thumbnailURL
+                )
+            )
+        }
+        return sortPlaylists(playlistItems)
     }
 
     func loadPlaylistVideosPage(
@@ -50,7 +65,10 @@ struct ChannelPlaylistBrowseService {
         }
     }
 
-    private func mapPlaylistItem(_ item: YouTubePlaylistListItem) -> PlaylistBrowseItem {
+    private func mapPlaylistItem(
+        _ item: YouTubePlaylistListItem,
+        firstVideoThumbnailURL: URL?
+    ) -> PlaylistBrowseItem {
         PlaylistBrowseItem(
             id: item.id,
             playlistID: item.id,
@@ -60,7 +78,8 @@ struct ChannelPlaylistBrowseService {
             description: item.description,
             publishedAt: item.publishedAt,
             itemCount: item.itemCount,
-            thumbnailURL: item.thumbnailURL
+            thumbnailURL: item.thumbnailURL,
+            firstVideoThumbnailURL: firstVideoThumbnailURL
         )
     }
 

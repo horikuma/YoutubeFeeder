@@ -1,3 +1,6 @@
+## 2026/05/03
+- docs verification: npm run check:mermaid
+
 ## 2026/05/02
 
 ## 2026/05/01

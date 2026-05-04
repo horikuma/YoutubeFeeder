@@ -1,5 +1,10 @@
 import Foundation
 
+enum PlaylistBrowseVideoSortOrder: Hashable {
+    case newestFirst
+    case oldestFirst
+}
+
 struct PendingChannelRemoval: Identifiable, Hashable {
     let channelID: String
     let channelTitle: String
@@ -19,6 +24,7 @@ struct ChannelBrowseLogic: Hashable {
     var playlistsByChannelID: [String: [PlaylistBrowseItem]] = [:]
     var selectedPlaylistIDByChannelID: [String: String] = [:]
     var playlistVideosByPlaylistID: [String: PlaylistBrowseVideosPage] = [:]
+    var playlistVideoSortOrderByPlaylistID: [String: PlaylistBrowseVideoSortOrder] = [:]
 
     mutating func setItems(_ items: [ChannelBrowseItem]) {
         let previousItems = self.items
@@ -73,6 +79,7 @@ struct ChannelBrowseLogic: Hashable {
         if let selectedPlaylistID = selectedPlaylistIDByChannelID[channelID],
            !playlists.contains(where: { $0.playlistID == selectedPlaylistID }) {
             selectedPlaylistIDByChannelID[channelID] = nil
+            playlistVideoSortOrderByPlaylistID[selectedPlaylistID] = nil
         }
     }
 
@@ -107,11 +114,22 @@ struct ChannelBrowseLogic: Hashable {
     }
 
     func playlistVideos(for playlistID: String) -> [PlaylistBrowseVideo] {
-        playlistVideosByPlaylistID[playlistID]?.videos ?? []
+        sortedPlaylistVideos(
+            playlistVideosByPlaylistID[playlistID]?.videos ?? [],
+            order: playlistVideoSortOrder(for: playlistID)
+        )
     }
 
     func playlistVideosPage(for playlistID: String) -> PlaylistBrowseVideosPage? {
         playlistVideosByPlaylistID[playlistID]
+    }
+
+    mutating func setPlaylistVideoSortOrder(_ order: PlaylistBrowseVideoSortOrder, for playlistID: String) {
+        playlistVideoSortOrderByPlaylistID[playlistID] = order
+    }
+
+    func playlistVideoSortOrder(for playlistID: String) -> PlaylistBrowseVideoSortOrder {
+        playlistVideoSortOrderByPlaylistID[playlistID] ?? .newestFirst
     }
 
     func selectedPlaylistVideos(for channelID: String) -> [PlaylistBrowseVideo] {
@@ -175,6 +193,29 @@ struct ChannelBrowseLogic: Hashable {
     func selectedTitle() -> String {
         guard let selectedChannelID else { return "チャンネル未選択" }
         return items.first(where: { $0.channelID == selectedChannelID })?.channelTitle ?? selectedChannelID
+    }
+
+    private func sortedPlaylistVideos(
+        _ videos: [PlaylistBrowseVideo],
+        order: PlaylistBrowseVideoSortOrder
+    ) -> [PlaylistBrowseVideo] {
+        videos.sorted { lhs, rhs in
+            switch (lhs.publishedAt, rhs.publishedAt) {
+            case let (left?, right?) where left != right:
+                switch order {
+                case .newestFirst:
+                    return left > right
+                case .oldestFirst:
+                    return left < right
+                }
+            case (_?, nil):
+                return order == .newestFirst
+            case (nil, _?):
+                return order != .newestFirst
+            default:
+                return lhs.title == rhs.title ? lhs.id < rhs.id : lhs.title < rhs.title
+            }
+        }
     }
 }
 

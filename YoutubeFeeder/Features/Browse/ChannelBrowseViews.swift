@@ -467,6 +467,8 @@ private struct ChannelBrowseRegularView: View {
                 }
                 .accessibilityIdentifier("channel.playlist.back")
 
+                playlistSortControl(for: selectedPlaylist)
+
                 playlistVideosContent
             } else {
                 playlistListContent
@@ -600,6 +602,41 @@ private struct ChannelBrowseRegularView: View {
 
     private func playlistCachedVideo(for video: PlaylistBrowseVideo) -> CachedVideo {
         viewModel.playlistCachedVideo(for: video)
+    }
+
+    private func playlistSortControl(for playlist: PlaylistBrowseItem) -> some View {
+        HStack(spacing: 12) {
+            Text("並び順")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Picker(
+                "並び順",
+                selection: playlistVideoSortOrderBinding(for: playlist.playlistID)
+            ) {
+                Text("新しい順")
+                    .tag(PlaylistBrowseVideoSortOrder.newestFirst)
+                Text("古い順")
+                    .tag(PlaylistBrowseVideoSortOrder.oldestFirst)
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 320)
+
+            Spacer()
+        }
+    }
+
+    private func playlistVideoSortOrderBinding(for playlistID: String) -> Binding<PlaylistBrowseVideoSortOrder> {
+        Binding(
+            get: {
+                state.playlistVideoSortOrder(for: playlistID)
+            },
+            set: { newValue in
+                var logic = state
+                logic.setPlaylistVideoSortOrder(newValue, for: playlistID)
+                state = logic
+            }
+        )
     }
 
     private func playlistMenu(for item: PlaylistBrowseItem) -> TileMenuConfiguration {
