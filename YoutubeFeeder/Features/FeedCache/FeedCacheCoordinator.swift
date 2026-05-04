@@ -272,6 +272,10 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func loadChannelPlaylists(channelID: String, limit: Int = 50) async -> [PlaylistBrowseItem] {
+        await loadChannelPlaylistsInternal(channelID: channelID, limit: limit)
+    }
+
+    private func loadChannelPlaylistsInternal(channelID: String, limit: Int = 50) async -> [PlaylistBrowseItem] {
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedChannelID.isEmpty else { return [] }
 
@@ -313,6 +317,18 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func loadPlaylistVideosPage(
+        playlistID: String,
+        pageToken: String?,
+        limit: Int = 50
+    ) async -> PlaylistBrowseVideosPage {
+        await loadPlaylistVideosPageInternal(
+            playlistID: playlistID,
+            pageToken: pageToken,
+            limit: limit
+        )
+    }
+
+    private func loadPlaylistVideosPageInternal(
         playlistID: String,
         pageToken: String?,
         limit: Int = 50
@@ -375,6 +391,10 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func playlistContinuousPlayURL(playlistID: String) -> URL? {
+        playlistContinuousPlayURLInternal(playlistID: playlistID)
+    }
+
+    private func playlistContinuousPlayURLInternal(playlistID: String) -> URL? {
         let normalizedPlaylistID = playlistID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedPlaylistID.isEmpty else { return nil }
         return channelPlaylistBrowseService.continuousPlayURL(playlistID: normalizedPlaylistID)
