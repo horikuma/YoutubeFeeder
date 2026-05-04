@@ -166,17 +166,19 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
                 dependencies: FeedCacheDependencies.live()
             )
 
-            let freshResult = await coordinator.searchRemoteVideos(
+            let freshResult = await coordinator.refresh(intent: .remoteSearch(
                 keyword: "ゆっくり実況",
-                limit: 100,
-                forceRefresh: true
-            )
-            let cachedSnapshot = await coordinator.loadRemoteSearchSnapshot(
+                limit: 100
+            ))
+            let cachedSnapshot = await coordinator.loadSnapshot(
                 keyword: "ゆっくり実況",
                 limit: 100
             )
+            guard case let .remoteSearch(freshSearchResult) = freshResult else {
+                return XCTFail("expected remote search refresh result")
+            }
 
-            XCTAssertEqual(freshResult.videos.first?.id, "remote-refresh-001")
+            XCTAssertEqual(freshSearchResult.videos.first?.id, "remote-refresh-001")
             XCTAssertEqual(cachedSnapshot.videos.first?.id, "remote-refresh-001")
             XCTAssertEqual(cachedSnapshot.totalCount, 2)
             XCTAssertEqual(cachedSnapshot.source, .remoteCache)
@@ -223,20 +225,22 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
                 )
             )
 
-            let freshResult = await coordinator.searchRemoteVideos(
+            let freshResult = await coordinator.refresh(intent: .remoteSearch(
                 keyword: keyword,
-                limit: 100,
-                forceRefresh: true
-            )
-            let cachedSnapshot = await coordinator.loadRemoteSearchSnapshot(
+                limit: 100
+            ))
+            let cachedSnapshot = await coordinator.loadSnapshot(
                 keyword: keyword,
                 limit: 100
             )
+            guard case let .remoteSearch(freshSearchResult) = freshResult else {
+                return XCTFail("expected remote search refresh result")
+            }
 
-            XCTAssertEqual(freshResult.source, .remoteCache)
-            XCTAssertNil(freshResult.errorMessage)
-            XCTAssertEqual(freshResult.videos.first?.id, "fresh-playable")
-            XCTAssertFalse(freshResult.videos.contains { $0.id == "fresh-missing-duration" })
+            XCTAssertEqual(freshSearchResult.source, .remoteCache)
+            XCTAssertNil(freshSearchResult.errorMessage)
+            XCTAssertEqual(freshSearchResult.videos.first?.id, "fresh-playable")
+            XCTAssertFalse(freshSearchResult.videos.contains { $0.id == "fresh-missing-duration" })
             XCTAssertEqual(cachedSnapshot.source, .remoteCache)
             XCTAssertEqual(cachedSnapshot.videos.first?.id, "fresh-playable")
         }
@@ -279,6 +283,32 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
             XCTAssertEqual(cachedSnapshot.totalCount, 2)
             XCTAssertEqual(cachedSnapshot.source, .remoteCache)
             XCTAssertNotNil(cachedSnapshot.fetchedAt)
+        }
+    }
+
+    func testClearRemoteSearchHistoryClearsCachedSnapshot() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withEnvironment([
+            "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR": temporaryRoot.appendingPathComponent("Cache", isDirectory: true).path,
+            "YOUTUBEFEEDER_UI_TEST_MODE": "1"
+        ]) {
+            let coordinator = FeedCacheCoordinator(
+                channels: [],
+                dependencies: FeedCacheDependencies.live()
+            )
+
+            _ = await coordinator.refresh(intent: .remoteSearch(keyword: "ゆっくり実況", limit: 100))
+            let beforeClear = await coordinator.loadSnapshot(keyword: "ゆっくり実況", limit: 100)
+            await coordinator.clearRemoteSearchHistory(keyword: "ゆっくり実況")
+            let afterClear = await coordinator.loadSnapshot(keyword: "ゆっくり実況", limit: 100)
+
+            XCTAssertFalse(beforeClear.videos.isEmpty)
+            XCTAssertEqual(afterClear.videos.count, 0)
+            XCTAssertEqual(afterClear.totalCount, 0)
         }
     }
 
