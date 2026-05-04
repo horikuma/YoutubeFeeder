@@ -79,6 +79,7 @@
 - コミット後に次の未完了 `IssueToDo` へ進むか、Issue実施を終了するかは、次の `./scripts/command-runner.py 'issue-todo' --get` の出力 JSON に含まれる `next` だけを根拠に判断しなければならない。
 - `next` が `null` の場合は、Issue 実施の終端に到達したものとして、終了前に `./scripts/command-runner.py 'build-release'` を実行しなければならない。
 - `build-release` は、Issue 実施を締める最終確認として扱い、`next` が `null` になった時だけ実行しなければならない。
+- `next` が `null` になった時は、Issue実施の終端処理としてリリースビルドを行う。
 
 ## 完了条件
 
