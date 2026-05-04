@@ -385,7 +385,13 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             }
 
             _ = await coordinator.refresh(intent: .home)
-            await coordinator.refreshChannelManually(channelID)
+            _ = await coordinator.refresh(intent: .channel(
+                ChannelVideosRouteContext(
+                    channelID: channelID,
+                    prefersAutomaticRefresh: false,
+                    routeSource: .channelBrowse
+                )
+            ))
             await coordinator.runWallClockChannelRefresh(.allChannels)
             await coordinator.runWallClockChannelRefresh(.recentChannels)
 
