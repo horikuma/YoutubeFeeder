@@ -11,6 +11,7 @@ final class ChannelBrowseViewModel: ObservableObject {
     private var nextPageToken: String?
     private var didRequestLoadMore = false
     private var hasStartedPaging = false
+    private var playlistSnapshot = FeedCachePlaylistSnapshot.empty
 
     init(
         coordinator: FeedCacheCoordinator,
@@ -156,20 +157,9 @@ final class ChannelBrowseViewModel: ObservableObject {
                 ]
             )
         case .playlists:
-            if let selectedPlaylistID = state.selectedPlaylistID(for: selectedChannelID) {
-                let page = await coordinator.loadPlaylistVideosPage(
-                    playlistID: selectedPlaylistID,
-                    pageToken: nil,
-                    limit: 50
-                )
-                withAnimation(.easeOut(duration: 0.25)) {
-                    state.refreshPlaylistVideos(page)
-                }
-            } else {
-                let playlists = await coordinator.loadChannelPlaylists(channelID: selectedChannelID)
-                withAnimation(.easeOut(duration: 0.25)) {
-                    state.refreshPlaylists(playlists, for: selectedChannelID)
-                }
+            let snapshot = await loadPlaylistSnapshot()
+            withAnimation(.easeOut(duration: 0.25)) {
+                applyPlaylistSnapshot(snapshot, for: selectedChannelID)
             }
         }
     }
@@ -250,7 +240,8 @@ final class ChannelBrowseViewModel: ObservableObject {
             channelDisplayTitle: item.channelTitle,
             title: item.title,
             publishedAt: item.publishedAt,
-            videoURL: coordinator.playlistContinuousPlayURL(playlistID: item.playlistID),
+            videoURL: playlistSnapshot.playlistContinuousPlayURLsByPlaylistID[item.playlistID]
+                ?? URL(string: "https://www.youtube.com/playlist?list=\(item.playlistID)"),
             thumbnailRemoteURL: item.firstVideoThumbnailURL ?? item.thumbnailURL,
             thumbnailLocalFilename: nil,
             fetchedAt: .now,
@@ -324,9 +315,9 @@ final class ChannelBrowseViewModel: ObservableObject {
         }
 
         Task {
-            let loadedPlaylists = await coordinator.loadChannelPlaylists(channelID: channelID)
+            let snapshot = await loadPlaylistSnapshot()
             withAnimation(.easeOut(duration: 0.25)) {
-                state.refreshPlaylists(loadedPlaylists, for: channelID)
+                applyPlaylistSnapshot(snapshot, for: channelID)
             }
             if let selectedPlaylistID = state.selectedPlaylistID(for: channelID),
                state.playlistVideosPage(for: selectedPlaylistID) == nil {
@@ -339,10 +330,30 @@ final class ChannelBrowseViewModel: ObservableObject {
         guard forceReload || state.playlistVideosPage(for: playlistID) == nil else { return }
 
         Task {
-            let page = await coordinator.loadPlaylistVideosPage(playlistID: playlistID, pageToken: nil, limit: 50)
-            withAnimation(.easeOut(duration: 0.25)) {
-                state.refreshPlaylistVideos(page)
+            let snapshot = await loadPlaylistSnapshot()
+            if let page = snapshot.playlistPagesByPlaylistID[playlistID] {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    playlistSnapshot = snapshot
+                    state.refreshPlaylistVideos(page)
+                }
             }
+        }
+    }
+
+    private func loadPlaylistSnapshot() async -> FeedCachePlaylistSnapshot {
+        let snapshot = await coordinator.loadSnapshot()
+        playlistSnapshot = snapshot.playlists
+        return snapshot.playlists
+    }
+
+    private func applyPlaylistSnapshot(_ snapshot: FeedCachePlaylistSnapshot, for channelID: String) {
+        playlistSnapshot = snapshot
+        if let playlists = snapshot.playlistsByChannelID[channelID] {
+            state.refreshPlaylists(playlists, for: channelID)
+        }
+        if let selectedPlaylistID = state.selectedPlaylistID(for: channelID),
+           let page = snapshot.playlistPagesByPlaylistID[selectedPlaylistID] {
+            state.refreshPlaylistVideos(page)
         }
     }
 }
