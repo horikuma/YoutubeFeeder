@@ -194,6 +194,7 @@ extension FeedCacheCoordinator {
         fallbackOnFailure: String
     ) async -> VideoSearchResult {
         let key = RemoteSearchTaskKey(keyword: keyword, limit: limit)
+        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
 
         let task: Task<VideoSearchResult, Never>
         if let existingTask = remoteSearchTasks[key] {
@@ -221,15 +222,16 @@ extension FeedCacheCoordinator {
                         expiresAt: payload.fetchedAt.addingTimeInterval(remoteSearchCacheLifetime)
                     )
                 } catch {
-                    return await Self.resolveRemoteRefreshFailure(
+                    return await Self.resolveRemoteRefreshFailure(.init(
                         error: error,
                         keyword: keyword,
+                        keywordPreview: keywordPreview,
                         limit: limit,
                         logger: logger,
                         readService: readService,
                         remoteSearchCacheLifetime: remoteSearchCacheLifetime,
                         fallbackOnFailure: fallbackOnFailure
-                    )
+                    ))
                 }
             }
             remoteSearchTasks[key] = task
@@ -269,39 +271,33 @@ extension FeedCacheCoordinator {
         remoteSearchPrewarmTasks.removeAll()
     }
 
-    nonisolated static func resolveRemoteRefreshFailure(
-        error: Error,
-        keyword: String,
-        limit: Int,
-        logger: AppConsoleLogger,
-        readService: FeedCacheReadService,
-        remoteSearchCacheLifetime: TimeInterval,
-        fallbackOnFailure: String
-    ) async -> VideoSearchResult {
-        let keywordPreview = AppConsoleLogger.sanitizedKeyword(keyword)
-        if RemoteSearchErrorPolicy.isCancellation(error) {
-            return await resolveCancelledRemoteRefreshFailure(
-                error: error,
-                keyword: keyword,
-                limit: limit,
-                keywordPreview: keywordPreview,
-                logger: logger,
-                readService: readService,
-                remoteSearchCacheLifetime: remoteSearchCacheLifetime
-            )
+    private struct RemoteRefreshFailureResolutionParams {
+        let error: Error
+        let keyword: String
+        let keywordPreview: String
+        let limit: Int
+        let logger: AppConsoleLogger
+        let readService: FeedCacheReadService
+        let remoteSearchCacheLifetime: TimeInterval
+        let fallbackOnFailure: String
+    }
+
+    private nonisolated static func resolveRemoteRefreshFailure(_ params: RemoteRefreshFailureResolutionParams) async -> VideoSearchResult {
+        if RemoteSearchErrorPolicy.isCancellation(params.error) {
+            return await resolveCancelledRemoteRefreshFailure(params)
         }
 
-        if let cached = await readService.loadRemoteSearchSnapshot(
-            keyword: keyword,
-            limit: limit,
-            cacheLifetime: remoteSearchCacheLifetime,
+        if let cached = await params.readService.loadRemoteSearchSnapshot(
+            keyword: params.keyword,
+            limit: params.limit,
+            cacheLifetime: params.remoteSearchCacheLifetime,
             allowExpired: true
         ) {
-            logger.error(
+            params.logger.error(
                 "refresh_failed",
-                message: AppConsoleLogger.errorSummary(error),
+                message: AppConsoleLogger.errorSummary(params.error),
                 metadata: [
-                    "keyword": keywordPreview,
+                    "keyword": params.keywordPreview,
                     "fallback": "stale_cache",
                     "videos": String(cached.videos.count)
                 ]
@@ -313,44 +309,36 @@ extension FeedCacheCoordinator {
                 source: .staleRemoteCache,
                 fetchedAt: cached.fetchedAt,
                 expiresAt: cached.expiresAt,
-                errorMessage: RemoteSearchErrorPolicy.userMessage(for: error)
+                errorMessage: RemoteSearchErrorPolicy.userMessage(for: params.error)
             )
         }
 
-        logger.error(
+        params.logger.error(
             "refresh_failed",
-            message: AppConsoleLogger.errorSummary(error),
-            metadata: ["keyword": keywordPreview, "fallback": fallbackOnFailure]
+            message: AppConsoleLogger.errorSummary(params.error),
+            metadata: ["keyword": params.keywordPreview, "fallback": params.fallbackOnFailure]
         )
         return VideoSearchResult(
-            keyword: keyword,
+            keyword: params.keyword,
             videos: [],
             totalCount: 0,
             source: .remoteAPI,
-            errorMessage: RemoteSearchErrorPolicy.userMessage(for: error)
+            errorMessage: RemoteSearchErrorPolicy.userMessage(for: params.error)
         )
     }
 
-    nonisolated static func resolveCancelledRemoteRefreshFailure(
-        error: Error,
-        keyword: String,
-        limit: Int,
-        keywordPreview: String,
-        logger: AppConsoleLogger,
-        readService: FeedCacheReadService,
-        remoteSearchCacheLifetime: TimeInterval
-    ) async -> VideoSearchResult {
-        if let cached = await readService.loadRemoteSearchSnapshot(
-            keyword: keyword,
-            limit: limit,
-            cacheLifetime: remoteSearchCacheLifetime,
+    private nonisolated static func resolveCancelledRemoteRefreshFailure(_ params: RemoteRefreshFailureResolutionParams) async -> VideoSearchResult {
+        if let cached = await params.readService.loadRemoteSearchSnapshot(
+            keyword: params.keyword,
+            limit: params.limit,
+            cacheLifetime: params.remoteSearchCacheLifetime,
             allowExpired: true
         ) {
-            logger.info("refresh_cancelled", metadata: cancelledRefreshMetadata(
-                keywordPreview: keywordPreview,
+            params.logger.info("refresh_cancelled", metadata: cancelledRefreshMetadata(
+                keywordPreview: params.keywordPreview,
                 fallback: cached.source == .staleRemoteCache ? "stale_cache" : "cache",
                 cachedVideoCount: cached.videos.count,
-                error: error
+                error: params.error
             ))
             return VideoSearchResult(
                 keyword: cached.keyword,
@@ -362,14 +350,14 @@ extension FeedCacheCoordinator {
             )
         }
 
-        logger.info("refresh_cancelled", metadata: cancelledRefreshMetadata(
-            keywordPreview: keywordPreview,
+        params.logger.info("refresh_cancelled", metadata: cancelledRefreshMetadata(
+            keywordPreview: params.keywordPreview,
             fallback: "empty",
             cachedVideoCount: nil,
-            error: error
+            error: params.error
         ))
         return VideoSearchResult(
-            keyword: keyword,
+            keyword: params.keyword,
             videos: [],
             totalCount: 0,
             source: .remoteCache

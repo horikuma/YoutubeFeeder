@@ -591,7 +591,7 @@ extension FeedCacheCoordinator {
             currentChannelID: currentChannelID,
             includesVideos: includesVideos
         )
-        let refreshState = await readService.loadRefreshState(
+        let refreshState = await readService.loadRefreshState(.init(
             channels: channels,
             freshnessInterval: freshnessInterval,
             videoQuery: videoQuery,
@@ -599,7 +599,7 @@ extension FeedCacheCoordinator {
             isRunning: isRunning,
             lastError: lastError,
             includesVideos: includesVideos
-        )
+        ))
         let snapshotLoadedAt = Date()
         let nextProgress = refreshState.progress
         let nextMaintenanceItems = refreshState.maintenanceItems
@@ -621,7 +621,7 @@ extension FeedCacheCoordinator {
         }
         AppConsoleLogger.appLifecycle.debug(
             "refresh_ui_complete",
-            metadata: refreshUICompletionMetadata(
+            metadata: refreshUICompletionMetadata(.init(
                 currentChannelID: currentChannelID,
                 includesVideos: includesVideos,
                 progress: nextProgress,
@@ -631,7 +631,7 @@ extension FeedCacheCoordinator {
                 snapshotLoadedAt: snapshotLoadedAt,
                 homeStatusUpdatedAt: homeStatusUpdatedAt,
                 persistedAt: persistedAt
-            )
+            ))
         )
     }
 
@@ -670,29 +670,31 @@ extension FeedCacheCoordinator {
         )
     }
 
-    func refreshUICompletionMetadata(
-        currentChannelID: String?,
-        includesVideos: Bool,
-        progress: CacheProgress,
-        maintenanceItemCount: Int,
-        loadedVideoCount: Int?,
-        startedAt: Date,
-        snapshotLoadedAt: Date,
-        homeStatusUpdatedAt: Date,
-        persistedAt: Date
-    ) -> [String: String] {
+    private struct RefreshUICompletionMetadataParams {
+        let currentChannelID: String?
+        let includesVideos: Bool
+        let progress: CacheProgress
+        let maintenanceItemCount: Int
+        let loadedVideoCount: Int?
+        let startedAt: Date
+        let snapshotLoadedAt: Date
+        let homeStatusUpdatedAt: Date
+        let persistedAt: Date
+    }
+
+    private func refreshUICompletionMetadata(_ params: RefreshUICompletionMetadataParams) -> [String: String] {
         [
-            "current_channel": currentChannelID ?? "none",
-            "includes_videos": includesVideos ? "true" : "false",
-            "cached_channels": String(progress.cachedChannels),
-            "cached_videos": String(progress.cachedVideos),
-            "loaded_videos": loadedVideoCount.map(String.init) ?? "",
-            "maintenance_items": String(maintenanceItemCount),
-            "snapshot_ms": AppConsoleLogger.elapsedMilliseconds(from: startedAt, to: snapshotLoadedAt),
-            "home_status_ms": AppConsoleLogger.elapsedMilliseconds(from: snapshotLoadedAt, to: homeStatusUpdatedAt),
-            "persist_ms": AppConsoleLogger.elapsedMilliseconds(from: homeStatusUpdatedAt, to: persistedAt),
-            "videos_ms": includesVideos ? AppConsoleLogger.elapsedMilliseconds(from: persistedAt, to: Date()) : "0",
-            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            "current_channel": params.currentChannelID ?? "none",
+            "includes_videos": params.includesVideos ? "true" : "false",
+            "cached_channels": String(params.progress.cachedChannels),
+            "cached_videos": String(params.progress.cachedVideos),
+            "loaded_videos": params.loadedVideoCount.map(String.init) ?? "",
+            "maintenance_items": String(params.maintenanceItemCount),
+            "snapshot_ms": AppConsoleLogger.elapsedMilliseconds(from: params.startedAt, to: params.snapshotLoadedAt),
+            "home_status_ms": AppConsoleLogger.elapsedMilliseconds(from: params.snapshotLoadedAt, to: params.homeStatusUpdatedAt),
+            "persist_ms": AppConsoleLogger.elapsedMilliseconds(from: params.homeStatusUpdatedAt, to: params.persistedAt),
+            "videos_ms": params.includesVideos ? AppConsoleLogger.elapsedMilliseconds(from: params.persistedAt, to: Date()) : "0",
+            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: params.startedAt),
             "main_thread": AppConsoleLogger.mainThreadFlag()
         ]
     }

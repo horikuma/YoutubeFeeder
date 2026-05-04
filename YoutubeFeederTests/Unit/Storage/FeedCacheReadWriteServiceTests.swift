@@ -204,7 +204,7 @@ final class FeedCacheReadWriteServiceTests: LoggedTestCase {
             let bootstrapURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
             let snapshotBefore = database.loadFeedSnapshot()
 
-            let state = await readService.loadRefreshState(
+            let state = await readService.loadRefreshState(.init(
                 channels: [channelID],
                 freshnessInterval: 60,
                 videoQuery: VideoQuery(limit: 20, channelID: nil, keyword: nil, sortOrder: .publishedDescending, excludeShorts: true),
@@ -212,7 +212,7 @@ final class FeedCacheReadWriteServiceTests: LoggedTestCase {
                 isRunning: false,
                 lastError: nil,
                 includesVideos: true
-            )
+            ))
 
             let snapshotAfter = database.loadFeedSnapshot()
 

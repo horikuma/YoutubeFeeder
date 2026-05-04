@@ -26,14 +26,17 @@ struct YouTubeSearchService {
 
         do {
             if AppLaunchMode.current.usesMockData {
-                return try await performMockSearch(
+                var mockSearchParams = MockSearchParams(
                     keyword: keyword,
                     limit: limit,
                     keywordPreview: keywordPreview,
                     startedAt: startedAt,
                     logger: logger,
-                    stage: &stage
+                    stage: stage
                 )
+                let response = try await performMockSearch(params: &mockSearchParams)
+                stage = mockSearchParams.stage
+                return response
             }
 
             let apiKey = try resolveAPIKey(keywordPreview: keywordPreview, logger: logger)
@@ -126,25 +129,27 @@ struct YouTubeSearchService {
         )
     }
 
-    private func performMockSearch(
-        keyword: String,
-        limit: Int,
-        keywordPreview: String,
-        startedAt: Date,
-        logger: AppConsoleLogger,
-        stage: inout String
-    ) async throws -> YouTubeSearchResponse {
-        stage = "mock_delay"
+    private struct MockSearchParams {
+        let keyword: String
+        let limit: Int
+        let keywordPreview: String
+        let startedAt: Date
+        let logger: AppConsoleLogger
+        var stage: String
+    }
+
+    private func performMockSearch(params: inout MockSearchParams) async throws -> YouTubeSearchResponse {
+        params.stage = "mock_delay"
         try? await Task.sleep(nanoseconds: 1_000_000_000)
-        stage = "mock_response"
-        let response = mockSearchResponse(keyword: keyword, limit: limit)
-        logger.info(
+        params.stage = "mock_response"
+        let response = mockSearchResponse(keyword: params.keyword, limit: params.limit)
+        params.logger.info(
             "request_complete",
             metadata: [
-                "keyword": keywordPreview,
+                "keyword": params.keywordPreview,
                 "videos": String(response.videos.count),
                 "source": "mock",
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: params.startedAt)
             ]
         )
         return response

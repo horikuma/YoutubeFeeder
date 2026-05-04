@@ -108,14 +108,14 @@ struct AppConsoleLogger {
         guard level.priority >= Self.minimumLogLevel.priority else { return }
         Self.recordScopeInvocation(for: scope)
         let timestamp = Self.timestamp(for: .now)
-        let line = Self.renderLine(
+        let line = Self.renderLine(.init(
             timestamp: timestamp,
             level: level,
             scope: scope,
             event: event,
             message: message,
             metadata: metadata
-        )
+        ))
         Self.writeConsoleLine(line, level: level)
         Self.writeFileLine(line)
     }
@@ -261,14 +261,22 @@ struct AppConsoleLogger {
         return exceeded
     }
 
-    static func renderLine(
-        timestamp: String,
-        level: AppConsoleLogLevel,
-        scope: String,
-        event: String,
-        message: String?,
-        metadata: [String: String]
-    ) -> String {
+    private struct RenderLineParams {
+        let timestamp: String
+        let level: AppConsoleLogLevel
+        let scope: String
+        let event: String
+        let message: String?
+        let metadata: [String: String]
+    }
+
+    private static func renderLine(_ params: RenderLineParams) -> String {
+        let timestamp = params.timestamp
+        let level = params.level
+        let scope = params.scope
+        let event = params.event
+        let message = params.message
+        let metadata = params.metadata
         let renderedMetadata = metadata
             .filter { !$0.value.isEmpty }
             .filter { shouldIncludeMetadataValue($0.value, level: level) }
@@ -644,12 +652,14 @@ struct AppConsoleLogger {
         metadata: [String: String]
     ) -> String {
         renderLine(
-            timestamp: timestamp(for: .now),
-            level: level,
-            scope: "app.lifecycle",
-            event: event,
-            message: nil,
-            metadata: metadata
+            .init(
+                timestamp: timestamp(for: .now),
+                level: level,
+                scope: "app.lifecycle",
+                event: event,
+                message: nil,
+                metadata: metadata
+            )
         )
     }
 

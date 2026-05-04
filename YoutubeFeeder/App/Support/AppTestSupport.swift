@@ -330,14 +330,14 @@ enum UITestFixtureSeeder {
         )
 
         database.replaceFeedSnapshot(cacheSnapshot)
-        updateBootstrapFixture(
+        updateBootstrapFixture(.init(
             bootstrapURL: bootstrapURL,
             channelID: alphaChannelID,
             channelTitle: alphaTitle,
             savedAt: savedAt,
             heavyAlphaVideos: heavyAlphaVideos,
             cachedVideoCount: cacheSnapshot.videos.count
-        )
+        ))
         writeHeavyRemoteSearchFixture(
             remoteVideos: remoteVideos,
             savedAt: savedAt,
@@ -377,16 +377,18 @@ enum UITestFixtureSeeder {
         return updatedSnapshot
     }
 
-    private static func updateBootstrapFixture(
-        bootstrapURL: URL,
-        channelID: String,
-        channelTitle: String,
-        savedAt: Date,
-        heavyAlphaVideos: [CachedVideo],
-        cachedVideoCount: Int
-    ) {
+    private struct UpdateBootstrapFixtureParams {
+        let bootstrapURL: URL
+        let channelID: String
+        let channelTitle: String
+        let savedAt: Date
+        let heavyAlphaVideos: [CachedVideo]
+        let cachedVideoCount: Int
+    }
+
+    private static func updateBootstrapFixture(_ params: UpdateBootstrapFixtureParams) {
         guard
-            let bootstrapData = try? Data(contentsOf: bootstrapURL),
+            let bootstrapData = try? Data(contentsOf: params.bootstrapURL),
             var bootstrapSnapshot = try? legacyCacheDecoder.decode(FeedBootstrapSnapshot.self, from: bootstrapData)
         else {
             return
@@ -395,30 +397,30 @@ enum UITestFixtureSeeder {
         bootstrapSnapshot.progress = CacheProgress(
             totalChannels: bootstrapSnapshot.progress.totalChannels,
             cachedChannels: max(bootstrapSnapshot.progress.cachedChannels, 1),
-            cachedVideos: cachedVideoCount,
+            cachedVideos: params.cachedVideoCount,
             cachedThumbnails: bootstrapSnapshot.progress.cachedThumbnails,
             currentChannelID: bootstrapSnapshot.progress.currentChannelID,
             currentChannelNumber: bootstrapSnapshot.progress.currentChannelNumber,
-            lastUpdatedAt: savedAt,
+            lastUpdatedAt: params.savedAt,
             isRunning: false,
             lastError: nil
         )
         bootstrapSnapshot.maintenanceItems = bootstrapSnapshot.maintenanceItems.map { item in
-            guard item.channelID == channelID else { return item }
+            guard item.channelID == params.channelID else { return item }
             return ChannelMaintenanceItem(
                 id: item.id,
                 channelID: item.channelID,
-                channelTitle: channelTitle,
-                lastSuccessAt: savedAt,
-                lastCheckedAt: savedAt,
-                latestPublishedAt: heavyAlphaVideos.first?.publishedAt,
-                cachedVideoCount: heavyAlphaVideos.count,
+                channelTitle: params.channelTitle,
+                lastSuccessAt: params.savedAt,
+                lastCheckedAt: params.savedAt,
+                latestPublishedAt: params.heavyAlphaVideos.first?.publishedAt,
+                cachedVideoCount: params.heavyAlphaVideos.count,
                 lastError: nil,
                 freshness: .fresh
             )
         }
         if let encodedBootstrap = try? bootstrapEncoder.encode(bootstrapSnapshot) {
-            try? encodedBootstrap.write(to: bootstrapURL, options: [.atomic])
+            try? encodedBootstrap.write(to: params.bootstrapURL, options: [.atomic])
         }
     }
 
