@@ -175,10 +175,8 @@ enum ChannelRegistryCSVImportService {
         let rows = try ChannelRegistryCSVImportParser.parse(data: data)
         var importedChannelIDs: [String] = []
 
-        for row in rows {
-            if try ChannelRegistryStore.addChannelID(row.channelID, fileManager: fileManager, source: "csv_import") {
-                importedChannelIDs.append(row.channelID)
-            }
+        for row in rows where try ChannelRegistryStore.addChannelID(row.channelID, fileManager: fileManager, source: "csv_import") {
+            importedChannelIDs.append(row.channelID)
         }
 
         return ChannelRegistryCSVImportResult(

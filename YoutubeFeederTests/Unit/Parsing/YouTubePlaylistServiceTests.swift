@@ -3,7 +3,7 @@ import XCTest
 
 final class YouTubePlaylistServiceTests: LoggedTestCase {
     func testPlaylistsListResponseDecodesItems() throws {
-        let json = """
+        let json = Data("""
         {
           "items": [
             {
@@ -27,7 +27,7 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
             "totalResults": 1
           }
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let response = try JSONDecoder.youtubeAPI.decode(PlaylistsListResponse.self, from: json)
 
@@ -39,7 +39,7 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
     }
 
     func testPlaylistItemsListResponseDecodesNextPageToken() throws {
-        let json = """
+        let json = Data("""
         {
           "items": [
             {
@@ -53,7 +53,7 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
             "totalResults": 1
           }
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let response = try JSONDecoder.youtubeAPI.decode(PlaylistItemsListResponse.self, from: json)
 
@@ -234,7 +234,7 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
     }
 
     private static func playlistsResponseData() -> Data {
-        """
+        Data("""
         {
           "items": [
             {
@@ -258,11 +258,11 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
             "totalResults": 1
           }
         }
-        """.data(using: .utf8)!
+        """.utf8)
     }
 
     private static func playlistItemsResponseData() -> Data {
-        """
+        Data("""
         {
           "items": [
             {
@@ -276,11 +276,11 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
             "totalResults": 1
           }
         }
-        """.data(using: .utf8)!
+        """.utf8)
     }
 
     private static func videoDetailsResponseData() -> Data {
-        """
+        Data("""
         {
           "items": [
             {
@@ -304,7 +304,7 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
             }
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
     }
 
     private static func httpResponse(for url: URL) -> HTTPURLResponse {

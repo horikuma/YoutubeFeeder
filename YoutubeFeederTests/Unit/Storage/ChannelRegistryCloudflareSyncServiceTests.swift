@@ -1,7 +1,7 @@
 import XCTest
 @testable import YoutubeFeeder
 
-final class ChannelRegistryCloudflareSyncServiceTests: LoggedTestCase {
+final class CloudflareSyncServiceTests: LoggedTestCase {
     func testChannelRegistryEndpointURLAcceptsBaseURL() {
         XCTAssertEqual(
             ChannelRegistryCloudflareSyncService

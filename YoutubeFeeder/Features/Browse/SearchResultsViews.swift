@@ -21,7 +21,8 @@ struct KeywordSearchResultsView: View {
                 await reloadResults()
             },
             allowsRefreshCommandBinding: true
-        ) {
+            ,
+            content: {
             if searchState.result.videos.isEmpty {
                 MetricTile(title: "検索結果", value: "0件", detail: "一致する動画がキャッシュにありません")
             } else {
@@ -54,7 +55,8 @@ struct KeywordSearchResultsView: View {
                     }
                 }
             }
-        }
+            }
+        )
         .safeAreaInset(edge: .bottom) {
             if isChipVisible {
                 SearchResultCountChip(totalCount: searchState.result.totalCount, sourceLabel: searchState.result.source.label, fetchedAt: searchState.result.fetchedAt)

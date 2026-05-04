@@ -201,7 +201,7 @@ struct YouTubeChannelResolver {
             lookupURL = try YouTubeChannelInput.lookupURL(from: input)
         }
         let (data, _) = try await URLSession.shared.data(from: lookupURL)
-        let html = String(decoding: data, as: UTF8.self)
+        let html = String(bytes: data, encoding: .utf8) ?? ""
 
         guard let channelID = YouTubeChannelInput.extractChannelID(from: html) else {
             throw ChannelResolutionError.unresolvedChannelID

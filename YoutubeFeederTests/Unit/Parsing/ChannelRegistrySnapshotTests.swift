@@ -3,7 +3,7 @@ import XCTest
 
 final class ChannelRegistrySnapshotTests: LoggedTestCase {
     func testDecodeSupportsCurrentRegistryFormat() throws {
-        let json = """
+        let json = Data("""
         {
           "channels": [
             {
@@ -16,7 +16,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
             }
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let snapshot = try JSONDecoder().decode(ChannelRegistrySnapshot.self, from: json)
 
@@ -30,7 +30,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
     }
 
     func testTransferDocumentDecodesCurrentFormat() throws {
-        let json = """
+        let json = Data("""
         {
           "formatVersion": 2,
           "exportedAt": "2026-03-15T01:23:45Z",
@@ -41,7 +41,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
             }
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

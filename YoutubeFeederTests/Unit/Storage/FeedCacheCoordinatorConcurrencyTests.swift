@@ -443,7 +443,7 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             let value = try await operation()
             restore()
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            return (value, String(decoding: data, as: UTF8.self))
+            return (value, String(bytes: data, encoding: .utf8) ?? "")
         } catch {
             restore()
             throw error
@@ -469,6 +469,13 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
     }
 }
 
+private struct FeedRefreshCallSnapshot {
+    let checkCount: Int
+    let fetchCount: Int
+    let manualTaskObservedDuringCheck: Bool
+    let validationTokens: [String?]
+}
+
 private actor FeedRefreshCallRecorder {
     private var checkCount = 0
     private var fetchCount = 0
@@ -485,13 +492,8 @@ private actor FeedRefreshCallRecorder {
         fetchCount += 1
     }
 
-    func snapshot() -> (
-        checkCount: Int,
-        fetchCount: Int,
-        manualTaskObservedDuringCheck: Bool,
-        validationTokens: [String?]
-    ) {
-        (
+    func snapshot() -> FeedRefreshCallSnapshot {
+        FeedRefreshCallSnapshot(
             checkCount: checkCount,
             fetchCount: fetchCount,
             manualTaskObservedDuringCheck: manualTaskObservedDuringCheck,

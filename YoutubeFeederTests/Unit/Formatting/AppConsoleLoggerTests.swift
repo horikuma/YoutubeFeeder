@@ -682,7 +682,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         pipe.fileHandleForWriting.closeFile()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return Self.unwrappedLogOutput(String(decoding: data, as: UTF8.self))
+        return Self.unwrappedLogOutput(String(bytes: data, encoding: .utf8) ?? "")
     }
 
     private func captureStandardError(_ operation: () throws -> Void) rethrows -> String {
@@ -699,7 +699,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         pipe.fileHandleForWriting.closeFile()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return Self.unwrappedLogOutput(String(decoding: data, as: UTF8.self))
+        return Self.unwrappedLogOutput(String(bytes: data, encoding: .utf8) ?? "")
     }
 
     private static func unwrappedLogOutput(_ output: String) -> String {

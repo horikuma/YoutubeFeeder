@@ -293,7 +293,7 @@ struct AppConsoleLogger {
     private static func jsonWrappedLine(_ line: String) -> String {
         guard
             let data = try? JSONSerialization.data(withJSONObject: ["line": line], options: [.sortedKeys]),
-            let string = String(data: data, encoding: .utf8)
+            let string = String(bytes: data, encoding: .utf8)
         else {
             return line
         }
@@ -321,7 +321,7 @@ struct AppConsoleLogger {
     }
 
     static func responsePreview(_ data: Data, limit: Int = 160) -> String {
-        let raw = String(decoding: data, as: UTF8.self)
+        let raw = String(bytes: data, encoding: .utf8) ?? ""
         let normalized = raw
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .replacingOccurrences(of: "([\\[{])\\s+", with: "$1", options: .regularExpression)

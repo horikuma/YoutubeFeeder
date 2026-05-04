@@ -48,7 +48,8 @@ struct ChannelVideosView: View {
                 )
             },
             allowsRefreshCommandBinding: true
-        ) {
+            ,
+            content: {
             if AppLaunchMode.current.usesMockData {
                 UITestMarker(
                     identifier: "screen.channelVideos.loaded",
@@ -102,7 +103,8 @@ struct ChannelVideosView: View {
                     }
                 }
             }
-        }
+            }
+        )
         .task {
             await reloadVideos()
         }

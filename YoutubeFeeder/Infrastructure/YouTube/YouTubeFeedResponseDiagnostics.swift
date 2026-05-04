@@ -7,7 +7,7 @@ enum YouTubeFeedResponseDiagnostics {
         data: Data,
         elapsedMilliseconds: String
     ) -> [String: String] {
-        let text = String(decoding: data.prefix(4096), as: UTF8.self)
+        let text = String(bytes: data.prefix(4096), encoding: .utf8) ?? ""
         return [
             "channelID": channelID,
             "status": httpResponse.map { String($0.statusCode) } ?? "nil",
@@ -28,7 +28,7 @@ enum YouTubeFeedResponseDiagnostics {
         data: Data,
         parsedVideos: [YouTubeVideo]
     ) -> [String: String] {
-        let text = String(decoding: data.prefix(4096), as: UTF8.self)
+        let text = String(bytes: data.prefix(4096), encoding: .utf8) ?? ""
         let rawEntryCount = countOccurrences(of: "<entry", in: text)
         let rawVideoIDCount = countOccurrences(of: "<yt:videoId", in: text)
         return [

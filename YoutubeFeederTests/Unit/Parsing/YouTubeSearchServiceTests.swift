@@ -26,7 +26,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     func testFilterPlayableVideosExcludesLiveEntries() {
-        let json = """
+        let json = Data("""
         {
           "items": [
             {
@@ -70,7 +70,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
             }
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -83,7 +83,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     func testVideoListResponseDecodesItemsWithMissingContentDetailsDuration() throws {
-        let json = """
+        let json = Data("""
         {
           "items": [
             {
@@ -131,7 +131,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
             }
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -141,7 +141,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     func testFilterPlayableVideosExcludesItemsMissingDuration() throws {
-        let json = """
+        let json = Data("""
         {
           "items": [
             {
@@ -189,7 +189,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
             }
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -351,13 +351,13 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     private static func videoDetailsResponseJSON(items: [String]) -> Data {
-        """
+        Data("""
         {
           "items": [
             \(items.joined(separator: ",\n"))
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
     }
 
     private static func videoDetailsItemJSON(id: String, duration: String?) -> String {
@@ -392,7 +392,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     private static func channelsListResponseJSON(uploadsPlaylistID: String) -> Data {
-        """
+        Data("""
         {
           "items": [
             {
@@ -404,7 +404,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
             }
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
     }
 
     private static func playlistItemsResponseJSON(videoIDs: [String], nextPageToken: String?) -> Data {
@@ -428,7 +428,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
 
         let totalResults = videoIDs.count + (nextPageToken == nil ? 0 : 1)
 
-        return """
+        return Data("""
         {
           \(nextPageTokenJSON)
           "pageInfo": {
@@ -438,7 +438,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
             \(items.joined(separator: ",\n"))
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
     }
 
     private static func httpResponse(for url: URL) -> HTTPURLResponse {

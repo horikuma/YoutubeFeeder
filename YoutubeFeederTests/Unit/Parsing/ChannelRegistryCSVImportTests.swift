@@ -22,10 +22,10 @@ final class ChannelRegistryCSVImportTests: LoggedTestCase {
     }
 
     func testParserRejectsUnexpectedHeader() throws {
-        let data = """
+        let data = Data("""
         channel_id,url,title
         UC123,https://www.youtube.com/channel/UC123,Example
-        """.data(using: .utf8)!
+        """.utf8)
 
         XCTAssertThrowsError(try ChannelRegistryCSVImportParser.parse(data: data)) { error in
             XCTAssertEqual(error as? ChannelRegistryCSVImportError, .invalidHeader)
@@ -33,10 +33,10 @@ final class ChannelRegistryCSVImportTests: LoggedTestCase {
     }
 
     func testParserRejectsMissingChannelID() throws {
-        let data = """
+        let data = Data("""
         チャンネル ID,チャンネルの URL,チャンネルのタイトル
         ,https://www.youtube.com/channel/UC123,Example
-        """.data(using: .utf8)!
+        """.utf8)
 
         XCTAssertThrowsError(try ChannelRegistryCSVImportParser.parse(data: data)) { error in
             XCTAssertEqual(error as? ChannelRegistryCSVImportError, .missingChannelID(rowNumber: 2))

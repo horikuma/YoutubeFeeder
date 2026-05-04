@@ -368,7 +368,7 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
     }
 
     nonisolated private static func searchListResponseJSON(items: [String]) -> Data {
-        """
+        Data("""
         {
           "items": [
             \(items.joined(separator: ",\n"))
@@ -377,7 +377,7 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
             "totalResults": \(items.count)
           }
         }
-        """.data(using: .utf8)!
+        """.utf8)
     }
 
     nonisolated private static func searchListItemJSON(id: String, publishedAt: String) -> String {
@@ -401,13 +401,13 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
     }
 
     nonisolated private static func videoDetailsResponseJSON(items: [String]) -> Data {
-        """
+        Data("""
         {
           "items": [
             \(items.joined(separator: ",\n"))
           ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
     }
 
     nonisolated private static func videoDetailsItemJSON(id: String, duration: String?) -> String {
