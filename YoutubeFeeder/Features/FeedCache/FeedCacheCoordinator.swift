@@ -116,7 +116,7 @@ final class FeedCacheCoordinator: ObservableObject {
             await refreshChannelManually(context.channelID)
             return .channelVideos(await loadVideosForChannel(context.channelID))
         case let .remoteSearch(keyword, limit):
-            return .remoteSearch(await searchRemoteVideos(keyword: keyword, limit: limit, forceRefresh: true))
+            return .remoteSearch(await search(keyword: keyword, limit: limit, forceRefresh: true))
         }
     }
 
