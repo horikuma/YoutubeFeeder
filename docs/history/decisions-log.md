@@ -1,3 +1,13 @@
+## 2026/05/04
+- FeedCacheSnapshotへ登録チャンネルIDとメンテナンス項目を内包し、ChannelBrowseViewModelのチャンネル一覧構成をSnapshot起点へ統一する。
+  - ChannelBrowseViewModelがCoordinator公開プロパティを直接参照せず、loadSnapshot経由だけでUI状態を組み立てられるようにするため。
+- SwiftLintレポート3は最新lintログのみを根拠に再生成し、比較情報を本文へ含めない。
+  - 最新出力単独で違反の種類と集中箇所を読み取れる状態にするため。
+- SwiftLintレポート2は単一ログを根拠に再生成し、前回比較を本文に含めない。
+  - 文脈混入を避け、再取得結果だけで判断できる状態にするため。
+- プレイリスト一覧のサムネイル取得は先頭動画IDをBrowseモデルへ保持し、既存のFeedCacheWriteServiceとFeedCacheStore経路へ渡す。
+  - View層からremote URLを直接表示せず、サムネイル参照をデータストア経由に保つため。
+
 ## 2026/05/03
 - 画面単位の非同期、状態分岐、副作用起動、event log は ViewModel に固定し、rendering observation は View に置く。
   - View へ責務が凝集して分岐と副作用が増えることを防ぎ、変更時の配置判断を毎回揺らさないため。
