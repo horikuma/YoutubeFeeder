@@ -103,6 +103,23 @@ final class FeedCacheCoordinator: ObservableObject {
         )
     }
 
+    func loadSnapshot() async -> FeedCacheSnapshot {
+        await readService.loadSnapshot()
+    }
+
+    func refresh(intent: FeedCacheIntent) async -> FeedCacheResult {
+        switch intent {
+        case .home:
+            await refreshCacheManually()
+            return .home
+        case let .channel(context):
+            await refreshChannelManually(context.channelID)
+            return .channelVideos(await loadVideosForChannel(context.channelID))
+        case let .remoteSearch(keyword, limit):
+            return .remoteSearch(await searchRemoteVideos(keyword: keyword, limit: limit, forceRefresh: true))
+        }
+    }
+
     func refreshCacheManually() async {
         guard !dropChannelRefreshTriggerIfRunning("manual_home_refresh") else { return }
         syncRegisteredChannelsFromStore(reason: "manual_refresh")
@@ -203,17 +220,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func performRefreshAction(_ action: FeedRefreshAction) async -> FeedRefreshResult {
-        switch action {
-        case .home:
-            await refreshCacheManually()
-            return .home
-        case let .channel(context):
-            await refreshChannelManually(context.channelID)
-            return .channelVideos(await loadVideosForChannel(context.channelID))
-        case let .remoteSearch(keyword, limit):
-            let result = await searchRemoteVideos(keyword: keyword, limit: limit, forceRefresh: true)
-            return .remoteSearch(result)
-        }
+        await refresh(intent: action)
     }
 
     func loadVideosFromCache() {
@@ -437,6 +444,10 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func searchVideos(keyword: String, limit: Int = 20) async -> VideoSearchResult {
+        await search(keyword: keyword, limit: limit)
+    }
+
+    func search(keyword: String, limit: Int = 20) async -> VideoSearchResult {
         await readService.searchVideos(keyword: keyword, limit: limit)
     }
 
