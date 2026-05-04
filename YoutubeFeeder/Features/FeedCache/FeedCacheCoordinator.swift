@@ -104,7 +104,12 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func loadSnapshot() async -> FeedCacheSnapshot {
-        await readService.loadSnapshot()
+        var snapshot = await readService.loadSnapshot()
+        snapshot.registeredAtByChannelID = Dictionary(
+            ChannelRegistryStore.loadAllChannels().map { ($0.channelID, $0.addedAt) },
+            uniquingKeysWith: { _, rhs in rhs }
+        )
+        return snapshot
     }
 
     func refresh(intent: FeedCacheIntent) async -> FeedCacheResult {
@@ -115,6 +120,22 @@ final class FeedCacheCoordinator: ObservableObject {
         case let .channel(context):
             await refreshChannelManually(context.channelID)
             return .channelVideos(await loadVideosForChannel(context.channelID))
+        case let .channelVideos(channelID):
+            return .channelVideos(await loadVideosForChannel(channelID))
+        case let .channelVideosNextPage(channelID):
+            let snapshot = await loadSnapshot()
+            let page = await loadChannelVideosPage(
+                channelID: channelID,
+                pageToken: snapshot.nextPageToken(for: channelID),
+                limit: 50
+            )
+            return .channelVideoPage(page)
+        case let .removeChannel(channelID):
+            guard let feedback = await removeChannel(channelID) else {
+                return .home
+            }
+            await writeService.saveChannelNextPageToken(nil, channelID: channelID)
+            return .channelRemoval(feedback)
         case let .remoteSearch(keyword, limit):
             return .remoteSearch(await search(keyword: keyword, limit: limit, forceRefresh: true))
         }
@@ -251,11 +272,13 @@ final class FeedCacheCoordinator: ObservableObject {
         limit: Int = 50
     ) async -> ChannelVideoPageResult {
         do {
-            return try await remoteSearchService.refreshChannelVideosPage(
+            let page = try await remoteSearchService.refreshChannelVideosPage(
                 channelID: channelID,
                 pageToken: pageToken,
                 limit: limit
             )
+            await writeService.saveChannelNextPageToken(page.nextPageToken, channelID: channelID)
+            return page
         } catch {
             RuntimeDiagnostics.shared.record(
                 "channel_page_load_failed",

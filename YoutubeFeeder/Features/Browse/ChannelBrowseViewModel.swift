@@ -40,7 +40,11 @@ final class ChannelBrowseViewModel: ObservableObject {
     }
 
     func loadChannelBrowseItems() async {
-        let items = await coordinator.loadChannelBrowseItems(sortDescriptor: sortDescriptor)
+        let snapshot = await coordinator.loadSnapshot()
+        let items = snapshot.channelBrowseItems(
+            channelIDs: coordinator.channels,
+            sortDescriptor: sortDescriptor
+        )
         withAnimation(.easeOut(duration: 0.25)) {
             state.setItems(items)
         }
@@ -54,7 +58,9 @@ final class ChannelBrowseViewModel: ObservableObject {
 
     func confirmPendingRemoval() async {
         guard let pendingChannelRemoval = state.pendingChannelRemoval else { return }
-        if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
+        if case let .channelRemoval(feedback) = await coordinator.refresh(intent: .removeChannel(
+            channelID: pendingChannelRemoval.channelID
+        )) {
             state.clearPendingRemoval()
             applyRemovalFeedback(feedback)
         } else {
@@ -123,7 +129,6 @@ final class ChannelBrowseViewModel: ObservableObject {
         guard let selectedChannelID = state.selectedChannelID else { return }
         switch state.displayMode(for: selectedChannelID) {
         case .videos:
-            let selectedItem = state.items.first(where: { $0.channelID == selectedChannelID })
             RuntimeDiagnostics.shared.record(
                 "channel_refresh_gesture",
                 detail: "スプリット表示の動画一覧で下スワイプ更新",
@@ -132,14 +137,8 @@ final class ChannelBrowseViewModel: ObservableObject {
                     "screen": "splitChannelVideos"
                 ]
             )
-            if case let .channelVideos(refreshedVideos) = await coordinator.refresh(intent: .channel(
-                ChannelVideosRouteContext(
-                    channelID: selectedChannelID,
-                    preferredChannelTitle: selectedItem?.channelTitle,
-                    selectedVideoID: state.videosForSelectedChannel().first?.id,
-                    prefersAutomaticRefresh: false,
-                    routeSource: .channelBrowse
-                )
+            if case let .channelVideos(refreshedVideos) = await coordinator.refresh(intent: .channelVideos(
+                channelID: selectedChannelID
             )) {
                 withAnimation(.easeOut(duration: 0.25)) {
                     state.refreshSelectedChannelVideos(refreshedVideos)
@@ -179,15 +178,14 @@ final class ChannelBrowseViewModel: ObservableObject {
             ]
         )
         Task {
-            let page = await coordinator.loadChannelVideosPage(
-                channelID: channelID,
-                pageToken: nextPageToken,
-                limit: 50
-            )
-            if state.selectedChannelID == channelID {
-                state.appendSelectedChannelVideos(page.videos)
-                nextPageToken = page.nextPageToken
-                hasStartedPaging = true
+            if case let .channelVideoPage(page) = await coordinator.refresh(intent: .channelVideosNextPage(
+                channelID: channelID
+            )) {
+                if state.selectedChannelID == channelID {
+                    state.appendSelectedChannelVideos(page.videos)
+                    nextPageToken = page.nextPageToken
+                    hasStartedPaging = true
+                }
             }
             didRequestLoadMore = false
         }
@@ -287,9 +285,12 @@ final class ChannelBrowseViewModel: ObservableObject {
     private func loadVideosIfNeeded(for channelID: String) {
         guard state.beginLoadingVideos(for: channelID) else { return }
         Task {
-            let loadedVideos = await coordinator.loadVideosForChannel(channelID)
-            withAnimation(.easeOut(duration: 0.25)) {
-                state.finishLoadingVideos(loadedVideos, for: channelID)
+            if case let .channelVideos(loadedVideos) = await coordinator.refresh(intent: .channelVideos(
+                channelID: channelID
+            )) {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    state.finishLoadingVideos(loadedVideos, for: channelID)
+                }
             }
             nextPageToken = nil
             hasStartedPaging = false
@@ -302,7 +303,7 @@ final class ChannelBrowseViewModel: ObservableObject {
                     metadata: [
                         "channelID": channelID,
                         "refresh_source": refreshSource,
-                        "videoCount": String(loadedVideos.count)
+                        "videoCount": String(state.videosForSelectedChannel().count)
                     ]
                 )
                 state.selectedChannelRefreshSource = nil

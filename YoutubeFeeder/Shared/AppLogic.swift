@@ -56,6 +56,9 @@ enum AppInteractionPlatform: String {
 enum FeedCacheIntent {
     case home
     case channel(ChannelVideosRouteContext)
+    case channelVideos(channelID: String)
+    case channelVideosNextPage(channelID: String)
+    case removeChannel(channelID: String)
     case remoteSearch(keyword: String, limit: Int)
 }
 
@@ -64,6 +67,8 @@ typealias FeedRefreshAction = FeedCacheIntent
 enum FeedCacheResult {
     case home
     case channelVideos([CachedVideo])
+    case channelVideoPage(ChannelVideoPageResult)
+    case channelRemoval(ChannelRemovalFeedback)
     case remoteSearch(VideoSearchResult)
 }
 

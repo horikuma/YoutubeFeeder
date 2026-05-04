@@ -5,6 +5,7 @@ final class FeedCacheSQLiteDatabase {
     private static let registryLock = NSLock()
     private static var sharedByPath: [String: FeedCacheSQLiteDatabase] = [:]
     private static let playlistSnapshotMetadataKey = "feed_playlist_snapshot"
+    private static let channelNextPageTokensMetadataKey = "feed_channel_next_page_tokens"
 
     static func shared(fileManager: FileManager = .default) -> FeedCacheSQLiteDatabase {
         let databaseURL = FeedCachePaths.databaseURL(fileManager: fileManager)
@@ -60,6 +61,7 @@ final class FeedCacheSQLiteDatabase {
                 savedAt: metadataDate(for: "feed_saved_at") ?? .distantPast,
                 channels: loadCachedChannels(),
                 videos: loadCachedVideos(),
+                channelNextPageTokenByChannelID: loadChannelNextPageTokensInCurrentQueue(),
                 playlists: loadPlaylistSnapshotInCurrentQueue()
             )
         }
@@ -79,6 +81,7 @@ final class FeedCacheSQLiteDatabase {
             execute("DELETE FROM cached_videos;")
             execute("DELETE FROM cached_channels;")
             deleteMetadata(for: "feed_saved_at")
+            deleteMetadata(for: Self.channelNextPageTokensMetadataKey)
             deleteMetadata(for: Self.playlistSnapshotMetadataKey)
         }
     }
@@ -109,6 +112,18 @@ final class FeedCacheSQLiteDatabase {
                 playlistSnapshot.playlistContinuousPlayURLsByPlaylistID[page.playlistID] = url
             }
             savePlaylistSnapshotInCurrentQueue(playlistSnapshot)
+        }
+    }
+
+    func saveChannelNextPageToken(_ nextPageToken: String?, channelID: String) {
+        queue.sync {
+            var tokens = loadChannelNextPageTokensInCurrentQueue()
+            if let nextPageToken {
+                tokens[channelID] = nextPageToken
+            } else {
+                tokens[channelID] = nil
+            }
+            saveChannelNextPageTokensInCurrentQueue(tokens)
         }
     }
 
@@ -690,6 +705,23 @@ final class FeedCacheSQLiteDatabase {
             return
         }
         saveMetadataText(String(decoding: data, as: UTF8.self), for: Self.playlistSnapshotMetadataKey)
+    }
+
+    private func loadChannelNextPageTokensInCurrentQueue() -> [String: String] {
+        guard let text = metadataText(for: Self.channelNextPageTokensMetadataKey),
+              let data = text.data(using: .utf8),
+              let tokens = try? decoder.decode([String: String].self, from: data) else {
+            return [:]
+        }
+        return tokens
+    }
+
+    private func saveChannelNextPageTokensInCurrentQueue(_ tokens: [String: String]) {
+        guard let data = try? encoder.encode(tokens) else {
+            deleteMetadata(for: Self.channelNextPageTokensMetadataKey)
+            return
+        }
+        saveMetadataText(String(decoding: data, as: UTF8.self), for: Self.channelNextPageTokensMetadataKey)
     }
 
     private func continuousPlayURL(for playlistID: String) -> URL? {

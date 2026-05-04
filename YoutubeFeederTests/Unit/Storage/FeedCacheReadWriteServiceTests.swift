@@ -343,6 +343,70 @@ final class FeedCacheReadWriteServiceTests: LoggedTestCase {
         }
     }
 
+    func testLoadSnapshotIncludesChannelNextPageTokenThroughWriteService() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        let now = ISO8601DateFormatter().date(from: "2026-03-26T04:00:00Z")!
+        let channelID = "UC_CHANNEL_PAGE_TOKEN"
+
+        try await withFeedCacheEnvironment(baseDirectory: temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(
+                FeedCacheSnapshot(
+                    savedAt: now,
+                    channels: [
+                        CachedChannelState(
+                            channelID: channelID,
+                            channelTitle: "Paging Channel",
+                            lastAttemptAt: now,
+                            lastCheckedAt: now,
+                            lastSuccessAt: now,
+                            latestPublishedAt: now,
+                            cachedVideoCount: 1,
+                            lastError: nil,
+                            etag: nil,
+                            lastModified: nil
+                        )
+                    ],
+                    videos: [
+                        CachedVideo(
+                            id: "page-video-1",
+                            channelID: channelID,
+                            channelTitle: "Paging Channel",
+                            title: "Page video",
+                            publishedAt: now,
+                            videoURL: URL(string: "https://example.com/watch?v=page-video-1"),
+                            thumbnailRemoteURL: nil,
+                            thumbnailLocalFilename: nil,
+                            fetchedAt: now,
+                            searchableText: "page video",
+                            durationSeconds: 90,
+                            viewCount: 1
+                        )
+                    ]
+                )
+            )
+
+            let writeService = FeedCacheWriteService(
+                store: FeedCacheStore(),
+                remoteSearchCacheStore: RemoteVideoSearchCacheStore()
+            )
+            await writeService.saveChannelNextPageToken("PAGE_2", channelID: channelID)
+
+            let readService = FeedCacheReadService(
+                store: FeedCacheStore(),
+                remoteSearchCacheStore: RemoteVideoSearchCacheStore()
+            )
+            let snapshot = await readService.loadSnapshot()
+
+            XCTAssertEqual(snapshot.channelNextPageTokenByChannelID[channelID], "PAGE_2")
+            XCTAssertEqual(snapshot.channelBrowseItems(channelIDs: [channelID]).first?.channelID, channelID)
+        }
+    }
+
     func testClearRemoteSearchRemovesPersistedCacheThroughWriteService() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

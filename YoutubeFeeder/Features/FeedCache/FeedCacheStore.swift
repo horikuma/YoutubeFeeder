@@ -116,6 +116,10 @@ actor FeedCacheStore {
         database.savePlaylistVideosPage(page)
     }
 
+    func saveChannelNextPageToken(_ nextPageToken: String?, channelID: String) {
+        database.saveChannelNextPageToken(nextPageToken, channelID: channelID)
+    }
+
     func recordFailure(channelID: String, checkedAt: Date, error: String) {
         var snapshot = loadSnapshot()
         var channel = snapshot.channels.first(where: { $0.channelID == channelID }) ?? CachedChannelState(
