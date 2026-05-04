@@ -78,6 +78,7 @@ struct PlaylistBrowseItem: Identifiable, Hashable {
     let publishedAt: Date?
     let itemCount: Int?
     let thumbnailURL: URL?
+    let firstVideoID: String?
     let firstVideoThumbnailURL: URL?
 
     init(
@@ -90,6 +91,7 @@ struct PlaylistBrowseItem: Identifiable, Hashable {
         publishedAt: Date?,
         itemCount: Int?,
         thumbnailURL: URL?,
+        firstVideoID: String? = nil,
         firstVideoThumbnailURL: URL? = nil
     ) {
         self.id = id
@@ -101,6 +103,7 @@ struct PlaylistBrowseItem: Identifiable, Hashable {
         self.publishedAt = publishedAt
         self.itemCount = itemCount
         self.thumbnailURL = thumbnailURL
+        self.firstVideoID = firstVideoID
         self.firstVideoThumbnailURL = firstVideoThumbnailURL
     }
 }

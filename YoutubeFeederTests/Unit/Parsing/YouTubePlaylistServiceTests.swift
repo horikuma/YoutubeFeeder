@@ -93,7 +93,7 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
         }
     }
 
-    func testLoadPlaylistsPassesFirstVideoThumbnailURLToPlaylistBrowseItem() async throws {
+    func testLoadPlaylistsPassesFirstVideoIDAndThumbnailURLToPlaylistBrowseItem() async throws {
         let recorder = PlaylistRequestRecorder()
         try await withEnvironment([
             "YOUTUBEFEEDER_UI_TEST_MODE": "1",
@@ -135,9 +135,10 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
             let requests = await recorder.snapshot()
 
             XCTAssertEqual(playlists.count, 1)
+            XCTAssertEqual(playlists.first?.firstVideoID, "video-001")
             XCTAssertEqual(
                 playlists.first?.firstVideoThumbnailURL?.absoluteString,
-                "https://example.com/video-1.jpg"
+                "https://i.ytimg.com/vi/video-001/maxresdefault.jpg"
             )
             XCTAssertEqual(requests.map(\.path), ["/youtube/v3/playlists", "/youtube/v3/playlistItems", "/youtube/v3/videos"])
             XCTAssertEqual(requests[1].queryValue(named: "maxResults"), "1")

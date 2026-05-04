@@ -235,7 +235,7 @@ final class ChannelBrowseViewModel: ObservableObject {
 
     func playlistPreviewVideo(for item: PlaylistBrowseItem) -> CachedVideo {
         CachedVideo(
-            id: item.playlistID,
+            id: item.firstVideoID ?? item.playlistID,
             channelID: item.channelID,
             channelTitle: item.channelTitle,
             channelDisplayTitle: item.channelTitle,

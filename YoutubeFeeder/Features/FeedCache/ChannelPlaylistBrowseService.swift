@@ -17,10 +17,12 @@ struct ChannelPlaylistBrowseService {
                 pageToken: nil,
                 limit: 1
             )
+            let firstVideo = firstVideoPage.videos.first
             playlistItems.append(
                 mapPlaylistItem(
                     playlist,
-                    firstVideoThumbnailURL: firstVideoPage.videos.first?.thumbnailURL
+                    firstVideoID: firstVideo?.id,
+                    firstVideoThumbnailURL: firstVideo?.thumbnailURL
                 )
             )
         }
@@ -67,6 +69,7 @@ struct ChannelPlaylistBrowseService {
 
     private func mapPlaylistItem(
         _ item: YouTubePlaylistListItem,
+        firstVideoID: String?,
         firstVideoThumbnailURL: URL?
     ) -> PlaylistBrowseItem {
         PlaylistBrowseItem(
@@ -79,6 +82,7 @@ struct ChannelPlaylistBrowseService {
             publishedAt: item.publishedAt,
             itemCount: item.itemCount,
             thumbnailURL: item.thumbnailURL,
+            firstVideoID: firstVideoID,
             firstVideoThumbnailURL: firstVideoThumbnailURL
         )
     }
