@@ -89,7 +89,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "mode": presentationMode.rawValue
             ]
         )
-        let loadedResult = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
+        let loadedResult = await coordinator.loadSnapshot(keyword: keyword, limit: 100)
         applyResult(loadedResult)
         logger.info(
             "screen_snapshot_load_complete",
@@ -122,11 +122,11 @@ final class RemoteSearchResultsViewModel: ObservableObject {
             await Task.yield()
         }
         if forceRefresh {
-            if case let .remoteSearch(refreshedResult) = await coordinator.performRefreshAction(.remoteSearch(keyword: keyword, limit: 100)) {
+            if case let .remoteSearch(refreshedResult) = await coordinator.refresh(intent: .remoteSearch(keyword: keyword, limit: 100)) {
                 applyResult(refreshedResult)
             }
         } else {
-            let refreshedResult = await coordinator.searchRemoteVideos(keyword: keyword, limit: 100, forceRefresh: false)
+            let refreshedResult = await coordinator.search(keyword: keyword, limit: 100, forceRefresh: false)
             applyResult(refreshedResult)
         }
         logger.info(
