@@ -413,8 +413,9 @@ final class FeedCacheCoordinator: ObservableObject {
             return mergedVideos
         }
 
-        await refreshChannelManually(channelID)
-        mergedVideos = await loadVideosForChannel(channelID)
+        if case let .channelVideos(refreshedVideos) = await refresh(intent: .channel(context)) {
+            mergedVideos = refreshedVideos
+        }
         mergedVideos = await loadRemoteSearchChannelFallbackIfNeeded(context: context, currentVideos: mergedVideos)
         AppConsoleLogger.appLifecycle.info(
             "channel_videos_open_complete",

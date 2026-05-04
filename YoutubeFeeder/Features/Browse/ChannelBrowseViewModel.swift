@@ -47,7 +47,7 @@ final class ChannelBrowseViewModel: ObservableObject {
     }
 
     func refreshChannelBrowseItems() async {
-        _ = await coordinator.performRefreshAction(.home)
+        _ = await coordinator.refresh(intent: .home)
         await loadChannelBrowseItems()
     }
 
@@ -122,6 +122,7 @@ final class ChannelBrowseViewModel: ObservableObject {
         guard let selectedChannelID = state.selectedChannelID else { return }
         switch state.displayMode(for: selectedChannelID) {
         case .videos:
+            let selectedItem = state.items.first(where: { $0.channelID == selectedChannelID })
             RuntimeDiagnostics.shared.record(
                 "channel_refresh_gesture",
                 detail: "スプリット表示の動画一覧で下スワイプ更新",
@@ -130,10 +131,18 @@ final class ChannelBrowseViewModel: ObservableObject {
                     "screen": "splitChannelVideos"
                 ]
             )
-            await coordinator.refreshChannelManually(selectedChannelID)
-            let refreshedVideos = await coordinator.loadVideosForChannel(selectedChannelID)
-            withAnimation(.easeOut(duration: 0.25)) {
-                state.refreshSelectedChannelVideos(refreshedVideos)
+            if case let .channelVideos(refreshedVideos) = await coordinator.refresh(intent: .channel(
+                ChannelVideosRouteContext(
+                    channelID: selectedChannelID,
+                    preferredChannelTitle: selectedItem?.channelTitle,
+                    selectedVideoID: state.videosForSelectedChannel().first?.id,
+                    prefersAutomaticRefresh: false,
+                    routeSource: .channelBrowse
+                )
+            )) {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    state.refreshSelectedChannelVideos(refreshedVideos)
+                }
             }
             nextPageToken = nil
             hasStartedPaging = false
