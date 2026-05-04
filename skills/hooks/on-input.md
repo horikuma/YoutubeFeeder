@@ -5,16 +5,13 @@
 ## 入力受信時フック
 
 - 入力受信時フックとは、ユーザーからチャット入力を受け取った直後に、以後の全タスクより先に実行しなければならない共通前処理である。
-- この処理では、開始時タイムスタンプ記録、`docs/history/chat-latest.md` へ追記するための user 用内容テキスト確定、その追記完了までをこの文書だけで判断しなければならない。
+- この処理では、`docs/history/chat-latest.md` へ追記するための user 用内容テキスト確定、その追記完了までをこの文書だけで判断しなければならない。
 - この文書で使う usage 記法では、角括弧 `[...]` 内は省略可能部分を表す。
 - この文書で使う usage 記法では、角括弧の外にある要素は必須であり、左から右の順にそのまま指定しなければならない。
 - この文書で使う usage 記法では、山括弧 `<...>` 内は実行時に具体値へ置換して渡す値を表す。
 
 ## 実施内容
 
-- ユーザーからチャット入力を受け取った直後は、他の処理を始める前に、次の usage で `./scripts/command-runner.py 'metrics-llm-elapsed' start` を実行しなければならない。
-  `./scripts/command-runner.py 'metrics-llm-elapsed' start`
-  例: `./scripts/command-runner.py 'metrics-llm-elapsed' start`
 - チャット入力は、その後続タスクで参照する正本の 1 行 `user_text` へ確定しなければならない。
 - 1 行の入力は、ユーザーが直接入力した指示として扱わなければならない。
 - 入力に最初の改行が現れた場合は、改行より前の 1 行目をユーザー指示としてそのまま残し、最初の改行以後の全文を引用として扱わなければならない。
@@ -32,7 +29,6 @@
 
 ## 完了条件
 
-- `./scripts/command-runner.py 'metrics-llm-elapsed' start` が成功していること。
 - 後続タスクで参照する `user_text` が 1 行へ確定していること。
 - `./scripts/command-runner.py 'history-chat-append'` が成功し、その結果が `docs/history/chat-latest.md` に反映されていること。
 

@@ -27,18 +27,6 @@
 - 失敗時は `ファイル:開始行` を出力し、そのブロックだけを直せる状態を保つ。
 - Mermaid の検証に必要な CLI と browser runtime は、[package-lock.json](../../package-lock.json) に固定したローカル依存から取得する。
 
-## LLM 所要時間の補助コマンド
-
-- `LLM所要時間` の開始・終了時刻は、手入力ではなく [metrics-llm-elapsed](../../scripts/metrics-llm-elapsed) を使って記録する。
-- ユーザー指示を受けた直後に `scripts/metrics-llm-elapsed start` を実行し、`chat-latest.md` などを更新する直前に `scripts/metrics-llm-elapsed finish` を実行して、その出力をそのまま履歴へ貼り付ける。
-- `scripts/metrics-llm-elapsed finish` は、未開始状態でもエラーにせず `約0分` を出力して成功しなければならない。
-- 途中確認が必要なら `scripts/metrics-llm-elapsed status` を使い、取り直しが必要なら `scripts/metrics-llm-elapsed reset` で現在の測定を破棄してから再開する。
-- session-end でセッション累計分数を Issue へ反映する時は、`scripts/metrics-llm-elapsed session-finish` を使ってその時点までのセッション累計を取得し、反映後は次セッションへ累積状態を持ち越さない。
-- 状態ファイルはリポジトリの `.git/llm-elapsed/` 配下へ保存し、Git 管理対象には含めない。
-- GitHub Projects に `LLM所要時間` の Number フィールドを使う場合は、Pull Request 作成時ではなく session-end 実行時に、[project-field-set](../../scripts/project-field-set) を使って対象 Issue の project item へそのセッション累計分数を反映する。
-- session-end で `LLM所要時間` を Issue へ反映した後は、次セッション開始時に前セッション分を再加算しないよう、反映済みの累積状態を持ち越さない。
-- [project-field-set](../../scripts/project-field-set) は、フィールドが未作成なら `LLM所要時間` の Number フィールドを作成し、その後に値を更新する。
-
 ## iOS 計測 Simulator
 
 - [metrics-collect](../../scripts/metrics/collect-metrics.py)、[collect-test-metrics](../../scripts/metrics/collect-test-metrics.py)、[test-matrix](../../scripts/metrics/test-matrix.py) は、利用可能な iOS Simulator のうち `iPhone 17` を優先し、未導入環境では `iPhone 12 mini` へフォールバックしなければならない。

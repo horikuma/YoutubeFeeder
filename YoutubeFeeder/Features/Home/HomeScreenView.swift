@@ -35,6 +35,9 @@ struct HomeScreenView: View {
                             identifier: "test.manualRefreshCount",
                             value: "\(coordinator.manualRefreshCount)"
                         )
+                        UITestNavigationTrigger(identifier: "test.channelList.route") {
+                            navigationPath.wrappedValue.append(MaintenanceRoute.channelList(.default))
+                        }
                     }
 
                     Text("ホーム")

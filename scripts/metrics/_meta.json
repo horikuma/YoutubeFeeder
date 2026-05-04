@@ -40,23 +40,6 @@
       }
     },
     {
-      "name": "metrics-llm-elapsed",
-      "entry_point": "llm-elapsed.py",
-      "args": {
-        "mode": "passthrough"
-      },
-      "required_inputs": {
-        "all_of": [
-          {
-            "name": "action",
-            "sources": ["arg:action"],
-            "description": "start / finish / status / reset / session-finish のいずれかの操作"
-          }
-        ],
-        "one_of": []
-      }
-    },
-    {
       "name": "metrics-test-matrix",
       "entry_point": "test-matrix.py",
       "args": {

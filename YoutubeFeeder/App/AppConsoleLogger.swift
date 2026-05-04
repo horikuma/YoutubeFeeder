@@ -51,11 +51,7 @@ struct AppConsoleLogger {
     private static let runtimeLogDirectoryRelativePath = "logs"
     private static let legacyRuntimeLogFileName = "youtubefeeder-runtime.log"
     private static let maximumPendingRuntimeLogLines = 200
-    #if DEBUG
-    private static let minimumLogLevel: AppConsoleLogLevel = .debug
-    #else
     private static let minimumLogLevel: AppConsoleLogLevel = .info
-    #endif
     private static let runtimeLogLaunchFileNameFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)

@@ -144,7 +144,9 @@ struct ChannelVideosView: View {
             Button("チャンネルを削除", role: .destructive) {
                 guard let pendingChannelRemoval = videoState.pendingChannelRemoval else { return }
                 Task {
-                    if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
+                    if case let .channelRemoval(feedback) = await coordinator.refresh(
+                        intent: .removeChannel(channelID: pendingChannelRemoval.channelID)
+                    ) {
                         await MainActor.run {
                             videoState.applyRemovalFeedback(feedback)
                         }
@@ -217,10 +219,10 @@ struct ChannelVideosView: View {
                 didRequestLoadMore = false
             }
         } else {
-            let loadedVideos = await coordinator.loadVideosForChannel(context.channelID)
+            let snapshot = await coordinator.loadSnapshot()
             await MainActor.run {
                 withAnimation(.easeOut(duration: 0.25)) {
-                    videoState.setVideos(loadedVideos)
+                    videoState.setVideos(snapshot.videosForChannel(context.channelID))
                 }
                 nextPageToken = nil
                 hasStartedPaging = false
@@ -251,16 +253,15 @@ struct ChannelVideosView: View {
             ]
         )
         Task {
-            let page = await coordinator.loadChannelVideosPage(
-                channelID: context.channelID,
-                pageToken: nextPageToken,
-                limit: 50
-            )
-            await MainActor.run {
-                videoState.appendVideos(page.videos)
-                nextPageToken = page.nextPageToken
-                hasStartedPaging = true
-                didRequestLoadMore = false
+            if case let .channelVideoPage(page) = await coordinator.refresh(
+                intent: .channelVideosNextPage(channelID: context.channelID)
+            ) {
+                await MainActor.run {
+                    videoState.appendVideos(page.videos)
+                    nextPageToken = page.nextPageToken
+                    hasStartedPaging = true
+                    didRequestLoadMore = false
+                }
             }
         }
     }

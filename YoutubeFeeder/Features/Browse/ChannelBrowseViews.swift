@@ -784,7 +784,9 @@ struct AllVideosView: View {
             Button("チャンネルを削除", role: .destructive) {
                 guard let pendingChannelRemoval = videoState.pendingChannelRemoval else { return }
                 Task {
-                    if let feedback = await coordinator.removeChannel(pendingChannelRemoval.channelID) {
+                    if case let .channelRemoval(feedback) = await coordinator.refresh(
+                        intent: .removeChannel(channelID: pendingChannelRemoval.channelID)
+                    ) {
                         await MainActor.run {
                             videoState.applyRemovalFeedback(feedback)
                             coordinator.loadVideosFromCache()

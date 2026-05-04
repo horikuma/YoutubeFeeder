@@ -566,3 +566,24 @@ struct UITestAsyncActionTrigger: View {
         }
     }
 }
+
+struct UITestNavigationTrigger: View {
+    let identifier: String
+    let action: () -> Void
+
+    var body: some View {
+        if AppLaunchMode.current.usesMockData {
+            Button {
+                action()
+            } label: {
+                Image(systemName: "arrow.right")
+                    .font(.caption2)
+                    .foregroundStyle(.clear)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(identifier)
+        }
+    }
+}
