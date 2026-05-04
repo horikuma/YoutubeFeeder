@@ -26,25 +26,27 @@ final class ChannelBrowseViewModel: ObservableObject {
     }
 
     func maintenanceItemsDidChange() {
-        RuntimeDiagnostics.shared.record(
-            "channel_list_received_update",
-            detail: "チャンネル一覧が maintenanceItems の更新を受信",
-            metadata: [
-                "itemCount": String(coordinator.maintenanceItems.count),
-                "sort": sortDescriptor.shortLabel
-            ]
-        )
         Task {
-            await loadChannelBrowseItems()
+            let snapshot = await coordinator.loadSnapshot()
+            RuntimeDiagnostics.shared.record(
+                "channel_list_received_update",
+                detail: "チャンネル一覧が maintenanceItems の更新を受信",
+                metadata: [
+                    "itemCount": String(snapshot.maintenanceItems.count),
+                    "sort": sortDescriptor.shortLabel
+                ]
+            )
+            applyChannelBrowseSnapshot(snapshot)
         }
     }
 
     func loadChannelBrowseItems() async {
         let snapshot = await coordinator.loadSnapshot()
-        let items = snapshot.channelBrowseItems(
-            channelIDs: coordinator.channels,
-            sortDescriptor: sortDescriptor
-        )
+        applyChannelBrowseSnapshot(snapshot)
+    }
+
+    private func applyChannelBrowseSnapshot(_ snapshot: FeedCacheSnapshot) {
+        let items = snapshot.channelBrowseItems(sortDescriptor: sortDescriptor)
         withAnimation(.easeOut(duration: 0.25)) {
             state.setItems(items)
         }

@@ -105,6 +105,8 @@ final class FeedCacheCoordinator: ObservableObject {
 
     func loadSnapshot() async -> FeedCacheSnapshot {
         var snapshot = await readService.loadSnapshot()
+        snapshot.registeredChannelIDs = channels
+        snapshot.maintenanceItems = maintenanceItems
         snapshot.registeredAtByChannelID = Dictionary(
             ChannelRegistryStore.loadAllChannels().map { ($0.channelID, $0.addedAt) },
             uniquingKeysWith: { _, rhs in rhs }

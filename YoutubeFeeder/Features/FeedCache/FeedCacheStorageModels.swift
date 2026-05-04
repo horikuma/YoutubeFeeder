@@ -119,6 +119,8 @@ struct CachedChannelState: Hashable {
 
 struct FeedCacheSnapshot {
     var savedAt: Date
+    var registeredChannelIDs: [String] = []
+    var maintenanceItems: [ChannelMaintenanceItem] = []
     var channels: [CachedChannelState]
     var videos: [CachedVideo]
     var registeredAtByChannelID: [String: Date?] = [:]
@@ -127,6 +129,8 @@ struct FeedCacheSnapshot {
 
     nonisolated static let empty = FeedCacheSnapshot(
         savedAt: .distantPast,
+        registeredChannelIDs: [],
+        maintenanceItems: [],
         channels: [],
         videos: [],
         registeredAtByChannelID: [:],
@@ -149,9 +153,10 @@ struct FeedCachePlaylistSnapshot: Hashable {
 
 extension FeedCacheSnapshot {
     func channelBrowseItems(
-        channelIDs: [String],
+        channelIDs: [String]? = nil,
         sortDescriptor: ChannelBrowseSortDescriptor = .default
     ) -> [ChannelBrowseItem] {
+        let channelIDs = channelIDs ?? registeredChannelIDs
         let groupedVideos = Dictionary(grouping: videos.filter { !looksLikeShort($0) }, by: \.channelID)
         let states = Dictionary(channels.map { ($0.channelID, $0) }, uniquingKeysWith: { _, rhs in rhs })
 
