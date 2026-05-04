@@ -50,7 +50,7 @@ struct HomeSystemStatusService {
                 "thumbnail_ms": AppConsoleLogger.elapsedMilliseconds(from: registeredChannelsLoadedAt, to: thumbnailBytesLoadedAt),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 "registered_channels": String(status.registeredChannelCount),
-                "cached_videos": String(status.cachedVideoCount),
+                "cached_videos": String(status.cachedVideoCount)
             ]
         )
         return status

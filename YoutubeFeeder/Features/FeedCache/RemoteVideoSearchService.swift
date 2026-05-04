@@ -26,7 +26,7 @@ struct RemoteVideoSearchService {
                 "keyword": keywordPreview,
                 "videos": String(cachedVideos.count),
                 "source": VideoSearchSource.remoteAPI.label,
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
             ]
         )
         return RemoteVideoSearchRefreshPayload(
@@ -50,7 +50,7 @@ struct RemoteVideoSearchService {
                 "keyword": keywordPreview,
                 "limit": String(limit),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
             ]
             if RemoteSearchErrorPolicy.isCancellation(error) {
                 logger.info("remote_refresh_cancelled", metadata: metadata)

@@ -202,8 +202,7 @@ struct AppConsoleLogger {
         defer { scopeInvocationLock.unlock() }
 
         if let window = scopeInvocationWindows[scope],
-            timestamp.timeIntervalSince(window.windowStartedAt) < scopeInvocationWindowSeconds
-        {
+            timestamp.timeIntervalSince(window.windowStartedAt) < scopeInvocationWindowSeconds {
             scopeInvocationWindows[scope] = ScopeInvocationWindow(
                 windowStartedAt: window.windowStartedAt,
                 count: window.count + 1

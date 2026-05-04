@@ -352,14 +352,14 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
             return searchListResponseJSON(
                 items: [
                     searchListItemJSON(id: "fresh-playable", publishedAt: "2026-03-21T03:00:00Z"),
-                    searchListItemJSON(id: "fresh-missing-duration", publishedAt: "2026-03-21T02:00:00Z"),
+                    searchListItemJSON(id: "fresh-missing-duration", publishedAt: "2026-03-21T02:00:00Z")
                 ]
             )
         case "/youtube/v3/videos":
             return videoDetailsResponseJSON(
                 items: [
                     videoDetailsItemJSON(id: "fresh-playable", duration: "PT27M10S"),
-                    videoDetailsItemJSON(id: "fresh-missing-duration", duration: nil),
+                    videoDetailsItemJSON(id: "fresh-missing-duration", duration: nil)
                 ]
             )
         default:

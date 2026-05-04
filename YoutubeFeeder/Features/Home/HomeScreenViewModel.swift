@@ -31,7 +31,7 @@ final class HomeScreenViewModel: ObservableObject {
             metadata: [
                 "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
                 "registered_channels": String(coordinator.homeSystemStatus.registeredChannelCount),
-                "cached_videos": String(coordinator.homeSystemStatus.cachedVideoCount),
+                "cached_videos": String(coordinator.homeSystemStatus.cachedVideoCount)
             ]
         )
     }
@@ -46,7 +46,7 @@ final class HomeScreenViewModel: ObservableObject {
             metadata: [
                 "auto_refresh_on_launch": AppLaunchMode.current.autoRefreshOnLaunch ? "true" : "false",
                 "background_refresh": AppLaunchMode.current.allowsBackgroundRefresh ? "true" : "false",
-                "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
             ]
         )
         guard AppLaunchMode.current.autoRefreshOnLaunch else {
@@ -54,7 +54,7 @@ final class HomeScreenViewModel: ObservableObject {
                 "home_auto_refresh_task_skipped",
                 metadata: [
                     "reason": "disabled_on_launch",
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
                 ]
             )
             return
@@ -64,7 +64,7 @@ final class HomeScreenViewModel: ObservableObject {
                 "home_auto_refresh_task_skipped",
                 metadata: [
                     "reason": "already_ran",
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
                 ]
             )
             return
@@ -73,14 +73,14 @@ final class HomeScreenViewModel: ObservableObject {
         AppConsoleLogger.appLifecycle.info(
             "home_auto_refresh_manual_refresh_started",
             metadata: [
-                "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
             ]
         )
         await coordinator.refreshCacheManually()
         AppConsoleLogger.appLifecycle.info(
             "home_auto_refresh_manual_refresh_finished",
             metadata: [
-                "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
             ]
         )
         guard AppLaunchMode.current.allowsBackgroundRefresh else {
@@ -88,7 +88,7 @@ final class HomeScreenViewModel: ObservableObject {
                 "home_auto_refresh_wall_clock_scheduler_skipped",
                 metadata: [
                     "reason": "background_refresh_disabled",
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
                 ]
             )
             return
@@ -96,7 +96,7 @@ final class HomeScreenViewModel: ObservableObject {
         AppConsoleLogger.appLifecycle.info(
             "home_auto_refresh_wall_clock_scheduler_requested",
             metadata: [
-                "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
+                "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
             ]
         )
         coordinator.startChannelRefreshWallClockSchedulerIfNeeded()
@@ -133,7 +133,7 @@ final class HomeScreenViewModel: ObservableObject {
                     "export_completed",
                     metadata: [
                         "backend": feedback.backend.rawValue,
-                        "channel_count": String(feedback.channelCount),
+                        "channel_count": String(feedback.channelCount)
                     ]
                 )
             } catch {

@@ -96,7 +96,7 @@ extension FeedCacheCoordinator {
             metadata: [
                 "keyword": AppConsoleLogger.sanitizedKeyword(normalizedKeyword),
                 "limit": String(limit),
-                "force_refresh": forceRefresh ? "true" : "false",
+                "force_refresh": forceRefresh ? "true" : "false"
             ]
         )
 
@@ -145,7 +145,7 @@ extension FeedCacheCoordinator {
             "channel_fallback_start",
             metadata: [
                 "channelID": context.channelID,
-                "existing_videos": String(currentVideos.count),
+                "existing_videos": String(currentVideos.count)
             ]
         )
 
@@ -162,7 +162,7 @@ extension FeedCacheCoordinator {
                 metadata: [
                     "channelID": context.channelID,
                     "videos": String(reloadedVideos.count),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             return reloadedVideos
@@ -172,7 +172,7 @@ extension FeedCacheCoordinator {
                 message: AppConsoleLogger.errorSummary(error),
                 metadata: [
                     "channelID": context.channelID,
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             return currentVideos
@@ -295,7 +295,7 @@ extension FeedCacheCoordinator {
                 metadata: [
                     "keyword": keywordPreview,
                     "fallback": "stale_cache",
-                    "videos": String(cached.videos.count),
+                    "videos": String(cached.videos.count)
                 ]
             )
             return VideoSearchResult(
@@ -377,7 +377,7 @@ extension FeedCacheCoordinator {
         var metadata: [String: String] = [
             "keyword": keywordPreview,
             "fallback": fallback,
-            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
         ]
         if let cachedVideoCount {
             metadata["videos"] = String(cachedVideoCount)

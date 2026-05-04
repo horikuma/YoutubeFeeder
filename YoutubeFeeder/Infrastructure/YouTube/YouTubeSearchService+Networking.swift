@@ -83,7 +83,7 @@ extension YouTubeSearchService {
             [
                 "endpoint": endpoint,
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
             ],
             uniquingKeysWith: { _, new in new }
         )
@@ -128,7 +128,7 @@ extension YouTubeSearchService {
                 "endpoint": endpoint,
                 "status": String(response.statusCode),
                 "bytes": String(data.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
             ]
         ) { _, new in new }
     }

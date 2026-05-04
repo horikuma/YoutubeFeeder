@@ -29,7 +29,7 @@ final class ChannelRegistryCloudflareSyncServiceTests: LoggedTestCase {
         let expectedSyncedAt = ISO8601DateFormatter().date(from: "2026-04-17T09:10:11Z")!
         let expectedRecords = [
             RegisteredChannelRecord(channelID: "UC111", addedAt: ISO8601DateFormatter().date(from: "2026-04-15T10:00:00Z")),
-            RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-04-16T11:00:00Z")),
+            RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-04-16T11:00:00Z"))
         ]
 
         try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
@@ -75,7 +75,7 @@ final class ChannelRegistryCloudflareSyncServiceTests: LoggedTestCase {
         defer { try? fileManager.removeItem(at: temporaryRoot) }
 
         let expectedRecords = [
-            RegisteredChannelRecord(channelID: "UC333", addedAt: ISO8601DateFormatter().date(from: "2026-04-15T10:00:00Z")),
+            RegisteredChannelRecord(channelID: "UC333", addedAt: ISO8601DateFormatter().date(from: "2026-04-15T10:00:00Z"))
         ]
 
         try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {

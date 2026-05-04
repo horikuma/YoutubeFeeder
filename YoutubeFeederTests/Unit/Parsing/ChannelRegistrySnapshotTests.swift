@@ -24,7 +24,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
             snapshot.channels,
             [
                 RegisteredChannelRecord(channelID: "UC123", addedAt: nil),
-                RegisteredChannelRecord(channelID: "UC456", addedAt: nil),
+                RegisteredChannelRecord(channelID: "UC456", addedAt: nil)
             ]
         )
     }
@@ -76,7 +76,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
             try ChannelRegistryStore.replaceChannels(
                 [
                     RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
-                    RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z")),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z"))
                 ],
                 fileManager: fileManager
             )
@@ -97,7 +97,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
                 document.channels,
                 [
                     RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
-                    RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z")),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z"))
                 ]
             )
         }
@@ -120,7 +120,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
         let backup = ChannelRegistryTransferDocument(
             channels: [
                 RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
-                RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z")),
+                RegisteredChannelRecord(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z"))
             ]
         )
         try encoder.encode(backup).write(to: backupURL, options: .atomic)
@@ -136,7 +136,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
                 ChannelRegistryStore.loadAllChannels(fileManager: fileManager),
                 [
                     RegisteredChannel(channelID: "UC111", addedAt: nil),
-                    RegisteredChannel(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z")),
+                    RegisteredChannel(channelID: "UC222", addedAt: ISO8601DateFormatter().date(from: "2026-03-14T12:00:00Z"))
                 ]
             )
         }
@@ -173,7 +173,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
                         lastError: nil,
                         etag: nil,
                         lastModified: nil
-                    ),
+                    )
                 ],
                 videos: [
                     CachedVideo(
@@ -189,7 +189,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
                         searchableText: "title",
                         durationSeconds: 1_800,
                         viewCount: 303
-                    ),
+                    )
                 ]
             )
 
@@ -216,7 +216,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
                         cachedVideoCount: 1,
                         lastError: nil,
                         freshness: .fresh
-                    ),
+                    )
                 ]
             )
 

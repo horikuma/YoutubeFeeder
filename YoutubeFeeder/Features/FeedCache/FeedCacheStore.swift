@@ -343,8 +343,7 @@ actor FeedCacheStore {
                 let (data, response) = try await fetch(remoteURL)
                 guard (200 ..< 300).contains(response.statusCode) else { continue }
                 if let contentType = response.value(forHTTPHeaderField: "Content-Type"),
-                   !contentType.lowercased().hasPrefix("image/")
-                {
+                   !contentType.lowercased().hasPrefix("image/") {
                     continue
                 }
                 try data.write(to: localURL, options: .atomic)
@@ -500,7 +499,7 @@ actor FeedCacheStore {
         let urls = [
             databaseURL,
             URL(fileURLWithPath: databaseURL.path + "-shm"),
-            URL(fileURLWithPath: databaseURL.path + "-wal"),
+            URL(fileURLWithPath: databaseURL.path + "-wal")
         ]
         urls.forEach { try? fileManager.removeItem(at: $0) }
     }
@@ -510,7 +509,7 @@ actor FeedCacheStore {
         let legacyURLs = [
             FeedCachePaths.cacheURL(fileManager: fileManager),
             FeedCachePaths.cacheSummaryURL(fileManager: fileManager),
-            FeedCachePaths.channelRegistryURL(fileManager: fileManager),
+            FeedCachePaths.channelRegistryURL(fileManager: fileManager)
         ]
         legacyURLs.forEach { try? fileManager.removeItem(at: $0) }
 

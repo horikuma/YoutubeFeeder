@@ -172,7 +172,7 @@ struct HomeScreenView: View {
                         "remote_search_tile_tapped",
                         metadata: [
                             "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
-                            "keyword": FeedCacheCoordinator.homeSearchKeyword,
+                            "keyword": FeedCacheCoordinator.homeSearchKeyword
                         ]
                     )
                     RuntimeDiagnostics.shared.record(
@@ -180,7 +180,7 @@ struct HomeScreenView: View {
                         detail: "ホームから YouTube検索タイルを選択",
                         metadata: [
                             "layout": layout.usesSplitChannelBrowser ? "split" : "compact",
-                            "keyword": FeedCacheCoordinator.homeSearchKeyword,
+                            "keyword": FeedCacheCoordinator.homeSearchKeyword
                         ]
                     )
                 }
@@ -301,7 +301,7 @@ struct HomeScreenView: View {
         if layout.isPad {
             return [
                 GridItem(.flexible(), spacing: 16, alignment: .top),
-                GridItem(.flexible(), spacing: 16, alignment: .top),
+                GridItem(.flexible(), spacing: 16, alignment: .top)
             ]
         }
 

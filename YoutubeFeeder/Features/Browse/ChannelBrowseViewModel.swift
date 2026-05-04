@@ -30,7 +30,7 @@ final class ChannelBrowseViewModel: ObservableObject {
             detail: "チャンネル一覧が maintenanceItems の更新を受信",
             metadata: [
                 "itemCount": String(coordinator.maintenanceItems.count),
-                "sort": sortDescriptor.shortLabel,
+                "sort": sortDescriptor.shortLabel
             ]
         )
         Task {
@@ -127,7 +127,7 @@ final class ChannelBrowseViewModel: ObservableObject {
                 detail: "スプリット表示の動画一覧で下スワイプ更新",
                 metadata: [
                     "channelID": selectedChannelID,
-                    "screen": "splitChannelVideos",
+                    "screen": "splitChannelVideos"
                 ]
             )
             await coordinator.refreshChannelManually(selectedChannelID)
@@ -143,7 +143,7 @@ final class ChannelBrowseViewModel: ObservableObject {
                 detail: "スプリット表示の動画一覧リロード完了",
                 metadata: [
                     "channelID": selectedChannelID,
-                    "videoCount": String(state.videosForSelectedChannel().count),
+                    "videoCount": String(state.videosForSelectedChannel().count)
                 ]
             )
         case .playlists:
@@ -176,7 +176,7 @@ final class ChannelBrowseViewModel: ObservableObject {
             detail: "分割表示のチャンネル動画一覧の末端到達で追加取得要求を受け付けた",
             metadata: [
                 "channelID": channelID,
-                "videoCount": String(state.videosForSelectedChannel().count),
+                "videoCount": String(state.videosForSelectedChannel().count)
             ]
         )
         Task {
@@ -297,7 +297,7 @@ final class ChannelBrowseViewModel: ObservableObject {
                     metadata: [
                         "channelID": channelID,
                         "refresh_source": refreshSource,
-                        "videoCount": String(loadedVideos.count),
+                        "videoCount": String(loadedVideos.count)
                     ]
                 )
                 state.selectedChannelRefreshSource = nil

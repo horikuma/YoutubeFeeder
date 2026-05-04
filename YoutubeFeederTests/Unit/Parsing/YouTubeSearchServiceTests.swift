@@ -17,7 +17,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
             [
                 SearchCandidate(id: "video-1", publishedAt: older),
                 SearchCandidate(id: "video-2", publishedAt: newer),
-                SearchCandidate(id: "video-1", publishedAt: newer),
+                SearchCandidate(id: "video-1", publishedAt: newer)
             ]
         )
 
@@ -218,13 +218,13 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
                 Self.videoDetailsResponseJSON(
                     items: [
                         Self.videoDetailsItemJSON(id: ids[0], duration: "PT27M10S"),
-                        Self.videoDetailsItemJSON(id: ids[1], duration: nil),
+                        Self.videoDetailsItemJSON(id: ids[1], duration: nil)
                     ]
                 )
             } else {
                 Self.videoDetailsResponseJSON(
                     items: [
-                        Self.videoDetailsItemJSON(id: ids[0], duration: "PT45M00S"),
+                        Self.videoDetailsItemJSON(id: ids[0], duration: "PT45M00S")
                     ]
                 )
             }
@@ -277,7 +277,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
                     Self.videoDetailsResponseJSON(
                         items: [
                             Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
-                            Self.videoDetailsItemJSON(id: "video-2", duration: "PT45M00S"),
+                            Self.videoDetailsItemJSON(id: "video-2", duration: "PT45M00S")
                         ]
                     ),
                     Self.httpResponse(for: url)
@@ -333,7 +333,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
                     Self.videoDetailsResponseJSON(
                         items: [
                             Self.videoDetailsItemJSON(id: "video-short", duration: "PT10S"),
-                            Self.videoDetailsItemJSON(id: "video-long", duration: "PT27M10S"),
+                            Self.videoDetailsItemJSON(id: "video-long", duration: "PT27M10S")
                         ]
                     ),
                     Self.httpResponse(for: url)

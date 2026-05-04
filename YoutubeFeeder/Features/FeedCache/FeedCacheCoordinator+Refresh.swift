@@ -644,7 +644,7 @@ extension FeedCacheCoordinator {
             metadata: [
                 "current_channel": currentChannelID ?? "none",
                 "includes_videos": includesVideos ? "true" : "false",
-                "main_thread": AppConsoleLogger.mainThreadFlag(),
+                "main_thread": AppConsoleLogger.mainThreadFlag()
             ]
         )
     }
@@ -693,7 +693,7 @@ extension FeedCacheCoordinator {
             "persist_ms": AppConsoleLogger.elapsedMilliseconds(from: homeStatusUpdatedAt, to: persistedAt),
             "videos_ms": includesVideos ? AppConsoleLogger.elapsedMilliseconds(from: persistedAt, to: Date()) : "0",
             "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-            "main_thread": AppConsoleLogger.mainThreadFlag(),
+            "main_thread": AppConsoleLogger.mainThreadFlag()
         ]
     }
 

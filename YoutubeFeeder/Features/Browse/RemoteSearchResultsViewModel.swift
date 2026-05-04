@@ -52,14 +52,14 @@ final class RemoteSearchResultsViewModel: ObservableObject {
             metadata: [
                 "keyword": keyword,
                 "layout": browsePresentation.rawValue,
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
         AppConsoleLogger.youtubeSearch.info(
             "screen_appear",
             metadata: [
                 "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
     }
@@ -72,7 +72,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "keyword": AppConsoleLogger.sanitizedKeyword(keyword),
                 "videos": String(result.videos.count),
                 "refreshing": presentationState.isRefreshingChip ? "true" : "false",
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
     }
@@ -86,7 +86,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
             metadata: [
                 "keyword": keywordPreview,
                 "limit": "100",
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
         let loadedResult = await coordinator.loadRemoteSearchSnapshot(keyword: keyword, limit: 100)
@@ -99,7 +99,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "videos": String(result.videos.count),
                 "error": result.errorMessage == nil ? "none" : "present",
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
         applyDefaultSplitSelectionIfNeeded()
@@ -114,7 +114,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "keyword": keywordPreview,
                 "force_refresh": forceRefresh ? "true" : "false",
                 "current_videos": String(result.videos.count),
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
         if forceRefresh {
@@ -137,7 +137,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "videos": String(result.videos.count),
                 "fetched": result.fetchedAt == nil ? "false" : "true",
                 "error": result.errorMessage == nil ? "none" : "present",
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
         applyDefaultSplitSelectionIfNeeded()
@@ -259,7 +259,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "channelID": context.channelID,
                 "trigger": "tap",
                 "scheduled_wait_ms": "0",
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -268,7 +268,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
             metadata: [
                 "channelID": context.channelID,
                 "trigger": "tap",
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
 
@@ -286,7 +286,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "videos": String(loadedVideos.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 "publish_ms": AppConsoleLogger.elapsedMilliseconds(from: publishStartedAt, to: Date()),
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -297,7 +297,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "trigger": "tap",
                 "videos": String(loadedVideos.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
     }
@@ -309,7 +309,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
             metadata: [
                 "channelID": context.channelID,
                 "delay_ms": "150",
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
     }
@@ -341,7 +341,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "channelID": context.channelID,
                 "trigger": "initial",
                 "scheduled_wait_ms": AppConsoleLogger.elapsedMilliseconds(from: scheduledAt, to: startedAt),
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -350,7 +350,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
             metadata: [
                 "channelID": context.channelID,
                 "trigger": "initial",
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
     }
@@ -369,7 +369,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "videos": String(loadedVideos.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 "publish_ms": AppConsoleLogger.elapsedMilliseconds(from: publishStartedAt, to: Date()),
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
         RuntimeDiagnostics.shared.record(
@@ -380,7 +380,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "trigger": "initial",
                 "videos": String(loadedVideos.count),
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "mode": presentationMode.rawValue,
+                "mode": presentationMode.rawValue
             ]
         )
     }

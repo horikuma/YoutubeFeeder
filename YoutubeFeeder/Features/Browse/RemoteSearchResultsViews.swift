@@ -132,7 +132,7 @@ struct RemoteKeywordSearchResultsView: View {
             "phase": phase,
             "layout": browsePresentation.rawValue,
             "mode": presentationMode.rawValue,
-            "videos": String(viewModel.result.videos.count),
+            "videos": String(viewModel.result.videos.count)
         ]
         AppConsoleLogger.youtubeSearch.info("screen_render_probe", metadata: metadata)
         RuntimeDiagnostics.shared.record(

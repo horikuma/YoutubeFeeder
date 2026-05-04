@@ -29,7 +29,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                         searchableText: "kept",
                         durationSeconds: 1_500,
                         viewCount: 101
-                    ),
+                    )
                 ]
             )
 
@@ -133,7 +133,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                         searchableText: "newest",
                         durationSeconds: 1_600,
                         viewCount: 202
-                    ),
+                    )
                 ]
             )
 
@@ -250,7 +250,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                         searchableText: "two",
                         durationSeconds: 1_500,
                         viewCount: 2
-                    ),
+                    )
                 ]
             )
 
@@ -285,7 +285,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
             try ChannelRegistryStore.replaceChannels(
                 [
                     RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
-                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil)
                 ],
                 fileManager: fileManager
             )
@@ -332,7 +332,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                         lastError: nil,
                         etag: nil,
                         lastModified: nil
-                    ),
+                    )
                 ],
                 videos: [
                     CachedVideo(
@@ -362,7 +362,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                         searchableText: "removed",
                         durationSeconds: 2_100,
                         viewCount: 202
-                    ),
+                    )
                 ]
             )
 
@@ -406,7 +406,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
             ChannelRegistryTransferDocument(
                 channels: [
                     RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
-                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil)
                 ]
             )
         ).write(to: backupURL, options: .atomic)
@@ -423,7 +423,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
             try ChannelRegistryStore.replaceChannels(
                 [
                     RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
-                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil)
                 ],
                 fileManager: fileManager
             )
@@ -443,7 +443,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                         lastError: nil,
                         etag: nil,
                         lastModified: nil
-                    ),
+                    )
                 ],
                 videos: [
                     CachedVideo(
@@ -459,7 +459,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                         searchableText: "kept",
                         durationSeconds: 1_500,
                         viewCount: 101
-                    ),
+                    )
                 ]
             )
             let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
@@ -518,7 +518,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                         lastError: nil,
                         etag: nil,
                         lastModified: nil
-                    ),
+                    )
                 ],
                 videos: [
                     CachedVideo(
@@ -562,7 +562,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                         searchableText: "visible video",
                         durationSeconds: 240,
                         viewCount: 103
-                    ),
+                    )
                 ]
             )
 
@@ -647,7 +647,7 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                 [
                     "https://i.ytimg.com/vi/video-1/maxresdefault.jpg",
                     "https://i.ytimg.com/vi/video-1/sddefault.jpg",
-                    "https://i.ytimg.com/vi/video-1/hqdefault.jpg",
+                    "https://i.ytimg.com/vi/video-1/hqdefault.jpg"
                 ]
             )
             XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent("video-1.jpg").path))

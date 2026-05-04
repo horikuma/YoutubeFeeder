@@ -12,7 +12,7 @@ final class YouTubeThumbnailCandidatesTests: LoggedTestCase {
                 "https://i.ytimg.com/vi/video-1/sddefault.jpg",
                 "https://i.ytimg.com/vi/video-1/hqdefault.jpg",
                 "https://i.ytimg.com/vi/video-1/mqdefault.jpg",
-                "https://i.ytimg.com/vi/video-1/default.jpg",
+                "https://i.ytimg.com/vi/video-1/default.jpg"
             ]
         )
     }

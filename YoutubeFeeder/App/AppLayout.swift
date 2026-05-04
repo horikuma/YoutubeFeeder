@@ -30,7 +30,7 @@ struct AppLayout {
                 listColumns: [GridItem(.flexible(), spacing: 20, alignment: .top)],
                 dashboardColumns: [
                     GridItem(.flexible(), spacing: 18, alignment: .top),
-                    GridItem(.flexible(), spacing: 18, alignment: .top),
+                    GridItem(.flexible(), spacing: 18, alignment: .top)
                 ]
             )
         }

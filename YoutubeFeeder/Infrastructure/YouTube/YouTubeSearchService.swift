@@ -84,7 +84,7 @@ struct YouTubeSearchService {
                         "channelID": channelID,
                         "videos": String(response.videos.count),
                         "source": "mock",
-                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                     ]
                 )
                 return response
@@ -105,7 +105,7 @@ struct YouTubeSearchService {
                     "videos": String(page.videos.count),
                     "selected_ids": String(page.videos.count),
                     "next_page_token": page.nextPageToken ?? "",
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             return page
@@ -144,7 +144,7 @@ struct YouTubeSearchService {
                 "keyword": keywordPreview,
                 "videos": String(response.videos.count),
                 "source": "mock",
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
             ]
         )
         return response
@@ -202,7 +202,7 @@ struct YouTubeSearchService {
             "keyword": keywordPreview,
             "stage": stage,
             "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
         ]
         if RemoteSearchErrorPolicy.isCancellation(error) {
             logger.info("request_cancelled", metadata: metadata)
@@ -249,7 +249,7 @@ struct YouTubeSearchService {
             URLQueryItem(name: "order", value: "date"),
             URLQueryItem(name: "videoDuration", value: duration),
             URLQueryItem(name: "videoEmbeddable", value: "true"),
-            URLQueryItem(name: "maxResults", value: String(maxResults)),
+            URLQueryItem(name: "maxResults", value: String(maxResults))
         ]
 
         guard let url = components?.url else {
@@ -279,7 +279,7 @@ struct YouTubeSearchService {
             metadata: [
                 "duration": duration,
                 "items": String(candidates.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
             ]
         )
         return candidates
@@ -326,7 +326,7 @@ struct YouTubeSearchService {
         var components = URLComponents(string: "https://www.googleapis.com/youtube/v3/channels")
         components?.queryItems = [
             URLQueryItem(name: "part", value: "contentDetails"),
-            URLQueryItem(name: "id", value: channelID),
+            URLQueryItem(name: "id", value: channelID)
         ]
 
         guard let url = components?.url else {
@@ -357,7 +357,7 @@ struct YouTubeSearchService {
                 message: "チャンネルの uploads プレイリストを取得できませんでした。",
                 metadata: [
                     "channelID": channelID,
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             throw YouTubeSearchError.invalidResponse
@@ -368,7 +368,7 @@ struct YouTubeSearchService {
             metadata: [
                 "channelID": channelID,
                 "uploads_playlist_id": uploadsPlaylistID,
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
             ]
         )
         return uploadsPlaylistID
@@ -386,7 +386,7 @@ struct YouTubeSearchService {
         var queryItems = [
             URLQueryItem(name: "part", value: "contentDetails"),
             URLQueryItem(name: "playlistId", value: playlistID),
-            URLQueryItem(name: "maxResults", value: String(max(1, min(maxResults, 50)))),
+            URLQueryItem(name: "maxResults", value: String(max(1, min(maxResults, 50))))
         ]
         if let pageToken, !pageToken.isEmpty {
             queryItems.append(URLQueryItem(name: "pageToken", value: pageToken))
@@ -405,7 +405,7 @@ struct YouTubeSearchService {
             metadata: [
                 "playlist_id": playlistID,
                 "page_token": pageToken ?? "",
-                "max_results": String(max(1, min(maxResults, 50))),
+                "max_results": String(max(1, min(maxResults, 50)))
             ]
         )
 
@@ -415,7 +415,7 @@ struct YouTubeSearchService {
             metadata: [
                 "playlist_id": playlistID,
                 "page_token": pageToken ?? "",
-                "max_results": String(max(1, min(maxResults, 50))),
+                "max_results": String(max(1, min(maxResults, 50)))
             ]
         )
         let response = try decodeResponse(
@@ -431,7 +431,7 @@ struct YouTubeSearchService {
                 "page_token": pageToken ?? "",
                 "items": String(response.items.count),
                 "next_page_token": response.nextPageToken ?? "",
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
             ]
         )
         return response
@@ -453,7 +453,7 @@ struct YouTubeSearchService {
             components?.queryItems = [
                 URLQueryItem(name: "part", value: Self.videoDetailsPartParameter),
                 URLQueryItem(name: "id", value: batch.joined(separator: ",")),
-                URLQueryItem(name: "maxResults", value: String(batch.count)),
+                URLQueryItem(name: "maxResults", value: String(batch.count))
             ]
 
             guard let url = components?.url else {
@@ -515,7 +515,7 @@ private struct CandidateSelection {
             "long_candidates": String(longCandidateCount),
             "selected_ids": String(videoIDs.count),
             "videos": String(videoCount),
-            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
         ]
     }
 }

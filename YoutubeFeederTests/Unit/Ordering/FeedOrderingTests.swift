@@ -41,7 +41,7 @@ final class FeedOrderingTests: LoggedTestCase {
                 lastError: nil,
                 etag: nil,
                 lastModified: nil
-            ),
+            )
         ]
 
         XCTAssertEqual(
@@ -94,7 +94,7 @@ final class FeedOrderingTests: LoggedTestCase {
                 lastError: nil,
                 etag: nil,
                 lastModified: nil
-            ),
+            )
         ]
 
         XCTAssertEqual(
@@ -133,7 +133,7 @@ final class FeedOrderingTests: LoggedTestCase {
                 registeredAt: nil,
                 latestVideo: nil,
                 cachedVideoCount: 0
-            ),
+            )
         ]
 
         XCTAssertEqual(
@@ -166,7 +166,7 @@ final class FeedOrderingTests: LoggedTestCase {
                 registeredAt: newer,
                 latestVideo: nil,
                 cachedVideoCount: 0
-            ),
+            )
         ]
 
         XCTAssertEqual(

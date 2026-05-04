@@ -382,7 +382,7 @@ final class FeedCacheSQLiteDatabase {
             "CREATE INDEX IF NOT EXISTS idx_cached_videos_channel_id ON cached_videos(channel_id);",
             "CREATE INDEX IF NOT EXISTS idx_cached_videos_searchable_text ON cached_videos(searchable_text);",
             "CREATE INDEX IF NOT EXISTS idx_remote_search_videos_keyword_sort ON remote_search_videos(keyword, sort_index);",
-            "CREATE INDEX IF NOT EXISTS idx_remote_search_videos_channel_id ON remote_search_videos(channel_id);",
+            "CREATE INDEX IF NOT EXISTS idx_remote_search_videos_channel_id ON remote_search_videos(channel_id);"
         ]
         statements.forEach { execute($0) }
     }

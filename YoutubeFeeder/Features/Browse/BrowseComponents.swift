@@ -416,7 +416,7 @@ private enum ChannelSummaryTileAppearance {
     }
 }
 
-fileprivate struct ChannelTile: View {
+private struct ChannelTile: View {
     let item: ChannelBrowseItem
     let appearance: ChannelSummaryTileAppearance
     let index: Int?

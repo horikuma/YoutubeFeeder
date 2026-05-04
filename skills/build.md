@@ -12,6 +12,8 @@
 
 ## 実施内容
 
+- build を始める前に `swiftlint --fix` を実行する。
+  `swiftlint --fix`
 - `debug` を指定する場合は、開発中の build として次の command を実行する。
   `./scripts/command-runner.py 'build-debug'`
 - `release` を指定する場合は、次の command を実行する。

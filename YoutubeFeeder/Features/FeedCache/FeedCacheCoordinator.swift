@@ -98,7 +98,7 @@ final class FeedCacheCoordinator: ObservableObject {
             metadata: [
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
                 "channels": String(channels.count),
-                "maintenance_items": String(maintenanceItems.count),
+                "maintenance_items": String(maintenanceItems.count)
             ]
         )
     }
@@ -279,7 +279,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 metadata: [
                     "channelID": normalizedChannelID,
                     "items": String(playlists.count),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             return playlists
@@ -298,7 +298,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 metadata: [
                     "channelID": normalizedChannelID,
                     "limit": String(limit),
-                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
                 ]
             )
             return []
@@ -333,7 +333,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 metadata: [
                     "playlistID": normalizedPlaylistID,
                     "videos": String(page.videos.count),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             return page
@@ -354,7 +354,7 @@ final class FeedCacheCoordinator: ObservableObject {
                     "playlistID": normalizedPlaylistID,
                     "pageToken": pageToken ?? "",
                     "limit": String(limit),
-                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
                 ]
             )
             return PlaylistBrowseVideosPage(
@@ -386,7 +386,7 @@ final class FeedCacheCoordinator: ObservableObject {
                     "channelID": channelID,
                     "videos": String(mergedVideos.count),
                     "refreshed": "false",
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             return mergedVideos
@@ -400,7 +400,7 @@ final class FeedCacheCoordinator: ObservableObject {
                     "channelID": channelID,
                     "videos": String(mergedVideos.count),
                     "refreshed": "false",
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             return mergedVideos
@@ -415,7 +415,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 "channelID": channelID,
                 "videos": String(mergedVideos.count),
                 "refreshed": "true",
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
             ]
         )
         return mergedVideos

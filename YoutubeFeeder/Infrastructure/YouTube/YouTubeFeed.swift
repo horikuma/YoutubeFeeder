@@ -416,7 +416,7 @@ struct YouTubeFeedService {
             components?.queryItems = [
                 URLQueryItem(name: "part", value: "contentDetails,statistics"),
                 URLQueryItem(name: "id", value: batch.joined(separator: ",")),
-                URLQueryItem(name: "maxResults", value: String(batch.count)),
+                URLQueryItem(name: "maxResults", value: String(batch.count))
             ]
 
             guard let url = components?.url else { continue }
@@ -558,7 +558,7 @@ final class YouTubeFeedParser: NSObject, XMLParserDelegate {
         didStartElement elementName: String,
         namespaceURI: String?,
         qualifiedName qName: String?,
-        attributes attributeDict: [String : String] = [:]
+        attributes attributeDict: [String: String] = [:]
     ) {
         currentElement = qName ?? elementName
         currentText = ""

@@ -33,7 +33,7 @@ enum ChannelRegistryCSVImportParser {
     static let expectedHeader = [
         "チャンネル ID",
         "チャンネルの URL",
-        "チャンネルのタイトル",
+        "チャンネルのタイトル"
     ]
 
     static func parse(data: Data) throws -> [ChannelRegistryCSVImportRow] {

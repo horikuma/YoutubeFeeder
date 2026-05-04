@@ -6,7 +6,7 @@ enum YouTubeThumbnailCandidates {
         "sddefault.jpg",
         "hqdefault.jpg",
         "mqdefault.jpg",
-        "default.jpg",
+        "default.jpg"
     ]
 
     static func urls(for videoID: String) -> [URL] {

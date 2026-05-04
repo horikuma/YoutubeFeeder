@@ -202,8 +202,7 @@ final class RuntimeDiagnostics: ObservableObject {
 
         if
             let data = try? JSONEncoder().encode(entry),
-            let line = String(data: data, encoding: .utf8)
-        {
+            let line = String(data: data, encoding: .utf8) {
             print("YOUTUBEFEEDER_RUNTIME_LOG \(line)")
         } else {
             print("YOUTUBEFEEDER_RUNTIME_LOG {\"event\":\"\(event)\",\"detail\":\"\(detail)\"}")
@@ -296,7 +295,7 @@ enum UITestFixtureSeeder {
         let filenames = [
             "feed-cache.sqlite",
             "feed-cache.sqlite-shm",
-            "feed-cache.sqlite-wal",
+            "feed-cache.sqlite-wal"
         ]
         for filename in filenames {
             try? fileManager.removeItem(at: baseDirectory.appendingPathComponent(filename))
@@ -449,7 +448,7 @@ enum UITestFixtureSeeder {
             let searchableText = [
                 title.lowercased(),
                 channelTitle.lowercased(),
-                identifier,
+                identifier
             ].joined(separator: "\n")
             return CachedVideo(
                 id: identifier,

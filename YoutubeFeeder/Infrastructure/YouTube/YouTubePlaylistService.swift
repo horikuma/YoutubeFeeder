@@ -32,7 +32,7 @@ struct YouTubePlaylistService {
                         "channelID": channelID,
                         "items": String(response.count),
                         "source": "mock",
-                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                     ]
                 )
                 return response
@@ -59,7 +59,7 @@ struct YouTubePlaylistService {
                     "channelID": channelID,
                     "items": String(playlists.count),
                     "total_results": String(response.pageInfo?.totalResults ?? playlists.count),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             return playlists
@@ -94,7 +94,7 @@ struct YouTubePlaylistService {
                         "playlist_id": playlistID,
                         "videos": String(response.videos.count),
                         "source": "mock",
-                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                     ]
                 )
                 return response
@@ -114,7 +114,7 @@ struct YouTubePlaylistService {
                     "playlist_id": playlistID,
                     "videos": String(response.videos.count),
                     "next_page_token": response.nextPageToken ?? "",
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
                 ]
             )
             return response
@@ -203,7 +203,7 @@ struct YouTubePlaylistService {
         components?.queryItems = [
             URLQueryItem(name: "part", value: "snippet,contentDetails"),
             URLQueryItem(name: "channelId", value: channelID),
-            URLQueryItem(name: "maxResults", value: String(max(1, min(limit, 50)))),
+            URLQueryItem(name: "maxResults", value: String(max(1, min(limit, 50))))
         ]
 
         guard let url = components?.url else {
@@ -218,7 +218,7 @@ struct YouTubePlaylistService {
             endpoint: "playlists",
             metadata: [
                 "channel_id": channelID,
-                "max_results": String(max(1, min(limit, 50))),
+                "max_results": String(max(1, min(limit, 50)))
             ]
         )
         let response = try decodeResponse(
@@ -227,7 +227,7 @@ struct YouTubePlaylistService {
             endpoint: "playlists",
             metadata: [
                 "channel_id": channelID,
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
             ]
         )
         return response
@@ -276,7 +276,7 @@ struct YouTubePlaylistService {
         var queryItems = [
             URLQueryItem(name: "part", value: "contentDetails"),
             URLQueryItem(name: "playlistId", value: playlistID),
-            URLQueryItem(name: "maxResults", value: String(max(1, min(maxResults, 50)))),
+            URLQueryItem(name: "maxResults", value: String(max(1, min(maxResults, 50))))
         ]
         if let pageToken, !pageToken.isEmpty {
             queryItems.append(URLQueryItem(name: "pageToken", value: pageToken))
@@ -296,7 +296,7 @@ struct YouTubePlaylistService {
             metadata: [
                 "playlist_id": playlistID,
                 "page_token": pageToken ?? "",
-                "max_results": String(max(1, min(maxResults, 50))),
+                "max_results": String(max(1, min(maxResults, 50)))
             ]
         )
         let response = try decodeResponse(
@@ -320,7 +320,7 @@ struct YouTubePlaylistService {
             components?.queryItems = [
                 URLQueryItem(name: "part", value: Self.videoDetailsPartParameter),
                 URLQueryItem(name: "id", value: batch.joined(separator: ",")),
-                URLQueryItem(name: "maxResults", value: String(batch.count)),
+                URLQueryItem(name: "maxResults", value: String(batch.count))
             ]
 
             guard let url = components?.url else {
@@ -371,7 +371,7 @@ struct YouTubePlaylistService {
             "channelID": channelID,
             "stage": stage,
             "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+            "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
         ]
         if RemoteSearchErrorPolicy.isCancellation(error) {
             logger.info("request_cancelled", metadata: metadata)
@@ -487,7 +487,7 @@ struct YouTubePlaylistService {
             [
                 "endpoint": endpoint,
                 "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error),
+                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
             ],
             uniquingKeysWith: { _, new in new }
         )
@@ -532,7 +532,7 @@ struct YouTubePlaylistService {
                 "endpoint": endpoint,
                 "status": String(response.statusCode),
                 "bytes": String(data.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
             ]
         ) { _, new in new }
     }

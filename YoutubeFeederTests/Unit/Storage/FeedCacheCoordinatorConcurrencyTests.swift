@@ -58,7 +58,7 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             try ChannelRegistryStore.replaceChannels(
                 [
                     RegisteredChannelRecord(channelID: "UC111", addedAt: nil),
-                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil),
+                    RegisteredChannelRecord(channelID: "UC222", addedAt: nil)
                 ],
                 fileManager: fileManager
             )
@@ -116,7 +116,7 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             )
 
             let feedService = YouTubeFeedService(
-                checkForUpdates: { fetchedChannelID, validationToken in
+                checkForUpdates: { _, validationToken in
                     await recorder.recordCheck(
                         validationToken: validationToken,
                         manualTaskVisible: false
@@ -209,7 +209,7 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             )
 
             let feedService = YouTubeFeedService(
-                checkForUpdates: { fetchedChannelID, validationToken in
+                checkForUpdates: { _, validationToken in
                     let manualTaskVisible = await MainActor.run {
                         coordinatorBox.coordinator?.manualRefreshTask != nil
                     }
