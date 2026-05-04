@@ -651,7 +651,7 @@ private struct ChannelBrowseRegularView: View {
     }
 
     private func openPlaylistContinuousPlay(_ item: PlaylistBrowseItem) {
-        guard let url = coordinator.playlistContinuousPlayURL(playlistID: item.playlistID) else { return }
+        guard let url = viewModel.playlistContinuousPlayURL(for: item) else { return }
         openURL(url)
     }
 

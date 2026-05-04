@@ -270,6 +270,11 @@ final class ChannelBrowseViewModel: ObservableObject {
         )
     }
 
+    func playlistContinuousPlayURL(for item: PlaylistBrowseItem) -> URL? {
+        playlistSnapshot.playlistContinuousPlayURLsByPlaylistID[item.playlistID]
+            ?? URL(string: "https://www.youtube.com/playlist?list=\(item.playlistID)")
+    }
+
     func loadCurrentChannelContentIfNeeded(for channelID: String, forceReload: Bool = false) {
         switch state.displayMode(for: channelID) {
         case .videos:
