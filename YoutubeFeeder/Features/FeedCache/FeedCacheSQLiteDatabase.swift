@@ -704,7 +704,7 @@ final class FeedCacheSQLiteDatabase {
             deleteMetadata(for: Self.playlistSnapshotMetadataKey)
             return
         }
-        saveMetadataText(String(decoding: data, as: UTF8.self), for: Self.playlistSnapshotMetadataKey)
+        saveMetadataText(String(bytes: data, encoding: .utf8) ?? "", for: Self.playlistSnapshotMetadataKey)
     }
 
     private func loadChannelNextPageTokensInCurrentQueue() -> [String: String] {
@@ -721,7 +721,7 @@ final class FeedCacheSQLiteDatabase {
             deleteMetadata(for: Self.channelNextPageTokensMetadataKey)
             return
         }
-        saveMetadataText(String(decoding: data, as: UTF8.self), for: Self.channelNextPageTokensMetadataKey)
+        saveMetadataText(String(bytes: data, encoding: .utf8) ?? "", for: Self.channelNextPageTokensMetadataKey)
     }
 
     private func continuousPlayURL(for playlistID: String) -> URL? {
