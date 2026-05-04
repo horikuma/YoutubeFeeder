@@ -37,7 +37,7 @@ final class HomeScreenViewModel: ObservableObject {
     }
 
     func refreshHome() async {
-        _ = await coordinator.performRefreshAction(.home)
+        _ = await coordinator.refresh(intent: .home)
     }
 
     func performAutoRefreshTaskIfNeeded() async {
@@ -76,7 +76,7 @@ final class HomeScreenViewModel: ObservableObject {
                 "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
             ]
         )
-        await coordinator.refreshCacheManually()
+        _ = await coordinator.refresh(intent: .home)
         AppConsoleLogger.appLifecycle.info(
             "home_auto_refresh_manual_refresh_finished",
             metadata: [
