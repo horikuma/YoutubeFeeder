@@ -26,7 +26,7 @@ def load_module(filename: str, module_name: str):
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Ensure or update a GitHub project number field for an Issue or PR.")
     parser.add_argument("--repo")
-    parser.add_argument("--field-name", default="LLM所要時間")
+    parser.add_argument("--field-name", required=True)
     parser.add_argument("--value", type=float, required=True)
     parser.add_argument("--assignee")
     parser.add_argument("--project-title")

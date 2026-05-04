@@ -160,14 +160,12 @@
   - 画面層でしか観測できない契約を担保する。
 - UI から起動される機能でも、まず domain / logic 側でテスト固定し、そのうえで UI を写像として確認する。
 - 観測が不安定になりやすい導線では、test support によって同じ機能契約を安定して観測できるようにする。
-- 体感性能を比較したい導線では、UI test から読める hidden diagnostics を使い、同じ操作区間の elapsed ms を fixture 差分つきで取得できる状態を保つ。
 
 ## Concurrency と Build
 
 - 画面駆動の型だけを `@MainActor` とし、永続化モデルや parser、store は UI 文脈へ固定しない。
 - 起動直後の MainActor を長時間塞ぐ file decode は避け、ホームの初期表示に不要な大きい cache decode を挟まない。
 - build 検証は `error 0` に加えて `warning 0` を成立条件とする。
-- 計測は `scripts/metrics-collect` を build と起動性能の正本、`scripts/metrics-test-collect` を test 所要時間の正本とし、起動性能はホーム初期表示直後だけを通る最小 UI test 経路から取得する。
 
 ## Observability
 

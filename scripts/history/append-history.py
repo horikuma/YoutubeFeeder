@@ -15,7 +15,7 @@ SECTION_PATTERN = re.compile(r"^## \d{4}/\d{2}/\d{2}$", re.MULTILINE)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Append validated entries into history latest files.")
-    parser.add_argument("kind", choices=("chat", "decision", "metric"))
+    parser.add_argument("kind", choices=("chat", "decision"))
     parser.add_argument(
         "--history-dir",
         default=str(Path(__file__).resolve().parents[2] / "docs" / "history"),
@@ -25,7 +25,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--text")
     parser.add_argument("--decision-line")
     parser.add_argument("--reason-line")
-    parser.add_argument("--metric-line")
     return parser.parse_args()
 
 
@@ -112,23 +111,11 @@ def validate_decision_lines(decision_line: str, reason_line: str) -> list[str]:
     return [decision_line, reason_line]
 
 
-def validate_metric_line(metric_line: str) -> list[str]:
-    if not metric_line:
-        raise SystemExit("metric history requires --metric-line")
-    if "\n" in metric_line:
-        raise SystemExit("metric history line must be single-line")
-    if not metric_line.startswith("- "):
-        raise SystemExit("--metric-line must start with hyphen and space")
-    validate_no_secrets(metric_line)
-    return [metric_line]
-
-
 def build_entry(args: argparse.Namespace) -> tuple[str, list[str]] | list[str]:
     if args.kind == "chat":
         return validate_chat_line(args.role, args.text)
     if args.kind == "decision":
         return validate_decision_lines(args.decision_line, args.reason_line)
-    return validate_metric_line(args.metric_line)
 
 
 def target_path(history_dir: Path, kind: str) -> Path:
@@ -136,7 +123,7 @@ def target_path(history_dir: Path, kind: str) -> Path:
         return history_dir / "chat-latest.md"
     if kind == "decision":
         return history_dir / "decisions-latest.md"
-    return history_dir / "metrics-latest.md"
+    raise SystemExit(f"Unsupported history kind: {kind}")
 
 
 def render_chat_line(role: str, text: str) -> str:
@@ -190,8 +177,6 @@ def validate_latest(kind: str, latest_path: Path, today: str) -> None:
     today_lines = sections[0].splitlines()[1:]
     for line in today_lines:
         if not line:
-            if kind == "metric":
-                continue
             raise SystemExit(f"{latest_path.name} contains empty lines in today's section")
         validate_no_secrets(line)
 
@@ -210,15 +195,6 @@ def validate_latest(kind: str, latest_path: Path, today: str) -> None:
                 raise SystemExit("decision line must start with hyphen and space")
             if not today_lines[index + 1].startswith("  - "):
                 raise SystemExit("decision reason must start with two spaces, hyphen, and space")
-    else:
-        for line in today_lines:
-            if not line:
-                continue
-            if line.startswith("### "):
-                validate_no_secrets(line)
-                continue
-            if not line.startswith("- "):
-                raise SystemExit("metrics latest lines must start with hyphen and space or metrics entry headings")
 
 
 def main() -> int:

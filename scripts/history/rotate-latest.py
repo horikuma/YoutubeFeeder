@@ -125,7 +125,7 @@ def main() -> int:
     args = parse_args()
     history_dir = Path(args.history_dir).expanduser().resolve()
     today = normalize_today(args.today)
-    for stem in ("chat", "metrics", "decisions"):
+    for stem in ("chat", "decisions"):
         rotate_pair(history_dir, stem, today)
     return 0
 

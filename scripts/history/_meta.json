@@ -47,24 +47,6 @@
       "description": "Append one validated decision/reason pair into decisions-latest.md without reading the file in the caller."
     },
     {
-      "name": "history-metrics-append",
-      "entry_point": "history-metrics-append.py",
-      "args": {
-        "mode": "passthrough"
-      },
-      "required_inputs": {
-        "all_of": [
-          {
-            "name": "metric_line",
-            "sources": ["arg:--metric-line"],
-            "description": "記録する計測結果の1行"
-          }
-        ],
-        "one_of": []
-      },
-      "description": "Append one validated metrics line into metrics-latest.md without reading the file in the caller."
-    },
-    {
       "name": "history-rotate",
       "entry_point": "rotate-latest.py",
       "args": {
