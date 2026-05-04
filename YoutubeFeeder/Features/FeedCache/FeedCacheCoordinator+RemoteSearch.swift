@@ -18,6 +18,10 @@ extension FeedCacheCoordinator {
         }
     }
 
+    func loadSnapshot(keyword: String, limit: Int = 100) async -> VideoSearchResult {
+        await loadRemoteSearchSnapshot(keyword: keyword, limit: limit)
+    }
+
     func loadRemoteSearchSnapshot(keyword: String, limit: Int = 100) async -> VideoSearchResult {
         let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedKeyword.isEmpty else {
@@ -82,6 +86,10 @@ extension FeedCacheCoordinator {
         let result = VideoSearchResult(keyword: normalizedKeyword, videos: [], totalCount: 0, source: .remoteCache)
         remoteSearchSnapshotCache[normalizedKeyword] = result
         return result
+    }
+
+    func search(keyword: String, limit: Int = 100, forceRefresh: Bool = false) async -> VideoSearchResult {
+        await searchRemoteVideos(keyword: keyword, limit: limit, forceRefresh: forceRefresh)
     }
 
     func searchRemoteVideos(keyword: String, limit: Int = 100, forceRefresh: Bool = false) async -> VideoSearchResult {

@@ -53,17 +53,26 @@ enum AppInteractionPlatform: String {
     }
 }
 
-enum FeedRefreshAction {
+enum FeedCacheIntent {
     case home
     case channel(ChannelVideosRouteContext)
+    case channelVideos(channelID: String)
+    case channelVideosNextPage(channelID: String)
+    case removeChannel(channelID: String)
     case remoteSearch(keyword: String, limit: Int)
 }
 
-enum FeedRefreshResult {
+typealias FeedRefreshAction = FeedCacheIntent
+
+enum FeedCacheResult {
     case home
     case channelVideos([CachedVideo])
+    case channelVideoPage(ChannelVideoPageResult)
+    case channelRemoval(ChannelRemovalFeedback)
     case remoteSearch(VideoSearchResult)
 }
+
+typealias FeedRefreshResult = FeedCacheResult
 
 @MainActor
 final class RefreshCommandCenter: ObservableObject {

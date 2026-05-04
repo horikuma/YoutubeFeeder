@@ -128,6 +128,10 @@ struct PlaylistBrowseVideosPage: Hashable {
     let nextPageToken: String?
 }
 
+nonisolated extension PlaylistBrowseItem: Codable {}
+nonisolated extension PlaylistBrowseVideo: Codable {}
+nonisolated extension PlaylistBrowseVideosPage: Codable {}
+
 enum ChannelRegistrationStatus: Hashable {
     case added
     case alreadyRegistered

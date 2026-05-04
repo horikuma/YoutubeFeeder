@@ -103,6 +103,46 @@ final class FeedCacheCoordinator: ObservableObject {
         )
     }
 
+    func loadSnapshot() async -> FeedCacheSnapshot {
+        var snapshot = await readService.loadSnapshot()
+        snapshot.registeredChannelIDs = channels
+        snapshot.maintenanceItems = maintenanceItems
+        snapshot.registeredAtByChannelID = Dictionary(
+            ChannelRegistryStore.loadAllChannels().map { ($0.channelID, $0.addedAt) },
+            uniquingKeysWith: { _, rhs in rhs }
+        )
+        return snapshot
+    }
+
+    func refresh(intent: FeedCacheIntent) async -> FeedCacheResult {
+        switch intent {
+        case .home:
+            await refreshCacheManually()
+            return .home
+        case let .channel(context):
+            await refreshChannelManually(context.channelID)
+            return .channelVideos(await loadVideosForChannel(context.channelID))
+        case let .channelVideos(channelID):
+            return .channelVideos(await loadVideosForChannel(channelID))
+        case let .channelVideosNextPage(channelID):
+            let snapshot = await loadSnapshot()
+            let page = await loadChannelVideosPage(
+                channelID: channelID,
+                pageToken: snapshot.nextPageToken(for: channelID),
+                limit: 50
+            )
+            return .channelVideoPage(page)
+        case let .removeChannel(channelID):
+            guard let feedback = await removeChannel(channelID) else {
+                return .home
+            }
+            await writeService.saveChannelNextPageToken(nil, channelID: channelID)
+            return .channelRemoval(feedback)
+        case let .remoteSearch(keyword, limit):
+            return .remoteSearch(await search(keyword: keyword, limit: limit, forceRefresh: true))
+        }
+    }
+
     func refreshCacheManually() async {
         guard !dropChannelRefreshTriggerIfRunning("manual_home_refresh") else { return }
         syncRegisteredChannelsFromStore(reason: "manual_refresh")
@@ -203,17 +243,7 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func performRefreshAction(_ action: FeedRefreshAction) async -> FeedRefreshResult {
-        switch action {
-        case .home:
-            await refreshCacheManually()
-            return .home
-        case let .channel(context):
-            await refreshChannelManually(context.channelID)
-            return .channelVideos(await loadVideosForChannel(context.channelID))
-        case let .remoteSearch(keyword, limit):
-            let result = await searchRemoteVideos(keyword: keyword, limit: limit, forceRefresh: true)
-            return .remoteSearch(result)
-        }
+        await refresh(intent: action)
     }
 
     func loadVideosFromCache() {
@@ -244,11 +274,13 @@ final class FeedCacheCoordinator: ObservableObject {
         limit: Int = 50
     ) async -> ChannelVideoPageResult {
         do {
-            return try await remoteSearchService.refreshChannelVideosPage(
+            let page = try await remoteSearchService.refreshChannelVideosPage(
                 channelID: channelID,
                 pageToken: pageToken,
                 limit: limit
             )
+            await writeService.saveChannelNextPageToken(page.nextPageToken, channelID: channelID)
+            return page
         } catch {
             RuntimeDiagnostics.shared.record(
                 "channel_page_load_failed",
@@ -265,6 +297,10 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func loadChannelPlaylists(channelID: String, limit: Int = 50) async -> [PlaylistBrowseItem] {
+        await loadChannelPlaylistsInternal(channelID: channelID, limit: limit)
+    }
+
+    private func loadChannelPlaylistsInternal(channelID: String, limit: Int = 50) async -> [PlaylistBrowseItem] {
         let normalizedChannelID = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedChannelID.isEmpty else { return [] }
 
@@ -274,6 +310,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 channelID: normalizedChannelID,
                 limit: limit
             )
+            await writeService.savePlaylistItems(playlists, channelID: normalizedChannelID)
             AppConsoleLogger.appLifecycle.info(
                 "channel_playlist_list_complete",
                 metadata: [
@@ -310,6 +347,18 @@ final class FeedCacheCoordinator: ObservableObject {
         pageToken: String?,
         limit: Int = 50
     ) async -> PlaylistBrowseVideosPage {
+        await loadPlaylistVideosPageInternal(
+            playlistID: playlistID,
+            pageToken: pageToken,
+            limit: limit
+        )
+    }
+
+    private func loadPlaylistVideosPageInternal(
+        playlistID: String,
+        pageToken: String?,
+        limit: Int = 50
+    ) async -> PlaylistBrowseVideosPage {
         let normalizedPlaylistID = playlistID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedPlaylistID.isEmpty else {
             return PlaylistBrowseVideosPage(
@@ -328,6 +377,7 @@ final class FeedCacheCoordinator: ObservableObject {
                 pageToken: pageToken,
                 limit: limit
             )
+            await writeService.savePlaylistVideosPage(page)
             AppConsoleLogger.appLifecycle.info(
                 "playlist_videos_page_complete",
                 metadata: [
@@ -368,6 +418,10 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func playlistContinuousPlayURL(playlistID: String) -> URL? {
+        playlistContinuousPlayURLInternal(playlistID: playlistID)
+    }
+
+    private func playlistContinuousPlayURLInternal(playlistID: String) -> URL? {
         let normalizedPlaylistID = playlistID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedPlaylistID.isEmpty else { return nil }
         return channelPlaylistBrowseService.continuousPlayURL(playlistID: normalizedPlaylistID)
@@ -406,8 +460,9 @@ final class FeedCacheCoordinator: ObservableObject {
             return mergedVideos
         }
 
-        await refreshChannelManually(channelID)
-        mergedVideos = await loadVideosForChannel(channelID)
+        if case let .channelVideos(refreshedVideos) = await refresh(intent: .channel(context)) {
+            mergedVideos = refreshedVideos
+        }
         mergedVideos = await loadRemoteSearchChannelFallbackIfNeeded(context: context, currentVideos: mergedVideos)
         AppConsoleLogger.appLifecycle.info(
             "channel_videos_open_complete",
@@ -437,6 +492,10 @@ final class FeedCacheCoordinator: ObservableObject {
     }
 
     func searchVideos(keyword: String, limit: Int = 20) async -> VideoSearchResult {
+        await search(keyword: keyword, limit: limit)
+    }
+
+    func search(keyword: String, limit: Int = 20) async -> VideoSearchResult {
         await readService.searchVideos(keyword: keyword, limit: limit)
     }
 

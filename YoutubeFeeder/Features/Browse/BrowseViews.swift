@@ -31,7 +31,7 @@ struct ChannelVideosView: View {
                         "screen": "channelVideos"
                     ]
                 )
-                if case let .channelVideos(reloadedVideos) = await coordinator.performRefreshAction(.channel(context)) {
+                if case let .channelVideos(reloadedVideos) = await coordinator.refresh(intent: .channel(context)) {
                     await MainActor.run {
                         withAnimation(.easeOut(duration: 0.25)) {
                             videoState.setVideos(reloadedVideos)

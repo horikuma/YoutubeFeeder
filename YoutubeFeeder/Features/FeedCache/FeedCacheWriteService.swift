@@ -36,6 +36,18 @@ struct FeedCacheWriteService {
         await store.cacheThumbnail(for: video)
     }
 
+    func savePlaylistItems(_ items: [PlaylistBrowseItem], channelID: String) async {
+        await store.savePlaylistItems(items, channelID: channelID)
+    }
+
+    func savePlaylistVideosPage(_ page: PlaylistBrowseVideosPage) async {
+        await store.savePlaylistVideosPage(page)
+    }
+
+    func saveChannelNextPageToken(_ nextPageToken: String?, channelID: String) async {
+        await store.saveChannelNextPageToken(nextPageToken, channelID: channelID)
+    }
+
     func persistBootstrap(progress: CacheProgress, maintenanceItems: [ChannelMaintenanceItem]) async {
         await store.persistBootstrap(progress: progress, maintenanceItems: maintenanceItems)
     }

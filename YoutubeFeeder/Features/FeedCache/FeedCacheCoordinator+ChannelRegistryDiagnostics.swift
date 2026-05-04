@@ -61,6 +61,7 @@ extension FeedCacheCoordinator {
 
         channels = execution.channels
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
+        await writeService.saveChannelNextPageToken(nil, channelID: channelID)
         await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
         logChannelRegistryUserBoundary(
             "coordinator_user_mutation_complete",

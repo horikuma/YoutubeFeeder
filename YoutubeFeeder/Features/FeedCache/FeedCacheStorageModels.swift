@@ -119,10 +119,110 @@ struct CachedChannelState: Hashable {
 
 struct FeedCacheSnapshot {
     var savedAt: Date
+    var registeredChannelIDs: [String] = []
+    var maintenanceItems: [ChannelMaintenanceItem] = []
     var channels: [CachedChannelState]
     var videos: [CachedVideo]
+    var registeredAtByChannelID: [String: Date?] = [:]
+    var channelNextPageTokenByChannelID: [String: String] = [:]
+    var playlists: FeedCachePlaylistSnapshot = .empty
 
-    nonisolated static let empty = FeedCacheSnapshot(savedAt: .distantPast, channels: [], videos: [])
+    nonisolated static let empty = FeedCacheSnapshot(
+        savedAt: .distantPast,
+        registeredChannelIDs: [],
+        maintenanceItems: [],
+        channels: [],
+        videos: [],
+        registeredAtByChannelID: [:],
+        channelNextPageTokenByChannelID: [:],
+        playlists: .empty
+    )
+}
+
+struct FeedCachePlaylistSnapshot: Hashable {
+    var playlistsByChannelID: [String: [PlaylistBrowseItem]]
+    var playlistPagesByPlaylistID: [String: PlaylistBrowseVideosPage]
+    var playlistContinuousPlayURLsByPlaylistID: [String: URL]
+
+    nonisolated static let empty = FeedCachePlaylistSnapshot(
+        playlistsByChannelID: [:],
+        playlistPagesByPlaylistID: [:],
+        playlistContinuousPlayURLsByPlaylistID: [:]
+    )
+}
+
+extension FeedCacheSnapshot {
+    func channelBrowseItems(
+        channelIDs: [String]? = nil,
+        sortDescriptor: ChannelBrowseSortDescriptor = .default
+    ) -> [ChannelBrowseItem] {
+        let channelIDs = channelIDs ?? registeredChannelIDs
+        let groupedVideos = Dictionary(grouping: videos.filter { !looksLikeShort($0) }, by: \.channelID)
+        let states = Dictionary(channels.map { ($0.channelID, $0) }, uniquingKeysWith: { _, rhs in rhs })
+
+        let items = channelIDs.map { channelID in
+            let latestVideo = groupedVideos[channelID]?.sorted(by: FeedCacheSnapshot.sortComparator(.publishedDescending)).first
+            let state = states[channelID]
+            return ChannelBrowseItem(
+                id: channelID,
+                channelID: channelID,
+                channelTitle: state?.channelTitle ?? latestVideo?.channelTitle ?? channelID,
+                channelDisplayTitle: state?.channelDisplayTitle ?? latestVideo?.channelDisplayTitle ?? channelID,
+                latestPublishedAt: state?.latestPublishedAt ?? latestVideo?.publishedAt,
+                latestPublishedAtText: state?.latestPublishedAtText ?? latestVideo?.publishedAtText ?? "投稿日なし",
+                registeredAt: registeredAtByChannelID[channelID] ?? nil,
+                latestVideo: latestVideo,
+                cachedVideoCount: state?.cachedVideoCount ?? groupedVideos[channelID]?.count ?? 0
+            )
+        }
+        return FeedOrdering.sortBrowseItems(items, by: sortDescriptor)
+    }
+
+    func videosForChannel(_ channelID: String) -> [CachedVideo] {
+        videos
+            .filter { $0.channelID == channelID }
+            .sorted(by: FeedCacheSnapshot.sortComparator(.publishedDescending))
+    }
+
+    func nextPageToken(for channelID: String) -> String? {
+        channelNextPageTokenByChannelID[channelID]
+    }
+
+    func settingNextPageToken(_ nextPageToken: String?, for channelID: String) -> FeedCacheSnapshot {
+        var snapshot = self
+        if let nextPageToken {
+            snapshot.channelNextPageTokenByChannelID[channelID] = nextPageToken
+        } else {
+            snapshot.channelNextPageTokenByChannelID[channelID] = nil
+        }
+        return snapshot
+    }
+
+    private static func sortComparator(_ sortOrder: VideoSortOrder) -> (CachedVideo, CachedVideo) -> Bool {
+        switch sortOrder {
+        case .publishedDescending:
+            return { lhs, rhs in
+                switch (lhs.publishedAt, rhs.publishedAt) {
+                case let (left?, right?) where left != right:
+                    return left > right
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                default:
+                    return lhs.fetchedAt > rhs.fetchedAt
+                }
+            }
+        }
+    }
+
+    private func looksLikeShort(_ video: CachedVideo) -> Bool {
+        ShortVideoMaskPolicy.shouldMask(
+            durationSeconds: video.durationSeconds,
+            videoURL: video.videoURL,
+            title: video.title
+        )
+    }
 }
 
 struct FeedCacheSummary: Hashable {
@@ -140,6 +240,7 @@ struct FeedCacheSummary: Hashable {
 }
 
 nonisolated extension FeedCacheSnapshot: Codable {}
+nonisolated extension FeedCachePlaylistSnapshot: Codable {}
 nonisolated extension FeedCacheSummary: Codable {}
 
 extension CachedVideo: Codable {
