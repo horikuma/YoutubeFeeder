@@ -384,7 +384,7 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
                 coordinator.manualRefreshTask = nil
             }
 
-            await coordinator.refreshCacheManually()
+            _ = await coordinator.refresh(intent: .home)
             await coordinator.refreshChannelManually(channelID)
             await coordinator.runWallClockChannelRefresh(.allChannels)
             await coordinator.runWallClockChannelRefresh(.recentChannels)
