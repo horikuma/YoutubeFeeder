@@ -25,7 +25,7 @@ extension FeedCacheCoordinator {
         channels = execution.channels
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
-        await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError, includesVideos: false)
+        await refreshContinuation.refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError, includesVideos: false)
         logChannelRegistryUserBoundary(
             "coordinator_user_mutation_complete",
             source: "user_add_channel",
@@ -62,7 +62,7 @@ extension FeedCacheCoordinator {
         channels = execution.channels
         freshnessInterval = TimeInterval(max(channels.count, 1) * 60)
         await writeService.saveChannelNextPageToken(nil, channelID: channelID)
-        await refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
+        await refreshContinuation.refreshUI(currentChannelID: nil, isRunning: false, lastError: progress.lastError)
         logChannelRegistryUserBoundary(
             "coordinator_user_mutation_complete",
             source: "user_remove_channel",
@@ -101,7 +101,7 @@ extension FeedCacheCoordinator {
             )
             throw error
         }
-        await completeImportedChannelUpdate(
+        await refreshContinuation.completeImportedChannelUpdate(
             channels: execution.channels,
             importedChannelIDs: execution.channels
         )
@@ -140,7 +140,7 @@ extension FeedCacheCoordinator {
             )
             throw error
         }
-        await completeImportedChannelUpdate(
+        await refreshContinuation.completeImportedChannelUpdate(
             channels: execution.channels,
             importedChannelIDs: execution.importedChannelIDs
         )

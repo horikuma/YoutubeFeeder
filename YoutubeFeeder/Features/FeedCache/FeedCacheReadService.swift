@@ -11,6 +11,16 @@ struct FeedCacheReadService {
     let store: FeedCacheStore
     let remoteSearchCacheStore: RemoteVideoSearchCacheStore
 
+    struct LoadRefreshStateParams {
+        let channels: [String]
+        let freshnessInterval: TimeInterval
+        let videoQuery: VideoQuery
+        let currentChannelID: String?
+        let isRunning: Bool
+        let lastError: String?
+        let includesVideos: Bool
+    }
+
     func loadSnapshot() async -> FeedCacheSnapshot {
         await store.loadSnapshot()
     }
@@ -106,30 +116,21 @@ struct FeedCacheReadService {
         return VideoSearchResult(keyword: normalizedKeyword, videos: videos, totalCount: totalCount, source: .localCache)
     }
 
-    func loadRefreshState(
-        channels: [String],
-        freshnessInterval: TimeInterval,
-        videoQuery: VideoQuery,
-        currentChannelID: String?,
-        isRunning: Bool,
-        lastError: String?,
-        includesVideos: Bool
-    ) async -> FeedCacheRefreshState {
+    func loadRefreshState(_ params: LoadRefreshStateParams) async -> FeedCacheRefreshState {
         let snapshot = await loadSnapshot()
-        let progress = buildCacheProgress(
+        let progress = buildCacheProgress(.init(
             snapshot: snapshot,
-            channels: channels,
-            freshnessInterval: freshnessInterval,
-            currentChannelID: currentChannelID,
-            isRunning: isRunning,
-            lastError: lastError
-        )
-        let maintenanceItems = buildMaintenanceItems(
+            channels: params.channels,
+            currentChannelID: params.currentChannelID,
+            isRunning: params.isRunning,
+            lastError: params.lastError
+        ))
+        let maintenanceItems = buildMaintenanceItems(.init(
             snapshot: snapshot,
-            channels: channels,
-            freshnessInterval: freshnessInterval
-        )
-        let videos = includesVideos ? await loadVideos(query: videoQuery) : nil
+            channels: params.channels,
+            freshnessInterval: params.freshnessInterval
+        ))
+        let videos = params.includesVideos ? await loadVideos(query: params.videoQuery) : nil
         return FeedCacheRefreshState(
             snapshot: snapshot,
             progress: progress,
@@ -138,14 +139,20 @@ struct FeedCacheReadService {
         )
     }
 
-    private func buildCacheProgress(
-        snapshot: FeedCacheSnapshot,
-        channels: [String],
-        freshnessInterval: TimeInterval,
-        currentChannelID: String?,
-        isRunning: Bool,
-        lastError: String?
-    ) -> CacheProgress {
+    private struct CacheProgressParams {
+        let snapshot: FeedCacheSnapshot
+        let channels: [String]
+        let currentChannelID: String?
+        let isRunning: Bool
+        let lastError: String?
+    }
+
+    private func buildCacheProgress(_ params: CacheProgressParams) -> CacheProgress {
+        let snapshot = params.snapshot
+        let channels = params.channels
+        let currentChannelID = params.currentChannelID
+        let isRunning = params.isRunning
+        let lastError = params.lastError
         let cachedChannels = snapshot.channels.filter { $0.lastSuccessAt != nil }.count
         let cachedThumbnails = snapshot.videos.filter { $0.thumbnailLocalFilename != nil }.count
         let prioritizedChannels = FeedOrdering.prioritizedChannelIDs(
@@ -168,11 +175,16 @@ struct FeedCacheReadService {
         )
     }
 
-    private func buildMaintenanceItems(
-        snapshot: FeedCacheSnapshot,
-        channels: [String],
-        freshnessInterval: TimeInterval
-    ) -> [ChannelMaintenanceItem] {
+    private struct MaintenanceItemsParams {
+        let snapshot: FeedCacheSnapshot
+        let channels: [String]
+        let freshnessInterval: TimeInterval
+    }
+
+    private func buildMaintenanceItems(_ params: MaintenanceItemsParams) -> [ChannelMaintenanceItem] {
+        let snapshot = params.snapshot
+        let channels = params.channels
+        let freshnessInterval = params.freshnessInterval
         let states = Dictionary(snapshot.channels.map { ($0.channelID, $0) }, uniquingKeysWith: { _, rhs in rhs })
         let prioritizedChannels = FeedOrdering.prioritizedChannelIDs(channels: channels, states: states)
         return prioritizedChannels.map { channelID in

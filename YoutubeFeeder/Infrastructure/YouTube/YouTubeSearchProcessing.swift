@@ -1,6 +1,6 @@
 import Foundation
 
-extension YouTubeSearchService {
+enum YouTubeSearchServiceProcessing {
     static func mergeCandidates(_ candidates: [SearchCandidate]) -> [SearchCandidate] {
         let deduplicated = candidates.reduce(into: [String: SearchCandidate]()) { partial, candidate in
             guard let existing = partial[candidate.id] else {
@@ -65,7 +65,7 @@ extension YouTubeSearchService {
         }
     }
 
-    func mockSearchResponse(keyword: String, limit: Int) -> YouTubeSearchResponse {
+    static func mockSearchResponse(keyword: String, limit: Int) -> YouTubeSearchResponse {
         let videos = [
             YouTubeSearchVideo(
                 id: "remote-refresh-001",
@@ -97,12 +97,12 @@ extension YouTubeSearchService {
         )
     }
 
-    func mockChannelSearchResponse(channelID: String, limit: Int) -> YouTubeSearchResponse {
+    static func mockChannelSearchResponse(channelID: String, limit: Int) -> YouTubeSearchResponse {
         let page = mockChannelVideosPageResponse(channelID: channelID, limit: limit)
         return YouTubeSearchResponse(videos: page.videos, totalCount: page.totalCount, fetchedAt: page.fetchedAt)
     }
 
-    func mockChannelVideosPageResponse(channelID: String, limit: Int) -> YouTubeChannelVideosPage {
+    static func mockChannelVideosPageResponse(channelID: String, limit: Int) -> YouTubeChannelVideosPage {
         let videos = (1 ... 15).map { index in
             YouTubeSearchVideo(
                 id: "mock-channel-\(channelID)-\(index)",

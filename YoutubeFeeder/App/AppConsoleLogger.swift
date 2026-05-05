@@ -10,14 +10,10 @@ enum AppConsoleLogLevel: String {
 
     var priority: Int {
         switch self {
-        case .debug:
-            return 0
-        case .info:
-            return 1
-        case .warning:
-            return 2
-        case .error:
-            return 3
+        case .debug: return 0
+        case .info: return 1
+        case .warning: return 2
+        case .error: return 3
         }
     }
 }
@@ -32,6 +28,15 @@ struct AppConsoleLogger {
         case exceeded(scope: String, count: Int, limit: Int)
     }
 
+    struct RenderLineParams {
+        let timestamp: String
+        let level: AppConsoleLogLevel
+        let scope: String
+        let event: String
+        let message: String?
+        let metadata: [String: String]
+    }
+
     static let appLifecycle = AppConsoleLogger(scope: "app.lifecycle")
     static let channelRegistry = AppConsoleLogger(scope: "channel.registry")
     static let channelRegistryTransfer = AppConsoleLogger(scope: "channel_registry.transfer")
@@ -42,17 +47,15 @@ struct AppConsoleLogger {
     static let remoteSearchSplitLoad = AppConsoleLogger(scope: "remote_search.split_load")
     static let browseTileInteraction = AppConsoleLogger(scope: "browse.tile.interaction")
 
-    let scope: String
-
-    private static let prefix = "[YoutubeFeeder]"
-    private static let fileLogLock = NSLock()
-    private static let runtimeLogLaunchLock = NSLock()
-    private static let projectRootMarker = "YoutubeFeeder/App/AppConsoleLogger.swift"
-    private static let runtimeLogDirectoryRelativePath = "logs"
-    private static let legacyRuntimeLogFileName = "youtubefeeder-runtime.log"
-    private static let maximumPendingRuntimeLogLines = 200
-    private static let minimumLogLevel: AppConsoleLogLevel = .info
-    private static let runtimeLogLaunchFileNameFormatter: DateFormatter = {
+    static let prefix = "[YoutubeFeeder]"
+    static let projectRootMarker = "YoutubeFeeder/App/AppConsoleLogger.swift"
+    static let runtimeLogDirectoryRelativePath = "logs"
+    static let legacyRuntimeLogFileName = "youtubefeeder-runtime.log"
+    static let maximumPendingRuntimeLogLines = 200
+    static let minimumLogLevel: AppConsoleLogLevel = .info
+    static let scopeInvocationWindowSeconds: TimeInterval = 1
+    static let scopeInvocationThresholdCount: Int = 50
+    static let runtimeLogLaunchFileNameFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -60,360 +63,132 @@ struct AppConsoleLogger {
         formatter.dateFormat = "yyyyMMdd-HHmmss-SSS"
         return formatter
     }()
-    static let scopeInvocationWindowSeconds: TimeInterval = 1
-    static let scopeInvocationThresholdCount: Int = 50
-    private static let traceStateLock = NSLock()
-    private static var traceStartTimes: [String: Date] = [:]
-    private static let scopeInvocationLock = NSLock()
-    private struct ScopeInvocationWindow {
-        var windowStartedAt: Date
-        var count: Int
-    }
 
-    private static var scopeInvocationWindows: [String: ScopeInvocationWindow] = [:]
-    private static var runtimeLogLaunchFileURL: URL?
-    private static var pendingRuntimeLogLines: [String] = []
-    private static let timestampFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        formatter.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
-        return formatter
-    }()
+    let scope: String
 
     static func timestamp(for date: Date = .now) -> String {
-        timestampFormatter.string(from: date)
+        AppConsoleLoggerFormatting.timestamp(for: date)
     }
 
-    func debug(_ event: String, message: String? = nil, metadata: [String: String] = [:]) {
-        emit(level: .debug, event: event, message: message, metadata: metadata)
-    }
-
-    func info(_ event: String, message: String? = nil, metadata: [String: String] = [:]) {
-        emit(level: .info, event: event, message: message, metadata: metadata)
-    }
-
-    func warning(_ event: String, message: String? = nil, metadata: [String: String] = [:]) {
-        emit(level: .warning, event: event, message: message, metadata: metadata)
-    }
-
-    func notice(_ event: String, message: String? = nil, metadata: [String: String] = [:]) {
-        emit(level: .info, event: event, message: message, metadata: metadata)
-    }
-
-    func error(_ event: String, message: String? = nil, metadata: [String: String] = [:]) {
-        emit(level: .error, event: event, message: message, metadata: metadata)
-    }
+    func debug(_ event: String, message: String? = nil, metadata: [String: String] = [:]) { emit(level: .debug, event: event, message: message, metadata: metadata) }
+    func info(_ event: String, message: String? = nil, metadata: [String: String] = [:]) { emit(level: .info, event: event, message: message, metadata: metadata) }
+    func warning(_ event: String, message: String? = nil, metadata: [String: String] = [:]) { emit(level: .warning, event: event, message: message, metadata: metadata) }
+    func notice(_ event: String, message: String? = nil, metadata: [String: String] = [:]) { emit(level: .info, event: event, message: message, metadata: metadata) }
+    func error(_ event: String, message: String? = nil, metadata: [String: String] = [:]) { emit(level: .error, event: event, message: message, metadata: metadata) }
 
     private func emit(level: AppConsoleLogLevel, event: String, message: String?, metadata: [String: String]) {
         guard level.priority >= Self.minimumLogLevel.priority else { return }
-        Self.recordScopeInvocation(for: scope)
-        let timestamp = Self.timestamp(for: .now)
-        let line = Self.renderLine(
-            timestamp: timestamp,
+        AppConsoleLoggerScopeInvocationStore.recordScopeInvocation(for: scope)
+        let line = Self.renderLine(.init(
+            timestamp: Self.timestamp(for: .now),
             level: level,
             scope: scope,
             event: event,
             message: message,
             metadata: metadata
-        )
+        ))
         Self.writeConsoleLine(line, level: level)
-        Self.writeFileLine(line)
+        AppConsoleLoggerRuntimeLogStore.writeFileLine(line)
     }
 
     static func writeConsoleLine(_ line: String, level: AppConsoleLogLevel) {
-        switch level {
-        case .warning, .error:
-            Self.writeStandardErrorLine(line)
-        case .debug, .info:
-            print(line)
-        }
-    }
-
-    static func writeStandardErrorLine(_ line: String) {
-        guard let data = (line + "\n").data(using: .utf8) else { return }
-        FileHandle.standardError.write(data)
+        AppConsoleLoggerRuntimeLogStore.writeConsoleLine(line, level: level)
     }
 
     static func writeFileLine(_ line: String) {
-        appendRuntimeLogLine(line)
+        AppConsoleLoggerRuntimeLogStore.writeFileLine(line)
     }
 
     static func prepareRuntimeLogFileForLaunch(runtimeLogFileURL overrideURL: URL? = nil) {
-#if targetEnvironment(macCatalyst)
-        let logFileURL = overrideURL ?? launchRuntimeLogFileURL()
-        guard let logFileURL else {
-            fileLogLock.lock()
-            defer { fileLogLock.unlock() }
-            appendPendingRuntimeLogDiagnostic(
-                "runtime_log_file_prepare_failed",
-                level: .warning,
-                metadata: [
-                    "reason": "launch_log_file_url_unavailable",
-                    "pending_lines": "\(pendingRuntimeLogLines.count)",
-                    "process_id": "\(ProcessInfo.processInfo.processIdentifier)",
-                    "stage": "prepare_runtime_log_file"
-                ]
-            )
-            return
-        }
-
-        do {
-            let fileManager = FileManager.default
-            runtimeLogLaunchLock.lock()
-            runtimeLogLaunchFileURL = logFileURL
-            runtimeLogLaunchLock.unlock()
-            fileLogLock.lock()
-            defer { fileLogLock.unlock() }
-
-            try fileManager.createDirectory(
-                at: logFileURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            try Data().write(to: logFileURL, options: .atomic)
-            let flushedCount = try flushPendingRuntimeLogLines(to: logFileURL)
-            try writePendingRuntimeLogFlushDiagnosticIfNeeded(
-                flushedCount: flushedCount,
-                logFileURL: logFileURL,
-                recoveryStage: "prepare_runtime_log_file"
-            )
-        } catch {
-            fileLogLock.lock()
-            defer { fileLogLock.unlock() }
-            appendPendingRuntimeLogDiagnostic(
-                "runtime_log_file_prepare_failed",
-                level: .warning,
-                metadata: runtimeLogFailureMetadata(
-                    stage: "prepare_runtime_log_file",
-                    logFileURL: logFileURL,
-                    error: error
-                )
-            )
-            // Logging must never change app behavior.
-        }
-#endif
+        AppConsoleLoggerRuntimeLogStore.prepareRuntimeLogFileForLaunch(runtimeLogFileURL: overrideURL)
     }
 
     static func recordScopeInvocation(for scope: String, at timestamp: Date = .now) {
-        scopeInvocationLock.lock()
-        defer { scopeInvocationLock.unlock() }
-
-        if let window = scopeInvocationWindows[scope],
-            timestamp.timeIntervalSince(window.windowStartedAt) < scopeInvocationWindowSeconds {
-            scopeInvocationWindows[scope] = ScopeInvocationWindow(
-                windowStartedAt: window.windowStartedAt,
-                count: window.count + 1
-            )
-            return
-        }
-
-        scopeInvocationWindows[scope] = ScopeInvocationWindow(windowStartedAt: timestamp, count: 1)
+        AppConsoleLoggerScopeInvocationStore.recordScopeInvocation(for: scope, at: timestamp)
     }
 
     static func scopeInvocationCount(for scope: String) -> Int {
-        scopeInvocationLock.lock()
-        defer { scopeInvocationLock.unlock() }
-
-        return scopeInvocationWindows[scope]?.count ?? 0
+        AppConsoleLoggerScopeInvocationStore.scopeInvocationCount(for: scope)
     }
 
     static func removeScopeInvocationCount(for scope: String) -> Int? {
-        scopeInvocationLock.lock()
-        defer { scopeInvocationLock.unlock() }
-
-        return scopeInvocationWindows.removeValue(forKey: scope)?.count
+        AppConsoleLoggerScopeInvocationStore.removeScopeInvocationCount(for: scope)
     }
 
     static func scopeInvocationThresholdExceeded(for scope: String, limit: Int) -> ScopeInvocationThresholdExceeded? {
-        let count = scopeInvocationCount(for: scope)
-        guard count > limit else { return nil }
-        return .exceeded(scope: scope, count: count, limit: limit)
+        AppConsoleLoggerScopeInvocationStore.scopeInvocationThresholdExceeded(for: scope, limit: limit)
     }
 
     static func scopeInvocationThresholdExceeded(for scope: String) -> ScopeInvocationThresholdExceeded? {
-        scopeInvocationThresholdExceeded(for: scope, limit: scopeInvocationThresholdCount)
+        AppConsoleLoggerScopeInvocationStore.scopeInvocationThresholdExceeded(for: scope)
     }
 
     static func scopeInvocationThresholdExceededWarning(for scope: String, limit: Int) -> ScopeInvocationThresholdExceeded? {
-        guard let exceeded = scopeInvocationThresholdExceeded(for: scope, limit: limit) else { return nil }
-        appLifecycle.warning(
-            "scope_invocation_threshold_exceeded",
-            metadata: [
-                "kind": "threshold_exceeded",
-                "scope": scope,
-                "count": "\(scopeInvocationCount(for: scope))",
-                "limit": "\(limit)"
-            ]
-        )
-        return exceeded
+        AppConsoleLoggerScopeInvocationStore.scopeInvocationThresholdExceededWarning(for: scope, limit: limit)
     }
 
     static func scopeInvocationThresholdExceededWarning(for scope: String) -> ScopeInvocationThresholdExceeded? {
-        guard let exceeded = scopeInvocationThresholdExceeded(for: scope) else { return nil }
-        appLifecycle.warning(
-            "scope_invocation_threshold_exceeded",
-            metadata: [
-                "kind": "threshold_exceeded",
-                "scope": scope,
-                "count": "\(scopeInvocationCount(for: scope))",
-                "limit": "\(scopeInvocationThresholdCount)"
-            ]
-        )
-        return exceeded
+        AppConsoleLoggerScopeInvocationStore.scopeInvocationThresholdExceededWarning(for: scope)
     }
 
-    static func renderLine(
-        timestamp: String,
-        level: AppConsoleLogLevel,
-        scope: String,
-        event: String,
-        message: String?,
-        metadata: [String: String]
-    ) -> String {
-        let renderedMetadata = metadata
-            .filter { !$0.value.isEmpty }
-            .filter { shouldIncludeMetadataValue($0.value, level: level) }
-            .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\(quoted($0.value))" }
-            .joined(separator: " ")
-        let renderedMessage = message.map { "message=\(quoted($0))" } ?? ""
-        let suffix = [renderedMetadata, renderedMessage]
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-
-        if suffix.isEmpty {
-            return jsonWrappedLine("\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event)")
-        }
-        return jsonWrappedLine("\(prefix) \(timestamp) \(level.rawValue) \(scope).\(event) \(suffix)")
-    }
-
-    private static func jsonWrappedLine(_ line: String) -> String {
-        guard
-            let data = try? JSONSerialization.data(withJSONObject: ["line": line], options: [.sortedKeys]),
-            let string = String(bytes: data, encoding: .utf8)
-        else {
-            return line
-        }
-
-        return string
-    }
-
-    private static func shouldIncludeMetadataValue(_ value: String, level: AppConsoleLogLevel) -> Bool {
-        guard level == .info else { return true }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !(trimmed.hasPrefix("[") && trimmed.hasSuffix("]"))
-    }
-
-    private static func quoted(_ value: String) -> String {
-        let escaped = value.replacingOccurrences(of: "\"", with: "\\\"")
-        return "\"\(escaped)\""
+    static func renderLine(_ params: RenderLineParams) -> String {
+        AppConsoleLoggerFormatting.renderLine(params)
     }
 
     static func sanitizedKeyword(_ keyword: String, limit: Int = 48) -> String {
-        let normalized = keyword
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard normalized.count > limit else { return normalized }
-        return String(normalized.prefix(max(limit - 3, 0))) + "..."
+        AppConsoleLoggerFormatting.sanitizedKeyword(keyword, limit: limit)
     }
 
     static func responsePreview(_ data: Data, limit: Int = 160) -> String {
-        let raw = String(bytes: data, encoding: .utf8) ?? ""
-        let normalized = raw
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "([\\[{])\\s+", with: "$1", options: .regularExpression)
-            .replacingOccurrences(of: "\\s+([\\]}])", with: "$1", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalized.isEmpty else { return "<\(data.count) bytes>" }
-        guard normalized.count > limit else { return normalized }
-        return String(normalized.prefix(max(limit - 3, 0))) + "..."
+        AppConsoleLoggerFormatting.responsePreview(data, limit: limit)
     }
 
     static func errorSummary(_ error: Error, limit: Int = 120) -> String {
-        if let decodingError = error as? DecodingError {
-            return decodingErrorSummary(decodingError, limit: limit)
-        }
-
-        let normalized = error.localizedDescription
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard normalized.count > limit else { return normalized }
-        return String(normalized.prefix(max(limit - 3, 0))) + "..."
+        AppConsoleLoggerFormatting.errorSummary(error, limit: limit)
     }
 
     static func elapsedMilliseconds(since startedAt: Date) -> String {
-        String(Int(Date().timeIntervalSince(startedAt) * 1000))
+        AppConsoleLoggerFormatting.elapsedMilliseconds(since: startedAt)
     }
 
     static func elapsedMilliseconds(from startedAt: Date, to endedAt: Date) -> String {
-        String(Int(endedAt.timeIntervalSince(startedAt) * 1000))
+        AppConsoleLoggerFormatting.elapsedMilliseconds(from: startedAt, to: endedAt)
     }
 
     static func traceDurationMilliseconds(since startedAt: Date, to endedAt: Date = .now) -> String {
-        elapsedMilliseconds(from: startedAt, to: endedAt)
+        AppConsoleLoggerFormatting.traceDurationMilliseconds(since: startedAt, to: endedAt)
     }
 
     static func traceID() -> String {
-        UUID().uuidString
+        AppConsoleLoggerTraceStore.traceID()
     }
 
     static func recordTraceStart(_ traceID: String, startedAt: Date = .now) {
-        traceStateLock.lock()
-        defer { traceStateLock.unlock() }
-
-        traceStartTimes[traceID] = startedAt
+        AppConsoleLoggerTraceStore.recordTraceStart(traceID, startedAt: startedAt)
     }
 
     static func traceStartTime(for traceID: String) -> Date? {
-        traceStateLock.lock()
-        defer { traceStateLock.unlock() }
-
-        return traceStartTimes[traceID]
+        AppConsoleLoggerTraceStore.traceStartTime(for: traceID)
     }
 
     static func removeTraceStartTime(for traceID: String) -> Date? {
-        traceStateLock.lock()
-        defer { traceStateLock.unlock() }
-
-        return traceStartTimes.removeValue(forKey: traceID)
+        AppConsoleLoggerTraceStore.removeTraceStartTime(for: traceID)
     }
 
     static func traceEndMismatch(for traceID: String, startedAt: Date?) -> TraceLifecycleMismatch? {
-        guard startedAt == nil else { return nil }
-        return .missingStart(traceID: traceID)
+        AppConsoleLoggerTraceStore.traceEndMismatch(for: traceID, startedAt: startedAt)
     }
 
     static func traceStartMismatch() -> TraceLifecycleMismatch? {
-        traceStateLock.lock()
-        defer { traceStateLock.unlock() }
-
-        let traceIDs = traceStartTimes.keys.sorted()
-        guard !traceIDs.isEmpty else { return nil }
-        return .unfinishedStarts(traceIDs: traceIDs)
+        AppConsoleLoggerTraceStore.traceStartMismatch()
     }
 
     static func traceEndMismatchWarning(for traceID: String, startedAt: Date?) -> TraceLifecycleMismatch? {
-        guard let mismatch = traceEndMismatch(for: traceID, startedAt: startedAt) else { return nil }
-        appLifecycle.warning(
-            "trace_lifecycle_mismatch",
-            metadata: [
-                "kind": "missing_start",
-                "trace_id": traceID
-            ]
-        )
-        return mismatch
+        AppConsoleLoggerTraceStore.traceEndMismatchWarning(for: traceID, startedAt: startedAt)
     }
 
     static func traceStartMismatchWarning() -> TraceLifecycleMismatch? {
-        guard case let .unfinishedStarts(traceIDs)? = traceStartMismatch() else { return nil }
-        appLifecycle.warning(
-            "trace_lifecycle_mismatch",
-            metadata: [
-                "count": String(traceIDs.count),
-                "kind": "unfinished_starts",
-                "trace_ids": traceIDs.joined(separator: ",")
-            ]
-        )
-        return .unfinishedStarts(traceIDs: traceIDs)
+        AppConsoleLoggerTraceStore.traceStartMismatchWarning()
     }
 
     func traceStart(_ event: String, message: String? = nil, metadata: [String: String] = [:]) -> String {
@@ -423,370 +198,54 @@ struct AppConsoleLogger {
         return traceID
     }
 
-    func traceEnd(
-        _ event: String,
-        traceID: String,
-        message: String? = nil,
-        count: String? = nil,
-        size: String? = nil,
-        result: String? = nil,
-        metadata: [String: String] = [:]
-    ) -> Date? {
+    func traceEnd(_ event: String, traceID: String, message: String? = nil, count: String? = nil, size: String? = nil, result: String? = nil, metadata: [String: String] = [:]) -> Date? {
         let startedAt = Self.removeTraceStartTime(for: traceID)
         var traceMetadata = metadata
         traceMetadata["trace_id"] = traceID
-        if let count {
-            traceMetadata["count"] = count
-        }
-        if let size {
-            traceMetadata["size"] = size
-        }
-        if let result {
-            traceMetadata["result"] = result
-        }
-        if let startedAt {
-            traceMetadata["duration_ms"] = Self.traceDurationMilliseconds(since: startedAt)
-        }
+        if let count { traceMetadata["count"] = count }
+        if let size { traceMetadata["size"] = size }
+        if let result { traceMetadata["result"] = result }
+        if let startedAt { traceMetadata["duration_ms"] = Self.traceDurationMilliseconds(since: startedAt) }
         emit(level: .info, event: event, message: message, metadata: traceMetadata)
         return startedAt
     }
 
-    func traceEvent(
-        _ event: String,
-        traceID: String,
-        message: String? = nil,
-        metadata: [String: String] = [:]
-    ) {
-        // Event logs are reserved for state transitions, anomalies, and other important events.
+    func traceEvent(_ event: String, traceID: String, message: String? = nil, metadata: [String: String] = [:]) {
         guard Self.isAllowedEventLog(event) else { return }
         var traceMetadata = metadata
         traceMetadata["trace_id"] = traceID
         emit(level: .info, event: event, message: message, metadata: traceMetadata)
     }
 
-    private static func isAllowedEventLog(_ event: String) -> Bool {
-        event.hasPrefix("state_change_")
-            || event.hasPrefix("anomaly_")
-            || event.hasPrefix("important_")
-    }
-
     static func mainThreadFlag() -> String {
-        Thread.isMainThread ? "true" : "false"
+        AppConsoleLoggerFormatting.mainThreadFlag()
     }
 
     static func channelIDsFingerprint(_ channelIDs: [String]) -> String {
-        var hash: UInt64 = 0xcbf29ce484222325
-        for byte in channelIDs.joined(separator: "\u{1F}").utf8 {
-            hash ^= UInt64(byte)
-            hash = hash &* 0x100000001b3
-        }
-        return String(format: "%016llx", hash)
-    }
-
-    private static func decodingErrorSummary(_ error: DecodingError, limit: Int) -> String {
-        let detail: String
-        switch error {
-        case let .keyNotFound(key, context):
-            detail = "keyNotFound path=\(codingPath(context.codingPath + [key]))"
-        case let .valueNotFound(type, context):
-            detail = "valueNotFound type=\(type) path=\(codingPath(context.codingPath))"
-        case let .typeMismatch(type, context):
-            detail = "typeMismatch type=\(type) path=\(codingPath(context.codingPath))"
-        case let .dataCorrupted(context):
-            detail = "dataCorrupted path=\(codingPath(context.codingPath)) description=\(context.debugDescription)"
-        @unknown default:
-            detail = error.localizedDescription
-        }
-
-        let normalized = detail
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard normalized.count > limit else { return normalized }
-        return String(normalized.prefix(max(limit - 3, 0))) + "..."
-    }
-
-    private static func codingPath(_ path: [CodingKey]) -> String {
-        let rendered = path.map { key -> String in
-            if let intValue = key.intValue {
-                return "[\(intValue)]"
-            }
-            return key.stringValue
-        }
-        return rendered.joined(separator: ".")
-    }
-
-    private static func appendRuntimeLogLine(_ line: String) {
-#if targetEnvironment(macCatalyst)
-        guard let logFileURL = activeRuntimeLogFileURL() else {
-            fileLogLock.lock()
-            defer { fileLogLock.unlock() }
-            appendPendingRuntimeLogLine(line)
-            appendPendingRuntimeLogDiagnostic(
-                "runtime_log_file_write_deferred",
-                level: .warning,
-                metadata: [
-                    "reason": "active_log_file_missing",
-                    "pending_lines": "\(pendingRuntimeLogLines.count)",
-                    "process_id": "\(ProcessInfo.processInfo.processIdentifier)"
-                ]
-            )
-            return
-        }
-        fileLogLock.lock()
-        defer { fileLogLock.unlock() }
-
-        do {
-            let fileManager = FileManager.default
-            try fileManager.createDirectory(
-                at: logFileURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            let data = Data((line + "\n").utf8)
-            let flushedCount = try flushPendingRuntimeLogLines(to: logFileURL)
-            try writePendingRuntimeLogFlushDiagnosticIfNeeded(
-                flushedCount: flushedCount,
-                logFileURL: logFileURL,
-                recoveryStage: "append_runtime_log_line"
-            )
-            if fileManager.fileExists(atPath: logFileURL.path) {
-                let handle = try FileHandle(forWritingTo: logFileURL)
-                try handle.seekToEnd()
-                try handle.write(contentsOf: data)
-                try handle.close()
-            } else {
-                try data.write(to: logFileURL, options: .atomic)
-            }
-        } catch {
-            appendPendingRuntimeLogLine(line)
-            appendPendingRuntimeLogDiagnostic(
-                "runtime_log_file_write_deferred",
-                level: .warning,
-                metadata: runtimeLogFailureMetadata(
-                    stage: "append_runtime_log_line",
-                    logFileURL: logFileURL,
-                    error: error
-                )
-            )
-            // Logging must never change app behavior.
-        }
-#endif
-    }
-
-    private static func flushPendingRuntimeLogLines(to logFileURL: URL) throws -> Int {
-        guard !pendingRuntimeLogLines.isEmpty else { return 0 }
-        let lines = pendingRuntimeLogLines
-        pendingRuntimeLogLines.removeAll()
-
-        do {
-            try writeRuntimeLogLines(lines, to: logFileURL)
-            return lines.count
-        } catch {
-            pendingRuntimeLogLines = Array((lines + pendingRuntimeLogLines).suffix(maximumPendingRuntimeLogLines))
-            throw error
-        }
-    }
-
-    private static func appendPendingRuntimeLogLine(_ line: String) {
-        pendingRuntimeLogLines.append(line)
-        if pendingRuntimeLogLines.count > maximumPendingRuntimeLogLines {
-            pendingRuntimeLogLines.removeFirst(pendingRuntimeLogLines.count - maximumPendingRuntimeLogLines)
-        }
-    }
-
-    private static func appendPendingRuntimeLogDiagnostic(
-        _ event: String,
-        level: AppConsoleLogLevel,
-        metadata: [String: String]
-    ) {
-        appendPendingRuntimeLogLine(runtimeLogDiagnosticLine(event, level: level, metadata: metadata))
-    }
-
-    private static func writePendingRuntimeLogFlushDiagnosticIfNeeded(
-        flushedCount: Int,
-        logFileURL: URL,
-        recoveryStage: String
-    ) throws {
-        guard flushedCount > 0 else { return }
-        try writeRuntimeLogLines(
-            [
-                runtimeLogDiagnosticLine(
-                    "runtime_log_pending_lines_flushed",
-                    level: .info,
-                    metadata: [
-                        "flushed_lines": "\(flushedCount)",
-                        "log_file": logFileURL.lastPathComponent,
-                        "process_id": "\(ProcessInfo.processInfo.processIdentifier)",
-                        "recovery_stage": recoveryStage
-                    ]
-                )
-            ],
-            to: logFileURL
-        )
-    }
-
-    private static func writeRuntimeLogLines(_ lines: [String], to logFileURL: URL) throws {
-        guard !lines.isEmpty else { return }
-        let data = Data((lines.joined(separator: "\n") + "\n").utf8)
-        let fileManager = FileManager.default
-        if fileManager.fileExists(atPath: logFileURL.path) {
-            let handle = try FileHandle(forWritingTo: logFileURL)
-            defer { try? handle.close() }
-            try handle.seekToEnd()
-            try handle.write(contentsOf: data)
-        } else {
-            try data.write(to: logFileURL, options: .atomic)
-        }
-    }
-
-    private static func runtimeLogDiagnosticLine(
-        _ event: String,
-        level: AppConsoleLogLevel,
-        metadata: [String: String]
-    ) -> String {
-        renderLine(
-            timestamp: timestamp(for: .now),
-            level: level,
-            scope: "app.lifecycle",
-            event: event,
-            message: nil,
-            metadata: metadata
-        )
-    }
-
-    private static func runtimeLogFailureMetadata(
-        stage: String,
-        logFileURL: URL,
-        error: Error
-    ) -> [String: String] {
-        let fileManager = FileManager.default
-        let directoryURL = logFileURL.deletingLastPathComponent()
-        let directoryPath = directoryURL.path
-        return [
-            "directory_exists": "\(fileManager.fileExists(atPath: directoryPath))",
-            "directory_writable": "\(fileManager.isWritableFile(atPath: directoryPath))",
-            "error": errorSummary(error, limit: 160),
-            "log_file": logFileURL.lastPathComponent,
-            "pending_lines": "\(pendingRuntimeLogLines.count)",
-            "process_id": "\(ProcessInfo.processInfo.processIdentifier)",
-            "stage": stage
-        ]
-    }
-
-    private static func runtimeLogFailureMetadata(stage: String, logFileURL: URL?, error: Error) -> [String: String] {
-        guard let logFileURL else {
-            return [
-                "error": errorSummary(error, limit: 160),
-                "log_file": "unknown",
-                "pending_lines": "\(pendingRuntimeLogLines.count)",
-                "process_id": "\(ProcessInfo.processInfo.processIdentifier)",
-                "stage": stage
-            ]
-        }
-        return runtimeLogFailureMetadata(stage: stage, logFileURL: logFileURL, error: error)
+        AppConsoleLoggerFormatting.channelIDsFingerprint(channelIDs)
     }
 
     static func runtimeLogFileName() -> String? {
-        activeRuntimeLogFileURL()?.lastPathComponent
+        AppConsoleLoggerRuntimeLogStore.runtimeLogFileName()
     }
 
     static func runtimeLogOverrideStatus() -> String {
-#if targetEnvironment(macCatalyst)
-        guard let override = runtimeLogOverrideFileURL() else {
-            return "none"
-        }
-        return isLegacyRuntimeLogFileURL(override) ? "ignored_legacy_runtime_log_file" : "active"
-#else
-        return "unsupported"
-#endif
+        AppConsoleLoggerRuntimeLogStore.runtimeLogOverrideStatus()
     }
 
     static func runtimeLogOverrideFileName() -> String {
-#if targetEnvironment(macCatalyst)
-        runtimeLogOverrideFileURL()?.lastPathComponent ?? "none"
-#else
-        "unsupported"
-#endif
+        AppConsoleLoggerRuntimeLogStore.runtimeLogOverrideFileName()
     }
 
-    private static func activeRuntimeLogFileURL() -> URL? {
-#if targetEnvironment(macCatalyst)
-        runtimeLogLaunchLock.lock()
-        defer { runtimeLogLaunchLock.unlock() }
-
-        if let override = runtimeLogOverrideFileURL() {
-            guard !isLegacyRuntimeLogFileURL(override) else {
-                return runtimeLogLaunchFileURL
-            }
-            return override
-        }
-
-        if let runtimeLogLaunchFileURL {
-            return runtimeLogLaunchFileURL
-        }
-        return nil
-#else
-        return nil
-#endif
-    }
-
-    private static func launchRuntimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
-#if targetEnvironment(macCatalyst)
-        guard let logDirectoryURL = defaultRuntimeLogDirectoryURL(sourceFilePath: sourceFilePath) else { return nil }
-        let fileName = launchRuntimeLogFileName(
-            date: .now,
-            processIdentifier: ProcessInfo.processInfo.processIdentifier
-        )
-        return logDirectoryURL.appendingPathComponent(fileName)
-#else
-        return nil
-#endif
-    }
-
-    static func launchRuntimeLogFileName(
-        date: Date = .now,
-        processIdentifier: Int32 = ProcessInfo.processInfo.processIdentifier
-    ) -> String {
-        "youtubefeeder-runtime-\(runtimeLogLaunchFileNameFormatter.string(from: date))-pid\(processIdentifier).log"
+    static func launchRuntimeLogFileName(date: Date = .now, processIdentifier: Int32 = ProcessInfo.processInfo.processIdentifier) -> String {
+        AppConsoleLoggerRuntimeLogStore.launchRuntimeLogFileName(date: date, processIdentifier: processIdentifier)
     }
 
     static func runtimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
-#if targetEnvironment(macCatalyst)
-        if let override = runtimeLogOverrideFileURL() {
-            return override
-        }
-
-        guard let logDirectoryURL = defaultRuntimeLogDirectoryURL(sourceFilePath: sourceFilePath) else { return nil }
-        return logDirectoryURL.appendingPathComponent(legacyRuntimeLogFileName)
-#else
-        return nil
-#endif
+        AppConsoleLoggerRuntimeLogStore.runtimeLogFileURL(sourceFilePath: sourceFilePath)
     }
 
-    private static func defaultRuntimeLogDirectoryURL(sourceFilePath: String = #filePath) -> URL? {
-#if targetEnvironment(macCatalyst)
-        guard let markerRange = sourceFilePath.range(of: projectRootMarker) else { return nil }
-        let projectRoot = String(sourceFilePath[..<markerRange.lowerBound])
-        return URL(fileURLWithPath: projectRoot).appendingPathComponent(runtimeLogDirectoryRelativePath, isDirectory: true)
-#else
-        return nil
-#endif
-    }
-
-    private static func runtimeLogOverrideFileURL() -> URL? {
-#if targetEnvironment(macCatalyst)
-        guard let override = ProcessInfo.processInfo.environment["YOUTUBEFEEDER_RUNTIME_LOG_FILE"]?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !override.isEmpty
-        else {
-            return nil
-        }
-        return URL(fileURLWithPath: override)
-#else
-        return nil
-#endif
-    }
-
-    private static func isLegacyRuntimeLogFileURL(_ url: URL) -> Bool {
-        url.lastPathComponent == legacyRuntimeLogFileName
+    private static func isAllowedEventLog(_ event: String) -> Bool {
+        event.hasPrefix("state_change_") || event.hasPrefix("anomaly_") || event.hasPrefix("important_")
     }
 }

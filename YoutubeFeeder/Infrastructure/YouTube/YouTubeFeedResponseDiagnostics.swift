@@ -40,7 +40,7 @@ enum YouTubeFeedResponseDiagnostics {
             "parsed_videos": String(parsedVideos.count),
             "first_video_id": parsedVideos.first?.id ?? "",
             "latest_published_at": dateMetadata(parsedVideos.compactMap(\.publishedAt).max()),
-            "diagnosis": zeroVideoDiagnosis(
+            "diagnosis": zeroVideoDiagnosis(.init(
                 statusCode: httpResponse?.statusCode,
                 data: data,
                 hasHTML: containsHTML(in: text),
@@ -48,19 +48,28 @@ enum YouTubeFeedResponseDiagnostics {
                 rawEntryCount: rawEntryCount,
                 rawVideoIDCount: rawVideoIDCount,
                 parsedVideoCount: parsedVideos.count
-            )
+            ))
         ]
     }
 
-    private static func zeroVideoDiagnosis(
-        statusCode: Int?,
-        data: Data,
-        hasHTML: Bool,
-        hasFeed: Bool,
-        rawEntryCount: Int,
-        rawVideoIDCount: Int,
-        parsedVideoCount: Int
-    ) -> String {
+    private struct ZeroVideoDiagnosisParams {
+        let statusCode: Int?
+        let data: Data
+        let hasHTML: Bool
+        let hasFeed: Bool
+        let rawEntryCount: Int
+        let rawVideoIDCount: Int
+        let parsedVideoCount: Int
+    }
+
+    private static func zeroVideoDiagnosis(_ params: ZeroVideoDiagnosisParams) -> String {
+        let statusCode = params.statusCode
+        let data = params.data
+        let hasHTML = params.hasHTML
+        let hasFeed = params.hasFeed
+        let rawEntryCount = params.rawEntryCount
+        let rawVideoIDCount = params.rawVideoIDCount
+        let parsedVideoCount = params.parsedVideoCount
         guard parsedVideoCount == 0 else { return "parsed_videos_present" }
         if data.isEmpty { return "empty_body" }
         if let statusCode, !(200...299).contains(statusCode) { return "non_2xx_response" }

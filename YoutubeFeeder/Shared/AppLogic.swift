@@ -107,7 +107,7 @@ final class RefreshCommandCenter: ObservableObject {
     }
 }
 
-private struct RefreshCommandRegistrationModifier: ViewModifier {
+struct RefreshCommandRegistrationModifier: ViewModifier {
     let action: (() async -> Void)?
     @State private var registrationID = UUID()
 
@@ -120,12 +120,6 @@ private struct RefreshCommandRegistrationModifier: ViewModifier {
             .onDisappear {
                 RefreshCommandCenter.shared.unregister(id: registrationID)
             }
-    }
-}
-
-extension View {
-    func bindRefreshCommand(_ action: (() async -> Void)?) -> some View {
-        modifier(RefreshCommandRegistrationModifier(action: action))
     }
 }
 
