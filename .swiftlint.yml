@@ -4,3 +4,5 @@ excluded:
 
 disabled_rules:
   - line_length
+  - type_name
+  - large_tuple
