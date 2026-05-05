@@ -3,59 +3,59 @@ import Foundation
 struct PlaylistsListResponse: Decodable {
     let items: [Item]
     let nextPageToken: String?
-    let pageInfo: PageInfo?
+    let pageInfo: PlaylistsListPageInfo?
 
     struct Item: Decodable {
         let id: String
-        let snippet: Snippet
-        let contentDetails: ContentDetails?
+        let snippet: PlaylistsListSnippet
+        let contentDetails: PlaylistsListContentDetails?
     }
+}
 
-    struct Snippet: Decodable {
-        let publishedAt: Date?
-        let channelID: String
-        let channelTitle: String
-        let title: String
-        let description: String?
-        let thumbnails: VideoThumbnails
+struct PlaylistsListSnippet: Decodable {
+    let publishedAt: Date?
+    let channelID: String
+    let channelTitle: String
+    let title: String
+    let description: String?
+    let thumbnails: VideoThumbnails
 
-        private enum CodingKeys: String, CodingKey {
-            case publishedAt
-            case channelID = "channelId"
-            case channelTitle
-            case title
-            case description
-            case thumbnails
-        }
+    private enum CodingKeys: String, CodingKey {
+        case publishedAt
+        case channelID = "channelId"
+        case channelTitle
+        case title
+        case description
+        case thumbnails
     }
+}
 
-    struct ContentDetails: Decodable {
-        let itemCount: Int?
-    }
+struct PlaylistsListContentDetails: Decodable {
+    let itemCount: Int?
+}
 
-    struct PageInfo: Decodable {
-        let totalResults: Int
-    }
+struct PlaylistsListPageInfo: Decodable {
+    let totalResults: Int
 }
 
 struct PlaylistItemsListResponse: Decodable {
     let items: [Item]
     let nextPageToken: String?
-    let pageInfo: PageInfo?
+    let pageInfo: PlaylistItemsListPageInfo?
 
     struct Item: Decodable {
-        let contentDetails: ContentDetails?
+        let contentDetails: PlaylistItemsListContentDetails?
     }
+}
 
-    struct ContentDetails: Decodable {
-        let videoID: String?
+struct PlaylistItemsListContentDetails: Decodable {
+    let videoID: String?
 
-        private enum CodingKeys: String, CodingKey {
-            case videoID = "videoId"
-        }
+    private enum CodingKeys: String, CodingKey {
+        case videoID = "videoId"
     }
+}
 
-    struct PageInfo: Decodable {
-        let totalResults: Int
-    }
+struct PlaylistItemsListPageInfo: Decodable {
+    let totalResults: Int
 }

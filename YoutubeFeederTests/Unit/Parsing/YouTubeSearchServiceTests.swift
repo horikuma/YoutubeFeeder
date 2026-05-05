@@ -170,150 +170,150 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
         XCTAssertEqual(page.totalCount, 2)
         XCTAssertNil(page.nextPageToken)
     }
+}
 
-    private static func videoDetailsResponseJSON(items: [String]) -> Data {
-        Data("""
-        {
-          "items": [
-            \(items.joined(separator: ",\n"))
-          ]
-        }
-        """.utf8)
+private func videoDetailsResponseJSON(items: [String]) -> Data {
+    Data("""
+    {
+      "items": [
+        \(items.joined(separator: ",\n"))
+      ]
+    }
+    """.utf8)
+}
+
+private func videoDetailsItemJSON(
+    id: String,
+    duration: String?,
+    publishedAt: String = "2026-03-15T02:00:00Z",
+    channelID: String = "UC111",
+    channelTitle: String = "One",
+    title: String = "Playable \(id)",
+    liveBroadcastContent: String = "none",
+    includeLiveStreamingDetails: Bool = false
+) -> String {
+    let contentDetails = if let duration {
+        """
+        "contentDetails": {
+          "duration": "\(duration)"
+        },
+        """
+    } else {
+        """
+        "contentDetails": {},
+        """
     }
 
-    private static func videoDetailsItemJSON(
-        id: String,
-        duration: String?,
-        publishedAt: String = "2026-03-15T02:00:00Z",
-        channelID: String = "UC111",
-        channelTitle: String = "One",
-        title: String = "Playable \(id)",
-        liveBroadcastContent: String = "none",
-        includeLiveStreamingDetails: Bool = false
-    ) -> String {
-        let contentDetails = if let duration {
-            """
-            "contentDetails": {
-              "duration": "\(duration)"
-            },
-            """
-        } else {
-            """
-            "contentDetails": {},
-            """
+    return """
+    {
+      "id": "\(id)",
+      \(contentDetails)
+      "snippet": {
+        "publishedAt": "\(publishedAt)",
+        "channelId": "\(channelID)",
+        "channelTitle": "\(channelTitle)",
+        "title": "\(title)",
+        "liveBroadcastContent": "\(liveBroadcastContent)",
+        "thumbnails": {
+          "high": { "url": "https://example.com/\(id).jpg" }
         }
+      }
+      \(includeLiveStreamingDetails ? ",\n  \"liveStreamingDetails\": {}" : "")
+    }
+    """
+}
 
-        return """
+private func channelsListResponseJSON(uploadsPlaylistID: String) -> Data {
+    Data("""
+    {
+      "items": [
         {
-          "id": "\(id)",
-          \(contentDetails)
-          "snippet": {
-            "publishedAt": "\(publishedAt)",
-            "channelId": "\(channelID)",
-            "channelTitle": "\(channelTitle)",
-            "title": "\(title)",
-            "liveBroadcastContent": "\(liveBroadcastContent)",
-            "thumbnails": {
-              "high": { "url": "https://example.com/\(id).jpg" }
+          "contentDetails": {
+            "relatedPlaylists": {
+              "uploads": "\(uploadsPlaylistID)"
             }
           }
-          \(includeLiveStreamingDetails ? ",\n  \"liveStreamingDetails\": {}" : "")
+        }
+      ]
+    }
+    """.utf8)
+}
+
+private func playlistItemsResponseJSON(videoIDs: [String], nextPageToken: String?) -> Data {
+    let items = videoIDs.map { videoID in
+        """
+        {
+          "contentDetails": {
+            "videoId": "\(videoID)"
+          }
         }
         """
     }
 
-    private static func channelsListResponseJSON(uploadsPlaylistID: String) -> Data {
-        Data("""
-        {
-          "items": [
-            {
-              "contentDetails": {
-                "relatedPlaylists": {
-                  "uploads": "\(uploadsPlaylistID)"
-                }
-              }
-            }
-          ]
-        }
-        """.utf8)
+    let nextPageTokenJSON = if let nextPageToken {
+        """
+        "nextPageToken": "\(nextPageToken)",
+        """
+    } else {
+        ""
     }
 
-    private static func playlistItemsResponseJSON(videoIDs: [String], nextPageToken: String?) -> Data {
-        let items = videoIDs.map { videoID in
-            """
-            {
-              "contentDetails": {
-                "videoId": "\(videoID)"
-              }
-            }
-            """
-        }
+    let totalResults = videoIDs.count + (nextPageToken == nil ? 0 : 1)
 
-        let nextPageTokenJSON = if let nextPageToken {
-            """
-            "nextPageToken": "\(nextPageToken)",
-            """
-        } else {
-            ""
-        }
-
-        let totalResults = videoIDs.count + (nextPageToken == nil ? 0 : 1)
-
-        return Data("""
-        {
-          \(nextPageTokenJSON)
-          "pageInfo": {
-            "totalResults": \(totalResults)
-          },
-          "items": [
-            \(items.joined(separator: ",\n"))
-          ]
-        }
-        """.utf8)
+    return Data("""
+    {
+      \(nextPageTokenJSON)
+      "pageInfo": {
+        "totalResults": \(totalResults)
+      },
+      "items": [
+        \(items.joined(separator: ",\n"))
+      ]
     }
+    """.utf8)
+}
 
-    private static func httpResponse(for url: URL) -> HTTPURLResponse {
-        HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
-    }
+private func httpResponse(for url: URL) -> HTTPURLResponse {
+    HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+}
 
-    private static func makeChannelVideosService(
-        recording recorder: ChannelVideosRequestRecorder,
-        uploadsPlaylistID: String = "UU123",
-        playlistVideoIDs: [String] = ["video-1", "video-2"],
-        playlistNextPageToken: String? = "NEXT_PAGE",
-        videoDetails: [String]
-    ) -> YouTubeSearchService {
-        YouTubeSearchService { request in
-            guard let url = request.url,
-                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            else {
-                throw YouTubeSearchError.invalidResponse
-            }
+private func makeChannelVideosService(
+    recording recorder: ChannelVideosRequestRecorder,
+    uploadsPlaylistID: String = "UU123",
+    playlistVideoIDs: [String] = ["video-1", "video-2"],
+    playlistNextPageToken: String? = "NEXT_PAGE",
+    videoDetails: [String]
+) -> YouTubeSearchService {
+    YouTubeSearchService { request in
+        guard let url = request.url,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else {
+            throw YouTubeSearchError.invalidResponse
+        }
 
-            await recorder.record(path: components.path, queryItems: components.queryItems ?? [])
+        await recorder.record(path: components.path, queryItems: components.queryItems ?? [])
 
-            switch components.path {
-            case "/youtube/v3/channels":
-                return (
-                    Self.channelsListResponseJSON(uploadsPlaylistID: uploadsPlaylistID),
-                    Self.httpResponse(for: url)
-                )
-            case "/youtube/v3/playlistItems":
-                return (
-                    Self.playlistItemsResponseJSON(
-                        videoIDs: playlistVideoIDs,
-                        nextPageToken: playlistNextPageToken
-                    ),
-                    Self.httpResponse(for: url)
-                )
-            case "/youtube/v3/videos":
-                return (
-                    Self.videoDetailsResponseJSON(items: videoDetails),
-                    Self.httpResponse(for: url)
-                )
-            default:
-                throw YouTubeSearchError.invalidResponse
-            }
+        switch components.path {
+        case "/youtube/v3/channels":
+            return (
+                channelsListResponseJSON(uploadsPlaylistID: uploadsPlaylistID),
+                httpResponse(for: url)
+            )
+        case "/youtube/v3/playlistItems":
+            return (
+                playlistItemsResponseJSON(
+                    videoIDs: playlistVideoIDs,
+                    nextPageToken: playlistNextPageToken
+                ),
+                httpResponse(for: url)
+            )
+        case "/youtube/v3/videos":
+            return (
+                videoDetailsResponseJSON(items: videoDetails),
+                httpResponse(for: url)
+            )
+        default:
+            throw YouTubeSearchError.invalidResponse
         }
     }
 }

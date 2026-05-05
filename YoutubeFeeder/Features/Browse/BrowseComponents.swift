@@ -117,56 +117,65 @@ private struct TileActionMenuModifier: ViewModifier {
         let presentedActions = menu.presentedActions(for: platform)
 
         if platform.usesPrimaryClickForMenus, desktopTriggerStyle == .primaryClick, menu.hasActions {
-            Button {
-                isShowingMenu = true
-            } label: {
-                content
-            }
-            .buttonStyle(.plain)
+            primaryClickMenu(content: content, presentedActions: presentedActions)
+        } else if platform.usesPrimaryClickForMenus, desktopTriggerStyle == .contextMenu {
+            contextMenu(content: content, presentedActions: presentedActions)
+        } else {
+            fallbackMenu(content: content, presentedActions: presentedActions)
+        }
+    }
+
+    private func primaryClickMenu<Content: View>(content: Content, presentedActions: [TileMenuAction]) -> some View {
+        Button {
+            isShowingMenu = true
+        } label: {
+            content
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier ?? "")
+        .confirmationDialog("", isPresented: $isShowingMenu, titleVisibility: .hidden) {
+            presentedActionsButtons(presentedActions)
+            Button("キャンセル", role: .cancel) {}
+        }
+    }
+
+    private func contextMenu<Content: View>(content: Content, presentedActions: [TileMenuAction]) -> some View {
+        content
             .accessibilityIdentifier(accessibilityIdentifier ?? "")
-            .confirmationDialog("", isPresented: $isShowingMenu, titleVisibility: .hidden) {
-                ForEach(Array(presentedActions.enumerated()), id: \.offset) { _, action in
-                    Button(action.title, role: action.role) {
-                        action.action()
+            .contextMenu {
+                if presentedActions.isEmpty {
+                    Button("未定義") {}
+                } else {
+                    presentedActionsButtons(presentedActions)
+                }
+            }
+    }
+
+    private func fallbackMenu<Content: View>(content: Content, presentedActions: [TileMenuAction]) -> some View {
+        content
+            .accessibilityIdentifier(accessibilityIdentifier ?? "")
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.5)
+                    .onEnded { _ in
+                        isShowingMenu = true
                     }
+            )
+            .confirmationDialog("", isPresented: $isShowingMenu, titleVisibility: .hidden) {
+                if presentedActions.isEmpty {
+                    Button("未定義") {}
+                } else {
+                    presentedActionsButtons(presentedActions)
                 }
                 Button("キャンセル", role: .cancel) {}
             }
-        } else if platform.usesPrimaryClickForMenus, desktopTriggerStyle == .contextMenu {
-            content
-                .accessibilityIdentifier(accessibilityIdentifier ?? "")
-                .contextMenu {
-                    if presentedActions.isEmpty {
-                        Button("未定義") {}
-                    } else {
-                        ForEach(Array(presentedActions.enumerated()), id: \.offset) { _, action in
-                            Button(action.title, role: action.role) {
-                                action.action()
-                            }
-                        }
-                    }
-                }
-        } else {
-            content
-                .accessibilityIdentifier(accessibilityIdentifier ?? "")
-                .simultaneousGesture(
-                    LongPressGesture(minimumDuration: 0.5)
-                        .onEnded { _ in
-                            isShowingMenu = true
-                        }
-                )
-                .confirmationDialog("", isPresented: $isShowingMenu, titleVisibility: .hidden) {
-                    if presentedActions.isEmpty {
-                        Button("未定義") {}
-                    } else {
-                        ForEach(Array(presentedActions.enumerated()), id: \.offset) { _, action in
-                            Button(action.title, role: action.role) {
-                                action.action()
-                            }
-                        }
-                    }
-                    Button("キャンセル", role: .cancel) {}
-                }
+    }
+
+    @ViewBuilder
+    private func presentedActionsButtons(_ presentedActions: [TileMenuAction]) -> some View {
+        ForEach(Array(presentedActions.enumerated()), id: \.offset) { _, action in
+            Button(action.title, role: action.role) {
+                action.action()
+            }
         }
     }
 }

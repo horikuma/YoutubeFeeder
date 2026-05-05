@@ -98,52 +98,41 @@ enum ChannelRegistryCSVImportParser {
         var currentField = ""
         var isInsideQuotes = false
 
-        func finishField() {
-            currentRow.append(currentField)
-            currentField = ""
-        }
-
-        func finishRow() {
-            finishField()
-            rows.append(currentRow)
-            currentRow = []
-        }
-
         while index < characters.count {
             let character = characters[index]
             switch character {
             case "\"":
-                if isInsideQuotes {
-                    if index + 1 < characters.count, characters[index + 1] == "\"" {
-                        currentField.append("\"")
-                        index += 1
-                    } else {
-                        isInsideQuotes = false
-                    }
-                } else {
-                    isInsideQuotes = true
-                }
+                handleQuote(
+                    index: &index,
+                    characters: characters,
+                    currentField: &currentField,
+                    isInsideQuotes: &isInsideQuotes
+                )
             case ",":
-                if isInsideQuotes {
-                    currentField.append(character)
-                } else {
-                    finishField()
-                }
+                handleComma(
+                    character,
+                    currentField: &currentField,
+                    currentRow: &currentRow,
+                    isInsideQuotes: isInsideQuotes
+                )
             case "\n":
-                if isInsideQuotes {
-                    currentField.append(character)
-                } else {
-                    finishRow()
-                }
+                handleLineBreak(
+                    character,
+                    currentField: &currentField,
+                    currentRow: &currentRow,
+                    rows: &rows,
+                    isInsideQuotes: isInsideQuotes
+                )
             case "\r":
-                if isInsideQuotes {
-                    currentField.append(character)
-                } else {
-                    finishRow()
-                    if index + 1 < characters.count, characters[index + 1] == "\n" {
-                        index += 1
-                    }
-                }
+                var cursor = ParseCursor(index: index, characters: characters)
+                handleCarriageReturn(
+                    cursor: &cursor,
+                    currentField: &currentField,
+                    currentRow: &currentRow,
+                    rows: &rows,
+                    isInsideQuotes: isInsideQuotes
+                )
+                index = cursor.index
             default:
                 currentField.append(character)
             }
@@ -151,10 +140,92 @@ enum ChannelRegistryCSVImportParser {
         }
 
         if !currentField.isEmpty || !currentRow.isEmpty {
-            finishRow()
+            finishRow(currentField: &currentField, currentRow: &currentRow, rows: &rows)
         }
 
         return rows
+    }
+
+    private static func handleQuote(
+        index: inout Int,
+        characters: [Character],
+        currentField: inout String,
+        isInsideQuotes: inout Bool
+    ) {
+        if isInsideQuotes {
+            if index + 1 < characters.count, characters[index + 1] == "\"" {
+                currentField.append("\"")
+                index += 1
+            } else {
+                isInsideQuotes = false
+            }
+        } else {
+            isInsideQuotes = true
+        }
+    }
+
+    private static func handleComma(
+        _ character: Character,
+        currentField: inout String,
+        currentRow: inout [String],
+        isInsideQuotes: Bool
+    ) {
+        if isInsideQuotes {
+            currentField.append(character)
+        } else {
+            finishField(currentField: &currentField, currentRow: &currentRow)
+        }
+    }
+
+    private static func handleLineBreak(
+        _ character: Character,
+        currentField: inout String,
+        currentRow: inout [String],
+        rows: inout [[String]],
+        isInsideQuotes: Bool
+    ) {
+        if isInsideQuotes {
+            currentField.append(character)
+        } else {
+            finishRow(currentField: &currentField, currentRow: &currentRow, rows: &rows)
+        }
+    }
+
+    private struct ParseCursor {
+        var index: Int
+        let characters: [Character]
+    }
+
+    private static func handleCarriageReturn(
+        cursor: inout ParseCursor,
+        currentField: inout String,
+        currentRow: inout [String],
+        rows: inout [[String]],
+        isInsideQuotes: Bool
+    ) {
+        if isInsideQuotes {
+            currentField.append("\r")
+        } else {
+            finishRow(currentField: &currentField, currentRow: &currentRow, rows: &rows)
+            if cursor.index + 1 < cursor.characters.count, cursor.characters[cursor.index + 1] == "\n" {
+                cursor.index += 1
+            }
+        }
+    }
+
+    private static func finishField(currentField: inout String, currentRow: inout [String]) {
+        currentRow.append(currentField)
+        currentField = ""
+    }
+
+    private static func finishRow(
+        currentField: inout String,
+        currentRow: inout [String],
+        rows: inout [[String]]
+    ) {
+        finishField(currentField: &currentField, currentRow: &currentRow)
+        rows.append(currentRow)
+        currentRow = []
     }
 }
 

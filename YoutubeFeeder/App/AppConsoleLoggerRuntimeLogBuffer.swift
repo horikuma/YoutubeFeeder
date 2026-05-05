@@ -103,26 +103,7 @@ final class AppConsoleLoggerRuntimeLogBuffer {
         defer { fileLogLock.unlock() }
 
         do {
-            let fileManager = FileManager.default
-            try fileManager.createDirectory(
-                at: logFileURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            let data = Data((line + "\n").utf8)
-            let flushedCount = try flushPendingRuntimeLogLines(to: logFileURL)
-            try writePendingRuntimeLogFlushDiagnosticIfNeeded(
-                flushedCount: flushedCount,
-                logFileURL: logFileURL,
-                recoveryStage: "append_runtime_log_line"
-            )
-            if fileManager.fileExists(atPath: logFileURL.path) {
-                let handle = try FileHandle(forWritingTo: logFileURL)
-                try handle.seekToEnd()
-                try handle.write(contentsOf: data)
-                try handle.close()
-            } else {
-                try data.write(to: logFileURL, options: .atomic)
-            }
+            try persistRuntimeLogLine(line, to: logFileURL)
         } catch {
             appendPendingRuntimeLogLine(line)
             appendPendingRuntimeLogDiagnostic(
@@ -136,6 +117,29 @@ final class AppConsoleLoggerRuntimeLogBuffer {
             )
         }
 #endif
+    }
+
+    private func persistRuntimeLogLine(_ line: String, to logFileURL: URL) throws {
+        let fileManager = FileManager.default
+        try fileManager.createDirectory(
+            at: logFileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let data = Data((line + "\n").utf8)
+        let flushedCount = try flushPendingRuntimeLogLines(to: logFileURL)
+        try writePendingRuntimeLogFlushDiagnosticIfNeeded(
+            flushedCount: flushedCount,
+            logFileURL: logFileURL,
+            recoveryStage: "append_runtime_log_line"
+        )
+        if fileManager.fileExists(atPath: logFileURL.path) {
+            let handle = try FileHandle(forWritingTo: logFileURL)
+            try handle.seekToEnd()
+            try handle.write(contentsOf: data)
+            try handle.close()
+        } else {
+            try data.write(to: logFileURL, options: .atomic)
+        }
     }
 
     private func flushPendingRuntimeLogLines(to logFileURL: URL) throws -> Int {

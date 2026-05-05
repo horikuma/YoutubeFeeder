@@ -145,4 +145,3 @@ final class AppConsoleLoggerRuntimeLogTests: LoggedTestCase {
     }
 }
 #endif
-

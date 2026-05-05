@@ -4,7 +4,6 @@ struct ResolvedYouTubeChannel: Hashable {
     let channelID: String
 }
 
-
 enum ChannelResolutionError: LocalizedError {
     case invalidInput
     case unresolvedChannelID
@@ -18,7 +17,6 @@ enum ChannelResolutionError: LocalizedError {
         }
     }
 }
-
 
 enum YouTubeChannelInput {
     static func directChannelID(from input: String) -> String? {
@@ -151,7 +149,6 @@ enum YouTubeChannelInput {
         return String(text[captureRange])
     }
 }
-
 
 struct YouTubeChannelResolver {
     func resolve(input: String) async throws -> ResolvedYouTubeChannel {

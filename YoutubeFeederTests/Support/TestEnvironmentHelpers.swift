@@ -54,6 +54,19 @@ func withFeedCacheEnvironment<T>(
     return try await operation()
 }
 
+func withTemporaryFeedCacheBaseDirectory<T>(
+    operation: (FileManager) async throws -> T
+) async throws -> T {
+    let fileManager = FileManager.default
+    let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+    defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+    return try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+        try await operation(fileManager)
+    }
+}
+
 func withEnvironment<T>(
     _ overrides: [String: String],
     operation: () async throws -> T

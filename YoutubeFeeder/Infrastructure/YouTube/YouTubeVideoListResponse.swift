@@ -5,40 +5,40 @@ struct VideoListResponse: Decodable {
 
     struct Item: Decodable {
         let id: String
-        let snippet: Snippet
-        let contentDetails: ContentDetails?
-        let statistics: Statistics?
-        let liveStreamingDetails: LiveStreamingDetails?
+        let snippet: VideoListSnippet
+        let contentDetails: VideoListContentDetails?
+        let statistics: VideoListStatistics?
+        let liveStreamingDetails: VideoListLiveStreamingDetails?
     }
-
-    struct Snippet: Decodable {
-        let publishedAt: Date?
-        let channelID: String
-        let channelTitle: String
-        let title: String
-        let liveBroadcastContent: String?
-        let thumbnails: VideoThumbnails
-
-        private enum CodingKeys: String, CodingKey {
-            case publishedAt
-            case channelID = "channelId"
-            case channelTitle
-            case title
-            case liveBroadcastContent
-            case thumbnails
-        }
-    }
-
-    struct ContentDetails: Decodable {
-        let duration: String?
-    }
-
-    struct Statistics: Decodable {
-        let viewCount: String?
-    }
-
-    struct LiveStreamingDetails: Decodable {}
 }
+
+struct VideoListSnippet: Decodable {
+    let publishedAt: Date?
+    let channelID: String
+    let channelTitle: String
+    let title: String
+    let liveBroadcastContent: String?
+    let thumbnails: VideoThumbnails
+
+    private enum CodingKeys: String, CodingKey {
+        case publishedAt
+        case channelID = "channelId"
+        case channelTitle
+        case title
+        case liveBroadcastContent
+        case thumbnails
+    }
+}
+
+struct VideoListContentDetails: Decodable {
+    let duration: String?
+}
+
+struct VideoListStatistics: Decodable {
+    let viewCount: String?
+}
+
+struct VideoListLiveStreamingDetails: Decodable {}
 
 struct VideoThumbnails: Decodable {
     let defaultThumbnail: VideoThumbnail?

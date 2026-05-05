@@ -206,110 +206,110 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
             "https://www.youtube.com/playlist?list=PL-001"
         )
     }
+}
 
-    private func withEnvironment<T>(
-        _ overrides: [String: String],
-        operation: () async throws -> T
-    ) async throws -> T {
-        var previousValues: [String: String?] = [:]
-        for key in overrides.keys {
-            previousValues[key] = ProcessInfo.processInfo.environment[key]
-        }
-
-        for (key, value) in overrides {
-            setenv(key, value, 1)
-        }
-
-        defer {
-            for (key, previousValue) in previousValues {
-                if let previousValue {
-                    setenv(key, previousValue, 1)
-                } else {
-                    unsetenv(key)
-                }
-            }
-        }
-
-        return try await operation()
+private func withEnvironment<T>(
+    _ overrides: [String: String],
+    operation: () async throws -> T
+) async throws -> T {
+    var previousValues: [String: String?] = [:]
+    for key in overrides.keys {
+        previousValues[key] = ProcessInfo.processInfo.environment[key]
     }
 
-    private static func playlistsResponseData() -> Data {
-        Data("""
-        {
-          "items": [
-            {
-              "id": "PL-001",
-              "snippet": {
-                "publishedAt": "2026-03-20T02:00:00Z",
-                "channelId": "UC111",
-                "channelTitle": "One",
-                "title": "Playlist One",
-                "description": "Description One",
-                "thumbnails": {
-                  "medium": { "url": "https://example.com/playlist-1.jpg" }
-                }
-              },
-              "contentDetails": {
-                "itemCount": 12
-              }
+    for (key, value) in overrides {
+        setenv(key, value, 1)
+    }
+
+    defer {
+        for (key, previousValue) in previousValues {
+            if let previousValue {
+                setenv(key, previousValue, 1)
+            } else {
+                unsetenv(key)
             }
-          ],
-          "pageInfo": {
-            "totalResults": 1
+        }
+    }
+
+    return try await operation()
+}
+
+private func playlistsResponseData() -> Data {
+    Data("""
+    {
+      "items": [
+        {
+          "id": "PL-001",
+          "snippet": {
+            "publishedAt": "2026-03-20T02:00:00Z",
+            "channelId": "UC111",
+            "channelTitle": "One",
+            "title": "Playlist One",
+            "description": "Description One",
+            "thumbnails": {
+              "medium": { "url": "https://example.com/playlist-1.jpg" }
+            }
+          },
+          "contentDetails": {
+            "itemCount": 12
           }
         }
-        """.utf8)
+      ],
+      "pageInfo": {
+        "totalResults": 1
+      }
     }
+    """.utf8)
+}
 
-    private static func playlistItemsResponseData() -> Data {
-        Data("""
+private func playlistItemsResponseData() -> Data {
+    Data("""
+    {
+      "items": [
         {
-          "items": [
-            {
-              "contentDetails": {
-                "videoId": "video-001"
-              }
-            }
-          ],
-          "nextPageToken": "PAGE-2",
-          "pageInfo": {
-            "totalResults": 1
+          "contentDetails": {
+            "videoId": "video-001"
           }
         }
-        """.utf8)
+      ],
+      "nextPageToken": "PAGE-2",
+      "pageInfo": {
+        "totalResults": 1
+      }
     }
+    """.utf8)
+}
 
-    private static func videoDetailsResponseData() -> Data {
-        Data("""
+private func videoDetailsResponseData() -> Data {
+    Data("""
+    {
+      "items": [
         {
-          "items": [
-            {
-              "id": "video-001",
-              "contentDetails": {
-                "duration": "PT27M10S"
-              },
-              "statistics": {
-                "viewCount": "12345"
-              },
-              "snippet": {
-                "publishedAt": "2026-03-20T01:00:00Z",
-                "channelId": "UC111",
-                "channelTitle": "One",
-                "title": "Playlist Video One",
-                "liveBroadcastContent": "none",
-                "thumbnails": {
-                  "high": { "url": "https://example.com/video-1.jpg" }
-                }
-              }
+          "id": "video-001",
+          "contentDetails": {
+            "duration": "PT27M10S"
+          },
+          "statistics": {
+            "viewCount": "12345"
+          },
+          "snippet": {
+            "publishedAt": "2026-03-20T01:00:00Z",
+            "channelId": "UC111",
+            "channelTitle": "One",
+            "title": "Playlist Video One",
+            "liveBroadcastContent": "none",
+            "thumbnails": {
+              "high": { "url": "https://example.com/video-1.jpg" }
             }
-          ]
+          }
         }
-        """.utf8)
+      ]
     }
+    """.utf8)
+}
 
-    private static func httpResponse(for url: URL) -> HTTPURLResponse {
-        HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
-    }
+private func httpResponse(for url: URL) -> HTTPURLResponse {
+    HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
 }
 
 private actor PlaylistRequestRecorder {

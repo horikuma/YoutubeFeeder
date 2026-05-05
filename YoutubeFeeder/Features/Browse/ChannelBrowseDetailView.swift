@@ -98,7 +98,7 @@ struct ChannelBrowseDetailView: View {
         }
         .background(Color(.systemGroupedBackground))
         .refreshable {
-            await viewModel.refreshSelectedChannel()
+            await refreshSelectedChannel(viewModel: viewModel)
         }
     }
 
@@ -107,3 +107,49 @@ struct ChannelBrowseDetailView: View {
     }
 }
 
+@MainActor
+private func refreshSelectedChannel(viewModel: ChannelBrowseViewModel) async {
+    guard let selectedChannelID = viewModel.state.selectedChannelID else { return }
+    switch viewModel.state.displayMode(for: selectedChannelID) {
+    case .videos:
+        RuntimeDiagnostics.shared.record(
+            "channel_refresh_gesture",
+            detail: "スプリット表示の動画一覧で下スワイプ更新",
+            metadata: [
+                "channelID": selectedChannelID,
+                "screen": "splitChannelVideos"
+            ]
+        )
+        if case let .channelVideos(refreshedVideos) = await viewModel.coordinator.refresh(
+            intent: .channelVideos(channelID: selectedChannelID)
+        ) {
+            withAnimation(.easeOut(duration: 0.25)) {
+                viewModel.state.refreshSelectedChannelVideos(refreshedVideos)
+            }
+        }
+        viewModel.nextPageToken = nil
+        viewModel.hasStartedPaging = false
+        viewModel.didRequestLoadMore = false
+        RuntimeDiagnostics.shared.record(
+            "channel_refresh_view_reload_finished",
+            detail: "スプリット表示の動画一覧リロード完了",
+            metadata: [
+                "channelID": selectedChannelID,
+                "videoCount": String(viewModel.state.videosForSelectedChannel().count)
+            ]
+        )
+    case .playlists:
+        let snapshot = await viewModel.coordinator.loadSnapshot()
+        let playlists = snapshot.playlists
+        viewModel.playlistSnapshot = playlists
+        withAnimation(.easeOut(duration: 0.25)) {
+            if let playlistsForChannel = playlists.playlistsByChannelID[selectedChannelID] {
+                viewModel.state.refreshPlaylists(playlistsForChannel, for: selectedChannelID)
+            }
+            if let selectedPlaylistID = viewModel.state.selectedPlaylistID(for: selectedChannelID),
+               let page = playlists.playlistPagesByPlaylistID[selectedPlaylistID] {
+                viewModel.state.refreshPlaylistVideos(page)
+            }
+        }
+    }
+}

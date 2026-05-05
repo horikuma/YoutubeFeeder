@@ -23,4 +23,3 @@ final class AppConsoleLoggerConsoleOutputTests: LoggedTestCase {
         XCTAssertTrue(output.contains(renderedLine))
     }
 }
-

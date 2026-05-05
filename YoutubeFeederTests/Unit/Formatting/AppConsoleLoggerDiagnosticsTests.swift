@@ -126,4 +126,3 @@ final class AppConsoleLoggerDiagnosticsTests: LoggedTestCase {
         XCTAssertFalse(blockedOutput.contains(blockedTraceID))
     }
 }
-

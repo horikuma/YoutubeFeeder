@@ -23,7 +23,7 @@ struct ChannelBrowseRegularView: View {
     }
 
     private var tipsSummary: ChannelBrowseTipsSummary {
-        viewModel.tipsSummary()
+        ChannelBrowseTipsSummary.build(items: state.items, sortDescriptor: sortDescriptor)
     }
 
     var body: some View {
@@ -70,4 +70,3 @@ struct ChannelBrowseRegularView: View {
         viewModel.applyDefaultSelectionIfNeeded()
     }
 }
-

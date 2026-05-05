@@ -87,4 +87,3 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         }
     }
 }
-
