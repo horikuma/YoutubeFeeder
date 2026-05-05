@@ -15,7 +15,11 @@ final class RemoteSearchResultsViewModel: ObservableObject {
     @Published var splitVisibleCount: Int
     @Published var isSplitLoading: Bool
 
-    private var splitLoadTask: Task<Void, Never>?
+    private lazy var splitSelectionCoordinator = RemoteSearchSplitSelectionController(
+        owner: self,
+        coordinator: coordinator,
+        presentationMode: presentationMode
+    )
 
     init(
         keyword: String,
@@ -40,10 +44,6 @@ final class RemoteSearchResultsViewModel: ObservableObject {
         self.isSplitLoading = false
     }
 
-    deinit {
-        splitLoadTask?.cancel()
-    }
-
     func onAppear() {
         StartupDiagnostics.shared.mark("keywordSearchShown")
         RuntimeDiagnostics.shared.record(
@@ -65,7 +65,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
     }
 
     func onDisappear() {
-        splitLoadTask?.cancel()
+        splitSelectionCoordinator.cancel()
         AppConsoleLogger.youtubeSearch.info(
             "screen_disappear",
             metadata: [
@@ -102,7 +102,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "mode": presentationMode.rawValue
             ]
         )
-        applyDefaultSplitSelectionIfNeeded()
+        splitSelectionCoordinator.applyDefaultSplitSelectionIfNeeded()
     }
 
     func reloadResults(forceRefresh: Bool) async {
@@ -140,7 +140,7 @@ final class RemoteSearchResultsViewModel: ObservableObject {
                 "mode": presentationMode.rawValue
             ]
         )
-        applyDefaultSplitSelectionIfNeeded()
+        splitSelectionCoordinator.applyDefaultSplitSelectionIfNeeded()
     }
 
     func clearRemoteSearchHistory() async {
@@ -163,24 +163,15 @@ final class RemoteSearchResultsViewModel: ObservableObject {
     }
 
     func selectSplitChannel(_ context: ChannelVideosRouteContext) {
-        splitLoadTask?.cancel()
-        beginSplitSelection(context)
-        splitLoadTask = Task { [weak self] in
-            await self?.performImmediateSplitSelection(context)
-        }
+        splitSelectionCoordinator.selectSplitChannel(context)
     }
 
     func refreshSplitSelection() async {
-        guard let splitContext else { return }
-        if case let .channelVideos(reloadedVideos) = await coordinator.performRefreshAction(.channel(splitContext)) {
-            splitVideos = reloadedVideos
-            splitVisibleCount = min(20, splitVideos.count)
-        }
+        await splitSelectionCoordinator.refreshSplitSelection()
     }
 
     func loadSplitMoreIfNeeded() {
-        guard splitVisibleCount < splitVideos.count else { return }
-        splitVisibleCount = min(splitVisibleCount + 20, splitVideos.count)
+        splitSelectionCoordinator.loadSplitMoreIfNeeded()
     }
 
     func normalizedChannelTitle(for video: CachedVideo) -> String? {
@@ -199,189 +190,5 @@ final class RemoteSearchResultsViewModel: ObservableObject {
             previousSplitContext: splitContext
         )
         splitContext = presentationState.splitContext
-        if !browsePresentation.usesSplitLayout {
-            clearSplitSelection()
-        }
-    }
-
-    private func beginSplitSelection(_ context: ChannelVideosRouteContext) {
-        splitContext = context
-        splitVideos = []
-        splitVisibleCount = 20
-        isSplitLoading = true
-        presentationState.splitContext = context
-    }
-
-    private func clearSplitSelection() {
-        splitContext = nil
-        splitVideos = []
-        splitVisibleCount = 20
-        isSplitLoading = false
-        presentationState.splitContext = nil
-    }
-
-    private func finishSplitSelection(_ context: ChannelVideosRouteContext, videos: [CachedVideo]) {
-        guard splitContext == context else { return }
-        splitVideos = videos
-        splitVisibleCount = min(20, videos.count)
-        isSplitLoading = false
-    }
-
-    private func applyDefaultSplitSelectionIfNeeded() {
-        guard browsePresentation.usesSplitLayout else { return }
-        guard let context = presentationState.splitContext else {
-            splitLoadTask?.cancel()
-            clearSplitSelection()
-            return
-        }
-        if splitContext == context { return }
-        scheduleDeferredSplitSelection(context)
-    }
-
-    private func scheduleDeferredSplitSelection(_ context: ChannelVideosRouteContext) {
-        splitLoadTask?.cancel()
-        beginSplitSelection(context)
-        let scheduledAt = Date()
-        recordDeferredSplitSelectionScheduled(context)
-
-        splitLoadTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            guard let self, !Task.isCancelled else { return }
-            await self.performDeferredSplitSelection(context, scheduledAt: scheduledAt)
-        }
-    }
-
-    private func performImmediateSplitSelection(_ context: ChannelVideosRouteContext) async {
-        let startedAt = Date()
-        AppConsoleLogger.remoteSearchSplitLoad.info(
-            "remote_search_split_load_started",
-            metadata: [
-                "channelID": context.channelID,
-                "trigger": "tap",
-                "scheduled_wait_ms": "0",
-                "mode": presentationMode.rawValue
-            ]
-        )
-        RuntimeDiagnostics.shared.record(
-            "remote_search_split_load_started",
-            detail: "YouTube検索右ペインの読込を開始",
-            metadata: [
-                "channelID": context.channelID,
-                "trigger": "tap",
-                "mode": presentationMode.rawValue
-            ]
-        )
-
-        let loadedVideos = await coordinator.openChannelVideos(context)
-        guard !Task.isCancelled else { return }
-
-        let publishStartedAt = Date()
-        finishSplitSelection(context, videos: loadedVideos)
-
-        AppConsoleLogger.remoteSearchSplitLoad.info(
-            "remote_search_split_load_completed",
-            metadata: [
-                "channelID": context.channelID,
-                "trigger": "tap",
-                "videos": String(loadedVideos.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "publish_ms": AppConsoleLogger.elapsedMilliseconds(from: publishStartedAt, to: Date()),
-                "mode": presentationMode.rawValue
-            ]
-        )
-        RuntimeDiagnostics.shared.record(
-            "remote_search_split_load_completed",
-            detail: "YouTube検索右ペインの読込を完了",
-            metadata: [
-                "channelID": context.channelID,
-                "trigger": "tap",
-                "videos": String(loadedVideos.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "mode": presentationMode.rawValue
-            ]
-        )
-    }
-
-    private func recordDeferredSplitSelectionScheduled(_ context: ChannelVideosRouteContext) {
-        RuntimeDiagnostics.shared.record(
-            "remote_search_split_load_scheduled",
-            detail: "YouTube検索右ペインの初期読込を予約",
-            metadata: [
-                "channelID": context.channelID,
-                "delay_ms": "150",
-                "mode": presentationMode.rawValue
-            ]
-        )
-    }
-
-    private func performDeferredSplitSelection(_ context: ChannelVideosRouteContext, scheduledAt: Date) async {
-        let startedAt = Date()
-        recordDeferredSplitSelectionStarted(context, scheduledAt: scheduledAt, startedAt: startedAt)
-        let loadedVideos = await coordinator.openChannelVideos(context)
-        guard !Task.isCancelled else { return }
-
-        let publishStartedAt = Date()
-        finishSplitSelection(context, videos: loadedVideos)
-        recordDeferredSplitSelectionCompleted(
-            context,
-            loadedVideos: loadedVideos,
-            startedAt: startedAt,
-            publishStartedAt: publishStartedAt
-        )
-    }
-
-    private func recordDeferredSplitSelectionStarted(
-        _ context: ChannelVideosRouteContext,
-        scheduledAt: Date,
-        startedAt: Date
-    ) {
-        AppConsoleLogger.appLifecycle.info(
-            "remote_search_split_load_started",
-            metadata: [
-                "channelID": context.channelID,
-                "trigger": "initial",
-                "scheduled_wait_ms": AppConsoleLogger.elapsedMilliseconds(from: scheduledAt, to: startedAt),
-                "mode": presentationMode.rawValue
-            ]
-        )
-        RuntimeDiagnostics.shared.record(
-            "remote_search_split_load_started",
-            detail: "YouTube検索右ペインの読込を開始",
-            metadata: [
-                "channelID": context.channelID,
-                "trigger": "initial",
-                "mode": presentationMode.rawValue
-            ]
-        )
-    }
-
-    private func recordDeferredSplitSelectionCompleted(
-        _ context: ChannelVideosRouteContext,
-        loadedVideos: [CachedVideo],
-        startedAt: Date,
-        publishStartedAt: Date
-    ) {
-        AppConsoleLogger.appLifecycle.info(
-            "remote_search_split_load_completed",
-            metadata: [
-                "channelID": context.channelID,
-                "trigger": "initial",
-                "videos": String(loadedVideos.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "publish_ms": AppConsoleLogger.elapsedMilliseconds(from: publishStartedAt, to: Date()),
-                "mode": presentationMode.rawValue
-            ]
-        )
-        RuntimeDiagnostics.shared.record(
-            "remote_search_split_load_completed",
-            detail: "YouTube検索右ペインの読込を完了",
-            metadata: [
-                "channelID": context.channelID,
-                "trigger": "initial",
-                "videos": String(loadedVideos.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                "mode": presentationMode.rawValue
-            ]
-        )
     }
 }
