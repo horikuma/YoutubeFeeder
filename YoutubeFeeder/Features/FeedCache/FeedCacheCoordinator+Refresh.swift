@@ -19,13 +19,16 @@ extension FeedCacheCoordinator {
             refreshSource: refreshSource
         )
         logRefreshCycleFinished(
-            event: "full_channel_refresh_finished",
-            startedAt: startedAt,
-            cycleResult: cycleResult,
-            channelCount: channels.count,
-            targetChannelsCount: sortedChannels.count,
-            snapshotChannelCount: snapshot.channels.count,
-            refreshSource: refreshSource
+            request: RefreshCycleFinishRequest(
+                event: "full_channel_refresh_finished",
+                startedAt: startedAt,
+                cycleResult: cycleResult,
+                channelCount: channels.count,
+                targetChannelsCount: sortedChannels.count,
+                snapshotChannelCount: snapshot.channels.count,
+                refreshSource: refreshSource,
+                dueChannelsCount: nil
+            )
         )
     }
 
@@ -64,59 +67,46 @@ extension FeedCacheCoordinator {
             refreshSource: refreshSource
         )
         logRefreshCycleFinished(
-            event: "recent_channel_refresh_finished",
-            startedAt: startedAt,
-            cycleResult: cycleResult,
-            channelCount: channels.count,
-            targetChannelsCount: dueChannels.count,
-            snapshotChannelCount: snapshot.channels.count,
-            refreshSource: refreshSource,
-            dueChannelsCount: dueChannels.count
+            request: RefreshCycleFinishRequest(
+                event: "recent_channel_refresh_finished",
+                startedAt: startedAt,
+                cycleResult: cycleResult,
+                channelCount: channels.count,
+                targetChannelsCount: dueChannels.count,
+                snapshotChannelCount: snapshot.channels.count,
+                refreshSource: refreshSource,
+                dueChannelsCount: dueChannels.count
+            )
         )
     }
 
-    private func logRefreshCycleStart(
-        startedEvent: String,
-        evaluatedEvent: String,
-        evaluationIsDebug: Bool,
-        refreshSource: String,
-        targetChannelsCount: Int,
-        snapshotChannelCount: Int,
-        channelCount: Int,
-        dueChannelsCount: Int,
-        freshnessBypassed: String?,
-        forceNetworkFetch: String?,
-        snapshotDependency: String?,
-        snapshotDependencyDetail: String?,
-        channelFingerprint: String?,
-        snapshotFingerprint: String?
-    ) {
+    private func logRefreshCycleStart(request: RefreshCycleStartRequest) {
         AppConsoleLogger.appLifecycle.info(
-            startedEvent,
+            request.startedEvent,
             metadata: [
-                "refresh_source": refreshSource,
-                "target_channels": String(targetChannelsCount),
-                "snapshot_channels": String(snapshotChannelCount),
-                "channel_count": String(channelCount),
+                "refresh_source": request.refreshSource,
+                "target_channels": String(request.targetChannelsCount),
+                "snapshot_channels": String(request.snapshotChannelCount),
+                "channel_count": String(request.channelCount),
                 "result_state": "running"
             ]
         )
         var metadata: [String: String] = [
-            "channel_count": String(channelCount),
-            "snapshot_channels": String(snapshotChannelCount),
-            "due_channels": String(dueChannelsCount),
-            "refresh_source": refreshSource
+            "channel_count": String(request.channelCount),
+            "snapshot_channels": String(request.snapshotChannelCount),
+            "due_channels": String(request.dueChannelsCount),
+            "refresh_source": request.refreshSource
         ]
-        if let freshnessBypassed { metadata["freshness_bypassed"] = freshnessBypassed }
-        if let forceNetworkFetch { metadata["force_network_fetch"] = forceNetworkFetch }
-        if let snapshotDependency { metadata["snapshot_dependency"] = snapshotDependency }
-        if let snapshotDependencyDetail { metadata["snapshot_dependency_detail"] = snapshotDependencyDetail }
-        if let channelFingerprint { metadata["channel_fingerprint"] = channelFingerprint }
-        if let snapshotFingerprint { metadata["snapshot_fingerprint"] = snapshotFingerprint }
-        if evaluationIsDebug {
-            AppConsoleLogger.appLifecycle.debug(evaluatedEvent, metadata: metadata)
+        if let freshnessBypassed = request.freshnessBypassed { metadata["freshness_bypassed"] = freshnessBypassed }
+        if let forceNetworkFetch = request.forceNetworkFetch { metadata["force_network_fetch"] = forceNetworkFetch }
+        if let snapshotDependency = request.snapshotDependency { metadata["snapshot_dependency"] = snapshotDependency }
+        if let snapshotDependencyDetail = request.snapshotDependencyDetail { metadata["snapshot_dependency_detail"] = snapshotDependencyDetail }
+        if let channelFingerprint = request.channelFingerprint { metadata["channel_fingerprint"] = channelFingerprint }
+        if let snapshotFingerprint = request.snapshotFingerprint { metadata["snapshot_fingerprint"] = snapshotFingerprint }
+        if request.evaluationIsDebug {
+            AppConsoleLogger.appLifecycle.debug(request.evaluatedEvent, metadata: metadata)
         } else {
-            AppConsoleLogger.appLifecycle.info(evaluatedEvent, metadata: metadata)
+            AppConsoleLogger.appLifecycle.info(request.evaluatedEvent, metadata: metadata)
         }
     }
 
@@ -125,7 +115,7 @@ extension FeedCacheCoordinator {
         snapshot: FeedCacheSnapshot,
         sortedChannels: [String]
     ) {
-        logRefreshCycleStart(
+        logRefreshCycleStart(request: RefreshCycleStartRequest(
             startedEvent: "full_channel_refresh_started",
             evaluatedEvent: "full_channel_refresh_snapshot_evaluated",
             evaluationIsDebug: false,
@@ -140,7 +130,7 @@ extension FeedCacheCoordinator {
             snapshotDependencyDetail: "due channels are derived from registered channel ordering only",
             channelFingerprint: AppConsoleLogger.channelIDsFingerprint(channels),
             snapshotFingerprint: AppConsoleLogger.channelIDsFingerprint(snapshot.channels.map(\.channelID))
-        )
+        ))
     }
 
     private func logRecentRefreshCycleStarted(
@@ -148,7 +138,7 @@ extension FeedCacheCoordinator {
         snapshot: FeedCacheSnapshot,
         dueChannels: [String]
     ) {
-        logRefreshCycleStart(
+        logRefreshCycleStart(request: RefreshCycleStartRequest(
             startedEvent: "recent_channel_refresh_started",
             evaluatedEvent: "recent_channel_refresh_snapshot_evaluated",
             evaluationIsDebug: true,
@@ -163,37 +153,28 @@ extension FeedCacheCoordinator {
             snapshotDependencyDetail: nil,
             channelFingerprint: nil,
             snapshotFingerprint: nil
-        )
+        ))
     }
 
-    private func logRefreshCycleFinished(
-        event: String,
-        startedAt: Date,
-        cycleResult: FeedRefreshCycleResult,
-        channelCount: Int,
-        targetChannelsCount: Int,
-        snapshotChannelCount: Int,
-        refreshSource: String,
-        dueChannelsCount: Int? = nil
-    ) {
-        var metadata = cycleResult.metadata(
-            channelCount: targetChannelsCount,
+    private func logRefreshCycleFinished(request: RefreshCycleFinishRequest) {
+        var metadata = request.cycleResult.metadata(
+            channelCount: request.targetChannelsCount,
             forceNetworkFetch: false,
-            refreshSource: refreshSource,
-            cachedVideosBefore: cycleResult.cachedVideosBefore,
-            cachedVideosAfter: cycleResult.cachedVideosAfter
+            refreshSource: request.refreshSource,
+            cachedVideosBefore: request.cycleResult.cachedVideosBefore,
+            cachedVideosAfter: request.cycleResult.cachedVideosAfter
         )
-        metadata["target_channels"] = String(targetChannelsCount)
-        metadata["snapshot_channels"] = String(snapshotChannelCount)
-        metadata["channel_count"] = String(channelCount)
-        metadata["elapsed_ms"] = AppConsoleLogger.elapsedMilliseconds(since: startedAt)
-        metadata["result_state"] = cycleResult.lastError == nil ? "completed" : "completed_with_errors"
-        metadata["conditional_check_attempted_channels"] = String(cycleResult.conditionalCheckAttemptedChannels)
-        metadata["network_fetch_attempted_channels"] = String(cycleResult.networkFetchAttemptedChannels)
-        if let dueChannelsCount {
+        metadata["target_channels"] = String(request.targetChannelsCount)
+        metadata["snapshot_channels"] = String(request.snapshotChannelCount)
+        metadata["channel_count"] = String(request.channelCount)
+        metadata["elapsed_ms"] = AppConsoleLogger.elapsedMilliseconds(since: request.startedAt)
+        metadata["result_state"] = request.cycleResult.lastError == nil ? "completed" : "completed_with_errors"
+        metadata["conditional_check_attempted_channels"] = String(request.cycleResult.conditionalCheckAttemptedChannels)
+        metadata["network_fetch_attempted_channels"] = String(request.cycleResult.networkFetchAttemptedChannels)
+        if let dueChannelsCount = request.dueChannelsCount {
             metadata["due_channels"] = String(dueChannelsCount)
         }
-        AppConsoleLogger.appLifecycle.info(event, metadata: metadata)
+        AppConsoleLogger.appLifecycle.info(request.event, metadata: metadata)
     }
 
     func startAutomaticRefreshLoopIfNeeded() {
@@ -401,4 +382,32 @@ extension FeedCacheCoordinator {
         )
         return cycleResult
     }
+}
+
+private struct RefreshCycleStartRequest {
+    let startedEvent: String
+    let evaluatedEvent: String
+    let evaluationIsDebug: Bool
+    let refreshSource: String
+    let targetChannelsCount: Int
+    let snapshotChannelCount: Int
+    let channelCount: Int
+    let dueChannelsCount: Int
+    let freshnessBypassed: String?
+    let forceNetworkFetch: String?
+    let snapshotDependency: String?
+    let snapshotDependencyDetail: String?
+    let channelFingerprint: String?
+    let snapshotFingerprint: String?
+}
+
+private struct RefreshCycleFinishRequest {
+    let event: String
+    let startedAt: Date
+    let cycleResult: FeedRefreshCycleResult
+    let channelCount: Int
+    let targetChannelsCount: Int
+    let snapshotChannelCount: Int
+    let refreshSource: String
+    let dueChannelsCount: Int?
 }
