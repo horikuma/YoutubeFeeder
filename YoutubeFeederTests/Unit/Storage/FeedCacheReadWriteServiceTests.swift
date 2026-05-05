@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 @testable import YoutubeFeeder
 
@@ -223,7 +224,9 @@ final class FeedCacheReadWriteServiceTests: LoggedTestCase {
             XCTAssertFalse(fileManager.fileExists(atPath: bootstrapURL.path))
         }
     }
+}
 
+final class FeedCacheReadWriteServiceWriteTests: LoggedTestCase {
     func testPersistBootstrapWritesSnapshotThroughWriteService() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -434,38 +437,5 @@ final class FeedCacheReadWriteServiceTests: LoggedTestCase {
             let entry = await remoteCacheStore.load(keyword: "clear-target")
             XCTAssertNil(entry)
         }
-    }
-
-    private func withFeedCacheEnvironment<T>(
-        baseDirectory: URL,
-        operation: () async throws -> T
-    ) async throws -> T {
-        let key = "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR"
-        let previousValue = ProcessInfo.processInfo.environment[key]
-        setenv(key, baseDirectory.path, 1)
-        FeedCacheSQLiteDatabase.resetShared(fileManager: FileManager.default)
-
-        defer {
-            FeedCacheSQLiteDatabase.resetShared(fileManager: FileManager.default)
-            if let previousValue {
-                setenv(key, previousValue, 1)
-            } else {
-                unsetenv(key)
-            }
-        }
-
-        return try await operation()
-    }
-
-    private func assertSnapshot(
-        _ actual: FeedCacheSnapshot,
-        matches expected: FeedCacheSnapshot,
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) {
-        XCTAssertEqual(actual.savedAt, expected.savedAt, file: file, line: line)
-        XCTAssertEqual(actual.channels, expected.channels, file: file, line: line)
-        XCTAssertEqual(actual.videos, expected.videos, file: file, line: line)
-        XCTAssertEqual(actual.playlists, expected.playlists, file: file, line: line)
     }
 }

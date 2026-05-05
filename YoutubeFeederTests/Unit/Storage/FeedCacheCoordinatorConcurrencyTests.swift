@@ -1,4 +1,3 @@
-import Darwin
 import Foundation
 import XCTest
 @testable import YoutubeFeeder
@@ -167,7 +166,9 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             XCTAssertEqual(snapshot.channels.first?.etag, "cached-etag")
         }
     }
+}
 
+final class FeedCacheCoordinatorConcurrencyRefreshTests: LoggedTestCase {
     @MainActor
     func testWallClockRecentRefreshEntersExecutionWhileManualTaskIsActive() async throws {
         let fileManager = FileManager.default
@@ -325,7 +326,7 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             }
         }
 
-        let progressLines = Self.unwrappedLogOutput(output)
+        let progressLines = unwrappedLogOutput(output)
             .split(separator: "\n")
             .filter { $0.contains("refresh_cycle_progress") }
 
@@ -399,80 +400,6 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             XCTAssertEqual(fetchedChannelIDs, [])
         }
     }
-
-    private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () throws -> T) throws -> T {
-        let key = "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR"
-        let previousValue = ProcessInfo.processInfo.environment[key]
-        setenv(key, url.path, 1)
-        defer {
-            FeedCacheSQLiteDatabase.resetShared(fileManager: .default)
-            if let previousValue {
-                setenv(key, previousValue, 1)
-            } else {
-                unsetenv(key)
-            }
-        }
-        return try operation()
-    }
-
-    private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () async throws -> T) async throws -> T {
-        let key = "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR"
-        let previousValue = ProcessInfo.processInfo.environment[key]
-        setenv(key, url.path, 1)
-        defer {
-            FeedCacheSQLiteDatabase.resetShared(fileManager: .default)
-            if let previousValue {
-                setenv(key, previousValue, 1)
-            } else {
-                unsetenv(key)
-            }
-        }
-        return try await operation()
-    }
-
-    private func captureStandardOutput<T>(
-        _ operation: () async throws -> T
-    ) async throws -> (T, String) {
-        let pipe = Pipe()
-        let originalStdout = dup(STDOUT_FILENO)
-        fflush(stdout)
-        dup2(pipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO)
-
-        func restore() {
-            fflush(stdout)
-            dup2(originalStdout, STDOUT_FILENO)
-            close(originalStdout)
-            pipe.fileHandleForWriting.closeFile()
-        }
-
-        do {
-            let value = try await operation()
-            restore()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            return (value, String(bytes: data, encoding: .utf8) ?? "")
-        } catch {
-            restore()
-            throw error
-        }
-    }
-
-    private static func unwrappedLogOutput(_ output: String) -> String {
-        output
-            .split(separator: "\n")
-            .map { line -> String in
-                guard
-                    let data = line.data(using: .utf8),
-                    let object = try? JSONSerialization.jsonObject(with: data),
-                    let dictionary = object as? [String: Any],
-                    let wrappedLine = dictionary["line"] as? String
-                else {
-                    return String(line)
-                }
-
-                return wrappedLine
-            }
-            .joined(separator: "\n")
-    }
 }
 
 private struct FeedRefreshCallSnapshot {
@@ -515,11 +442,11 @@ private final class CoordinatorBox {
 private actor FeedFetchRecorder {
     private var channelIDs: [String] = []
 
-    func fetchedChannelIDs() -> [String] {
-        channelIDs
-    }
-
     func record(_ channelID: String) {
         channelIDs.append(channelID)
+    }
+
+    func fetchedChannelIDs() -> [String] {
+        channelIDs
     }
 }

@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 @testable import YoutubeFeeder
 
@@ -150,7 +151,10 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
             XCTAssertTrue(videos.contains { $0.id == selectedVideoID })
         }
     }
+}
 
+@MainActor
+final class FeedCacheCoordinatorRemoteSearchRefreshTests: LoggedTestCase {
     func testForceRefreshPersistsRemoteSearchResultToCache() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -194,7 +198,7 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
 
         let keyword = "duration-missing-refresh"
         let staleFetchedAt = ISO8601DateFormatter().date(from: "2026-03-01T03:00:00Z")!
-        let staleVideo = Self.staleRemoteSearchVideo(fetchedAt: staleFetchedAt)
+        let staleVideo = staleRemoteSearchVideo(fetchedAt: staleFetchedAt)
 
         try await withEnvironment([
             "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR": temporaryRoot.appendingPathComponent("Cache", isDirectory: true).path,
@@ -219,7 +223,7 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
                     store: FeedCacheStore(),
                     feedService: YouTubeFeedService(),
                     channelResolver: YouTubeChannelResolver(),
-                    searchService: Self.remoteRefreshSearchService(),
+                    searchService: remoteRefreshSearchService(),
                     remoteSearchCacheStore: remoteCacheStore,
                     channelRegistrySyncService: ChannelRegistryCloudflareSyncService(endpointURL: nil)
                 )
@@ -311,163 +315,136 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
             XCTAssertEqual(afterClear.totalCount, 0)
         }
     }
+}
 
-    private func withEnvironment<T>(
-        _ overrides: [String: String],
-        operation: () async throws -> T
-    ) async throws -> T {
-        var previousValues: [String: String?] = [:]
-        for key in overrides.keys {
-            previousValues[key] = ProcessInfo.processInfo.environment[key]
+private func staleRemoteSearchVideo(fetchedAt: Date) -> CachedVideo {
+    CachedVideo(
+        id: "stale-cache-video",
+        channelID: "UC_STALE",
+        channelTitle: "Stale Channel",
+        title: "stale cached result",
+        publishedAt: fetchedAt,
+        videoURL: URL(string: "https://example.com/watch?v=stale"),
+        thumbnailRemoteURL: nil,
+        thumbnailLocalFilename: nil,
+        fetchedAt: fetchedAt,
+        searchableText: "stale cached result",
+        durationSeconds: 600,
+        viewCount: 1
+    )
+}
+
+private func remoteRefreshSearchService() -> YouTubeSearchService {
+    YouTubeSearchService { request in
+        guard let url = request.url else {
+            throw YouTubeSearchError.invalidResponse
         }
 
-        for (key, value) in overrides {
-            setenv(key, value, 1)
-        }
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+        return (try remoteSearchResponseData(for: url), response)
+    }
+}
 
-        defer {
-            FeedCacheSQLiteDatabase.resetShared()
-            for (key, previousValue) in previousValues {
-                if let previousValue {
-                    setenv(key, previousValue, 1)
-                } else {
-                    unsetenv(key)
-                }
-            }
-        }
-
-        return try await operation()
+private func remoteSearchResponseData(for url: URL) throws -> Data {
+    guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+        throw YouTubeSearchError.invalidResponse
     }
 
-    nonisolated private static func staleRemoteSearchVideo(fetchedAt: Date) -> CachedVideo {
-        CachedVideo(
-            id: "stale-cache-video",
-            channelID: "UC_STALE",
-            channelTitle: "Stale Channel",
-            title: "stale cached result",
-            publishedAt: fetchedAt,
-            videoURL: URL(string: "https://example.com/watch?v=stale"),
-            thumbnailRemoteURL: nil,
-            thumbnailLocalFilename: nil,
-            fetchedAt: fetchedAt,
-            searchableText: "stale cached result",
-            durationSeconds: 600,
-            viewCount: 1
+    switch components.path {
+    case "/youtube/v3/search":
+        return searchListResponseJSON(
+            items: [
+                searchListItemJSON(id: "fresh-playable", publishedAt: "2026-03-21T03:00:00Z"),
+                searchListItemJSON(id: "fresh-missing-duration", publishedAt: "2026-03-21T02:00:00Z")
+            ]
         )
+    case "/youtube/v3/videos":
+        return videoDetailsResponseJSON(
+            items: [
+                videoDetailsItemJSON(id: "fresh-playable", duration: "PT27M10S"),
+                videoDetailsItemJSON(id: "fresh-missing-duration", duration: nil)
+            ]
+        )
+    default:
+        throw YouTubeSearchError.invalidResponse
     }
+}
 
-    nonisolated private static func remoteRefreshSearchService() -> YouTubeSearchService {
-        YouTubeSearchService { request in
-            guard let url = request.url else {
-                throw YouTubeSearchError.invalidResponse
-            }
-
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: nil
-            )!
-            return (try remoteSearchResponseData(for: url), response)
-        }
+private func searchListResponseJSON(items: [String]) -> Data {
+    Data("""
+    {
+      "items": [
+        \(items.joined(separator: ",\n"))
+      ],
+      "pageInfo": {
+        "totalResults": \(items.count)
+      }
     }
+    """.utf8)
+}
 
-    nonisolated private static func remoteSearchResponseData(for url: URL) throws -> Data {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            throw YouTubeSearchError.invalidResponse
+private func searchListItemJSON(id: String, publishedAt: String) -> String {
+    """
+    {
+      "id": {
+        "videoId": "\(id)"
+      },
+      "snippet": {
+        "publishedAt": "\(publishedAt)",
+        "channelId": "UC_REFRESH",
+        "channelTitle": "Refresh Channel",
+        "title": "Search item \(id)",
+        "liveBroadcastContent": "none",
+        "thumbnails": {
+          "high": { "url": "https://example.com/\(id).jpg" }
         }
-
-        switch components.path {
-        case "/youtube/v3/search":
-            return searchListResponseJSON(
-                items: [
-                    searchListItemJSON(id: "fresh-playable", publishedAt: "2026-03-21T03:00:00Z"),
-                    searchListItemJSON(id: "fresh-missing-duration", publishedAt: "2026-03-21T02:00:00Z")
-                ]
-            )
-        case "/youtube/v3/videos":
-            return videoDetailsResponseJSON(
-                items: [
-                    videoDetailsItemJSON(id: "fresh-playable", duration: "PT27M10S"),
-                    videoDetailsItemJSON(id: "fresh-missing-duration", duration: nil)
-                ]
-            )
-        default:
-            throw YouTubeSearchError.invalidResponse
-        }
+      }
     }
+    """
+}
 
-    nonisolated private static func searchListResponseJSON(items: [String]) -> Data {
-        Data("""
-        {
-          "items": [
-            \(items.joined(separator: ",\n"))
-          ],
-          "pageInfo": {
-            "totalResults": \(items.count)
-          }
-        }
-        """.utf8)
+private func videoDetailsResponseJSON(items: [String]) -> Data {
+    Data("""
+    {
+      "items": [
+        \(items.joined(separator: ",\n"))
+      ]
     }
+    """.utf8)
+}
 
-    nonisolated private static func searchListItemJSON(id: String, publishedAt: String) -> String {
+private func videoDetailsItemJSON(id: String, duration: String?) -> String {
+    let contentDetails = if let duration {
         """
-        {
-          "id": {
-            "videoId": "\(id)"
-          },
-          "snippet": {
-            "publishedAt": "\(publishedAt)",
-            "channelId": "UC_REFRESH",
-            "channelTitle": "Refresh Channel",
-            "title": "Search item \(id)",
-            "liveBroadcastContent": "none",
-            "thumbnails": {
-              "high": { "url": "https://example.com/\(id).jpg" }
-            }
-          }
-        }
+        "contentDetails": {
+          "duration": "\(duration)"
+        },
+        """
+    } else {
+        """
+        "contentDetails": {},
         """
     }
 
-    nonisolated private static func videoDetailsResponseJSON(items: [String]) -> Data {
-        Data("""
-        {
-          "items": [
-            \(items.joined(separator: ",\n"))
-          ]
+    return """
+    {
+      "id": "\(id)",
+      \(contentDetails)
+      "snippet": {
+        "publishedAt": "2026-03-21T03:00:00Z",
+        "channelId": "UC_REFRESH",
+        "channelTitle": "Refresh Channel",
+        "title": "Detail item \(id)",
+        "liveBroadcastContent": "none",
+        "thumbnails": {
+          "high": { "url": "https://example.com/\(id).jpg" }
         }
-        """.utf8)
+      }
     }
-
-    nonisolated private static func videoDetailsItemJSON(id: String, duration: String?) -> String {
-        let contentDetails = if let duration {
-            """
-            "contentDetails": {
-              "duration": "\(duration)"
-            },
-            """
-        } else {
-            """
-            "contentDetails": {},
-            """
-        }
-
-        return """
-        {
-          "id": "\(id)",
-          \(contentDetails)
-          "snippet": {
-            "publishedAt": "2026-03-21T03:00:00Z",
-            "channelId": "UC_REFRESH",
-            "channelTitle": "Refresh Channel",
-            "title": "Detail item \(id)",
-            "liveBroadcastContent": "none",
-            "thumbnails": {
-              "high": { "url": "https://example.com/\(id).jpg" }
-            }
-          }
-        }
-        """
-    }
+    """
 }

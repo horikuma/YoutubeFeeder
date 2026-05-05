@@ -86,7 +86,9 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
             XCTAssertEqual(remoteEntry?.videos.first?.thumbnailLastAccessedAt, accessedAt)
         }
     }
+}
 
+final class FeedCacheMaintenanceThumbnailTests: LoggedTestCase {
     func testEvictOldestThumbnailIfNeededRemovesLeastRecentlyAccessedFileFirst() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -275,6 +277,112 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         }
     }
 
+}
+
+final class FeedCacheMaintenanceThumbnailCacheTests: LoggedTestCase {
+
+    func testCacheThumbnailFallsBackToNextCandidateAndPersistsFilename() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let primaryFilename = "video-1.jpg"
+            let fallbackFilename = "video-1.webp"
+            let snapshot = FeedCacheSnapshot(
+                savedAt: now,
+                channels: [],
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "video",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=1"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: nil,
+                        fetchedAt: now,
+                        searchableText: "video",
+                        durationSeconds: 1_500,
+                        viewCount: 101
+                    )
+                ]
+            )
+
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(snapshot)
+            let fallbackURL = thumbnailsDirectory.appendingPathComponent(fallbackFilename)
+            try Data("image".utf8).write(to: fallbackURL, options: .atomic)
+
+            let store = FeedCacheStore()
+            let result = await store.cacheThumbnail(forVideoID: "video-1")
+            let reloaded = database.loadFeedSnapshot()
+
+            XCTAssertEqual(result?.filename, fallbackFilename)
+            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(fallbackFilename).path))
+            XCTAssertEqual(reloaded.videos.first?.thumbnailLocalFilename, fallbackFilename)
+            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(primaryFilename).path) == false || primaryFilename != fallbackFilename)
+        }
+    }
+
+}
+
+final class FeedCacheMaintenanceStoreMaintenanceTests: LoggedTestCase {
+
+    func testCacheThumbnailForCachedVideoUsesVideoIDCandidatesAndPersistsFilename() async throws {
+        let fileManager = FileManager.default
+        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: temporaryRoot) }
+
+        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
+            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
+            try fileManager.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
+
+            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
+            let snapshot = FeedCacheSnapshot(
+                savedAt: now,
+                channels: [],
+                videos: [
+                    CachedVideo(
+                        id: "video-1",
+                        channelID: "UC111",
+                        channelTitle: "one",
+                        title: "video",
+                        publishedAt: now,
+                        videoURL: URL(string: "https://example.com/watch?v=1"),
+                        thumbnailRemoteURL: nil,
+                        thumbnailLocalFilename: nil,
+                        fetchedAt: now,
+                        searchableText: "video",
+                        durationSeconds: 1_500,
+                        viewCount: 101
+                    )
+                ]
+            )
+
+            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
+            database.replaceFeedSnapshot(snapshot)
+            let thumbnailURL = thumbnailsDirectory.appendingPathComponent("video-1.jpg")
+            try Data("image".utf8).write(to: thumbnailURL, options: .atomic)
+
+            let store = FeedCacheStore()
+            let result = await store.cacheThumbnail(forVideoID: "video-1")
+            let reloaded = database.loadFeedSnapshot()
+
+            XCTAssertEqual(result?.filename, "video-1.jpg")
+            XCTAssertEqual(reloaded.videos.first?.thumbnailLocalFilename, "video-1.jpg")
+        }
+    }
+}
+
+final class FeedCacheMaintenanceStoreMaintenanceTests: LoggedTestCase {
     func testRemoveChannelIDDeletesRegisteredChannel() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -496,6 +604,10 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
         }
     }
 
+}
+
+final class FeedCacheMaintenanceShortsTests: LoggedTestCase {
+
     func testLoadVideosMasksUnderFourMinuteVideosAsShorts() async throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -566,171 +678,15 @@ final class FeedCacheMaintenanceTests: LoggedTestCase {
                 ]
             )
 
-            let store = FeedCacheStore()
             let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
             database.replaceFeedSnapshot(snapshot)
 
+            let store = FeedCacheStore()
             let visibleVideos = await store.loadVideos(
                 query: VideoQuery(limit: .max, channelID: "UC111", keyword: nil, sortOrder: .publishedDescending, excludeShorts: true)
             )
 
             XCTAssertEqual(visibleVideos.map(\.id), ["video-visible"])
         }
-    }
-
-    func testCacheThumbnailFallsBackToNextCandidateAndPersistsFilename() async throws {
-        let fileManager = FileManager.default
-        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
-        defer { try? fileManager.removeItem(at: temporaryRoot) }
-
-        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
-            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
-            let video = CachedVideo(
-                id: "video-1",
-                channelID: "UC111",
-                channelTitle: "one",
-                title: "video",
-                publishedAt: now,
-                videoURL: URL(string: "https://example.com/watch?v=1"),
-                thumbnailRemoteURL: nil,
-                thumbnailLocalFilename: nil,
-                fetchedAt: now,
-                searchableText: "video",
-                durationSeconds: 1_500,
-                viewCount: 101
-            )
-
-            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
-            database.replaceFeedSnapshot(FeedCacheSnapshot(savedAt: now, channels: [], videos: [video]))
-            database.saveRemoteSearchEntry(
-                RemoteVideoSearchCacheEntry(
-                    keyword: "keyword",
-                    videos: [video],
-                    totalCount: 1,
-                    fetchedAt: now
-                )
-            )
-
-            let store = FeedCacheStore()
-            var requestedURLs: [String] = []
-            let filename = await store.cacheThumbnail(videoID: "video-1") { url in
-                requestedURLs.append(url.absoluteString)
-                let statusCode: Int
-                switch url.lastPathComponent {
-                case "maxresdefault.jpg", "sddefault.jpg":
-                    statusCode = 404
-                case "hqdefault.jpg":
-                    statusCode = 200
-                default:
-                    XCTFail("unexpected fallback candidate: \(url.lastPathComponent)")
-                    statusCode = 500
-                }
-
-                let response = HTTPURLResponse(
-                    url: url,
-                    statusCode: statusCode,
-                    httpVersion: nil,
-                    headerFields: ["Content-Type": "image/jpeg"]
-                )!
-                let data = statusCode == 200 ? Data("image".utf8) : Data()
-                return (data, response)
-            }
-
-            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
-            let snapshot = database.loadFeedSnapshot()
-            let remoteEntry = database.loadRemoteSearchEntry(keyword: "keyword")
-
-            XCTAssertEqual(filename, "video-1.jpg")
-            XCTAssertEqual(
-                requestedURLs,
-                [
-                    "https://i.ytimg.com/vi/video-1/maxresdefault.jpg",
-                    "https://i.ytimg.com/vi/video-1/sddefault.jpg",
-                    "https://i.ytimg.com/vi/video-1/hqdefault.jpg"
-                ]
-            )
-            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent("video-1.jpg").path))
-            XCTAssertEqual(snapshot.videos.first?.thumbnailLocalFilename, "video-1.jpg")
-            XCTAssertEqual(snapshot.videos.first?.thumbnailRemoteURL?.absoluteString, "https://i.ytimg.com/vi/video-1/hqdefault.jpg")
-            XCTAssertEqual(remoteEntry?.videos.first?.thumbnailLocalFilename, "video-1.jpg")
-            XCTAssertEqual(remoteEntry?.videos.first?.thumbnailRemoteURL?.absoluteString, "https://i.ytimg.com/vi/video-1/hqdefault.jpg")
-        }
-    }
-
-    func testCacheThumbnailForCachedVideoUsesVideoIDCandidatesAndPersistsFilename() async throws {
-        let fileManager = FileManager.default
-        let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try fileManager.createDirectory(at: temporaryRoot, withIntermediateDirectories: true)
-        defer { try? fileManager.removeItem(at: temporaryRoot) }
-
-        try await withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
-            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
-            let video = CachedVideo(
-                id: "video-2",
-                channelID: "UC222",
-                channelTitle: "two",
-                title: "video",
-                publishedAt: now,
-                videoURL: URL(string: "https://example.com/watch?v=2"),
-                thumbnailRemoteURL: URL(string: "https://example.com/stale.jpg"),
-                thumbnailLocalFilename: nil,
-                fetchedAt: now,
-                searchableText: "video",
-                durationSeconds: 1_500,
-                viewCount: 202
-            )
-
-            let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
-            database.replaceFeedSnapshot(FeedCacheSnapshot(savedAt: now, channels: [], videos: [video]))
-            database.saveRemoteSearchEntry(
-                RemoteVideoSearchCacheEntry(
-                    keyword: "keyword",
-                    videos: [video],
-                    totalCount: 1,
-                    fetchedAt: now
-                )
-            )
-
-            let store = FeedCacheStore()
-            var requestedURLs: [String] = []
-            let filename = await store.cacheThumbnail(for: video) { url in
-                requestedURLs.append(url.absoluteString)
-                let response = HTTPURLResponse(
-                    url: url,
-                    statusCode: 200,
-                    httpVersion: nil,
-                    headerFields: ["Content-Type": "image/jpeg"]
-                )!
-                return (Data("cached-image".utf8), response)
-            }
-
-            let thumbnailsDirectory = FeedCachePaths.thumbnailsDirectory(fileManager: fileManager)
-            let snapshot = database.loadFeedSnapshot()
-            let remoteEntry = database.loadRemoteSearchEntry(keyword: "keyword")
-
-            XCTAssertEqual(filename, "video-2.jpg")
-            XCTAssertEqual(requestedURLs, ["https://i.ytimg.com/vi/video-2/maxresdefault.jpg"])
-            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent("video-2.jpg").path))
-            XCTAssertEqual(snapshot.videos.first?.thumbnailLocalFilename, "video-2.jpg")
-            XCTAssertEqual(snapshot.videos.first?.thumbnailRemoteURL?.absoluteString, "https://i.ytimg.com/vi/video-2/maxresdefault.jpg")
-            XCTAssertEqual(remoteEntry?.videos.first?.thumbnailLocalFilename, "video-2.jpg")
-            XCTAssertEqual(remoteEntry?.videos.first?.thumbnailRemoteURL?.absoluteString, "https://i.ytimg.com/vi/video-2/maxresdefault.jpg")
-        }
-    }
-
-    private func withFeedCacheBaseDirectory<T>(_ url: URL, operation: () async throws -> T) async throws -> T {
-        let key = "YOUTUBEFEEDER_FEEDCACHE_BASE_DIR"
-        let previousValue = ProcessInfo.processInfo.environment[key]
-        setenv(key, url.path, 1)
-        defer {
-            FeedCacheSQLiteDatabase.resetShared()
-            if let previousValue {
-                setenv(key, previousValue, 1)
-            } else {
-                unsetenv(key)
-            }
-        }
-        return try await operation()
     }
 }

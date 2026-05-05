@@ -1,4 +1,4 @@
-import Darwin
+import Foundation
 import XCTest
 @testable import YoutubeFeeder
 
@@ -21,7 +21,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
     }
 
     func testInfoRenderLineOmitsBracketedListLikeMetadataValues() {
-        let line = Self.unwrappedLogOutput(AppConsoleLogger.renderLine(
+        let line = unwrappedLogOutput(AppConsoleLogger.renderLine(
             timestamp: "2026-04-18T00:00:00.000Z",
             level: .info,
             scope: "cloudflare.sync",
@@ -47,7 +47,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
     }
 
     func testDebugRenderLineKeepsBracketedListLikeMetadataValues() {
-        let line = Self.unwrappedLogOutput(AppConsoleLogger.renderLine(
+        let line = unwrappedLogOutput(AppConsoleLogger.renderLine(
             timestamp: "2026-04-18T00:00:00.000Z",
             level: .debug,
             scope: "cloudflare.sync",
@@ -64,7 +64,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
     }
 
     func testRenderLineKeepsAppLaunchMetadataReadable() {
-        let line = Self.unwrappedLogOutput(AppConsoleLogger.renderLine(
+        let line = unwrappedLogOutput(AppConsoleLogger.renderLine(
             timestamp: "2026-04-23T20:13:23.000+09:00",
             level: .info,
             scope: "app.lifecycle",
@@ -96,7 +96,9 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             "youtubefeeder-runtime-20260423-201323-000-pid1234.log"
         )
     }
+}
 
+final class AppConsoleLoggerConsoleOutputTests: LoggedTestCase {
     func testConsoleOutputWritesLineToStandardOutput() throws {
         let renderedLine = "[YoutubeFeeder] 2026-04-18T00:00:00.000Z INFO cloudflare.sync.console_written"
 
@@ -116,8 +118,10 @@ final class AppConsoleLoggerTests: LoggedTestCase {
 
         XCTAssertTrue(output.contains(renderedLine))
     }
+}
 
-    #if targetEnvironment(macCatalyst)
+#if targetEnvironment(macCatalyst)
+final class AppConsoleLoggerRuntimeLogTests: LoggedTestCase {
     func testFileOutputAppendsLineToRuntimeLogFile() throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -131,7 +135,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
             AppConsoleLogger.writeFileLine(renderedLine)
         }
 
-        let output = Self.unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
+        let output = unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
         XCTAssertTrue(output.contains(renderedLine))
     }
 
@@ -166,7 +170,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         }
 
         XCTAssertFalse(fileManager.fileExists(atPath: legacyLogFileURL.path))
-        let output = Self.unwrappedLogOutput(try String(contentsOf: launchLogFileURL, encoding: .utf8))
+        let output = unwrappedLogOutput(try String(contentsOf: launchLogFileURL, encoding: .utf8))
         XCTAssertTrue(output.contains(renderedLine))
     }
 
@@ -186,15 +190,13 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         let recoveredLogFileURL = temporaryRoot.appendingPathComponent("recovered.log")
         AppConsoleLogger.prepareRuntimeLogFileForLaunch(runtimeLogFileURL: recoveredLogFileURL)
 
-        let output = Self.unwrappedLogOutput(try String(contentsOf: recoveredLogFileURL, encoding: .utf8))
+        let output = unwrappedLogOutput(try String(contentsOf: recoveredLogFileURL, encoding: .utf8))
         XCTAssertTrue(output.contains("runtime_log_file_prepare_failed"))
         XCTAssertTrue(output.contains(#"stage="prepare_runtime_log_file""#))
         XCTAssertTrue(output.contains("runtime_log_pending_lines_flushed"))
         XCTAssertTrue(output.contains(#"recovery_stage="prepare_runtime_log_file""#))
     }
-    #endif
 
-#if targetEnvironment(macCatalyst)
     func testMacRuntimeLogFileURLUsesProjectLogsDirectory() throws {
         let sourceFilePath = "/Repo/YoutubeFeeder/App/AppConsoleLogger.swift"
 
@@ -229,7 +231,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertTrue(rawLine.hasPrefix(#"{"line":"[YoutubeFeeder] "#))
 
         let plainLine = try XCTUnwrap(
-            Self.unwrappedLogOutput(rawOutput)
+            unwrappedLogOutput(rawOutput)
                 .split(separator: "\n")
                 .map(String.init)
                 .last
@@ -259,8 +261,10 @@ final class AppConsoleLoggerTests: LoggedTestCase {
 
         XCTAssertFalse(fileManager.fileExists(atPath: logFileURL.path))
     }
+}
 #endif
 
+final class AppConsoleLoggerDiagnosticsTests: LoggedTestCase {
     func testSanitizedKeywordCollapsesWhitespaceAndTruncates() {
         let keyword = "  swift   ui   remote   search   diagnostics   keyword  "
 
@@ -383,8 +387,10 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertFalse(blockedOutput.contains("diagnostic_snapshot"))
         XCTAssertFalse(blockedOutput.contains(blockedTraceID))
     }
+}
 
-    #if targetEnvironment(macCatalyst)
+#if targetEnvironment(macCatalyst)
+final class AppConsoleLoggerScopeInvocationPlatformTests: LoggedTestCase {
     func testScopeInvocationCountsCanBeRecordedReadAndRemoved() throws {
         let logger = AppConsoleLogger(scope: "count.test")
         let fileManager = FileManager.default
@@ -403,8 +409,10 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertEqual(AppConsoleLogger.removeScopeInvocationCount(for: "count.test"), 2)
         XCTAssertEqual(AppConsoleLogger.scopeInvocationCount(for: "count.test"), 0)
     }
-    #endif
+}
+#endif
 
+final class AppConsoleLoggerScopeInvocationTests: LoggedTestCase {
     func testScopeInvocationWindowSecondsIsFixedValue() {
         XCTAssertEqual(AppConsoleLogger.scopeInvocationWindowSeconds, 1)
     }
@@ -458,7 +466,9 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertTrue(output.contains(#"count="2""#))
         XCTAssertTrue(output.contains(#"limit="1""#))
     }
+}
 
+final class AppConsoleLoggerTraceLifecycleTests: LoggedTestCase {
     func testTraceLifecycleMismatchDetectionFindsOrphanStartsAndMissingStarts() {
         let traceID = AppConsoleLogger.traceID()
         let startedAt = ISO8601DateFormatter().date(from: "2026-04-23T11:13:23Z")!
@@ -503,8 +513,10 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertTrue(output.contains("trace_lifecycle_mismatch"))
         XCTAssertTrue(output.contains(traceID))
     }
+}
 
 #if targetEnvironment(macCatalyst)
+final class AppConsoleLoggerTraceLifecyclePlatformTests: LoggedTestCase {
     func testTraceStartLogsTraceIDAndRecordsStartTime() throws {
         let fileManager = FileManager.default
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -526,7 +538,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         let resolvedTraceID = try XCTUnwrap(traceID)
         XCTAssertNotNil(AppConsoleLogger.traceStartTime(for: resolvedTraceID))
 
-        let lines = Self.unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
+        let lines = unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
             .split(separator: "\n")
             .map(String.init)
         let line = try XCTUnwrap(lines.last)
@@ -565,7 +577,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertEqual(returnedStartedAt, startedAt)
         XCTAssertNil(AppConsoleLogger.traceStartTime(for: traceID))
 
-        let lines = Self.unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
+        let lines = unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
             .split(separator: "\n")
             .map(String.init)
         let line = try XCTUnwrap(lines.last)
@@ -603,7 +615,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
 
         XCTAssertEqual(AppConsoleLogger.traceStartTime(for: traceID), startedAt)
 
-        let lines = Self.unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
+        let lines = unwrappedLogOutput(try String(contentsOf: logFileURL, encoding: .utf8))
             .split(separator: "\n")
             .map(String.init)
         let line = try XCTUnwrap(lines.last)
@@ -629,8 +641,10 @@ final class AppConsoleLoggerTests: LoggedTestCase {
         XCTAssertEqual(AppConsoleLogger.homeTransfer.scope, "home.transfer")
         XCTAssertEqual(AppConsoleLogger.remoteSearchSplitLoad.scope, "remote_search.split_load")
     }
+}
 #endif
 
+final class AppConsoleLoggerDecodingErrorTests: LoggedTestCase {
     func testErrorSummaryIncludesDecodingPathForMissingKey() throws {
         struct Example: Decodable {
             let items: [Item]
@@ -651,72 +665,5 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                 "keyNotFound path=items.[0].title"
             )
         }
-    }
-
-#if targetEnvironment(macCatalyst)
-    private func withRuntimeLogFile(_ url: URL, operation: () throws -> Void) rethrows {
-        let key = "YOUTUBEFEEDER_RUNTIME_LOG_FILE"
-        let previousValue = ProcessInfo.processInfo.environment[key]
-        setenv(key, url.path, 1)
-        defer {
-            if let previousValue {
-                setenv(key, previousValue, 1)
-            } else {
-                unsetenv(key)
-            }
-        }
-        try operation()
-    }
-#endif
-
-    private func captureStandardOutput(_ operation: () throws -> Void) rethrows -> String {
-        let pipe = Pipe()
-        let originalStdout = dup(STDOUT_FILENO)
-        fflush(stdout)
-        dup2(pipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO)
-        try operation()
-
-        fflush(stdout)
-        dup2(originalStdout, STDOUT_FILENO)
-        close(originalStdout)
-        pipe.fileHandleForWriting.closeFile()
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return Self.unwrappedLogOutput(String(bytes: data, encoding: .utf8) ?? "")
-    }
-
-    private func captureStandardError(_ operation: () throws -> Void) rethrows -> String {
-        let pipe = Pipe()
-        let originalStderr = dup(STDERR_FILENO)
-        fflush(stderr)
-        dup2(pipe.fileHandleForWriting.fileDescriptor, STDERR_FILENO)
-
-        try operation()
-
-        fflush(stderr)
-        dup2(originalStderr, STDERR_FILENO)
-        close(originalStderr)
-        pipe.fileHandleForWriting.closeFile()
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return Self.unwrappedLogOutput(String(bytes: data, encoding: .utf8) ?? "")
-    }
-
-    private static func unwrappedLogOutput(_ output: String) -> String {
-        output
-            .split(separator: "\n")
-            .map { line -> String in
-                guard
-                    let data = line.data(using: .utf8),
-                    let object = try? JSONSerialization.jsonObject(with: data),
-                    let dictionary = object as? [String: Any],
-                    let wrappedLine = dictionary["line"] as? String
-                else {
-                    return String(line)
-                }
-
-                return wrappedLine
-            }
-            .joined(separator: "\n")
     }
 }
