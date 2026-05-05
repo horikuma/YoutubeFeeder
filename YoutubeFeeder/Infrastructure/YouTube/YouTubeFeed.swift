@@ -144,7 +144,7 @@ struct YouTubeFeedService {
         return "UULF" + channelID.dropFirst(2)
     }
 
-    private static func feedURL(for channelID: String) -> URL {
+    static func feedURL(for channelID: String) -> URL {
         URL(string: "https://www.youtube.com/feeds/videos.xml?playlist_id=\(uploadsPlaylistID(for: channelID))")!
     }
 }

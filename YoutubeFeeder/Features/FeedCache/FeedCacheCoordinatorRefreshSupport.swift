@@ -44,7 +44,7 @@ final class FeedCacheCoordinatorRefreshSupport {
             StartupDiagnostics.shared.mark("manualRefreshStarted")
             coordinator.manualRefreshCount += 1
             if AppLaunchMode.current.usesMockData {
-                await coordinator.performMockRefresh()
+                await coordinator.refreshContinuation.performMockRefresh()
             } else {
                 await coordinator.performManualRefresh()
             }
@@ -94,9 +94,9 @@ final class FeedCacheCoordinatorRefreshSupport {
             )
             coordinator.lastManualChannelRefreshID = normalizedChannelID
             if AppLaunchMode.current.usesMockData {
-                await coordinator.performMockChannelRefresh(channelID: normalizedChannelID)
+                await coordinator.refreshContinuation.performMockChannelRefresh(channelID: normalizedChannelID)
             } else {
-                await coordinator.performManualChannelRefresh(channelID: normalizedChannelID)
+                await coordinator.refreshContinuation.performManualChannelRefresh(channelID: normalizedChannelID)
             }
             StartupDiagnostics.shared.mark("channelManualRefreshFinished")
             let updatedItem = coordinator.maintenanceItems.first(where: { $0.channelID == normalizedChannelID })

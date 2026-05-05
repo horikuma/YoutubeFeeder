@@ -34,6 +34,7 @@ final class FeedCacheCoordinator: ObservableObject {
     private lazy var support = FeedCacheCoordinatorSupport(coordinator: self)
     private lazy var browseSupport = FeedCacheCoordinatorBrowseSupport(coordinator: self)
     private lazy var refreshSupport = FeedCacheCoordinatorRefreshSupport(coordinator: self)
+    lazy var refreshContinuation = FeedCacheCoordinatorRefreshContinuation(coordinator: self)
 
     static let homeSearchKeyword = "ゆっくり実況"
 

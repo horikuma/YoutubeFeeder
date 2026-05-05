@@ -356,17 +356,17 @@ extension FeedCacheCoordinator {
                 "cached_videos_before": String(beforeVideoCount)
             ]
         )
-        beginManualRefreshProgress(totalChannels: channelIDs.count)
-        var cycleResult = await runManualRefreshChannels(
+        refreshContinuation.beginManualRefreshProgress(totalChannels: channelIDs.count)
+        var cycleResult = await refreshContinuation.runManualRefreshChannels(
             channelIDs,
             states: states,
             forceNetworkFetch: forceNetworkFetch,
             refreshSource: refreshSource
         )
-        finishManualRefreshProgress()
+        refreshContinuation.finishManualRefreshProgress()
         _ = await performConsistencyMaintenanceIfNeeded(force: false)
         let lastError = cycleResult.lastError
-        await refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
+        await refreshContinuation.refreshUI(currentChannelID: nil, isRunning: false, lastError: lastError)
         let afterVideoCount = await readService.loadSnapshot().videos.count
         cycleResult.cachedVideosBefore = beforeVideoCount
         cycleResult.cachedVideosAfter = afterVideoCount
@@ -382,32 +382,4 @@ extension FeedCacheCoordinator {
         )
         return cycleResult
     }
-}
-
-private struct RefreshCycleStartRequest {
-    let startedEvent: String
-    let evaluatedEvent: String
-    let evaluationIsDebug: Bool
-    let refreshSource: String
-    let targetChannelsCount: Int
-    let snapshotChannelCount: Int
-    let channelCount: Int
-    let dueChannelsCount: Int
-    let freshnessBypassed: String?
-    let forceNetworkFetch: String?
-    let snapshotDependency: String?
-    let snapshotDependencyDetail: String?
-    let channelFingerprint: String?
-    let snapshotFingerprint: String?
-}
-
-private struct RefreshCycleFinishRequest {
-    let event: String
-    let startedAt: Date
-    let cycleResult: FeedRefreshCycleResult
-    let channelCount: Int
-    let targetChannelsCount: Int
-    let snapshotChannelCount: Int
-    let refreshSource: String
-    let dueChannelsCount: Int?
 }
