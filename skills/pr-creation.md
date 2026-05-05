@@ -17,10 +17,11 @@
   例: `./scripts/command-runner.py 'pull-request-creation' --head 'issue-57' --title 'Issue 57: command 例文必須要件を復元する' --body-file 'llm-temp/pull-request-creation-summary.md'`
     - `llm-temp/pull-request-creation-<summary>.md` は、Pull Request 本文ファイルである。
     - `<summary>` は、`.md` の前に入る空でない要約文字列であり、省略してはならない。
+  - Pull Request の title および body は、日本語で記述しなければならない。
 - `./scripts/command-runner.py 'pull-request-creation'` に渡す本文ファイルは `llm-temp/pull-request-creation-<summary>.md` 形式でなければならず、`<summary>` は空であってはならず、`Closes #{issue_number}` を含まなければならない。
 - Pull Request を Project へ自動登録してはならない。
 - Pull Request の body には、対応する Issue を GitHub の機能で連携クローズするため、`Closes #{issue_number}` を明記しなければならない。
-- Pull Request の作成時は、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態にしなければならない。
+- Pull Request の作成時は、Issue を基準として、対象ブランチ全体の変更内容を網羅的に反映しなければならない。単一コミットや直近コミットのみを根拠として内容を構成してはならない。また、Issue、ブランチ、コミット、Pull Request の対応関係が追跡できる状態にしなければならない。
 - Pull Request 作成・更新に必要な項目が 1 つでも未完了なら、開発シーケンスを完了扱いにしてはならず、不足項目として列挙して停止しなければならない。
 - LLM は Issue を直接 close してはならない。
 
@@ -29,7 +30,7 @@
 - 対象タスクに対応する Pull Request が作成済みであること。
 - Pull Request の base、assignee、関連付けが推測なしで解決されていること。
 - Pull Request の body に `Closes #{issue_number}` が含まれ、対応 Issue と GitHub 上で連携されていること。
-- Pull Request を起点に、Issue、ブランチ、コミットとの対応関係を追跡できること。
+- Pull Request を起点に、Issue を基準としたブランチ全体の変更と、Issue、ブランチ、コミットとの対応関係を追跡できること。
 - Pull Request 作成・更新に必要な項目が未完了のまま、完了扱いにされていないこと。
 - Project 自動登録禁止と Issue 直接 close 禁止が守られていること。
 

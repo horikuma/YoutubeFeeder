@@ -1,33 +1,63 @@
-# YoutubeFeeder Development Environment
+# SPECS_ENVIRONMENT_RULES
 
-この文書は、YoutubeFeeder の開発環境仕様に関する正本である。ここでは、開発に必要なローカルツール、版固定、セットアップ手順、再現性を守るための運用を扱う。
+## INDEX
 
-## 基本方針
+- [ENV-NODE] Node環境
+- [ENV-PM] パッケージ管理
+- [ENV-MERMAID] Mermaid検証
+- [ENV-PATH] ファイルパスと配置
+- [ENV-EXECUTION] 実行ルール
+- [ENV-CONSTRAINT] 禁止事項
 
-- 開発環境で追加するツールは、リポジトリ内の版固定ファイルと lock file を正本として再現できる状態で導入する。
-- 一時的に手元だけで入れたグローバルツールを前提にせず、リポジトリ内のスクリプトから同じ版のツールを呼び出せる状態を維持する。
-- 文書検証に外部 API を使わず、ローカル実行だけで成功可否を再現できるようにする。
+---
 
-## Node.js
+## RULES
 
-- Mermaid のローカル検証は Node.js `24.14.0` を前提にする。
-- Node.js の版固定は [.node-version](../../.node-version) と [package.json](../../package.json) の `engines.node` で行う。
-- package manager は `npm` を使い、版固定は [package-lock.json](../../package-lock.json) を正本とする。
+### [ENV-NODE]
 
-## セットアップ
+- [ENV-NODE-001][node] Node.js のバージョンは 24.14.0 を使用しなければならない
+- [ENV-NODE-002][node] Node.js の版固定は .node-version と package.json の engines.node で管理しなければならない
+- [ENV-NODE-003][node][forbidden] Node.js のバージョンを環境ごとに変えてはならない
 
-1. Node.js `24.14.0` を導入する。
-2. リポジトリルートで `npm install` を実行する。
-3. Mermaid を含む Markdown を変更したら `npm run check:mermaid` を実行する。
+---
 
-## Mermaid ローカル検証
+### [ENV-PM]
 
-- Mermaid の検証は [check-mermaid.mjs](../../scripts/check-mermaid.mjs) を正本とする。
-- `npm run check:mermaid` は `docs/` 配下と [README.md](../../README.md) から Mermaid ブロックを抽出し、`mmdc` でローカル SVG レンダリングを行う。
-- 失敗時は `ファイル:開始行` を出力し、そのブロックだけを直せる状態を保つ。
-- Mermaid の検証に必要な CLI と browser runtime は、[package-lock.json](../../package-lock.json) に固定したローカル依存から取得する。
+- [ENV-PM-001][package-manager] パッケージマネージャは npm を使用しなければならない
+- [ENV-PM-002][package-manager] 依存関係の正本は package-lock.json としなければならない
+- [ENV-PM-003][package-manager][forbidden] ロックファイルを無視して依存解決してはならない
 
-## 更新ルール
+---
 
-- Mermaid 検証用の Node.js 版や依存を更新する場合は、[.node-version](../../.node-version)、[package.json](../../package.json)、[package-lock.json](../../package-lock.json)、この文書を同じ変更セットで更新する。
-- セットアップ手順や検証コマンドを変えた場合は、[README.md](../../README.md) と必要な運用文書を同時に同期する。
+### [ENV-MERMAID]
+
+- [ENV-MERMAID-001][mermaid] Mermaid のローカル検証を必須としなければならない
+- [ENV-MERMAID-002][mermaid] Mermaid 検証は check-mermaid.mjs を正本としなければならない
+- [ENV-MERMAID-003][mermaid][forbidden] Mermaid 検証に外部APIを使用してはならない
+- [ENV-MERMAID-004][mermaid] Markdown変更時は npm run check:mermaid を実行しなければならない
+- [ENV-MERMAID-005][mermaid] Mermaid検証対象は docs/ 配下および README.md としなければならない
+- [ENV-MERMAID-006][mermaid] 検証失敗時は「ファイル:開始行」を出力し、そのブロック単位で修正しなければならない
+
+---
+
+### [ENV-PATH]
+
+- [ENV-PATH-001][path] プロジェクト内のツールスクリプトは scripts/ 配下に配置しなければならない
+- [ENV-PATH-002][path] 一時ファイルは llm-temp/ 配下に配置しなければならない
+- [ENV-PATH-003][path][forbidden] 一時生成物を永続ディレクトリへ配置してはならない
+
+---
+
+### [ENV-EXECUTION]
+
+- [ENV-EXECUTION-001][execution] コマンド実行は scripts/command-runner.py 経由で行わなければならない
+- [ENV-EXECUTION-002][execution] 実行結果はログとして取得できなければならない
+- [ENV-EXECUTION-003][execution][forbidden] 直接コマンド実行で状態を不透明にしてはならない
+
+---
+
+### [ENV-CONSTRAINT]
+
+- [ENV-CONSTRAINT-001][forbidden] 環境依存の設定をローカルに埋め込んではならない
+- [ENV-CONSTRAINT-002][forbidden] 再現性のない実行手順を許容してはならない
+- [ENV-CONSTRAINT-003][forbidden] 検証手順を省略してはならない
