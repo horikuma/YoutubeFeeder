@@ -167,4 +167,3 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
         }
     }
 }
-
