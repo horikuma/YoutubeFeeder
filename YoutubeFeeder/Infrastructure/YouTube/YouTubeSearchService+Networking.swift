@@ -202,8 +202,7 @@ struct YouTubeSearchServiceTransport {
         apiKey: String,
         maxResults: Int
     ) async throws -> PlaylistItemsListResponse {
-        let startedAt = Date()
-        let logger = AppConsoleLogger.youtubeSearch
+        let startedAt = Date(), logger = AppConsoleLogger.youtubeSearch
         var components = URLComponents(string: "https://www.googleapis.com/youtube/v3/playlistItems")
         var queryItems = [
             URLQueryItem(name: "part", value: "contentDetails"),
