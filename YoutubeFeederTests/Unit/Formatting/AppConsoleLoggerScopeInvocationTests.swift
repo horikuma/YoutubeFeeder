@@ -57,4 +57,3 @@ final class AppConsoleLoggerScopeInvocationTests: LoggedTestCase {
         XCTAssertTrue(output.contains(#"limit="1""#))
     }
 }
-

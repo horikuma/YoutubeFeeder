@@ -16,30 +16,18 @@ struct FeedChannelSyncService {
             etag: state?.etag,
             lastModified: state?.lastModified
         )
-        AppConsoleLogger.feedRefresh.debug(
-            "channel_refresh_decision",
-            metadata: refreshDecisionMetadata(
-                channelID: channelID,
-                state: state,
-                mode: "conditional",
-                networkFetchPolicy: "check_then_fetch_if_updated"
-            )
+        logRefreshDecision(
+            channelID: channelID,
+            state: state,
+            mode: "conditional",
+            networkFetchPolicy: "check_then_fetch_if_updated"
         )
 
         do {
             let checkResult = try await feedService.checkForUpdates(for: channelID, validationToken: token)
             switch checkResult {
             case let .notModified(metadata):
-                AppConsoleLogger.feedRefresh.debug(
-                    "conditional_refresh_not_modified",
-                    metadata: [
-                        "channelID": channelID,
-                        "network_fetch": "false",
-                        "checked_at": dateMetadata(metadata.checkedAt),
-                        "etag_present": metadata.validationToken.etag == nil ? "false" : "true",
-                        "last_modified_present": metadata.validationToken.lastModified == nil ? "false" : "true"
-                    ]
-                )
+                logConditionalRefreshNotModified(channelID: channelID, metadata: metadata)
                 await writer.recordNotModified(channelID: channelID, metadata: metadata)
                 return FeedChannelProcessResult(
                     errorMessage: nil,
@@ -51,17 +39,7 @@ struct FeedChannelSyncService {
                 )
             case .updated:
                 let result = try await feedService.fetchLatestFeed(for: channelID)
-                AppConsoleLogger.feedRefresh.debug(
-                    "conditional_refresh_updated",
-                    metadata: [
-                        "channelID": channelID,
-                        "network_fetch": "true",
-                        "videos": String(result.videos.count),
-                        "checked_at": dateMetadata(result.metadata.checkedAt),
-                        "etag_present": result.metadata.validationToken.etag == nil ? "false" : "true",
-                        "last_modified_present": result.metadata.validationToken.lastModified == nil ? "false" : "true"
-                    ]
-                )
+                logConditionalRefreshUpdated(channelID: channelID, result: result)
                 let uncachedVideos = await writer.recordSuccessCachingThumbnails(
                     channelID: channelID,
                     videos: result.videos,
@@ -77,22 +55,12 @@ struct FeedChannelSyncService {
                 )
             }
         } catch {
-            let message = error.localizedDescription
-            AppConsoleLogger.feedRefresh.debug(
-                "channel_refresh_failed",
-                metadata: [
-                    "channelID": channelID,
-                    "mode": "conditional",
-                    "error": AppConsoleLogger.errorSummary(error)
-                ]
-            )
-            await writer.recordFailure(channelID: channelID, checkedAt: .now, error: message)
-            return FeedChannelProcessResult(
-                errorMessage: message,
-                fetchedVideoCount: nil,
-                uncachedVideoCount: 0,
+            return await handleRefreshFailure(
+                channelID: channelID,
+                mode: "conditional",
                 conditionalCheckAttempted: true,
-                networkFetchAttempted: false
+                networkFetchAttempted: false,
+                error: error
             )
         }
     }
@@ -102,28 +70,15 @@ struct FeedChannelSyncService {
         state: CachedChannelState? = nil,
         cacheThumbnails: Bool = false
     ) async -> FeedChannelForcedRefreshResult {
-        AppConsoleLogger.feedRefresh.debug(
-            "channel_refresh_decision",
-            metadata: refreshDecisionMetadata(
-                channelID: channelID,
-                state: state,
-                mode: "forced",
-                networkFetchPolicy: "always_fetch_latest_feed"
-            )
+        logRefreshDecision(
+            channelID: channelID,
+            state: state,
+            mode: "forced",
+            networkFetchPolicy: "always_fetch_latest_feed"
         )
         do {
             let result = try await feedService.fetchLatestFeed(for: channelID)
-            AppConsoleLogger.feedRefresh.debug(
-                "forced_refresh_fetched",
-                metadata: [
-                    "channelID": channelID,
-                    "network_fetch": "true",
-                    "videos": String(result.videos.count),
-                    "checked_at": dateMetadata(result.metadata.checkedAt),
-                    "etag_present": result.metadata.validationToken.etag == nil ? "false" : "true",
-                    "last_modified_present": result.metadata.validationToken.lastModified == nil ? "false" : "true"
-                ]
-            )
+            logForcedRefreshFetched(channelID: channelID, result: result)
             let uncachedVideos = if cacheThumbnails {
                 await writer.recordSuccessCachingThumbnails(
                     channelID: channelID,
@@ -144,24 +99,128 @@ struct FeedChannelSyncService {
                 httpStatusCode: result.metadata.httpStatusCode
             )
         } catch {
-            let message = error.localizedDescription
-            AppConsoleLogger.feedRefresh.error(
-                "channel_refresh_failed",
-                metadata: [
-                    "channelID": channelID,
-                    "mode": "forced",
-                    "network_fetch": "true",
-                    "error": AppConsoleLogger.errorSummary(error)
-                ]
+            let result = await handleRefreshFailure(
+                channelID: channelID,
+                mode: "forced",
+                conditionalCheckAttempted: false,
+                networkFetchAttempted: true,
+                error: error
             )
-            await writer.recordFailure(channelID: channelID, checkedAt: .now, error: message)
             return FeedChannelForcedRefreshResult(
                 uncachedVideos: [],
                 fetchedVideoCount: 0,
-                errorMessage: message,
+                errorMessage: result.errorMessage,
                 httpStatusCode: nil
             )
         }
+    }
+
+    private func logRefreshDecision(
+        channelID: String,
+        state: CachedChannelState?,
+        mode: String,
+        networkFetchPolicy: String
+    ) {
+        AppConsoleLogger.feedRefresh.debug(
+            "channel_refresh_decision",
+            metadata: refreshDecisionMetadata(
+                channelID: channelID,
+                state: state,
+                mode: mode,
+                networkFetchPolicy: networkFetchPolicy
+            )
+        )
+    }
+
+    private func logConditionalRefreshNotModified(channelID: String, metadata: FeedFetchMetadata) {
+        AppConsoleLogger.feedRefresh.debug(
+            "conditional_refresh_not_modified",
+            metadata: refreshResultMetadata(
+                channelID: channelID,
+                networkFetch: "false",
+                checkedAt: metadata.checkedAt,
+                validationToken: metadata.validationToken
+            )
+        )
+    }
+
+    private func logConditionalRefreshUpdated(
+        channelID: String,
+        result: (videos: [YouTubeVideo], metadata: FeedFetchMetadata)
+    ) {
+        AppConsoleLogger.feedRefresh.debug(
+            "conditional_refresh_updated",
+            metadata: refreshResultMetadata(
+                channelID: channelID,
+                networkFetch: "true",
+                checkedAt: result.metadata.checkedAt,
+                validationToken: result.metadata.validationToken,
+                videoCount: result.videos.count
+            )
+        )
+    }
+
+    private func logForcedRefreshFetched(
+        channelID: String,
+        result: (videos: [YouTubeVideo], metadata: FeedFetchMetadata)
+    ) {
+        AppConsoleLogger.feedRefresh.debug(
+            "forced_refresh_fetched",
+            metadata: refreshResultMetadata(
+                channelID: channelID,
+                networkFetch: "true",
+                checkedAt: result.metadata.checkedAt,
+                validationToken: result.metadata.validationToken,
+                videoCount: result.videos.count
+            )
+        )
+    }
+
+    private func handleRefreshFailure(
+        channelID: String,
+        mode: String,
+        conditionalCheckAttempted: Bool,
+        networkFetchAttempted: Bool,
+        error: Error
+    ) async -> FeedChannelProcessResult {
+        let message = error.localizedDescription
+        AppConsoleLogger.feedRefresh.error(
+            "channel_refresh_failed",
+            metadata: [
+                "channelID": channelID,
+                "mode": mode,
+                "network_fetch": networkFetchAttempted ? "true" : "false",
+                "error": AppConsoleLogger.errorSummary(error)
+            ]
+        )
+        await writer.recordFailure(channelID: channelID, checkedAt: .now, error: message)
+        return FeedChannelProcessResult(
+            errorMessage: message,
+            fetchedVideoCount: nil,
+            uncachedVideoCount: 0,
+            conditionalCheckAttempted: conditionalCheckAttempted,
+            networkFetchAttempted: networkFetchAttempted
+        )
+    }
+
+    private func refreshResultMetadata(
+        channelID: String,
+        networkFetch: String,
+        checkedAt: Date,
+        validationToken: FeedValidationToken,
+        videoCount: Int? = nil
+    ) -> [String: String] {
+        var metadata = [
+            "channelID": channelID,
+            "network_fetch": networkFetch,
+            "checked_at": dateMetadata(checkedAt),
+            "etag_present": validationToken.etag == nil ? "false" : "true",
+            "last_modified_present": validationToken.lastModified == nil ? "false" : "true"
+        ]
+        if let videoCount {
+            metadata["videos"] = String(videoCount)
+        }
+        return metadata
     }
 
     private func refreshDecisionMetadata(

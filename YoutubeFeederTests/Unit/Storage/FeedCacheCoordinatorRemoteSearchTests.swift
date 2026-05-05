@@ -22,38 +22,11 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
             defer { FeedCacheSQLiteDatabase.resetShared(fileManager: fileManager) }
             let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
             database.replaceFeedSnapshot(
-                FeedCacheSnapshot(
-                    savedAt: newerDate,
-                    channels: [
-                        CachedChannelState(
-                            channelID: channelID,
-                            channelTitle: "Local Channel",
-                            lastAttemptAt: olderDate,
-                            lastCheckedAt: olderDate,
-                            lastSuccessAt: olderDate,
-                            latestPublishedAt: olderDate,
-                            cachedVideoCount: 1,
-                            lastError: nil,
-                            etag: nil,
-                            lastModified: nil
-                        )
-                    ],
-                    videos: [
-                        CachedVideo(
-                            id: duplicateVideoID,
-                            channelID: channelID,
-                            channelTitle: "Local Channel",
-                            title: "local copy",
-                            publishedAt: olderDate,
-                            videoURL: URL(string: "https://example.com/watch?v=local"),
-                            thumbnailRemoteURL: nil,
-                            thumbnailLocalFilename: nil,
-                            fetchedAt: olderDate,
-                            searchableText: "local copy",
-                            durationSeconds: 120,
-                            viewCount: 10
-                        )
-                    ]
+                makeDuplicateRemoteSearchSnapshot(
+                    channelID: channelID,
+                    duplicateVideoID: duplicateVideoID,
+                    olderDate: olderDate,
+                    newerDate: newerDate
                 )
             )
 
@@ -61,19 +34,11 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
             await remoteCacheStore.save(
                 keyword: "duplicate",
                 videos: [
-                    CachedVideo(
+                    makeRemoteSearchDuplicateVideo(
                         id: duplicateVideoID,
                         channelID: channelID,
-                        channelTitle: "Remote Channel",
-                        title: "remote copy",
                         publishedAt: newerDate,
-                        videoURL: URL(string: "https://example.com/watch?v=remote"),
-                        thumbnailRemoteURL: nil,
-                        thumbnailLocalFilename: nil,
-                        fetchedAt: newerDate,
-                        searchableText: "remote copy",
-                        durationSeconds: 180,
-                        viewCount: 99
+                        fetchedAt: newerDate
                     )
                 ],
                 totalCount: 1,
@@ -151,6 +116,69 @@ final class FeedCacheCoordinatorRemoteSearchTests: LoggedTestCase {
             XCTAssertTrue(videos.contains { $0.id == selectedVideoID })
         }
     }
+}
+
+private func makeDuplicateRemoteSearchSnapshot(
+    channelID: String,
+    duplicateVideoID: String,
+    olderDate: Date,
+    newerDate: Date
+) -> FeedCacheSnapshot {
+    FeedCacheSnapshot(
+        savedAt: newerDate,
+        channels: [
+            CachedChannelState(
+                channelID: channelID,
+                channelTitle: "Local Channel",
+                lastAttemptAt: olderDate,
+                lastCheckedAt: olderDate,
+                lastSuccessAt: olderDate,
+                latestPublishedAt: olderDate,
+                cachedVideoCount: 1,
+                lastError: nil,
+                etag: nil,
+                lastModified: nil
+            )
+        ],
+        videos: [
+            CachedVideo(
+                id: duplicateVideoID,
+                channelID: channelID,
+                channelTitle: "Local Channel",
+                title: "local copy",
+                publishedAt: olderDate,
+                videoURL: URL(string: "https://example.com/watch?v=local"),
+                thumbnailRemoteURL: nil,
+                thumbnailLocalFilename: nil,
+                fetchedAt: olderDate,
+                searchableText: "local copy",
+                durationSeconds: 120,
+                viewCount: 10
+            )
+        ]
+    )
+}
+
+private func makeRemoteSearchDuplicateVideo(
+    id: String,
+    channelID: String,
+    publishedAt: Date,
+    fetchedAt: Date
+) -> CachedVideo {
+    CachedVideo(
+        id: id,
+        channelID: channelID,
+        channelTitle: "Remote Channel",
+        title: "remote copy",
+        publishedAt: publishedAt,
+        videoURL: URL(string: "https://example.com/watch?v=remote"),
+        thumbnailRemoteURL: nil,
+        thumbnailLocalFilename: nil,
+        fetchedAt: fetchedAt,
+        searchableText: "remote copy",
+        durationSeconds: 180,
+        viewCount: 99
+    )
 }
 
 @MainActor

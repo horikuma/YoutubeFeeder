@@ -70,4 +70,3 @@ struct ChannelBrowseRegularView: View {
         viewModel.applyDefaultSelectionIfNeeded()
     }
 }
-

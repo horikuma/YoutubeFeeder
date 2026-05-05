@@ -20,8 +20,7 @@ final class AppConsoleLoggerTraceLifecyclePlatformTests: LoggedTestCase {
                     "channels": "2"
                 ]
             )
-        }
-
+}
         let resolvedTraceID = try XCTUnwrap(traceID)
         XCTAssertNotNil(AppConsoleLogger.traceStartTime(for: resolvedTraceID))
 
@@ -130,4 +129,3 @@ final class AppConsoleLoggerTraceLifecyclePlatformTests: LoggedTestCase {
     }
 }
 #endif
-

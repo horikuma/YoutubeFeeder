@@ -79,19 +79,6 @@ struct ChannelRegistryCloudflareSyncService {
         logSyncCompletion(context: payloadContext, data: data, httpResponse: httpResponse, afterResponseChannelIDs: afterResponseChannelIDs)
     }
 
-    private struct SyncContext {
-        let logger: AppConsoleLogger
-        let startedAt: Date
-        let syncID: String
-    }
-
-    private struct SyncPayloadContext {
-        let context: SyncContext
-        let records: [RegisteredChannelRecord]
-        let beforeRequestChannelIDs: [String]
-        let payload: ChannelRegistryCloudflareSyncPayload
-    }
-
     private func loadSyncPayloadContext(context: SyncContext) -> SyncPayloadContext {
         let records = ChannelRegistryStore.loadChannelRecords()
         let beforeRequestChannelIDs = records.map(\.channelID)
@@ -216,75 +203,6 @@ struct ChannelRegistryCloudflareSyncService {
         return (data, httpResponse, ChannelRegistryStore.loadAllChannelIDs())
     }
 
-    private func logSyncRequestStart(
-        context: SyncPayloadContext,
-        request: URLRequest,
-        body: Data
-    ) {
-        context.context.logger.info(
-            "http_request_start",
-            metadata: [
-                "body_bytes": String(body.count),
-                "endpoint_host": request.url?.host ?? "",
-                "endpoint_path": request.url?.path ?? "",
-                "method": request.httpMethod ?? "",
-                "sync_id": context.context.syncID
-            ]
-        )
-    }
-
-    private func logSyncHTTPResponse(
-        context: SyncPayloadContext,
-        data: Data,
-        httpResponse: HTTPURLResponse
-    ) {
-        context.context.logger.info(
-            "http_response_received",
-            metadata: [
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: context.context.startedAt),
-                "response_bytes": String(data.count),
-                "status": String(httpResponse.statusCode),
-                "sync_id": context.context.syncID
-            ]
-        )
-    }
-
-    private func logSyncStoreRecheck(
-        context: SyncPayloadContext,
-        afterResponseChannelIDs: [String]
-    ) {
-        context.context.logger.info(
-            "local_store_rechecked_after_response",
-            metadata: [
-                "after_count": String(afterResponseChannelIDs.count),
-                "after_fingerprint": AppConsoleLogger.channelIDsFingerprint(afterResponseChannelIDs),
-                "before_count": String(context.beforeRequestChannelIDs.count),
-                "before_fingerprint": AppConsoleLogger.channelIDsFingerprint(context.beforeRequestChannelIDs),
-                "changed_during_sync": afterResponseChannelIDs == context.beforeRequestChannelIDs ? "false" : "true",
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: context.context.startedAt),
-                "sync_id": context.context.syncID
-            ]
-        )
-    }
-
-    private func logSyncCompletion(
-        context: SyncPayloadContext,
-        data: Data,
-        httpResponse: HTTPURLResponse,
-        afterResponseChannelIDs: [String]
-    ) {
-        context.context.logger.info(
-            "service_complete",
-            metadata: [
-                "channels": String(context.records.count),
-                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: context.context.startedAt),
-                "local_store_changed_during_sync": afterResponseChannelIDs == context.beforeRequestChannelIDs ? "false" : "true",
-                "status": String(httpResponse.statusCode),
-                "sync_id": context.context.syncID
-            ]
-        )
-    }
-
     private static func resolvedEndpointURL() -> URL? {
         let environmentKey = ProcessInfo.processInfo.environment["YOUTUBEFEEDER_CLOUDFLARE_WORKER_URL"]?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -308,4 +226,86 @@ struct ChannelRegistryCloudflareSyncService {
         }
         return endpointURL.appendingPathComponent("channel-registry")
     }
+}
+
+    private struct SyncPayloadContext {
+        let context: SyncContext
+        let records: [RegisteredChannelRecord]
+        let beforeRequestChannelIDs: [String]
+        let payload: ChannelRegistryCloudflareSyncPayload
+}
+
+private func logSyncRequestStart(
+    context: SyncPayloadContext,
+    request: URLRequest,
+    body: Data
+) {
+    context.context.logger.info(
+        "http_request_start",
+        metadata: [
+            "body_bytes": String(body.count),
+            "endpoint_host": request.url?.host ?? "",
+            "endpoint_path": request.url?.path ?? "",
+            "method": request.httpMethod ?? "",
+            "sync_id": context.context.syncID
+        ]
+    )
+}
+
+private func logSyncHTTPResponse(
+    context: SyncPayloadContext,
+    data: Data,
+    httpResponse: HTTPURLResponse
+) {
+    context.context.logger.info(
+        "http_response_received",
+        metadata: [
+            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: context.context.startedAt),
+            "response_bytes": String(data.count),
+            "status": String(httpResponse.statusCode),
+            "sync_id": context.context.syncID
+        ]
+    )
+}
+
+private func logSyncStoreRecheck(
+    context: SyncPayloadContext,
+    afterResponseChannelIDs: [String]
+) {
+    context.context.logger.info(
+        "local_store_rechecked_after_response",
+        metadata: [
+            "after_count": String(afterResponseChannelIDs.count),
+            "after_fingerprint": AppConsoleLogger.channelIDsFingerprint(afterResponseChannelIDs),
+            "before_count": String(context.beforeRequestChannelIDs.count),
+            "before_fingerprint": AppConsoleLogger.channelIDsFingerprint(context.beforeRequestChannelIDs),
+            "changed_during_sync": afterResponseChannelIDs == context.beforeRequestChannelIDs ? "false" : "true",
+            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: context.context.startedAt),
+            "sync_id": context.context.syncID
+        ]
+    )
+}
+
+private func logSyncCompletion(
+    context: SyncPayloadContext,
+    data: Data,
+    httpResponse: HTTPURLResponse,
+    afterResponseChannelIDs: [String]
+) {
+    context.context.logger.info(
+        "service_complete",
+        metadata: [
+            "channels": String(context.records.count),
+            "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: context.context.startedAt),
+            "local_store_changed_during_sync": afterResponseChannelIDs == context.beforeRequestChannelIDs ? "false" : "true",
+            "status": String(httpResponse.statusCode),
+            "sync_id": context.context.syncID
+    ]
+    )
+}
+
+private struct SyncContext {
+    let logger: AppConsoleLogger
+    let startedAt: Date
+    let syncID: String
 }

@@ -149,79 +149,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
         defer { try? fileManager.removeItem(at: temporaryRoot) }
 
         try withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
-            let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
-            let bootstrapURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
-            try fileManager.createDirectory(at: cacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-
-            let cacheEncoder = FeedCachePersistenceCoders.makeEncoder(prettyPrinted: true)
-            let bootstrapEncoder = JSONEncoder()
-            bootstrapEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            bootstrapEncoder.dateEncodingStrategy = .iso8601
-
-            let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")
-            let cache = FeedCacheSnapshot(
-                savedAt: now ?? .now,
-                channels: [
-                    CachedChannelState(
-                        channelID: "UC111",
-                        channelTitle: "one",
-                        lastAttemptAt: now,
-                        lastCheckedAt: now,
-                        lastSuccessAt: now,
-                        latestPublishedAt: now,
-                        cachedVideoCount: 1,
-                        lastError: nil,
-                        etag: nil,
-                        lastModified: nil
-                    )
-                ],
-                videos: [
-                    CachedVideo(
-                        id: "video-1",
-                        channelID: "UC222",
-                        channelTitle: "two",
-                        title: "title",
-                        publishedAt: now,
-                        videoURL: nil,
-                        thumbnailRemoteURL: nil,
-                        thumbnailLocalFilename: nil,
-                        fetchedAt: now ?? .now,
-                        searchableText: "title",
-                        durationSeconds: 1_800,
-                        viewCount: 303
-                    )
-                ]
-            )
-
-            let bootstrap = FeedBootstrapSnapshot(
-                progress: CacheProgress(
-                    totalChannels: 1,
-                    cachedChannels: 1,
-                    cachedVideos: 1,
-                    cachedThumbnails: 0,
-                    currentChannelID: nil,
-                    currentChannelNumber: nil,
-                    lastUpdatedAt: now,
-                    isRunning: false,
-                    lastError: nil
-                ),
-                maintenanceItems: [
-                    ChannelMaintenanceItem(
-                        id: "UC333",
-                        channelID: "UC333",
-                        channelTitle: "three",
-                        lastSuccessAt: now,
-                        lastCheckedAt: now,
-                        latestPublishedAt: now,
-                        cachedVideoCount: 1,
-                        lastError: nil,
-                        freshness: .fresh
-                    )
-                ]
-            )
-
-            try cacheEncoder.encode(cache).write(to: cacheURL, options: .atomic)
-            try bootstrapEncoder.encode(bootstrap).write(to: bootstrapURL, options: .atomic)
+            seedLegacyRestoreCache(fileManager: fileManager)
 
             XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), [])
         }
@@ -241,4 +169,84 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
         }
         return try operation()
     }
+}
+
+private func seedLegacyRestoreCache(fileManager: FileManager) throws {
+    let cacheURL = FeedCachePaths.cacheURL(fileManager: fileManager)
+    let bootstrapURL = FeedCachePaths.bootstrapURL(fileManager: fileManager)
+    try fileManager.createDirectory(at: cacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+    let cacheEncoder = FeedCachePersistenceCoders.makeEncoder(prettyPrinted: true)
+    let bootstrapEncoder = JSONEncoder()
+    bootstrapEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    bootstrapEncoder.dateEncodingStrategy = .iso8601
+
+    let now = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")
+    try cacheEncoder.encode(makeLegacyRestoreCache(now: now)).write(to: cacheURL, options: .atomic)
+    try bootstrapEncoder.encode(makeLegacyRestoreBootstrap(now: now)).write(to: bootstrapURL, options: .atomic)
+}
+
+private func makeLegacyRestoreCache(now: Date?) -> FeedCacheSnapshot {
+    FeedCacheSnapshot(
+        savedAt: now ?? .now,
+        channels: [
+            CachedChannelState(
+                channelID: "UC111",
+                channelTitle: "one",
+                lastAttemptAt: now,
+                lastCheckedAt: now,
+                lastSuccessAt: now,
+                latestPublishedAt: now,
+                cachedVideoCount: 1,
+                lastError: nil,
+                etag: nil,
+                lastModified: nil
+            )
+        ],
+        videos: [
+            CachedVideo(
+                id: "video-1",
+                channelID: "UC222",
+                channelTitle: "two",
+                title: "title",
+                publishedAt: now,
+                videoURL: nil,
+                thumbnailRemoteURL: nil,
+                thumbnailLocalFilename: nil,
+                fetchedAt: now ?? .now,
+                searchableText: "title",
+                durationSeconds: 1_800,
+                viewCount: 303
+            )
+        ]
+    )
+}
+
+private func makeLegacyRestoreBootstrap(now: Date?) -> FeedBootstrapSnapshot {
+    FeedBootstrapSnapshot(
+        progress: CacheProgress(
+            totalChannels: 1,
+            cachedChannels: 1,
+            cachedVideos: 1,
+            cachedThumbnails: 0,
+            currentChannelID: nil,
+            currentChannelNumber: nil,
+            lastUpdatedAt: now,
+            isRunning: false,
+            lastError: nil
+        ),
+        maintenanceItems: [
+            ChannelMaintenanceItem(
+                id: "UC333",
+                channelID: "UC333",
+                channelTitle: "three",
+                lastSuccessAt: now,
+                lastCheckedAt: now,
+                latestPublishedAt: now,
+                cachedVideoCount: 1,
+                lastError: nil,
+                freshness: .fresh
+            )
+        ]
+    )
 }

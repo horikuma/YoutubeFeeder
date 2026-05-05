@@ -106,4 +106,3 @@ struct ChannelBrowseDetailView: View {
         viewModel.setDisplayMode(mode)
     }
 }
-

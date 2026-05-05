@@ -107,50 +107,63 @@ struct FeedCacheStoreWriter {
         let resolvedChannelTitle = videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
         let latestPublishedAt = videos.compactMap(\.publishedAt).max()
         let channelVideoCount = snapshot.videos.filter { $0.channelID == channelID }.count
+        let successContext = FeedCacheStoreWriterSuccessContext(
+            channelID: channelID,
+            fetchedAt: fetchedAt,
+            fetchedVideos: videos.count,
+            uncachedVideos: uncachedVideos.count,
+            existingChannelVideos: existingChannelVideoCount,
+            cachedChannelVideosAfter: channelVideoCount,
+            totalCachedVideosAfter: snapshot.videos.count,
+            resolvedChannelTitle: resolvedChannelTitle,
+            latestPublishedAt: latestPublishedAt,
+            cachedVideoCount: channelVideoCount,
+            zeroFetchPreservedExisting: videos.isEmpty && channelVideoCount > 0,
+            validationToken: metadata.validationToken
+        )
         AppConsoleLogger.feedRefresh.debug(
             "feed_cache_record_success",
-            metadata: [
-                "channelID": channelID,
-                "fetched_videos": String(videos.count),
-                "uncached_videos": String(uncachedVideos.count),
-                "existing_channel_videos": String(existingChannelVideoCount),
-                "cached_channel_videos_after": String(channelVideoCount),
-                "total_cached_videos_after": String(snapshot.videos.count),
-                "resolved_channel_title": resolvedChannelTitle ?? "",
-                "latest_published_at": latestPublishedAt.map { String(format: "%.3f", $0.timeIntervalSince1970) } ?? "nil",
-                "zero_fetch_preserved_existing": videos.isEmpty && channelVideoCount > 0 ? "true" : "false"
-            ]
+            metadata: successMetadata(context: successContext)
         )
-
-        var channel = channelState(for: channelID, in: snapshot.channels)
-        channel.channelTitle = resolvedChannelTitle ?? channel.channelTitle
-        channel.channelDisplayTitle = resolvedChannelTitle ?? channel.channelDisplayTitle
-        channel.lastAttemptAt = fetchedAt
-        channel.lastCheckedAt = fetchedAt
-        channel.lastSuccessAt = fetchedAt
-        channel.latestPublishedAt = latestPublishedAt ?? channel.latestPublishedAt
-        channel.latestPublishedAtText = CachedChannelState(
-            channelID: channel.channelID,
-            channelTitle: channel.channelTitle,
-            channelDisplayTitle: channel.channelDisplayTitle,
-            lastAttemptAt: fetchedAt,
-            lastCheckedAt: fetchedAt,
-            lastSuccessAt: fetchedAt,
-            latestPublishedAt: latestPublishedAt ?? channel.latestPublishedAt,
-            cachedVideoCount: channelVideoCount,
-            lastError: nil,
-            etag: metadata.validationToken.etag,
-            lastModified: metadata.validationToken.lastModified
-        ).latestPublishedAtText
-        channel.cachedVideoCount = channelVideoCount
-        channel.lastError = nil
-        channel.etag = metadata.validationToken.etag
-        channel.lastModified = metadata.validationToken.lastModified
-        upsert(channel: channel, into: &snapshot.channels)
+        updateChannelAfterSuccess(
+            context: successContext,
+            snapshot: &snapshot
+        )
 
         snapshot.savedAt = fetchedAt
         persist(snapshot)
         return uncachedVideos
+    }
+
+    private func updateChannelAfterSuccess(
+        context: FeedCacheStoreWriterSuccessContext,
+        snapshot: inout FeedCacheSnapshot
+    ) {
+        var channel = channelState(for: context.channelID, in: snapshot.channels)
+        channel.channelTitle = context.resolvedChannelTitle ?? channel.channelTitle
+        channel.channelDisplayTitle = context.resolvedChannelTitle ?? channel.channelDisplayTitle
+        channel.lastAttemptAt = context.fetchedAt
+        channel.lastCheckedAt = context.fetchedAt
+        channel.lastSuccessAt = context.fetchedAt
+        channel.latestPublishedAt = context.latestPublishedAt ?? channel.latestPublishedAt
+        channel.latestPublishedAtText = CachedChannelState(
+            channelID: channel.channelID,
+            channelTitle: channel.channelTitle,
+            channelDisplayTitle: channel.channelDisplayTitle,
+            lastAttemptAt: context.fetchedAt,
+            lastCheckedAt: context.fetchedAt,
+            lastSuccessAt: context.fetchedAt,
+            latestPublishedAt: context.latestPublishedAt ?? channel.latestPublishedAt,
+            cachedVideoCount: context.cachedVideoCount,
+            lastError: nil,
+            etag: context.validationToken.etag,
+            lastModified: context.validationToken.lastModified
+        ).latestPublishedAtText
+        channel.cachedVideoCount = context.cachedVideoCount
+        channel.lastError = nil
+        channel.etag = context.validationToken.etag
+        channel.lastModified = context.validationToken.lastModified
+        upsert(channel: channel, into: &snapshot.channels)
     }
 
     private func updateCachedVideos(
@@ -232,4 +245,35 @@ struct FeedCacheStoreWriter {
             channels.append(channel)
         }
     }
+}
+
+private struct FeedCacheStoreWriterSuccessContext {
+    let channelID: String
+    let fetchedAt: Date
+    let fetchedVideos: Int
+    let uncachedVideos: Int
+    let existingChannelVideos: Int
+    let cachedChannelVideosAfter: Int
+    let totalCachedVideosAfter: Int
+    let resolvedChannelTitle: String?
+    let latestPublishedAt: Date?
+    let cachedVideoCount: Int
+    let zeroFetchPreservedExisting: Bool
+    let validationToken: FeedValidationToken
+}
+
+private func successMetadata(
+    context: FeedCacheStoreWriterSuccessContext
+) -> [String: String] {
+    [
+        "channelID": context.channelID,
+        "fetched_videos": String(context.fetchedVideos),
+        "uncached_videos": String(context.uncachedVideos),
+        "existing_channel_videos": String(context.existingChannelVideos),
+        "cached_channel_videos_after": String(context.cachedChannelVideosAfter),
+        "total_cached_videos_after": String(context.totalCachedVideosAfter),
+        "resolved_channel_title": context.resolvedChannelTitle ?? "",
+        "latest_published_at": context.latestPublishedAt.map { String(format: "%.3f", $0.timeIntervalSince1970) } ?? "nil",
+        "zero_fetch_preserved_existing": context.zeroFetchPreservedExisting ? "true" : "false"
+    ]
 }

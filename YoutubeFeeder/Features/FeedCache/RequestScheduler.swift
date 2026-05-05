@@ -97,59 +97,62 @@ actor RequestScheduler {
 
             await waitForMinimumIntervalIfNeeded()
             let request = requestQueue.removeFirst()
-            runningRequestCount += 1
-            startedRequestCount += 1
-            maxRunningObserved = max(maxRunningObserved, runningRequestCount)
-            if let lastRequestStartedAt {
-                let intervalMs = Int((Date.now.timeIntervalSince(lastRequestStartedAt) * 1000).rounded(.up))
-                if intervalMs > 0 {
-                    minStartIntervalObservedMs = minStartIntervalObservedMs.map { min($0, intervalMs) } ?? intervalMs
-                }
-            }
-            lastRequestStartedAt = .now
-
-            AppConsoleLogger.feedRefresh.debug(
-                "request_scheduler_start",
-                metadata: [
-                    "request_id": String(request.id),
-                    "queued": String(requestQueue.count),
-                    "running": String(runningRequestCount)
-                ]
-            )
-
-            defer {
-                runningRequestCount -= 1
-                lastRequestCompletedAt = .now
-                finishedRequestCount += 1
-                AppConsoleLogger.feedRefresh.debug(
-                    "request_scheduler_finish",
-                    metadata: [
-                        "request_id": String(request.id),
-                        "queued": String(requestQueue.count),
-                        "running": String(runningRequestCount)
-                    ]
-                )
-                if finishedRequestCount % aggregateLogInterval == 0 {
-                    AppConsoleLogger.feedRefresh.debug(
-                        "request_scheduler_progress",
-                        metadata: aggregateMetadata(reason: "progress")
-                    )
-                    lastLoggedFinishedRequestCount = finishedRequestCount
-                } else if requestQueue.isEmpty, runningRequestCount == 0, lastLoggedFinishedRequestCount != finishedRequestCount {
-                    AppConsoleLogger.feedRefresh.debug(
-                        "request_scheduler_progress",
-                        metadata: aggregateMetadata(reason: "idle")
-                    )
-                    lastLoggedFinishedRequestCount = finishedRequestCount
-                }
-            }
-
+            startRequest(request)
+            defer { finishRequest(request) }
             do {
                 try await request.operation()
             } catch {
                 continue
             }
         }
+    }
+
+    private func startRequest(_ request: QueuedRequest) {
+        runningRequestCount += 1
+        startedRequestCount += 1
+        maxRunningObserved = max(maxRunningObserved, runningRequestCount)
+        if let lastRequestStartedAt {
+            let intervalMs = Int((Date.now.timeIntervalSince(lastRequestStartedAt) * 1000).rounded(.up))
+            if intervalMs > 0 {
+                minStartIntervalObservedMs = minStartIntervalObservedMs.map { min($0, intervalMs) } ?? intervalMs
+            }
+        }
+        lastRequestStartedAt = .now
+        AppConsoleLogger.feedRefresh.debug(
+            "request_scheduler_start",
+            metadata: requestMetadata(request)
+        )
+    }
+
+    private func finishRequest(_ request: QueuedRequest) {
+        runningRequestCount -= 1
+        lastRequestCompletedAt = .now
+        finishedRequestCount += 1
+        AppConsoleLogger.feedRefresh.debug(
+            "request_scheduler_finish",
+            metadata: requestMetadata(request)
+        )
+        if finishedRequestCount % aggregateLogInterval == 0 {
+            AppConsoleLogger.feedRefresh.debug(
+                "request_scheduler_progress",
+                metadata: aggregateMetadata(reason: "progress")
+            )
+            lastLoggedFinishedRequestCount = finishedRequestCount
+        } else if requestQueue.isEmpty, runningRequestCount == 0, lastLoggedFinishedRequestCount != finishedRequestCount {
+            AppConsoleLogger.feedRefresh.debug(
+                "request_scheduler_progress",
+                metadata: aggregateMetadata(reason: "idle")
+            )
+            lastLoggedFinishedRequestCount = finishedRequestCount
+        }
+    }
+
+    private func requestMetadata(_ request: QueuedRequest) -> [String: String] {
+        [
+            "request_id": String(request.id),
+            "queued": String(requestQueue.count),
+            "running": String(runningRequestCount)
+        ]
     }
 
     private func aggregateMetadata(reason: String) -> [String: String] {

@@ -59,8 +59,10 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
             let store = RemoteVideoSearchCacheStore()
             let fetchedAt = ISO8601DateFormatter().date(from: "2026-03-15T03:00:00Z")!
 
-            await store.save(
+            await seedRemoteSearchCache(
+                store: store,
                 keyword: "ゆっくり実況",
+                fetchedAt: fetchedAt,
                 videos: [
                     CachedVideo(
                         id: "video-1",
@@ -77,29 +79,24 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
                         viewCount: 100
                     )
                 ],
-                totalCount: 1,
-                fetchedAt: fetchedAt
+                totalCount: 1
             )
 
-            await store.merge(
+            await appendRemoteSearchCache(
+                store: store,
                 keyword: "ゆっくり実況",
-                videos: [
-                    CachedVideo(
-                        id: "video-2",
-                        channelID: "UC222",
-                        channelTitle: "Channel Two",
-                        title: "second",
-                        publishedAt: fetchedAt.addingTimeInterval(60),
-                        videoURL: nil,
-                        thumbnailRemoteURL: nil,
-                        thumbnailLocalFilename: nil,
-                        fetchedAt: fetchedAt.addingTimeInterval(60),
-                        searchableText: "second",
-                        durationSeconds: 2_400,
-                        viewCount: 200
-                    )
-                ],
-                fetchedAt: fetchedAt.addingTimeInterval(60)
+                fetchedAt: fetchedAt.addingTimeInterval(60),
+                video: makeSearchVideo(
+                    id: "video-2",
+                    channelID: "UC222",
+                    channelTitle: "Channel Two",
+                    title: "second",
+                    publishedAt: fetchedAt.addingTimeInterval(60),
+                    fetchedAt: fetchedAt.addingTimeInterval(60),
+                    searchableText: "second",
+                    durationSeconds: 2_400,
+                    viewCount: 200
+                )
             )
 
             let entry = await store.load(keyword: "ゆっくり実況")
@@ -183,5 +180,51 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
             }
         }
         return try await operation()
+    }
+
+    private func seedRemoteSearchCache(
+        store: RemoteVideoSearchCacheStore,
+        keyword: String,
+        fetchedAt: Date,
+        videos: [CachedVideo],
+        totalCount: Int
+    ) async {
+        await store.save(keyword: keyword, videos: videos, totalCount: totalCount, fetchedAt: fetchedAt)
+    }
+
+    private func appendRemoteSearchCache(
+        store: RemoteVideoSearchCacheStore,
+        keyword: String,
+        fetchedAt: Date,
+        video: CachedVideo
+    ) async {
+        await store.merge(keyword: keyword, videos: [video], fetchedAt: fetchedAt)
+    }
+
+    private func makeSearchVideo(
+        id: String,
+        channelID: String,
+        channelTitle: String,
+        title: String,
+        publishedAt: Date,
+        fetchedAt: Date,
+        searchableText: String,
+        durationSeconds: Int,
+        viewCount: Int
+    ) -> CachedVideo {
+        CachedVideo(
+            id: id,
+            channelID: channelID,
+            channelTitle: channelTitle,
+            title: title,
+            publishedAt: publishedAt,
+            videoURL: nil,
+            thumbnailRemoteURL: nil,
+            thumbnailLocalFilename: nil,
+            fetchedAt: fetchedAt,
+            searchableText: searchableText,
+            durationSeconds: durationSeconds,
+            viewCount: viewCount
+        )
     }
 }

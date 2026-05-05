@@ -118,41 +118,14 @@ final class FeedCacheCoordinatorBrowseSupport {
                 limit: limit
             )
             await coordinator.writeService.savePlaylistVideosPage(page)
-            AppConsoleLogger.appLifecycle.info(
-                "playlist_videos_page_complete",
-                metadata: [
-                    "playlistID": normalizedPlaylistID,
-                    "videos": String(page.videos.count),
-                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
-                ]
-            )
+            logPlaylistVideosPageComplete(playlistID: normalizedPlaylistID, videos: page.videos.count, startedAt: startedAt)
             return page
         } catch {
-            RuntimeDiagnostics.shared.record(
-                "playlist_videos_page_failed",
-                detail: "プレイリスト内動画のページ取得に失敗",
-                metadata: [
-                    "playlistID": normalizedPlaylistID,
-                    "pageToken": pageToken ?? "",
-                    "limit": String(limit),
-                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
-                ]
-            )
-            AppConsoleLogger.appLifecycle.error(
-                "playlist_videos_page_failed",
-                metadata: [
-                    "playlistID": normalizedPlaylistID,
-                    "pageToken": pageToken ?? "",
-                    "limit": String(limit),
-                    "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
-                ]
-            )
-            return PlaylistBrowseVideosPage(
+            return handlePlaylistVideosPageFailure(
                 playlistID: normalizedPlaylistID,
-                videos: [],
-                totalCount: 0,
-                fetchedAt: .now,
-                nextPageToken: pageToken
+                pageToken: pageToken,
+                limit: limit,
+                error: error
             )
         }
     }
@@ -210,6 +183,51 @@ final class FeedCacheCoordinatorBrowseSupport {
             ]
         )
         return mergedVideos
+    }
+
+    private func logPlaylistVideosPageComplete(playlistID: String, videos: Int, startedAt: Date) {
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_videos_page_complete",
+            metadata: [
+                "playlistID": playlistID,
+                "videos": String(videos),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+            ]
+        )
+    }
+
+    private func handlePlaylistVideosPageFailure(
+        playlistID: String,
+        pageToken: String?,
+        limit: Int,
+        error: Error
+    ) -> PlaylistBrowseVideosPage {
+        RuntimeDiagnostics.shared.record(
+            "playlist_videos_page_failed",
+            detail: "プレイリスト内動画のページ取得に失敗",
+            metadata: [
+                "playlistID": playlistID,
+                "pageToken": pageToken ?? "",
+                "limit": String(limit),
+                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
+            ]
+        )
+        AppConsoleLogger.appLifecycle.error(
+            "playlist_videos_page_failed",
+            metadata: [
+                "playlistID": playlistID,
+                "pageToken": pageToken ?? "",
+                "limit": String(limit),
+                "reason": RemoteSearchErrorPolicy.diagnosticReason(for: error)
+            ]
+        )
+        return PlaylistBrowseVideosPage(
+            playlistID: playlistID,
+            videos: [],
+            totalCount: 0,
+            fetchedAt: .now,
+            nextPageToken: pageToken
+        )
     }
 
     func shouldAutomaticallyRefreshChannelVideos(_ context: ChannelVideosRouteContext) async -> Bool {

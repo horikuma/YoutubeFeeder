@@ -41,64 +41,24 @@ final class HomeScreenViewModel: ObservableObject {
     }
 
     func performAutoRefreshTaskIfNeeded() async {
-        AppConsoleLogger.appLifecycle.info(
-            "home_auto_refresh_task_started",
-            metadata: [
-                "auto_refresh_on_launch": AppLaunchMode.current.autoRefreshOnLaunch ? "true" : "false",
-                "background_refresh": AppLaunchMode.current.allowsBackgroundRefresh ? "true" : "false",
-                "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-            ]
-        )
+        logAutoRefreshTaskStarted()
         guard AppLaunchMode.current.autoRefreshOnLaunch else {
-            AppConsoleLogger.appLifecycle.info(
-                "home_auto_refresh_task_skipped",
-                metadata: [
-                    "reason": "disabled_on_launch",
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                ]
-            )
+            logAutoRefreshTaskSkipped(reason: "disabled_on_launch")
             return
         }
         guard !didRunAutoRefresh else {
-            AppConsoleLogger.appLifecycle.info(
-                "home_auto_refresh_task_skipped",
-                metadata: [
-                    "reason": "already_ran",
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                ]
-            )
+            logAutoRefreshTaskSkipped(reason: "already_ran")
             return
         }
         didRunAutoRefresh = true
-        AppConsoleLogger.appLifecycle.info(
-            "home_auto_refresh_manual_refresh_started",
-            metadata: [
-                "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-            ]
-        )
+        logAutoRefreshManualRefreshStarted()
         _ = await coordinator.refresh(intent: .home)
-        AppConsoleLogger.appLifecycle.info(
-            "home_auto_refresh_manual_refresh_finished",
-            metadata: [
-                "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-            ]
-        )
+        logAutoRefreshManualRefreshFinished()
         guard AppLaunchMode.current.allowsBackgroundRefresh else {
-            AppConsoleLogger.appLifecycle.info(
-                "home_auto_refresh_wall_clock_scheduler_skipped",
-                metadata: [
-                    "reason": "background_refresh_disabled",
-                    "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-                ]
-            )
+            logAutoRefreshWallClockSchedulerSkipped(reason: "background_refresh_disabled")
             return
         }
-        AppConsoleLogger.appLifecycle.info(
-            "home_auto_refresh_wall_clock_scheduler_requested",
-            metadata: [
-                "layout": layout.usesSplitChannelBrowser ? "split" : "compact"
-            ]
-        )
+        logAutoRefreshWallClockSchedulerRequested()
         coordinator.startChannelRefreshWallClockSchedulerIfNeeded()
     }
 
@@ -173,5 +133,67 @@ final class HomeScreenViewModel: ObservableObject {
                 state.failResetAllSettings(error)
             }
         }
+    }
+
+    private func layoutMode() -> String {
+        layout.usesSplitChannelBrowser ? "split" : "compact"
+    }
+
+    private func logAutoRefreshTaskStarted() {
+        AppConsoleLogger.appLifecycle.info(
+            "home_auto_refresh_task_started",
+            metadata: [
+                "auto_refresh_on_launch": AppLaunchMode.current.autoRefreshOnLaunch ? "true" : "false",
+                "background_refresh": AppLaunchMode.current.allowsBackgroundRefresh ? "true" : "false",
+                "layout": layoutMode()
+            ]
+        )
+    }
+
+    private func logAutoRefreshTaskSkipped(reason: String) {
+        AppConsoleLogger.appLifecycle.info(
+            "home_auto_refresh_task_skipped",
+            metadata: [
+                "reason": reason,
+                "layout": layoutMode()
+            ]
+        )
+    }
+
+    private func logAutoRefreshManualRefreshStarted() {
+        AppConsoleLogger.appLifecycle.info(
+            "home_auto_refresh_manual_refresh_started",
+            metadata: [
+                "layout": layoutMode()
+            ]
+        )
+    }
+
+    private func logAutoRefreshManualRefreshFinished() {
+        AppConsoleLogger.appLifecycle.info(
+            "home_auto_refresh_manual_refresh_finished",
+            metadata: [
+                "layout": layoutMode()
+            ]
+        )
+    }
+
+    private func logAutoRefreshWallClockSchedulerSkipped(reason: String) {
+        AppConsoleLogger.appLifecycle.info(
+            "home_auto_refresh_wall_clock_scheduler_skipped",
+            metadata: [
+                "reason": reason,
+                "layout": layoutMode()
+            ]
+        )
+    }
+
+    private func logAutoRefreshWallClockSchedulerRequested() {
+        AppConsoleLogger.appLifecycle.info(
+            "home_auto_refresh_wall_clock_scheduler_requested",
+            metadata: [
+                "layout": layoutMode()
+            ]
+        )
     }
 }

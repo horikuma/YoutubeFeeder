@@ -24,4 +24,3 @@ final class AppConsoleLoggerScopeInvocationPlatformTests: LoggedTestCase {
     }
 }
 #endif
-

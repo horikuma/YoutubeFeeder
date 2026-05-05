@@ -93,65 +93,12 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             database.replaceRegisteredChannels([
                 RegisteredChannelRecord(channelID: channelID, addedAt: nil)
             ])
-            database.replaceFeedSnapshot(
-                FeedCacheSnapshot(
-                    savedAt: now,
-                    channels: [
-                        CachedChannelState(
-                            channelID: channelID,
-                            channelTitle: "Cached Channel",
-                            lastAttemptAt: now.addingTimeInterval(-60),
-                            lastCheckedAt: now.addingTimeInterval(-60),
-                            lastSuccessAt: now.addingTimeInterval(-60),
-                            latestPublishedAt: now.addingTimeInterval(-60),
-                            cachedVideoCount: 1,
-                            lastError: nil,
-                            etag: "cached-etag",
-                            lastModified: "cached-last-modified"
-                        )
-                    ],
-                    videos: []
-                )
-            )
+            database.replaceFeedSnapshot(makeFreshRefreshSnapshot(channelID: channelID, now: now))
 
-            let feedService = YouTubeFeedService(
-                checkForUpdates: { _, validationToken in
-                    await recorder.recordCheck(
-                        validationToken: validationToken,
-                        manualTaskVisible: false
-                    )
-                    return .notModified(
-                        FeedFetchMetadata(
-                            checkedAt: now,
-                            validationToken: FeedValidationToken(
-                                etag: "cached-etag",
-                                lastModified: "cached-last-modified"
-                            ),
-                            httpStatusCode: 304
-                        )
-                    )
-                },
-                fetchLatestFeed: { _ in
-                    await recorder.recordFetch()
-                    return (
-                        videos: [],
-                        metadata: FeedFetchMetadata(
-                            checkedAt: now,
-                            validationToken: FeedValidationToken(etag: nil, lastModified: nil)
-                        )
-                    )
-                }
-            )
+            let feedService = makeFreshRefreshFeedService(now: now, recorder: recorder)
             let coordinator = FeedCacheCoordinator(
                 channels: [channelID],
-                dependencies: FeedCacheDependencies(
-                    store: FeedCacheStore(),
-                    feedService: feedService,
-                    channelResolver: YouTubeChannelResolver(),
-                    searchService: YouTubeSearchService(),
-                    remoteSearchCacheStore: RemoteVideoSearchCacheStore(),
-                    channelRegistrySyncService: ChannelRegistryCloudflareSyncService(endpointURL: nil)
-                )
+                dependencies: makeFreshRefreshDependencies(feedService: feedService)
             )
 
             await coordinator.performFullChannelRefresh(refreshSource: "test")
@@ -166,4 +113,64 @@ final class FeedCacheCoordinatorConcurrencyTests: LoggedTestCase {
             XCTAssertEqual(snapshot.channels.first?.etag, "cached-etag")
         }
     }
+}
+
+private func makeFreshRefreshSnapshot(channelID: String, now: Date) -> FeedCacheSnapshot {
+    FeedCacheSnapshot(
+        savedAt: now,
+        channels: [
+            CachedChannelState(
+                channelID: channelID,
+                channelTitle: "Cached Channel",
+                lastAttemptAt: now.addingTimeInterval(-60),
+                lastCheckedAt: now.addingTimeInterval(-60),
+                lastSuccessAt: now.addingTimeInterval(-60),
+                latestPublishedAt: now.addingTimeInterval(-60),
+                cachedVideoCount: 1,
+                lastError: nil,
+                etag: "cached-etag",
+                lastModified: "cached-last-modified"
+            )
+        ],
+        videos: []
+    )
+}
+
+private func makeFreshRefreshFeedService(now: Date, recorder: FeedRefreshCallRecorder) -> YouTubeFeedService {
+    YouTubeFeedService(
+        checkForUpdates: { _, validationToken in
+            await recorder.recordCheck(validationToken: validationToken, manualTaskVisible: false)
+            return .notModified(
+                FeedFetchMetadata(
+                    checkedAt: now,
+                    validationToken: FeedValidationToken(
+                        etag: "cached-etag",
+                        lastModified: "cached-last-modified"
+                    ),
+                    httpStatusCode: 304
+                )
+            )
+        },
+        fetchLatestFeed: { _ in
+            await recorder.recordFetch()
+            return (
+                videos: [],
+                metadata: FeedFetchMetadata(
+                    checkedAt: now,
+                    validationToken: FeedValidationToken(etag: nil, lastModified: nil)
+                )
+            )
+        }
+    )
+}
+
+private func makeFreshRefreshDependencies(feedService: YouTubeFeedService) -> FeedCacheDependencies {
+    FeedCacheDependencies(
+        store: FeedCacheStore(),
+        feedService: feedService,
+        channelResolver: YouTubeChannelResolver(),
+        searchService: YouTubeSearchService(),
+        remoteSearchCacheStore: RemoteVideoSearchCacheStore(),
+        channelRegistrySyncService: ChannelRegistryCloudflareSyncService(endpointURL: nil)
+    )
 }

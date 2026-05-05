@@ -48,4 +48,3 @@ final class AppConsoleLoggerTraceLifecycleTests: LoggedTestCase {
         XCTAssertTrue(output.contains(traceID))
     }
 }
-

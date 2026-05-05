@@ -118,11 +118,11 @@ struct ChannelVideosView: View {
             }
         }
         .safeAreaInset(edge: .top) {
-            if canCloseDetail {
+            if !path.isEmpty {
                 HStack {
                     Spacer()
                     Button("閉じる") {
-                        closeDetail()
+                        path.removeLast()
                     }
                     .buttonStyle(.bordered)
                     .accessibilityIdentifier("channelVideos.closeDetail")
@@ -184,15 +184,6 @@ struct ChannelVideosView: View {
             ?? videoState.videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
             ?? context.preferredChannelTitle
             ?? context.channelID
-    }
-
-    private var canCloseDetail: Bool {
-        !path.isEmpty
-    }
-
-    private func closeDetail() {
-        guard canCloseDetail else { return }
-        path.removeLast()
     }
 
     private func reloadVideos() async {

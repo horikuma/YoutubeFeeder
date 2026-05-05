@@ -64,19 +64,9 @@ final class FeedCacheCoordinatorMaintenanceSupport {
     }
 
     func startChannelRegistrySyncIfNeeded() {
-        let logger = AppConsoleLogger.cloudflareSync
         let storedChannels = ChannelRegistryStore.loadAllChannelIDs()
         guard coordinator.channelRegistrySyncService.isConfigured else {
-            logger.info(
-                "coordinator_skip",
-                metadata: [
-                    "coordinator_channels": String(coordinator.channels.count),
-                    "local_fingerprint": AppConsoleLogger.channelIDsFingerprint(storedChannels),
-                    "reason": "endpoint_missing",
-                    "source": "bootstrap_complete",
-                    "store_channels": String(storedChannels.count)
-                ]
-            )
+            logChannelRegistryCoordinatorSkip(storedChannels: storedChannels)
             return
         }
 
@@ -84,50 +74,79 @@ final class FeedCacheCoordinatorMaintenanceSupport {
         let localFingerprint = AppConsoleLogger.channelIDsFingerprint(storedChannels)
         let storeChannelCount = storedChannels.count
         Task(priority: .utility) { [channelRegistrySyncService = coordinator.channelRegistrySyncService] in
-            let startedAt = Date()
+            await self.runChannelRegistrySyncTask(
+                channelRegistrySyncService: channelRegistrySyncService,
+                coordinatorChannelCount: coordinatorChannelCount,
+                localFingerprint: localFingerprint,
+                storeChannelCount: storeChannelCount
+            )
+        }
+    }
+
+    private func logChannelRegistryCoordinatorSkip(storedChannels: [String]) {
+        let logger = AppConsoleLogger.cloudflareSync
+        logger.info(
+            "coordinator_skip",
+            metadata: [
+                "coordinator_channels": String(coordinator.channels.count),
+                "local_fingerprint": AppConsoleLogger.channelIDsFingerprint(storedChannels),
+                "reason": "endpoint_missing",
+                "source": "bootstrap_complete",
+                "store_channels": String(storedChannels.count)
+            ]
+        )
+    }
+
+    private func runChannelRegistrySyncTask(
+        channelRegistrySyncService: ChannelRegistryCloudflareSyncService,
+        coordinatorChannelCount: Int,
+        localFingerprint: String,
+        storeChannelCount: Int
+    ) async {
+        let logger = AppConsoleLogger.cloudflareSync
+        let startedAt = Date()
+        logger.info(
+            "coordinator_task_start",
+            metadata: [
+                "coordinator_channels": String(coordinatorChannelCount),
+                "local_fingerprint": localFingerprint,
+                "source": "bootstrap_complete",
+                "store_channels": String(storeChannelCount)
+            ]
+        )
+        do {
+            try await channelRegistrySyncService.syncChannelRegistry()
             logger.info(
-                "coordinator_task_start",
+                "coordinator_task_complete",
                 metadata: [
-                    "coordinator_channels": String(coordinatorChannelCount),
-                    "local_fingerprint": localFingerprint,
-                    "source": "bootstrap_complete",
-                    "store_channels": String(storeChannelCount)
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "source": "bootstrap_complete"
                 ]
             )
-            do {
-                try await channelRegistrySyncService.syncChannelRegistry()
-                logger.info(
-                    "coordinator_task_complete",
-                    metadata: [
-                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                        "source": "bootstrap_complete"
-                    ]
-                )
-            } catch is CancellationError {
-                logger.info(
-                    "coordinator_task_cancelled",
-                    metadata: [
-                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                        "source": "bootstrap_complete"
-                    ]
-                )
-            } catch {
-                logger.error(
-                    "coordinator_task_failed",
-                    message: AppConsoleLogger.errorSummary(error),
-                    metadata: [
-                        "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
-                        "source": "bootstrap_complete"
-                    ]
-                )
-                RuntimeDiagnostics.shared.record(
-                    "channel_registry_sync_failed",
-                    detail: "Cloudflare KV 同期に失敗",
-                    metadata: [
-                        "reason": error.localizedDescription
-                    ]
-                )
-            }
+        } catch is CancellationError {
+            logger.info(
+                "coordinator_task_cancelled",
+                metadata: [
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "source": "bootstrap_complete"
+                ]
+            )
+        } catch {
+            logger.error(
+                "coordinator_task_failed",
+                message: AppConsoleLogger.errorSummary(error),
+                metadata: [
+                    "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt),
+                    "source": "bootstrap_complete"
+                ]
+            )
+            RuntimeDiagnostics.shared.record(
+                "channel_registry_sync_failed",
+                detail: "Cloudflare KV 同期に失敗",
+                metadata: [
+                    "reason": error.localizedDescription
+                ]
+            )
         }
     }
 

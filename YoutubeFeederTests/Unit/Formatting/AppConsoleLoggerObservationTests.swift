@@ -1,6 +1,10 @@
 import XCTest
 @testable import YoutubeFeeder
 
+private struct AppConsoleLoggerObservationExampleItem: Decodable {
+    let title: String
+}
+
 final class AppConsoleLoggerObservationTests: LoggedTestCase {
     func testSanitizedKeywordCollapsesWhitespaceAndTruncates() {
         let keyword = "  swift   ui   remote   search   diagnostics   keyword  "
@@ -172,11 +176,7 @@ final class AppConsoleLoggerObservationTests: LoggedTestCase {
 
     func testErrorSummaryIncludesDecodingPathForMissingKey() throws {
         struct Example: Decodable {
-            let items: [Item]
-
-            struct Item: Decodable {
-                let title: String
-            }
+            let items: [AppConsoleLoggerObservationExampleItem]
         }
 
         let json = Data(#"{"items":[{}]}"#.utf8)
