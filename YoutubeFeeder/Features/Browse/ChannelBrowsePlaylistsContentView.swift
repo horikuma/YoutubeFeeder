@@ -45,7 +45,10 @@ struct ChannelBrowsePlaylistsContentView: View {
                         } label: {
                             PlaylistBrowseTile(
                                 item: playlist,
-                                previewVideo: playlistPreviewVideo(for: playlist),
+                                previewVideo: makePlaylistPreviewVideo(
+                                    for: playlist,
+                                    snapshot: viewModel.playlistsSnapshot
+                                ),
                                 index: offset + 1,
                                 isSelected: selectedPlaylist?.playlistID == playlist.playlistID
                             )
@@ -75,7 +78,7 @@ struct ChannelBrowsePlaylistsContentView: View {
                 } else {
                     LazyVGrid(columns: layout.listColumns, spacing: 20) {
                         ForEach(Array(selectedPlaylistVideos.enumerated()), id: \.element.id) { offset, video in
-                            let cachedVideo = playlistCachedVideo(for: video)
+                            let cachedVideo = makePlaylistCachedVideo(for: video)
                             VideoTile(
                                 video: cachedVideo,
                                 tapAction: nil,
@@ -110,11 +113,17 @@ struct ChannelBrowsePlaylistsContentView: View {
     }
 
     private func selectPlaylist(_ playlistID: String) {
-        viewModel.selectPlaylist(playlistID)
+        guard let channelID = state.selectedChannelID else { return }
+        var logic = state
+        logic.selectPlaylist(playlistID, for: channelID)
+        state = logic
     }
 
     private func clearSelectedPlaylist() {
-        viewModel.clearSelectedPlaylist()
+        guard let channelID = state.selectedChannelID else { return }
+        var logic = state
+        logic.selectPlaylist(nil, for: channelID)
+        state = logic
     }
 
     private func playlistVideoSortOrderBinding(for playlistID: String) -> Binding<PlaylistBrowseVideoSortOrder> {
@@ -142,16 +151,59 @@ struct ChannelBrowsePlaylistsContentView: View {
     }
 
     private func openPlaylistContinuousPlay(_ item: PlaylistBrowseItem) {
-        guard let url = viewModel.playlistContinuousPlayURL(for: item) else { return }
+        guard let url = makePlaylistContinuousPlayURL(
+            for: item,
+            snapshot: viewModel.playlistsSnapshot
+        ) else { return }
         openURL(url)
     }
+}
 
-    private func playlistPreviewVideo(for item: PlaylistBrowseItem) -> CachedVideo {
-        viewModel.playlistPreviewVideo(for: item)
-    }
+private func makePlaylistPreviewVideo(
+    for item: PlaylistBrowseItem,
+    snapshot: FeedCachePlaylistSnapshot
+) -> CachedVideo {
+    CachedVideo(
+        id: item.firstVideoID ?? item.playlistID,
+        channelID: item.channelID,
+        channelTitle: item.channelTitle,
+        channelDisplayTitle: item.channelTitle,
+        title: item.title,
+        publishedAt: item.publishedAt,
+        videoURL: snapshot.playlistContinuousPlayURLsByPlaylistID[item.playlistID]
+            ?? URL(string: "https://www.youtube.com/playlist?list=\(item.playlistID)"),
+        thumbnailRemoteURL: item.firstVideoThumbnailURL ?? item.thumbnailURL,
+        thumbnailLocalFilename: nil,
+        fetchedAt: .now,
+        searchableText: [item.title, item.channelTitle, item.playlistID].joined(separator: "\n").lowercased(),
+        durationSeconds: nil,
+        viewCount: item.itemCount,
+        metadataBadgeText: item.itemCount.map { "\($0)本" }
+    )
+}
 
-    private func playlistCachedVideo(for video: PlaylistBrowseVideo) -> CachedVideo {
-        viewModel.playlistCachedVideo(for: video)
-    }
+private func makePlaylistCachedVideo(for video: PlaylistBrowseVideo) -> CachedVideo {
+    CachedVideo(
+        id: video.id,
+        channelID: video.channelID,
+        channelTitle: video.channelTitle,
+        channelDisplayTitle: video.channelTitle,
+        title: video.title,
+        publishedAt: video.publishedAt,
+        videoURL: video.videoURL,
+        thumbnailRemoteURL: video.thumbnailURL,
+        thumbnailLocalFilename: nil,
+        fetchedAt: .now,
+        searchableText: [video.title, video.channelTitle, video.id].joined(separator: "\n").lowercased(),
+        durationSeconds: video.durationSeconds,
+        viewCount: video.viewCount
+    )
+}
 
+private func makePlaylistContinuousPlayURL(
+    for item: PlaylistBrowseItem,
+    snapshot: FeedCachePlaylistSnapshot
+) -> URL? {
+    snapshot.playlistContinuousPlayURLsByPlaylistID[item.playlistID]
+        ?? URL(string: "https://www.youtube.com/playlist?list=\(item.playlistID)")
 }

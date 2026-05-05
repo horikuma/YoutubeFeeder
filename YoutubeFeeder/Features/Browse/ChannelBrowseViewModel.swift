@@ -8,10 +8,14 @@ final class ChannelBrowseViewModel: ObservableObject {
 
     @Published var state = ChannelBrowseLogic()
 
-    private var nextPageToken: String?
-    private var didRequestLoadMore = false
-    private var hasStartedPaging = false
-    private var playlistSnapshot = FeedCachePlaylistSnapshot.empty
+    var nextPageToken: String?
+    var didRequestLoadMore = false
+    var hasStartedPaging = false
+    var playlistSnapshot = FeedCachePlaylistSnapshot.empty
+
+    var playlistsSnapshot: FeedCachePlaylistSnapshot {
+        playlistSnapshot
+    }
 
     init(
         coordinator: FeedCacheCoordinator,
@@ -90,20 +94,35 @@ final class ChannelBrowseViewModel: ObservableObject {
         nextPageToken = nil
         hasStartedPaging = false
         didRequestLoadMore = false
-        loadCurrentChannelContentIfNeeded(for: channelID)
+        switch state.displayMode(for: channelID) {
+        case .videos:
+            loadVideosIfNeeded(for: channelID)
+        case .playlists:
+            loadPlaylistsIfNeeded(for: channelID)
+        }
     }
 
     func applyDefaultSelectionIfNeeded() {
         if let selectedChannelID = state.selectedChannelID,
            state.items.contains(where: { $0.channelID == selectedChannelID }) {
-            loadCurrentChannelContentIfNeeded(for: selectedChannelID)
+            switch state.displayMode(for: selectedChannelID) {
+            case .videos:
+                loadVideosIfNeeded(for: selectedChannelID)
+            case .playlists:
+                loadPlaylistsIfNeeded(for: selectedChannelID)
+            }
             return
         }
         guard let firstChannelID = state.applyDefaultSelectionIfNeeded() else { return }
         nextPageToken = nil
         hasStartedPaging = false
         didRequestLoadMore = false
-        loadCurrentChannelContentIfNeeded(for: firstChannelID)
+        switch state.displayMode(for: firstChannelID) {
+        case .videos:
+            loadVideosIfNeeded(for: firstChannelID)
+        case .playlists:
+            loadPlaylistsIfNeeded(for: firstChannelID)
+        }
     }
 
     func setDisplayMode(_ mode: ChannelBrowseDisplayMode) {
@@ -113,55 +132,6 @@ final class ChannelBrowseViewModel: ObservableObject {
             loadVideosIfNeeded(for: channelID)
         } else {
             loadPlaylistsIfNeeded(for: channelID)
-        }
-    }
-
-    func clearSelectedPlaylist() {
-        guard let channelID = state.selectedChannelID else { return }
-        state.selectPlaylist(nil, for: channelID)
-    }
-
-    func selectPlaylist(_ playlistID: String) {
-        guard let channelID = state.selectedChannelID else { return }
-        state.selectPlaylist(playlistID, for: channelID)
-        loadPlaylistVideosIfNeeded(for: playlistID)
-    }
-
-    func refreshSelectedChannel() async {
-        guard let selectedChannelID = state.selectedChannelID else { return }
-        switch state.displayMode(for: selectedChannelID) {
-        case .videos:
-            RuntimeDiagnostics.shared.record(
-                "channel_refresh_gesture",
-                detail: "スプリット表示の動画一覧で下スワイプ更新",
-                metadata: [
-                    "channelID": selectedChannelID,
-                    "screen": "splitChannelVideos"
-                ]
-            )
-            if case let .channelVideos(refreshedVideos) = await coordinator.refresh(intent: .channelVideos(
-                channelID: selectedChannelID
-            )) {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    state.refreshSelectedChannelVideos(refreshedVideos)
-                }
-            }
-            nextPageToken = nil
-            hasStartedPaging = false
-            didRequestLoadMore = false
-            RuntimeDiagnostics.shared.record(
-                "channel_refresh_view_reload_finished",
-                detail: "スプリット表示の動画一覧リロード完了",
-                metadata: [
-                    "channelID": selectedChannelID,
-                    "videoCount": String(state.videosForSelectedChannel().count)
-                ]
-            )
-        case .playlists:
-            let snapshot = await loadPlaylistSnapshot()
-            withAnimation(.easeOut(duration: 0.25)) {
-                applyPlaylistSnapshot(snapshot, for: selectedChannelID)
-            }
         }
     }
 
@@ -190,97 +160,6 @@ final class ChannelBrowseViewModel: ObservableObject {
                 }
             }
             didRequestLoadMore = false
-        }
-    }
-
-    func displayMode(for channelID: String) -> ChannelBrowseDisplayMode {
-        state.displayMode(for: channelID)
-    }
-
-    func videosForSelectedChannel() -> [CachedVideo] {
-        state.videosForSelectedChannel()
-    }
-
-    func selectedChannelID() -> String? {
-        state.selectedChannelID
-    }
-
-    func selectedPlaylistID() -> String? {
-        guard let selectedChannelID = state.selectedChannelID else { return nil }
-        return state.selectedPlaylistID(for: selectedChannelID)
-    }
-
-    func selectedPlaylist() -> PlaylistBrowseItem? {
-        guard let selectedChannelID = state.selectedChannelID else { return nil }
-        return state.selectedPlaylist(for: selectedChannelID)
-    }
-
-    func selectedPlaylistVideos() -> [PlaylistBrowseVideo] {
-        guard let selectedChannelID = state.selectedChannelID else { return [] }
-        return state.selectedPlaylistVideos(for: selectedChannelID)
-    }
-
-    func selectedPlaylistPage() -> PlaylistBrowseVideosPage? {
-        selectedPlaylistID().flatMap { state.playlistVideosPage(for: $0) }
-    }
-
-    func selectedTitle() -> String {
-        state.selectedTitle()
-    }
-
-    func tipsSummary() -> ChannelBrowseTipsSummary {
-        ChannelBrowseTipsSummary.build(items: state.items, sortDescriptor: sortDescriptor)
-    }
-
-    func playlistPreviewVideo(for item: PlaylistBrowseItem) -> CachedVideo {
-        CachedVideo(
-            id: item.firstVideoID ?? item.playlistID,
-            channelID: item.channelID,
-            channelTitle: item.channelTitle,
-            channelDisplayTitle: item.channelTitle,
-            title: item.title,
-            publishedAt: item.publishedAt,
-            videoURL: playlistSnapshot.playlistContinuousPlayURLsByPlaylistID[item.playlistID]
-                ?? URL(string: "https://www.youtube.com/playlist?list=\(item.playlistID)"),
-            thumbnailRemoteURL: item.firstVideoThumbnailURL ?? item.thumbnailURL,
-            thumbnailLocalFilename: nil,
-            fetchedAt: .now,
-            searchableText: [item.title, item.channelTitle, item.playlistID].joined(separator: "\n").lowercased(),
-            durationSeconds: nil,
-            viewCount: item.itemCount,
-            metadataBadgeText: item.itemCount.map { "\($0)本" }
-        )
-    }
-
-    func playlistCachedVideo(for video: PlaylistBrowseVideo) -> CachedVideo {
-        CachedVideo(
-            id: video.id,
-            channelID: video.channelID,
-            channelTitle: video.channelTitle,
-            channelDisplayTitle: video.channelTitle,
-            title: video.title,
-            publishedAt: video.publishedAt,
-            videoURL: video.videoURL,
-            thumbnailRemoteURL: video.thumbnailURL,
-            thumbnailLocalFilename: nil,
-            fetchedAt: .now,
-            searchableText: [video.title, video.channelTitle, video.id].joined(separator: "\n").lowercased(),
-            durationSeconds: video.durationSeconds,
-            viewCount: video.viewCount
-        )
-    }
-
-    func playlistContinuousPlayURL(for item: PlaylistBrowseItem) -> URL? {
-        playlistSnapshot.playlistContinuousPlayURLsByPlaylistID[item.playlistID]
-            ?? URL(string: "https://www.youtube.com/playlist?list=\(item.playlistID)")
-    }
-
-    func loadCurrentChannelContentIfNeeded(for channelID: String, forceReload: Bool = false) {
-        switch state.displayMode(for: channelID) {
-        case .videos:
-            loadVideosIfNeeded(for: channelID)
-        case .playlists:
-            loadPlaylistsIfNeeded(for: channelID, forceReload: forceReload)
         }
     }
 

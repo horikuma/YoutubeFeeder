@@ -202,29 +202,33 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
     }
 
     private func makeSearchVideo(
-        id: String,
-        channelID: String,
-        channelTitle: String,
-        title: String,
-        publishedAt: Date,
-        fetchedAt: Date,
-        searchableText: String,
-        durationSeconds: Int,
-        viewCount: Int
+        _ spec: SearchVideoSpec
     ) -> CachedVideo {
         CachedVideo(
-            id: id,
-            channelID: channelID,
-            channelTitle: channelTitle,
-            title: title,
-            publishedAt: publishedAt,
+            id: spec.id,
+            channelID: spec.channelID,
+            channelTitle: spec.channelTitle,
+            title: spec.title,
+            publishedAt: spec.publishedAt,
             videoURL: nil,
             thumbnailRemoteURL: nil,
             thumbnailLocalFilename: nil,
-            fetchedAt: fetchedAt,
-            searchableText: searchableText,
-            durationSeconds: durationSeconds,
-            viewCount: viewCount
+            fetchedAt: spec.fetchedAt,
+            searchableText: spec.searchableText,
+            durationSeconds: spec.durationSeconds,
+            viewCount: spec.viewCount
         )
     }
+}
+
+private struct SearchVideoSpec {
+    let id: String
+    let channelID: String
+    let channelTitle: String
+    let title: String
+    let publishedAt: Date
+    let fetchedAt: Date
+    let searchableText: String
+    let durationSeconds: Int
+    let viewCount: Int
 }
