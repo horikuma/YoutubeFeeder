@@ -78,10 +78,7 @@ final class FeedCacheCoordinatorRemoteSearchRefreshTests: LoggedTestCase {
                 )
             )
 
-            let freshResult = await coordinator.refresh(intent: .remoteSearch(
-                keyword: keyword,
-                limit: 100
-            ))
+            let freshResult = await coordinator.refresh(intent: .remoteSearch(keyword: keyword, limit: 100))
             let cachedSnapshot = await coordinator.loadSnapshot(
                 keyword: keyword,
                 limit: 100
