@@ -21,7 +21,7 @@
 
 ### [DESIGN-PROJECT]
 
-- [DESIGN-PROJECT-001][build] iOS deployment target は 16.0 を維持しなければならない
+- [DESIGN-PROJECT-001][build] iOS deployment target は 17.0 を維持しなければならない
 - [DESIGN-PROJECT-002][bundle] bundle identifier は統一しなければならない
 - [DESIGN-PROJECT-003][signing] 自動署名を前提としなければならない
 - [DESIGN-PROJECT-004][rebuild] ビルド不整合時は DerivedData を再生成しなければならない
