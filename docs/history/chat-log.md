@@ -1,3 +1,55 @@
+## 2026/05/06
+- YoutubeTestやYoutubeTestUiも同様にせよ。
+  - YoutubeFeederTests と YoutubeFeederUITests はすでに 17.0 でした。追加修正はありません。
+- Deployment Target を 17 に上げ、Xcodeや開発スクリプトで統一するために必要な手順を検討し回答せよ。修正は禁じる。
+  - decisions-latest に追記しました。コミットはしていません。
+- セッションを終了せよ。
+  - セッションを終了しました。main を最新化しました。
+- PRを作成せよ。
+- Issue #188 を再開せよ。blocker 解消方針として ChannelRegistryDiagnostics.swift を ChannelRegistryManagement.swift へ rename し、最小限の参照更新と import 解決のみを行う。
+  - Issue #188 を再開し、ChannelRegistryManagement への rename と関連参照の最小更新を完了し、build-release まで成功しました。
+- issueを実施せよ。
+  - Issue #188 は blocker です。ChannelRegistryDiagnostics.swift は diagnostics に閉じず、add/remove/import/reset まで含んでいるため、ToDo 17 で停止しました。
+- issueを実施せよ。
+  - Issue #188 は blocker です。最新本文にも ## ToDo がなく、実施を開始できませんでした。
+- issueを実施せよ。
+  - Issue #188 は blocker です。Issue 本文に IssueToDo セクションがなく、実施へ進めませんでした。
+- issueを実施せよ。
+  - Issue #188 は引き続き blocker です。最新本文にも ## ToDo がなく、issue-todo --get へ進めませんでした。
+- issueブランチへ切り替えよ。
+  - Issue #188 は ToDo の本文がなく blocker になりました。## ToDo を含む詳細化が必要です。
+  - issue-188 に切り替えました。
+- Issueを作成せよ。「ファイル名の命名規則を統一する」
+  - Issue #188 を作成しました。
+- セッションを終了せよ。
+  - セッションを終了しました。
+- Issueブランチへ切り替えよ。
+  - PR #187 を作成しました。
+  - issue-186 に切り替えました。
+- issueを作成せよ。「swiftlintを微調整し、警告をゼロにする」
+  - Issue #186 を作成しました。
+- swiftlint の warning を対象に、連続的に削減せよ。
+- Generate 0 to 3 ambient suggestions for this local project: [引用要約: recent Codex threads and prior rejected suggestions are provided; inspect this repo and recent git activity, use connected-app context only if directly relevant, avoid repeats, and return fresh actionable suggestions in the requested schema.]
+  - suggestions: continue current SwiftLint削減 thread for the two remaining in-scope type_body_length violations in ChannelBrowseViewModel and RemoteSearchResultsViewModel; no connected-app context was available.
+- 残り警告数が10件になるまで繰り返し実施せよ。
+- swiftlint の warning を対象に、連続的に削減せよ。
+  - SwiftLint の warning を 4 件削減し、build を維持したまま 4 コミットで反映しました。
+- コミットせよ。
+  - lint整理をコミットし、変更は 9240463 で確定しました。
+- 続けよ。
+  - 10件分のSwiftLint警告を処理し、各件ごとに build 確認を通しました。残warning数は60です。
+  - Issue #185 は完了済みです。続ける対象の Issue 番号を指定してください。
+- Issueを実施せよ。
+  - Issue #185 の実施を完了しました。
+- 次の方針でタスクを詳細化せよ。
+  - Issue #185 の詳細化を反映しました。
+- Issueブランチへ切り替えよ。
+  - issue-185 へ切り替えました。
+- Issueを作成せよ。「SwiftLint警告に概ね対応する」
+  - Issue #185 を作成しました: https://github.com/horikuma/YoutubeFeeder/issues/185
+- セッションを開始せよ。
+  - セッション開始を完了しました。
+
 ## 2026/05/04
 - セッションを終了せよ。
   - セッション終了処理としてgit-main-syncを実行し、mainをorigin/mainへ最新化してissue-179ローカルブランチを削除した。
