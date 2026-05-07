@@ -1,3 +1,7 @@
+## 2026/05/06
+- iOS deployment target を 17.0 に引き上げ、Xcode project と開発スクリプトの参照条件を単一値で統一する。
+  - Debug/Release や build wrapper 間で 16.0 と 17.0 が分岐すると再現性が崩れ、開発経路ごとの齟齬を招くため。
+
 ## 2026/05/04
 - FeedCacheSnapshotへ登録チャンネルIDとメンテナンス項目を内包し、ChannelBrowseViewModelのチャンネル一覧構成をSnapshot起点へ統一する。
   - ChannelBrowseViewModelがCoordinator公開プロパティを直接参照せず、loadSnapshot経由だけでUI状態を組み立てられるようにするため。
