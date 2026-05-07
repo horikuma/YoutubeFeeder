@@ -1,3 +1,5 @@
+## 2026/05/07
+
 ## 2026/05/06
 - iOS deployment target を 17.0 に引き上げ、Xcode project と開発スクリプトの参照条件を単一値で統一する。
   - Debug/Release や build wrapper 間で 16.0 と 17.0 が分岐すると再現性が崩れ、開発経路ごとの齟齬を招くため。
