@@ -8,36 +8,39 @@ from pathlib import Path
 from typing import Any
 
 
-def flatten(value: Any, prefix: str = "") -> list[tuple[str, Any]]:
-    if isinstance(value, dict):
-        items: list[tuple[str, Any]] = []
-        for key, child in value.items():
-            next_prefix = f"{prefix}.{key}" if prefix else str(key)
-            items.extend(flatten(child, next_prefix))
-        return items
-    if isinstance(value, list):
-        items = []
-        for index, child in enumerate(value):
-            next_prefix = f"{prefix}[{index}]" if prefix else f"[{index}]"
-            items.extend(flatten(child, next_prefix))
-        return items
-    return [(prefix, value)]
+def collect_nodes(source: Any, nodes: list[dict[str, Any]]) -> None:
+    if not isinstance(source, dict):
+        print("collect_nodes failed", file=sys.stderr)
+        return
+
+    kind = source.get("key.kind")
+    if kind == "source.lang.swift.expr.call":
+        wl = ["key.name", "key.kind"]
+        node = {key: child for key, child in source.items() if key in wl}
+        nodes.append(node)
+        print(json.dumps(node, ensure_ascii=False))
+
+    substructure = source.get("key.substructure")
+    if isinstance(substructure, list):
+        for child in substructure:
+            collect_nodes(child, nodes)
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print("Usage: view.py <json-file>", file=sys.stderr)
+    if len(argv) > 2:
+        print("Usage: view.py [json-file]", file=sys.stderr)
         return 2
 
-    json_path = Path(argv[1])
-    with json_path.open(encoding="utf-8") as handle:
-        data = json.load(handle)
+    if len(argv) == 2:
+        json_path = Path(argv[1])
+    else:
+        json_path = Path(__file__).with_name("collect.json")
 
-    for path, value in flatten(data):
-        if path:
-            print(f"{path} = {json.dumps(value, ensure_ascii=False)}")
-        else:
-            print(json.dumps(value, ensure_ascii=False))
+    with json_path.open(encoding="utf-8") as handle:
+        source = json.load(handle)
+
+    nodes: list[dict[str, Any]] = []
+    collect_nodes(source, nodes)
     return 0
 
 
