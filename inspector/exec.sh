@@ -10,12 +10,12 @@ COMMAND="${1:-all}"
 case "$COMMAND" in
   all)
     "$0" collect
-    "$0" view
+    # "$0" view
     ;;
 
   collect)
     exec "$PYTHON" "$SCRIPT_DIR/collect.py" \
-      "../YoutubeFeeder/YoutubeFeeder/App/AppConsoleLogger.swift" \
+      "../YoutubeFeeder/App/AppConsoleLogger.swift" \
       > "$SCRIPT_DIR/collect.log" 2>&1
     ;;
 

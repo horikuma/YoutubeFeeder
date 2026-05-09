@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Walk a Swift structure AST and print selected declarations with their USRs."""
+"""Consume frontend-jobs.json and query SourceKit."""
 
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -12,17 +13,25 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent
+FRONTEND_JOBS_PATH = Path.cwd() / "frontend-jobs.json"
+
+TARGET_KIND_PREFIXES = (
+    "source.lang.swift.decl.class",
+    "source.lang.swift.decl.struct",
+    "source.lang.swift.decl.enum",
+    "source.lang.swift.decl.protocol",
+    "source.lang.swift.decl.function",
+    "source.lang.swift.decl.var",
+)
+
+WALK_LIMIT = int(os.environ.get("COLLECT_WALK_LIMIT", "1000"))
 
 
 def usage(error: str | None = None) -> int:
     if error:
         print(f"error: {error}", file=sys.stderr)
     print("Usage: collect.py <swift-file>", file=sys.stderr)
-    print(
-        "Parses the given Swift file with sourcekitten structure, walks key.substructure, "
-        "and prints selected nodes' key.name with the USR resolved from key.offset.",
-        file=sys.stderr,
-    )
+    print("Consumes llm-temp/frontend-jobs.json only.", file=sys.stderr)
     return 2 if error else 0
 
 
@@ -51,156 +60,44 @@ def find_toolchain_root() -> Path:
     raise FileNotFoundError("Could not find the Xcode toolchain root")
 
 
-def find_swiftmodule() -> Path:
-    build_root = PROJECT_ROOT / "build"
-    for config in ("debug", "release"):
-        config_root = build_root / config
-        if not config_root.exists():
-            continue
-        matches = sorted(
-            p
-            for p in config_root.rglob("YoutubeFeeder.swiftmodule")
-            if "Objects-normal" in p.parts and "YoutubeFeeder.build" in p.parts
-        )
-        if matches:
-            return matches[0]
-    raise FileNotFoundError(f"Could not find YoutubeFeeder.swiftmodule under {PROJECT_ROOT / 'build'}")
-
-
 def load_structure(file_path: Path) -> dict:
     result = run_command(["sourcekitten", "structure", "--file", str(file_path)])
     return json.loads(result.stdout)
 
 
-def sanitize_path_value(value: str) -> str:
-    value = value.strip().strip("'\"")
-    candidate = Path(value)
-    if candidate.exists():
-        return value
+def load_frontend_jobs() -> list[dict[str, object]]:
+    if not FRONTEND_JOBS_PATH.exists():
+        raise FileNotFoundError(f"frontend-jobs.json not found: {FRONTEND_JOBS_PATH}")
 
-    trimmed = value
-    while trimmed:
-        trimmed = trimmed[:-1]
-        if Path(trimmed).exists():
-            return trimmed
-    return value
+    payload = json.loads(FRONTEND_JOBS_PATH.read_text(encoding="utf-8"))
+    jobs = payload.get("jobs")
+    if not isinstance(jobs, list):
+        raise RuntimeError("frontend-jobs.json must contain a jobs array")
+
+    return jobs
 
 
-def extract_compiler_args(swiftmodule: Path, source_file: Path, module_cache_path: Path) -> list[str]:
-    strings_output = run_command(["strings", str(swiftmodule)]).stdout.splitlines()
+def select_frontend_job(jobs: list[dict[str, object]], source_file: Path) -> dict[str, object]:
+    if not jobs:
+        raise FileNotFoundError("frontend-jobs.json contains no jobs")
 
-    try:
-        start = next(i for i, line in enumerate(strings_output) if line == "-working-directory")
-    except StopIteration as exc:
-        raise RuntimeError(f"Could not find compiler arguments in {swiftmodule}") from exc
+    source_file_text = str(source_file)
+    matching_jobs: list[dict[str, object]] = []
+    for job in jobs:
+        source_files = job.get("source_files")
+        if isinstance(source_files, list) and source_file_text in source_files:
+            matching_jobs.append(job)
 
-    try:
-        end = next(i for i in range(start, len(strings_output)) if strings_output[i].startswith("--target="))
-    except StopIteration as exc:
-        raise RuntimeError(f"Could not find --target=... in {swiftmodule}") from exc
+    if len(matching_jobs) == 1:
+        return matching_jobs[0]
 
-    raw_args = strings_output[start : end + 1]
-    args: list[str] = []
-    i = 0
-    while i < len(raw_args):
-        token = raw_args[i].strip()
-        if not token:
-            i += 1
-            continue
+    if len(jobs) == 1:
+        return jobs[0]
 
-        if token in {"-working-directory", "-ivfsstatcache", "-iquote", "-isystem"} and i + 1 < len(raw_args):
-            value = sanitize_path_value(raw_args[i + 1])
-            args.extend([token, value])
-            i += 2
-            continue
-
-        if token.startswith("-I") and token != "-I":
-            args.append("-I" + sanitize_path_value(token[2:]))
-            i += 1
-            continue
-
-        if token.startswith("-F") and token != "-F":
-            args.append("-F" + sanitize_path_value(token[2:]))
-            i += 1
-            continue
-
-        if token.startswith("-L") and token != "-L":
-            args.append("-L" + sanitize_path_value(token[2:]))
-            i += 1
-            continue
-
-        if token.startswith("-fmodule-file="):
-            prefix, path_part = token.rsplit("=", 1)
-            args.append(f"{prefix}={sanitize_path_value(path_part)}")
-            i += 1
-            continue
-
-        args.append(token)
-        i += 1
-
-    sdk_path = next((sanitize_path_value(line) for line in strings_output if line.endswith(".sdk")), None)
-    if sdk_path and "-sdk" not in args:
-        args = ["-sdk", sdk_path] + args
-
-    if "-module-cache-path" not in args:
-        insert_at = 0
-        if "-sdk" in args:
-            insert_at = 2
-        args[insert_at:insert_at] = ["-module-cache-path", str(module_cache_path)]
-
-    return normalize_compiler_args_for_sourcekitd(args, source_file)
-
-
-def normalize_compiler_args_for_sourcekitd(args: list[str], source_file: Path) -> list[str]:
-    normalized: list[str] = []
-    i = 0
-    while i < len(args):
-        token = args[i]
-
-        if token in {"-sdk", "-module-cache-path", "-working-directory"} and i + 1 < len(args):
-            normalized.extend([token, args[i + 1]])
-            i += 2
-            continue
-
-        if token.startswith("--target="):
-            normalized.append(token)
-            i += 1
-            continue
-
-        if token.startswith("-D"):
-            macro = token[2:]
-            if macro.startswith("_") or macro.startswith("LIBCPP_") or macro.startswith("__"):
-                normalized.extend(["-Xcc", token])
-            else:
-                normalized.append("-D" + macro.split("=", 1)[0])
-            i += 1
-            continue
-
-        if token.startswith("-I") or token.startswith("-F") or token.startswith("-L"):
-            normalized.append(token)
-            i += 1
-            continue
-
-        if token in {"-fno-implicit-modules", "-fno-implicit-module-maps", "-fno-color-diagnostics"}:
-            normalized.extend(["-Xcc", token])
-            i += 1
-            continue
-
-        if token in {"-ivfsstatcache", "-iquote", "-isystem"} and i + 1 < len(args):
-            normalized.extend(["-Xcc", token, "-Xcc", args[i + 1]])
-            i += 2
-            continue
-
-        if token.startswith("-ffile-compilation-dir=") or token.startswith("-fmodule-file="):
-            normalized.extend(["-Xcc", token])
-            i += 1
-            continue
-
-        normalized.append(token)
-        i += 1
-
-    normalized.append(str(source_file))
-    return normalized
+    raise RuntimeError(
+        f"Could not select a single frontend job for {source_file}; "
+        "provide a jobs.json with one job or source_files metadata"
+    )
 
 
 def find_sourcekit_lsp() -> list[str]:
@@ -232,17 +129,8 @@ def find_sourcekitd() -> Path:
     raise FileNotFoundError("Could not find sourcekitd in the active Xcode toolchain")
 
 
-def find_sourcekit_plugins() -> tuple[Path, Path]:
-    toolchain_root = find_toolchain_root()
-    service_plugin = toolchain_root / "usr" / "lib" / "libSwiftSourceKitPlugin.dylib"
-    client_plugin = toolchain_root / "usr" / "lib" / "libSwiftSourceKitClientPlugin.dylib"
-    if service_plugin.exists() and client_plugin.exists():
-        return service_plugin, client_plugin
-    raise FileNotFoundError("Could not find Swift SourceKit plugin dylibs in the active Xcode toolchain")
-
-
-def build_cursorinfo_request(source_file: Path, offset: int, compiler_args: list[str], request_path: Path) -> None:
-    quoted_args = ",\n    ".join(json.dumps(arg, ensure_ascii=False) for arg in compiler_args)
+def build_cursorinfo_request(source_file: Path, offset: int, compiler_argv: list[str], request_path: Path) -> None:
+    quoted_args = ",\n    ".join(json.dumps(arg, ensure_ascii=False) for arg in compiler_argv)
     request = f"""\
 {{
   key.request: source.request.cursorinfo,
@@ -273,15 +161,15 @@ def query_usr(
     source_file: Path,
     offset: int,
     *,
-    compiler_args: list[str],
+    compiler_argv: list[str],
     sourcekit_lsp_cmd: list[str],
     sourcekitd: Path,
-    service_plugin: Path,
-    client_plugin: Path,
 ) -> str | None:
     with tempfile.TemporaryDirectory(prefix="cursorinfo-") as tmpdir:
         request_path = Path(tmpdir) / "cursorinfo.yml"
-        build_cursorinfo_request(source_file, offset, compiler_args, request_path)
+        build_cursorinfo_request(source_file, offset, compiler_argv, request_path)
+        if os.environ.get("COLLECT_DEBUG_QUERY_TRACE") == "1":
+            print(f"query start offset={offset}", file=sys.stderr)
         result = subprocess.run(
             [
                 *sourcekit_lsp_cmd,
@@ -289,17 +177,17 @@ def query_usr(
                 "run-sourcekitd-request",
                 "--sourcekitd",
                 str(sourcekitd),
-                "--sourcekit-plugin-path",
-                str(service_plugin),
-                "--sourcekit-client-plugin-path",
-                str(client_plugin),
                 "--request-file",
                 str(request_path),
             ],
             cwd=str(PROJECT_ROOT),
             text=True,
+            encoding="utf-8",
+            errors="replace",
             capture_output=True,
         )
+        if os.environ.get("COLLECT_DEBUG_QUERY_TRACE") == "1":
+            print(f"query end offset={offset} rc={result.returncode}", file=sys.stderr)
         if result.returncode != 0:
             raise RuntimeError(result.stderr or result.stdout or "sourcekitd request failed")
 
@@ -313,19 +201,6 @@ class WalkLimitReached(Exception):
     pass
 
 
-WALK_LIMIT = 1000
-
-
-TARGET_KIND_PREFIXES = (
-    "source.lang.swift.decl.class",
-    "source.lang.swift.decl.struct",
-    "source.lang.swift.decl.enum",
-    "source.lang.swift.decl.protocol",
-    "source.lang.swift.decl.function",
-    "source.lang.swift.decl.var",
-)
-
-
 def is_target_kind(kind: object) -> bool:
     if not isinstance(kind, str):
         return False
@@ -336,11 +211,9 @@ def walk_nodes(
     node: object,
     source_file: Path,
     *,
-    compiler_args: list[str],
+    compiler_argv: list[str],
     sourcekit_lsp_cmd: list[str],
     sourcekitd: Path,
-    service_plugin: Path,
-    client_plugin: Path,
     usr_cache: dict[int, str | None],
     walk_count: list[int],
 ) -> None:
@@ -357,11 +230,9 @@ def walk_nodes(
                 usr_cache[offset] = query_usr(
                     source_file,
                     offset,
-                    compiler_args=compiler_args,
+                    compiler_argv=compiler_argv,
                     sourcekit_lsp_cmd=sourcekit_lsp_cmd,
                     sourcekitd=sourcekitd,
-                    service_plugin=service_plugin,
-                    client_plugin=client_plugin,
                 )
             usr = usr_cache[offset]
             if isinstance(name, str) and usr:
@@ -373,11 +244,9 @@ def walk_nodes(
                 walk_nodes(
                     child,
                     source_file,
-                    compiler_args=compiler_args,
+                    compiler_argv=compiler_argv,
                     sourcekit_lsp_cmd=sourcekit_lsp_cmd,
                     sourcekitd=sourcekitd,
-                    service_plugin=service_plugin,
-                    client_plugin=client_plugin,
                     usr_cache=usr_cache,
                     walk_count=walk_count,
                 )
@@ -386,11 +255,9 @@ def walk_nodes(
             walk_nodes(
                 child,
                 source_file,
-                compiler_args=compiler_args,
+                compiler_argv=compiler_argv,
                 sourcekit_lsp_cmd=sourcekit_lsp_cmd,
                 sourcekitd=sourcekitd,
-                service_plugin=service_plugin,
-                client_plugin=client_plugin,
                 usr_cache=usr_cache,
                 walk_count=walk_count,
             )
@@ -409,13 +276,18 @@ def main() -> int:
         return usage(f"not a Swift file: {source_file}")
 
     structure = load_structure(source_file)
+    jobs = load_frontend_jobs()
+    job = select_frontend_job(jobs, source_file)
 
-    module_cache_path = Path(tempfile.gettempdir()) / "structure-module-cache"
-    module_cache_path.mkdir(parents=True, exist_ok=True)
-    swiftmodule = find_swiftmodule()
-    compiler_args = extract_compiler_args(swiftmodule, source_file, module_cache_path)
+    compiler_argv = job.get("argv")
+    if (
+        not isinstance(compiler_argv, list)
+        or not compiler_argv
+        or not all(isinstance(item, str) for item in compiler_argv)
+    ):
+        raise RuntimeError("frontend job argv must be a non-empty list of strings")
+
     sourcekitd = find_sourcekitd()
-    service_plugin, client_plugin = find_sourcekit_plugins()
     sourcekit_lsp_cmd = find_sourcekit_lsp()
 
     usr_cache: dict[int, str | None] = {}
@@ -425,11 +297,9 @@ def main() -> int:
         walk_nodes(
             structure.get("key.substructure", structure),
             source_file,
-            compiler_args=compiler_args,
+            compiler_argv=compiler_argv,
             sourcekit_lsp_cmd=sourcekit_lsp_cmd,
             sourcekitd=sourcekitd,
-            service_plugin=service_plugin,
-            client_plugin=client_plugin,
             usr_cache=usr_cache,
             walk_count=walk_count,
         )
