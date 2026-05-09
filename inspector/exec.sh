@@ -6,7 +6,6 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="$PROJECT_ROOT/.venv/bin/python"
 SCRIPT_DIR="$PROJECT_ROOT/inspector"
 COMMAND="${1:-all}"
-OUTPUT_LOG="$SCRIPT_DIR/output.log"
 
 case "$COMMAND" in
   all)
@@ -16,15 +15,15 @@ case "$COMMAND" in
 
   collect)
     exec "$PYTHON" "$SCRIPT_DIR/collect.py" \
-      "../YoutubeFeeder/App/AppConsoleLogger.swift" \
-      > "$SCRIPT_DIR/collect.json" 2>&1
+      "../YoutubeFeeder/YoutubeFeeder/App/AppConsoleLogger.swift" \
+      > "$SCRIPT_DIR/collect.log" 2>&1
     ;;
 
-  view)
-    exec "$PYTHON" "$SCRIPT_DIR/view.py" \
-      "$SCRIPT_DIR/collect.json" \
-      > "$SCRIPT_DIR/view.log" 2>&1
-    ;;
+  # view)
+  #   exec "$PYTHON" "$SCRIPT_DIR/view.py" \
+  #     "$SCRIPT_DIR/collect.json" \
+  #     > "$SCRIPT_DIR/view.log" 2>&1
+  #   ;;
 
   *)
     echo "Unknown command: $COMMAND" >&2
