@@ -13,10 +13,22 @@ case "$COMMAND" in
     # "$0" view
     ;;
 
+  build)
+    exec "$PYTHON" "$PROJECT_ROOT/scripts/xcode-build/xcodebuild.py" \
+      -scheme YoutubeFeeder -configuration Debug -destination platform=macOS CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= clean build \
+      > "$PROJECT_ROOT/llm-temp/xcodebuild-clean-build.log" 2>&1
+    ;;
+
+  extract)
+    exec "$PYTHON" "$SCRIPT_DIR/extract.py" \
+      "$PROJECT_ROOT/llm-temp/xcodebuild-clean-build.log" \
+      > /dev/null 2>&1
+    ;;
+
   collect)
     exec "$PYTHON" "$SCRIPT_DIR/collect.py" \
-      "../YoutubeFeeder/App/AppConsoleLogger.swift" \
-      > "$SCRIPT_DIR/collect.log" 2>&1
+      "$PROJECT_ROOT/YoutubeFeeder/App/AppConsoleLogger.swift" \
+      > "$PROJECT_ROOT/llm-temp/collect.log" 2>&1
     ;;
 
   # view)

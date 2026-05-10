@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent
-FRONTEND_JOBS_PATH = Path.cwd() / "frontend-jobs.json"
+FRONTEND_JOBS_PATH = ROOT / "frontend-jobs.json"
 
 TARGET_KIND_PREFIXES = (
     "source.lang.swift.decl.class",

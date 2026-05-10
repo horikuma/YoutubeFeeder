@@ -56,8 +56,10 @@ def main() -> int:
 
     jobs = extract_jobs(raw_log_path)
     payload = {"jobs": jobs}
-    output_path = Path.cwd() / "frontend-jobs.json"
-    output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    ROOT = Path(__file__).resolve().parent
+    FRONTEND_JOBS_PATH = ROOT / "frontend-jobs.json"
+    FRONTEND_JOBS_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0
