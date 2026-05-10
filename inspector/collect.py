@@ -21,8 +21,7 @@ WALK_LIMIT = int(os.environ.get("COLLECT_WALK_LIMIT", "1000"))
 def usage(error: str | None = None) -> int:
     if error:
         print(f"error: {error}", file=sys.stderr)
-    print("Usage: collect.py <swift-file>", file=sys.stderr)
-    print("Consumes sourcekit_client-managed frontend jobs in llm-temp by default.", file=sys.stderr)
+    print("Usage: collect.py <raw-build-log> <swift-file> [--debug true|false]", file=sys.stderr)
     return 2 if error else 0
 
 
@@ -128,12 +127,28 @@ def emit_graph(entries: list[FunctionEntry]) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) != 2 or sys.argv[1] in {"-h", "--help"}:
-        return usage(
-            None if len(sys.argv) == 2 and sys.argv[1] in {"-h", "--help"} else "expected exactly one Swift file path"
-        )
+    args = sys.argv[1:]
+    if len(args) == 1 and args[0] in {"-h", "--help"}:
+        return usage(None)
 
-    source_file = Path(sys.argv[1]).expanduser().resolve()
+    debug = False
+    if "--debug" in args:
+        flag_index = args.index("--debug")
+        if flag_index + 1 >= len(args):
+            return usage("expected true or false after --debug")
+        debug_value = args[flag_index + 1]
+        if debug_value not in {"true", "false"}:
+            return usage("expected true or false after --debug")
+        debug = debug_value == "true"
+        del args[flag_index : flag_index + 2]
+
+    if len(args) != 2:
+        return usage("expected exactly one raw build log path and one Swift file path")
+
+    raw_build_log_path = Path(args[0]).expanduser().resolve()
+    source_file = Path(args[1]).expanduser().resolve()
+    if not raw_build_log_path.exists():
+        return usage(f"file not found: {raw_build_log_path}")
     if not source_file.exists():
         return usage(f"file not found: {source_file}")
     if source_file.suffix != ".swift":
@@ -144,9 +159,10 @@ def main() -> int:
     walk_count = [0]
     walk_status = "completed"
     caller_callee_entries: list[FunctionEntry] = []
-    with init(source_file) as sourcekit:
+    with init(source_file, raw_build_log_path, debug=debug) as sourcekit:
         structure = get(sourcekit, "structure")
-        dump_structure(structure, llm_temp_dir)
+        if debug:
+            dump_structure(structure, llm_temp_dir)
         try:
             collect_caller_callee(
                 structure.get("key.substructure", structure),

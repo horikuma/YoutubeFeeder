@@ -9,7 +9,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .daemon import SourceKitDaemon
-from .frontend_jobs import load_frontend_jobs, select_frontend_job
+from .frontend_jobs import load_builtin_swift_compilation_jobs, select_builtin_swift_compilation_job
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _run_command(args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -56,10 +58,18 @@ class _SourceKitClient:
         raise TypeError(f"unsupported key: {key!r}")
 
 
-def init(source_file: Path, frontend_jobs_path: Path | None = None) -> _SourceKitClient:
+def init(
+    source_file: Path,
+    raw_build_log_path: Path,
+    *,
+    debug: bool = False,
+) -> _SourceKitClient:
     structure = _load_structure(source_file)
-    jobs = load_frontend_jobs(frontend_jobs_path)
-    job = select_frontend_job(jobs, source_file)
+    jobs = load_builtin_swift_compilation_jobs(
+        raw_build_log_path,
+        debug_output_path=PROJECT_ROOT / "llm-temp" / "frontend-jobs.json" if debug else None,
+    )
+    job = select_builtin_swift_compilation_job(jobs, source_file)
 
     compiler_argv = job.get("argv")
     if (
