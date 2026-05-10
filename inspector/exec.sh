@@ -7,22 +7,8 @@ PYTHON="$PROJECT_ROOT/.venv/bin/python"
 SCRIPT_DIR="$PROJECT_ROOT/inspector"
 COMMAND="${1:-all}"
 DEBUG="${2:-false}"
-RAW_BUILD_LOG="$PROJECT_ROOT/llm-temp/xcodebuild-clean-build.log"
+RAW_BUILD_LOG="$PROJECT_ROOT/llm-temp/xcodebuild.log"
 SOURCE_FILE="$PROJECT_ROOT/YoutubeFeeder/App/AppConsoleLogger.swift"
-
-print_options() {
-  case "$COMMAND" in
-    build)
-      printf 'options: command=%s\n' "$COMMAND" >&2
-      ;;
-    collect|all)
-      printf 'options: command=%s debug=%s\n' "$COMMAND" "$DEBUG" >&2
-      ;;
-    *)
-      printf 'options: command=%s\n' "$COMMAND" >&2
-      ;;
-  esac
-}
 
 run_step_to_file() {
   local step_name="$1"
@@ -41,50 +27,34 @@ run_step_to_file() {
   return "$status"
 }
 
-validate_debug() {
-  case "$DEBUG" in
-    true|false) ;;
-    *)
-      echo "error: debug must be true or false" >&2
-      exit 2
-      ;;
-  esac
-}
-
-print_options
-
-if [ "$COMMAND" = build ] && [ $# -gt 1 ]; then
-  echo "error: build accepts no debug flag" >&2
-  exit 2
-fi
-
-case "$COMMAND" in
-  collect|all)
-    validate_debug
-    ;;
-esac
+printf 'options: command=%s debug=%s\n' "$COMMAND" "$DEBUG" >&2
 
 case "$COMMAND" in
   all)
-    run_step_to_file build "$RAW_BUILD_LOG" "$PYTHON" "$PROJECT_ROOT/scripts/xcode-build/xcodebuild.py" \
-      -scheme YoutubeFeeder -configuration Debug -destination platform=macOS CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= clean build
-    run_step_to_file collect "$PROJECT_ROOT/llm-temp/collect.log" "$PYTHON" "$SCRIPT_DIR/collect.py" \
-      "$RAW_BUILD_LOG" \
-      "$SOURCE_FILE" \
-      --debug "$DEBUG"
+    "$0" build
+    "$0" collect "$DEBUG"
     # "$0" view
     ;;
 
   build)
-    run_step_to_file build "$RAW_BUILD_LOG" "$PYTHON" "$PROJECT_ROOT/scripts/xcode-build/xcodebuild.py" \
-      -scheme YoutubeFeeder -configuration Debug -destination platform=macOS CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= clean build
+    run_step_to_file build "$RAW_BUILD_LOG" \
+      "$PYTHON" "$PROJECT_ROOT/scripts/xcode-build/xcodebuild.py" \
+        -scheme YoutubeFeeder \
+        -configuration Debug \
+        -destination platform=macOS \
+        CODE_SIGNING_ALLOWED=NO \
+        CODE_SIGNING_REQUIRED=NO \
+        CODE_SIGN_IDENTITY= \
+        clean \
+        build
     ;;
 
   collect)
-    run_step_to_file collect "$PROJECT_ROOT/llm-temp/collect.log" "$PYTHON" "$SCRIPT_DIR/collect.py" \
-      "$RAW_BUILD_LOG" \
-      "$SOURCE_FILE" \
-      --debug "$DEBUG"
+    run_step_to_file collect "$PROJECT_ROOT/llm-temp/collect.log" \
+      "$PYTHON" "$SCRIPT_DIR/collect.py" \
+        "$RAW_BUILD_LOG" \
+        "$SOURCE_FILE" \
+        --debug "$DEBUG"
     ;;
 
   # view)
@@ -95,7 +65,7 @@ case "$COMMAND" in
 
   *)
     echo "Unknown command: $COMMAND" >&2
-    echo "Usage: ./inspector/exec.sh [all|build|collect|view] [true|false]" >&2
+    echo "Usage: ./inspector/exec.sh [all|build|collect|view] [debug=true|false]" >&2
     exit 1
     ;;
 esac
