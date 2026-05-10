@@ -22,7 +22,7 @@ def usage(error: str | None = None) -> int:
     if error:
         print(f"error: {error}", file=sys.stderr)
     print("Usage: collect.py <swift-file>", file=sys.stderr)
-    print("Consumes llm-temp/frontend-jobs.json only.", file=sys.stderr)
+    print("Consumes sourcekit_client-managed frontend jobs in llm-temp by default.", file=sys.stderr)
     return 2 if error else 0
 
 
