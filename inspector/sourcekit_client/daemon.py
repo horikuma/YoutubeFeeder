@@ -5,16 +5,46 @@ from __future__ import annotations
 
 import ctypes
 import json
+import shutil
+import subprocess
 from pathlib import Path
-
-from sourcekit_client import find_sourcekitd
 
 _LIBC = ctypes.CDLL(None)
 _LIBC.free.argtypes = [ctypes.c_void_p]
 _LIBC.free.restype = None
 
 
-def build_cursorinfo_request(source_file: Path, offset: int, compiler_argv: list[str]) -> bytes:
+def _find_xcrun_path(tool_name: str) -> Path | None:
+    try:
+        result = subprocess.run(["xcrun", "--find", tool_name], check=True, text=True, capture_output=True)
+    except Exception:
+        return None
+    path = result.stdout.strip()
+    return Path(path) if path else None
+
+
+def _find_toolchain_root() -> Path:
+    xcrun_sourcekit_lsp = _find_xcrun_path("sourcekit-lsp")
+    if xcrun_sourcekit_lsp:
+        return xcrun_sourcekit_lsp.parent.parent.parent
+
+    raise FileNotFoundError("Could not find the Xcode toolchain root")
+
+
+def find_sourcekitd() -> Path:
+    toolchain_root = _find_toolchain_root()
+    inproc_candidate = toolchain_root / "usr" / "lib" / "sourcekitdInProc.framework" / "sourcekitdInProc"
+    if inproc_candidate.exists():
+        return inproc_candidate
+
+    candidate = toolchain_root / "usr" / "lib" / "sourcekitd.framework" / "sourcekitd"
+    if candidate.exists():
+        return candidate
+
+    raise FileNotFoundError("Could not find sourcekitd in the active Xcode toolchain")
+
+
+def _build_cursorinfo_request(source_file: Path, offset: int, compiler_argv: list[str]) -> bytes:
     quoted_args = ",\n    ".join(json.dumps(arg, ensure_ascii=False) for arg in compiler_argv if arg != "-incremental")
     request = f"""\
 {{
@@ -30,7 +60,7 @@ def build_cursorinfo_request(source_file: Path, offset: int, compiler_argv: list
     return request.encode("utf-8")
 
 
-def extract_usr(output: str) -> str:
+def _extract_usr(output: str) -> str:
     for line in output.splitlines():
         stripped = line.strip()
         if stripped.startswith("key.usr:"):
@@ -106,12 +136,12 @@ class SourceKitDaemon:
 
     def query_usr(self, source_file: Path, offset: int, *, compiler_argv: list[str]) -> str | None:
         self.request_count += 1
-        request = self._create_request(build_cursorinfo_request(source_file, offset, compiler_argv))
+        request = self._create_request(_build_cursorinfo_request(source_file, offset, compiler_argv))
         response = self._library.sourcekitd_send_request_sync(request)
         try:
             if self._library.sourcekitd_response_is_error(response):
                 return None
-            return extract_usr(self._response_description(response))
+            return _extract_usr(self._response_description(response))
         finally:
             self._library.sourcekitd_response_dispose(response)
             self._library.sourcekitd_request_release(request)

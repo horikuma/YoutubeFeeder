@@ -6,15 +6,9 @@ from __future__ import annotations
 import json
 import os
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
-from sourcekit_client import (
-    load_frontend_jobs,
-    load_structure,
-    select_frontend_job,
-)
-from sourcekit_daemon import SourceKitDaemon
+from sourcekit_client import get, init
 
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent
@@ -32,10 +26,10 @@ def usage(error: str | None = None) -> int:
     return 2 if error else 0
 
 
-@dataclass(frozen=True)
 class FunctionEntry:
-    name: str
-    usr: str
+    def __init__(self, name: str, usr: str) -> None:
+        self.name = name
+        self.usr = usr
 
 
 class WalkLimitReached(Exception):
@@ -61,11 +55,8 @@ def ordered_children(children: list[object]) -> list[object]:
 
 def collect_caller_callee(
     node: object,
-    source_file: Path,
     *,
-    compiler_argv: list[str],
-    sourcekit: SourceKitDaemon,
-    usr_cache: dict[int, str | None],
+    sourcekit: object,
     walk_count: list[int],
     entries: list[FunctionEntry],
 ) -> None:
@@ -82,13 +73,7 @@ def collect_caller_callee(
             offset = current.get("key.nameoffset")
             name = current.get("key.name")
             if is_target_kind(kind) and isinstance(offset, int):
-                if offset not in usr_cache:
-                    usr_cache[offset] = sourcekit.query_usr(
-                        source_file,
-                        offset,
-                        compiler_argv=compiler_argv,
-                    )
-                usr = usr_cache[offset]
+                usr = get(sourcekit, offset)
                 if isinstance(name, str) and usr:
                     entries.append(FunctionEntry(name=name, usr=usr))
 
@@ -108,10 +93,7 @@ def collect_caller_callee(
     for child in deferred:
         collect_caller_callee(
             child,
-            source_file,
-            compiler_argv=compiler_argv,
             sourcekit=sourcekit,
-            usr_cache=usr_cache,
             walk_count=walk_count,
             entries=entries,
         )
@@ -157,48 +139,28 @@ def main() -> int:
     if source_file.suffix != ".swift":
         return usage(f"not a Swift file: {source_file}")
 
-    structure = load_structure(source_file)
-
     llm_temp_dir = PROJECT_ROOT / "llm-temp"
     llm_temp_dir.mkdir(parents=True, exist_ok=True)
-    dump_structure(structure, llm_temp_dir)
-
-    jobs = load_frontend_jobs()
-    job = select_frontend_job(jobs, source_file)
-
-    compiler_argv = job.get("argv")
-    if (
-        not isinstance(compiler_argv, list)
-        or not compiler_argv
-        or not all(isinstance(item, str) for item in compiler_argv)
-    ):
-        raise RuntimeError("frontend job argv must be a non-empty list of strings")
-
-    usr_cache: dict[int, str | None] = {}
     walk_count = [0]
     walk_status = "completed"
     caller_callee_entries: list[FunctionEntry] = []
-    sourcekit = SourceKitDaemon()
-    try:
+    with init(source_file) as sourcekit:
+        structure = get(sourcekit, "structure")
+        dump_structure(structure, llm_temp_dir)
         try:
             collect_caller_callee(
                 structure.get("key.substructure", structure),
-                source_file,
-                compiler_argv=compiler_argv,
                 sourcekit=sourcekit,
-                usr_cache=usr_cache,
                 walk_count=walk_count,
                 entries=caller_callee_entries,
             )
         except WalkLimitReached:
             walk_status = "stopped_at_limit"
 
-        graph = build_graph(caller_callee_entries)
-        filtered_graph = filtering(graph)
-        report_walk_status(walk_status, walk_count[0])
-        emit_graph(filtered_graph)
-    finally:
-        sourcekit.close()
+    graph = build_graph(caller_callee_entries)
+    filtered_graph = filtering(graph)
+    report_walk_status(walk_status, walk_count[0])
+    emit_graph(filtered_graph)
 
     return 0
 
