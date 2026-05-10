@@ -10,20 +10,18 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from sourcekit_client import (
-    find_sourcekit_lsp,
-    find_sourcekitd,
     load_frontend_jobs,
     load_structure,
-    query_usr,
     select_frontend_job,
 )
+from sourcekit_daemon import SourceKitDaemon
 
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent
 
 TARGET_KIND_PREFIXES = ("source.lang.swift.decl.function",)
 
-WALK_LIMIT = int(os.environ.get("COLLECT_WALK_LIMIT", "100"))
+WALK_LIMIT = int(os.environ.get("COLLECT_WALK_LIMIT", "1000"))
 
 
 def usage(error: str | None = None) -> int:
@@ -66,8 +64,7 @@ def collect_caller_callee(
     source_file: Path,
     *,
     compiler_argv: list[str],
-    sourcekit_lsp_cmd: list[str],
-    sourcekitd: Path,
+    sourcekit: SourceKitDaemon,
     usr_cache: dict[int, str | None],
     walk_count: list[int],
     entries: list[FunctionEntry],
@@ -76,6 +73,8 @@ def collect_caller_callee(
 
     def visit(current: object) -> None:
         if isinstance(current, dict):
+            if sourcekit.request_count >= 1000:
+                raise WalkLimitReached
             if walk_count[0] >= WALK_LIMIT:
                 raise WalkLimitReached
             walk_count[0] += 1
@@ -84,12 +83,10 @@ def collect_caller_callee(
             name = current.get("key.name")
             if is_target_kind(kind) and isinstance(offset, int):
                 if offset not in usr_cache:
-                    usr_cache[offset] = query_usr(
+                    usr_cache[offset] = sourcekit.query_usr(
                         source_file,
                         offset,
                         compiler_argv=compiler_argv,
-                        sourcekit_lsp_cmd=sourcekit_lsp_cmd,
-                        sourcekitd=sourcekitd,
                     )
                 usr = usr_cache[offset]
                 if isinstance(name, str) and usr:
@@ -113,8 +110,7 @@ def collect_caller_callee(
             child,
             source_file,
             compiler_argv=compiler_argv,
-            sourcekit_lsp_cmd=sourcekit_lsp_cmd,
-            sourcekitd=sourcekitd,
+            sourcekit=sourcekit,
             usr_cache=usr_cache,
             walk_count=walk_count,
             entries=entries,
@@ -178,31 +174,31 @@ def main() -> int:
     ):
         raise RuntimeError("frontend job argv must be a non-empty list of strings")
 
-    sourcekitd = find_sourcekitd()
-    sourcekit_lsp_cmd = find_sourcekit_lsp()
-
     usr_cache: dict[int, str | None] = {}
     walk_count = [0]
     walk_status = "completed"
     caller_callee_entries: list[FunctionEntry] = []
+    sourcekit = SourceKitDaemon()
     try:
-        collect_caller_callee(
-            structure.get("key.substructure", structure),
-            source_file,
-            compiler_argv=compiler_argv,
-            sourcekit_lsp_cmd=sourcekit_lsp_cmd,
-            sourcekitd=sourcekitd,
-            usr_cache=usr_cache,
-            walk_count=walk_count,
-            entries=caller_callee_entries,
-        )
-    except WalkLimitReached:
-        walk_status = "stopped_at_limit"
+        try:
+            collect_caller_callee(
+                structure.get("key.substructure", structure),
+                source_file,
+                compiler_argv=compiler_argv,
+                sourcekit=sourcekit,
+                usr_cache=usr_cache,
+                walk_count=walk_count,
+                entries=caller_callee_entries,
+            )
+        except WalkLimitReached:
+            walk_status = "stopped_at_limit"
 
-    graph = build_graph(caller_callee_entries)
-    filtered_graph = filtering(graph)
-    report_walk_status(walk_status, walk_count[0])
-    emit_graph(filtered_graph)
+        graph = build_graph(caller_callee_entries)
+        filtered_graph = filtering(graph)
+        report_walk_status(walk_status, walk_count[0])
+        emit_graph(filtered_graph)
+    finally:
+        sourcekit.close()
 
     return 0
 
