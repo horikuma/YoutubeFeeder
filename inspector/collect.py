@@ -1,113 +1,24 @@
 #!/usr/bin/env python3
-"""Collect Swift function nodes and resolve USRs."""
+"""Collect SourceKit data and write collect.db."""
 
 from __future__ import annotations
 
 import json
-import os
-import sqlite3
 import sys
 from pathlib import Path
 
+from collect_db import CollectDbExportError, write_collect_db
 from sourcekit_client import get, init
 
-ROOT = Path(__file__).resolve().parent
-PROJECT_ROOT = ROOT.parent
-SCHEMA_PATH = ROOT / "schema.sql"
-COLLECT_DB_PATH = PROJECT_ROOT / "llm-temp" / "collect.db"
-
-TARGET_KIND_PREFIXES = ("source.lang.swift.decl.function",)
-
-WALK_LIMIT = int(os.environ.get("COLLECT_WALK_LIMIT", "1000"))
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def usage(error: str | None = None) -> int:
     if error:
         print(f"error: {error}", file=sys.stderr)
     print("Usage: collect.py <raw-build-log> <swift-file> [--debug true|false]", file=sys.stderr)
-    print("Writes llm-temp/collect.db.", file=sys.stderr)
+    print("Writes llm-cache/collect.db.", file=sys.stderr)
     return 2 if error else 0
-
-
-class FunctionEntry:
-    def __init__(self, name: str, usr: str) -> None:
-        self.name = name
-        self.usr = usr
-
-
-class WalkLimitReached(Exception):
-    pass
-
-
-def is_target_kind(kind: object) -> bool:
-    if not isinstance(kind, str):
-        return False
-    return any(kind.startswith(prefix) for prefix in TARGET_KIND_PREFIXES)
-
-
-def ordered_children(children: list[object]) -> list[object]:
-    target_children: list[object] = []
-    other_children: list[object] = []
-    for child in children:
-        if isinstance(child, dict) and is_target_kind(child.get("key.kind")):
-            target_children.append(child)
-        else:
-            other_children.append(child)
-    return [*target_children, *other_children]
-
-
-def collect_caller_callee(
-    node: object,
-    *,
-    sourcekit: object,
-    walk_count: list[int],
-    entries: list[FunctionEntry],
-) -> None:
-    deferred: list[object] = []
-
-    def visit(current: object) -> None:
-        if isinstance(current, dict):
-            if sourcekit.request_count >= 1000:
-                raise WalkLimitReached
-            if walk_count[0] >= WALK_LIMIT:
-                raise WalkLimitReached
-            walk_count[0] += 1
-            kind = current.get("key.kind")
-            offset = current.get("key.nameoffset")
-            name = current.get("key.name")
-            if is_target_kind(kind) and isinstance(offset, int):
-                usr = get(sourcekit, offset)
-                if isinstance(name, str) and usr:
-                    entries.append(FunctionEntry(name=name, usr=usr))
-
-            substructure = current.get("key.substructure")
-            if isinstance(substructure, list):
-                deferred.append(substructure)
-            return
-
-        if isinstance(current, list):
-            for child in ordered_children(current):
-                if isinstance(child, dict):
-                    visit(child)
-                elif isinstance(child, list):
-                    deferred.append(child)
-
-    visit(node)
-    for child in deferred:
-        collect_caller_callee(
-            child,
-            sourcekit=sourcekit,
-            walk_count=walk_count,
-            entries=entries,
-        )
-
-
-def build_graph(entries: list[FunctionEntry]) -> list[FunctionEntry]:
-    return entries
-
-
-def filtering(entries: list[FunctionEntry]) -> list[FunctionEntry]:
-    return [entry for entry in entries if entry.name and entry.usr]
 
 
 def dump_structure(structure: dict, llm_temp_dir: Path) -> None:
@@ -119,101 +30,7 @@ def dump_structure(structure: dict, llm_temp_dir: Path) -> None:
 
 
 def report_walk_status(walk_status: str, walk_count: int) -> None:
-    if walk_status == "stopped_at_limit":
-        print(f"walk stopped at limit {WALK_LIMIT}: {walk_count} nodes", file=sys.stderr)
-    else:
-        print(f"walk completed: {walk_count} nodes", file=sys.stderr)
-
-
-class CollectDbExportError(RuntimeError):
-    pass
-
-
-class CollectDbConstraintError(CollectDbExportError):
-    def __init__(self, table: str, column: str, reason: str) -> None:
-        super().__init__(f"collect.db export failed for {table}.{column}: {reason}")
-        self.table = table
-        self.column = column
-        self.reason = reason
-
-
-def _load_schema() -> str:
-    return SCHEMA_PATH.read_text(encoding="utf-8")
-
-
-def _execute_insert(
-    cursor: sqlite3.Cursor,
-    sql: str,
-    values: tuple[object, ...],
-    *,
-    table: str,
-    column: str,
-) -> None:
-    try:
-        cursor.execute(sql, values)
-    except sqlite3.IntegrityError as error:
-        raise CollectDbConstraintError(table, column, str(error)) from error
-
-
-def _write_collect_db(
-    *,
-    source_file: Path,
-    entries: list[FunctionEntry],
-) -> None:
-    COLLECT_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    if COLLECT_DB_PATH.exists():
-        COLLECT_DB_PATH.unlink()
-
-    try:
-        with sqlite3.connect(COLLECT_DB_PATH) as connection:
-            connection.execute("PRAGMA foreign_keys = ON")
-            connection.executescript(_load_schema())
-            cursor = connection.cursor()
-
-            _execute_insert(
-                cursor,
-                "INSERT INTO files(path) VALUES (?)",
-                (str(source_file),),
-                table="files",
-                column="path",
-            )
-            file_id = cursor.lastrowid
-
-            _execute_insert(
-                cursor,
-                "INSERT INTO translation_units(file_id, compile_directory, compile_command) VALUES (?, ?, ?)",
-                (file_id, "", ""),
-                table="translation_units",
-                column="compile_command",
-            )
-
-            for entry in entries:
-                _execute_insert(
-                    cursor,
-                    "INSERT INTO functions(usr, name, file_id, line, column, is_definition) VALUES (?, ?, ?, ?, ?, ?)",
-                    (entry.usr, entry.name, file_id, "", "", ""),
-                    table="functions",
-                    column="line",
-                )
-
-            connection.commit()
-    except sqlite3.Error as error:
-        raise CollectDbExportError(str(error)) from error
-
-
-def write_collect_db(
-    *,
-    source_file: Path,
-    entries: list[FunctionEntry],
-) -> None:
-    try:
-        _write_collect_db(
-            source_file=source_file,
-            entries=entries,
-        )
-    except CollectDbExportError as error:
-        print(f"error: {error}", file=sys.stderr)
-        raise
+    print(f"walk {walk_status}: {walk_count} nodes", file=sys.stderr)
 
 
 def main() -> int:
@@ -246,34 +63,19 @@ def main() -> int:
 
     llm_temp_dir = PROJECT_ROOT / "llm-temp"
     llm_temp_dir.mkdir(parents=True, exist_ok=True)
-    walk_count = [0]
-    walk_status = "completed"
-    caller_callee_entries: list[FunctionEntry] = []
+
     with init(source_file, raw_build_log_path, debug=debug) as sourcekit:
-        structure = get(sourcekit, "structure")
+        dataset = get(sourcekit, "collect")
         if debug:
-            dump_structure(structure, llm_temp_dir)
-        try:
-            collect_caller_callee(
-                structure.get("key.substructure", structure),
-                sourcekit=sourcekit,
-                walk_count=walk_count,
-                entries=caller_callee_entries,
-            )
-        except WalkLimitReached:
-            walk_status = "stopped_at_limit"
+            dump_structure(dataset.structure, llm_temp_dir)
 
-    graph = build_graph(caller_callee_entries)
-    filtered_graph = filtering(graph)
     try:
-        write_collect_db(
-            source_file=source_file,
-            entries=filtered_graph,
-        )
-    except CollectDbExportError:
+        write_collect_db(dataset)
+    except CollectDbExportError as error:
+        print(f"error: {error}", file=sys.stderr)
         return 1
-    report_walk_status(walk_status, walk_count[0])
 
+    report_walk_status(dataset.walk_status, dataset.walk_count)
     return 0
 
 

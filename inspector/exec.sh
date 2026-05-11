@@ -5,16 +5,17 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="$PROJECT_ROOT/.venv/bin/python"
 SCRIPT_DIR="$PROJECT_ROOT/inspector"
+VIEWS_DIR="$SCRIPT_DIR/views"
 COMMAND="${1:-all}"
 ARG2="${2:-}"
 ARG3="${3:-}"
 DEBUG="false"
-COLLECT_DB_PATH="$PROJECT_ROOT/llm-temp/collect.db"
+COLLECT_DB_PATH="$PROJECT_ROOT/llm-cache/collect.db"
 RAW_BUILD_LOG="$PROJECT_ROOT/llm-temp/xcodebuild.log"
 SOURCE_FILE="$PROJECT_ROOT/YoutubeFeeder/App/AppConsoleLogger.swift"
 
 case "$COMMAND" in
-  view)
+  funcs|vars)
     if [ -n "$ARG2" ]; then
       COLLECT_DB_PATH="$ARG2"
     fi
@@ -64,7 +65,7 @@ run_step_to_stdout_file() {
 }
 
 printf 'options: command=%s debug=%s\n' "$COMMAND" "$DEBUG" >&2
-if [ "$COMMAND" = view ]; then
+if [ "$COMMAND" = view ] || [ "$COMMAND" = vars ]; then
   printf 'options: command=%s db=%s\n' "$COMMAND" "$COLLECT_DB_PATH" >&2
 fi
 
@@ -72,7 +73,8 @@ case "$COMMAND" in
   all)
     "$0" build
     "$0" collect "$DEBUG"
-    "$0" view "$COLLECT_DB_PATH"
+    "$0" funcs "$COLLECT_DB_PATH"
+    "$0" vars "$COLLECT_DB_PATH"
     ;;
 
   build)
@@ -96,15 +98,21 @@ case "$COMMAND" in
         --debug "$DEBUG"
     ;;
 
-  view)
-    run_step_to_stdout_file view "$PROJECT_ROOT/llm-temp/view.log" \
-      "$PYTHON" "$SCRIPT_DIR/view.py" \
+  funcs)
+    run_step_to_stdout_file funcs "$PROJECT_ROOT/llm-temp/funcs.log" \
+      "$PYTHON" "$VIEWS_DIR/functions.py" \
+        "$COLLECT_DB_PATH"
+    ;;
+
+  vars)
+    run_step_to_stdout_file vars "$PROJECT_ROOT/llm-temp/vars.log" \
+      "$PYTHON" "$VIEWS_DIR/variables.py" \
         "$COLLECT_DB_PATH"
     ;;
 
   *)
     echo "Unknown command: $COMMAND" >&2
-    echo "Usage: ./inspector/exec.sh [all|build|collect|view] [debug=true|false] [collect.db path]" >&2
+    echo "Usage: ./inspector/exec.sh [all|build|collect|view|vars] [debug=true|false] [collect.db path]" >&2
     exit 1
     ;;
 esac

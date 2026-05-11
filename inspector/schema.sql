@@ -1,4 +1,4 @@
-PRAGMA journal_mode = WAL;
+PRAGMA journal_mode = DELETE;
 
 CREATE TABLE IF NOT EXISTS files (
     id INTEGER PRIMARY KEY,

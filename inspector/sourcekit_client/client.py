@@ -47,6 +47,10 @@ class _SourceKitClient:
     def get(self, key: int | str) -> object:
         if key == "structure":
             return self.structure
+        if key == "collect":
+            from .collect_data import build_collect_dataset
+
+            return build_collect_dataset(self)
         if isinstance(key, int):
             if key not in self.usr_cache:
                 self.usr_cache[key] = self.daemon.query_usr(

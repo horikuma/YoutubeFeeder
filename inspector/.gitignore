@@ -4,3 +4,4 @@
 !*.sh
 !sourcekit_client
 !*.sql
+!views

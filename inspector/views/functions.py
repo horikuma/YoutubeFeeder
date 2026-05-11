@@ -12,7 +12,7 @@ import duckdb
 def usage(error: str | None = None) -> int:
     if error:
         print(f"error: {error}", file=sys.stderr)
-    print("Usage: view.py <collect.db>", file=sys.stderr)
+    print("Usage: functions.py <collect.db>", file=sys.stderr)
     return 2 if error else 0
 
 
