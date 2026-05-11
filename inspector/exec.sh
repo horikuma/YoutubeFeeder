@@ -6,9 +6,28 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="$PROJECT_ROOT/.venv/bin/python"
 SCRIPT_DIR="$PROJECT_ROOT/inspector"
 COMMAND="${1:-all}"
-DEBUG="${2:-false}"
+ARG2="${2:-}"
+ARG3="${3:-}"
+DEBUG="false"
+COLLECT_DB_PATH="$PROJECT_ROOT/llm-temp/collect.db"
 RAW_BUILD_LOG="$PROJECT_ROOT/llm-temp/xcodebuild.log"
 SOURCE_FILE="$PROJECT_ROOT/YoutubeFeeder/App/AppConsoleLogger.swift"
+
+case "$COMMAND" in
+  view)
+    if [ -n "$ARG2" ]; then
+      COLLECT_DB_PATH="$ARG2"
+    fi
+    ;;
+  build|collect|all)
+    if [ -n "$ARG2" ]; then
+      DEBUG="$ARG2"
+    fi
+    if [ -n "$ARG3" ]; then
+      COLLECT_DB_PATH="$ARG3"
+    fi
+    ;;
+esac
 
 run_step_to_file() {
   local step_name="$1"
@@ -27,13 +46,33 @@ run_step_to_file() {
   return "$status"
 }
 
+run_step_to_stdout_file() {
+  local step_name="$1"
+  local output_file="$2"
+  shift 2
+  local start_time end_time status elapsed
+  printf '%s start\n' "$step_name" >&2
+  start_time=$SECONDS
+  set +e
+  "$@" > "$output_file"
+  status=$?
+  set -e
+  end_time=$SECONDS
+  elapsed=$((end_time - start_time))
+  printf '%s end elapsed=%ss status=%s\n' "$step_name" "$elapsed" "$status" >&2
+  return "$status"
+}
+
 printf 'options: command=%s debug=%s\n' "$COMMAND" "$DEBUG" >&2
+if [ "$COMMAND" = view ]; then
+  printf 'options: command=%s db=%s\n' "$COMMAND" "$COLLECT_DB_PATH" >&2
+fi
 
 case "$COMMAND" in
   all)
     "$0" build
     "$0" collect "$DEBUG"
-    # "$0" view
+    "$0" view "$COLLECT_DB_PATH"
     ;;
 
   build)
@@ -57,15 +96,15 @@ case "$COMMAND" in
         --debug "$DEBUG"
     ;;
 
-  # view)
-  #   exec "$PYTHON" "$SCRIPT_DIR/view.py" \
-  #     "$SCRIPT_DIR/collect.json" \
-  #     > "$SCRIPT_DIR/view.log" 2>&1
-  #   ;;
+  view)
+    run_step_to_stdout_file view "$PROJECT_ROOT/llm-temp/view.log" \
+      "$PYTHON" "$SCRIPT_DIR/view.py" \
+        "$COLLECT_DB_PATH"
+    ;;
 
   *)
     echo "Unknown command: $COMMAND" >&2
-    echo "Usage: ./inspector/exec.sh [all|build|collect|view] [debug=true|false]" >&2
+    echo "Usage: ./inspector/exec.sh [all|build|collect|view] [debug=true|false] [collect.db path]" >&2
     exit 1
     ;;
 esac

@@ -3,3 +3,4 @@
 !*.py
 !*.sh
 !sourcekit_client
+!*.sql

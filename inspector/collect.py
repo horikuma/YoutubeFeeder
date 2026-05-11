@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -12,6 +13,8 @@ from sourcekit_client import get, init
 
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent
+SCHEMA_PATH = ROOT / "schema.sql"
+COLLECT_DB_PATH = PROJECT_ROOT / "llm-temp" / "collect.db"
 
 TARGET_KIND_PREFIXES = ("source.lang.swift.decl.function",)
 
@@ -22,6 +25,7 @@ def usage(error: str | None = None) -> int:
     if error:
         print(f"error: {error}", file=sys.stderr)
     print("Usage: collect.py <raw-build-log> <swift-file> [--debug true|false]", file=sys.stderr)
+    print("Writes llm-temp/collect.db.", file=sys.stderr)
     return 2 if error else 0
 
 
@@ -121,9 +125,95 @@ def report_walk_status(walk_status: str, walk_count: int) -> None:
         print(f"walk completed: {walk_count} nodes", file=sys.stderr)
 
 
-def emit_graph(entries: list[FunctionEntry]) -> None:
-    for entry in entries:
-        print(f"{entry.name}\t{entry.usr}")
+class CollectDbExportError(RuntimeError):
+    pass
+
+
+class CollectDbConstraintError(CollectDbExportError):
+    def __init__(self, table: str, column: str, reason: str) -> None:
+        super().__init__(f"collect.db export failed for {table}.{column}: {reason}")
+        self.table = table
+        self.column = column
+        self.reason = reason
+
+
+def _load_schema() -> str:
+    return SCHEMA_PATH.read_text(encoding="utf-8")
+
+
+def _execute_insert(
+    cursor: sqlite3.Cursor,
+    sql: str,
+    values: tuple[object, ...],
+    *,
+    table: str,
+    column: str,
+) -> None:
+    try:
+        cursor.execute(sql, values)
+    except sqlite3.IntegrityError as error:
+        raise CollectDbConstraintError(table, column, str(error)) from error
+
+
+def _write_collect_db(
+    *,
+    source_file: Path,
+    entries: list[FunctionEntry],
+) -> None:
+    COLLECT_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if COLLECT_DB_PATH.exists():
+        COLLECT_DB_PATH.unlink()
+
+    try:
+        with sqlite3.connect(COLLECT_DB_PATH) as connection:
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.executescript(_load_schema())
+            cursor = connection.cursor()
+
+            _execute_insert(
+                cursor,
+                "INSERT INTO files(path) VALUES (?)",
+                (str(source_file),),
+                table="files",
+                column="path",
+            )
+            file_id = cursor.lastrowid
+
+            _execute_insert(
+                cursor,
+                "INSERT INTO translation_units(file_id, compile_directory, compile_command) VALUES (?, ?, ?)",
+                (file_id, "", ""),
+                table="translation_units",
+                column="compile_command",
+            )
+
+            for entry in entries:
+                _execute_insert(
+                    cursor,
+                    "INSERT INTO functions(usr, name, file_id, line, column, is_definition) VALUES (?, ?, ?, ?, ?, ?)",
+                    (entry.usr, entry.name, file_id, "", "", ""),
+                    table="functions",
+                    column="line",
+                )
+
+            connection.commit()
+    except sqlite3.Error as error:
+        raise CollectDbExportError(str(error)) from error
+
+
+def write_collect_db(
+    *,
+    source_file: Path,
+    entries: list[FunctionEntry],
+) -> None:
+    try:
+        _write_collect_db(
+            source_file=source_file,
+            entries=entries,
+        )
+    except CollectDbExportError as error:
+        print(f"error: {error}", file=sys.stderr)
+        raise
 
 
 def main() -> int:
@@ -175,8 +265,14 @@ def main() -> int:
 
     graph = build_graph(caller_callee_entries)
     filtered_graph = filtering(graph)
+    try:
+        write_collect_db(
+            source_file=source_file,
+            entries=filtered_graph,
+        )
+    except CollectDbExportError:
+        return 1
     report_walk_status(walk_status, walk_count[0])
-    emit_graph(filtered_graph)
 
     return 0
 
