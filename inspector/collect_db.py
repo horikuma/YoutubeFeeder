@@ -84,7 +84,8 @@ def write_collect_db(dataset: CollectDataset) -> None:
             for row in dataset.globals:
                 _execute_insert(
                     cursor,
-                    "INSERT INTO globals(usr, name, type, storage_class, file_id, line, column, first_seen_tu_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO globals(usr, name, type, storage_class, file_id, line, column, first_seen_tu_id) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         row.usr,
                         row.name,
@@ -97,6 +98,23 @@ def write_collect_db(dataset: CollectDataset) -> None:
                     ),
                     table="globals",
                     column="usr",
+                )
+
+            for row in dataset.call_edges:
+                _execute_insert(
+                    cursor,
+                    "INSERT INTO call_edges(caller_usr, callee_usr, file_id, line, column, tu_id) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        row.caller_usr,
+                        row.callee_usr,
+                        file_id,
+                        row.line,
+                        row.column,
+                        row.tu_id if row.tu_id is not None else tu_id,
+                    ),
+                    table="call_edges",
+                    column="caller_usr",
                 )
 
             connection.commit()

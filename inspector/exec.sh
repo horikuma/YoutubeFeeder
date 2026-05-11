@@ -15,7 +15,7 @@ RAW_BUILD_LOG="$PROJECT_ROOT/llm-temp/xcodebuild.log"
 SOURCE_FILE="$PROJECT_ROOT/YoutubeFeeder/App/AppConsoleLogger.swift"
 
 case "$COMMAND" in
-  funcs|vars)
+  funcs|vars|edges)
     if [ -n "$ARG2" ]; then
       COLLECT_DB_PATH="$ARG2"
     fi
@@ -65,7 +65,7 @@ run_step_to_stdout_file() {
 }
 
 printf 'options: command=%s debug=%s\n' "$COMMAND" "$DEBUG" >&2
-if [ "$COMMAND" = view ] || [ "$COMMAND" = vars ]; then
+if [ "$COMMAND" = funcs ] || [ "$COMMAND" = vars ] || [ "$COMMAND" = edges ]; then
   printf 'options: command=%s db=%s\n' "$COMMAND" "$COLLECT_DB_PATH" >&2
 fi
 
@@ -75,6 +75,7 @@ case "$COMMAND" in
     "$0" collect "$DEBUG"
     "$0" funcs "$COLLECT_DB_PATH"
     "$0" vars "$COLLECT_DB_PATH"
+    "$0" edges "$COLLECT_DB_PATH"
     ;;
 
   build)
@@ -110,9 +111,15 @@ case "$COMMAND" in
         "$COLLECT_DB_PATH"
     ;;
 
+  edges)
+    run_step_to_stdout_file edges "$PROJECT_ROOT/llm-temp/edges.log" \
+      "$PYTHON" "$VIEWS_DIR/edges.py" \
+        "$COLLECT_DB_PATH"
+    ;;
+
   *)
     echo "Unknown command: $COMMAND" >&2
-    echo "Usage: ./inspector/exec.sh [all|build|collect|view|vars] [debug=true|false] [collect.db path]" >&2
+    echo "Usage: ./inspector/exec.sh [all|build|collect|funcs|vars|edges] [debug=true|false] [collect.db path]" >&2
     exit 1
     ;;
 esac
