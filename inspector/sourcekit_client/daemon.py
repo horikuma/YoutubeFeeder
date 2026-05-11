@@ -135,6 +135,7 @@ class SourceKitDaemon:
 
     def query_usr(self, source_file: Path, offset: int, *, compiler_argv: list[str]) -> str | None:
         self.request_count += 1
+        print(f"cursorinfo request dispatch: file={source_file} offset={offset}", flush=True)
         request = self._create_request(_build_cursorinfo_request(source_file, offset, compiler_argv))
         response = self._library.sourcekitd_send_request_sync(request)
         try:

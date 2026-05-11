@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import os
 import shlex
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -11,7 +10,6 @@ from typing import Any
 
 TARGET_FUNCTION_PREFIX = "source.lang.swift.decl.function"
 TARGET_GLOBAL_KIND = "source.lang.swift.decl.var.static"
-WALK_LIMIT = int(os.environ.get("COLLECT_WALK_LIMIT", "1000"))
 
 
 @dataclass(frozen=True)
@@ -137,10 +135,6 @@ def _walk_structure(
     seen_function_usrs: set[str],
 ) -> None:
     if isinstance(node, dict):
-        if getattr(sourcekit, "request_count") >= 1000:
-            raise WalkLimitReached
-        if walk_count[0] >= WALK_LIMIT:
-            raise WalkLimitReached
         walk_count[0] += 1
 
         kind = node.get("key.kind")

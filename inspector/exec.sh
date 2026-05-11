@@ -12,7 +12,7 @@ ARG3="${3:-}"
 DEBUG="false"
 COLLECT_DB_PATH="$PROJECT_ROOT/llm-cache/collect.db"
 RAW_BUILD_LOG="$PROJECT_ROOT/llm-temp/xcodebuild.log"
-SOURCE_FILE="$PROJECT_ROOT/YoutubeFeeder/App/AppConsoleLogger.swift"
+SOURCE_ROOT="$PROJECT_ROOT/YoutubeFeeder/App/Support/AppTestSupport.swift"
 
 case "$COMMAND" in
   funcs|vars|edges)
@@ -95,7 +95,7 @@ case "$COMMAND" in
     run_step_to_file collect "$PROJECT_ROOT/llm-temp/collect.log" \
       "$PYTHON" "$SCRIPT_DIR/collect.py" \
         "$RAW_BUILD_LOG" \
-        "$SOURCE_FILE" \
+        "$SOURCE_ROOT" \
         --debug "$DEBUG"
     ;;
 

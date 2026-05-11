@@ -43,7 +43,7 @@ def _execute_insert(
         raise CollectDbConstraintError(table, column, str(error)) from error
 
 
-def write_collect_db(dataset: CollectDataset) -> None:
+def write_collect_db(datasets: list[CollectDataset]) -> None:
     COLLECT_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     if COLLECT_DB_PATH.exists():
         COLLECT_DB_PATH.unlink()
@@ -54,68 +54,73 @@ def write_collect_db(dataset: CollectDataset) -> None:
             connection.executescript(_load_schema())
             cursor = connection.cursor()
 
-            _execute_insert(
-                cursor,
-                "INSERT INTO files(path) VALUES (?)",
-                (str(dataset.source_file),),
-                table="files",
-                column="path",
-            )
-            file_id = cursor.lastrowid
-
-            _execute_insert(
-                cursor,
-                "INSERT INTO translation_units(file_id, compile_directory, compile_command) VALUES (?, ?, ?)",
-                (file_id, dataset.compile_directory, dataset.compile_command),
-                table="translation_units",
-                column="compile_command",
-            )
-            tu_id = cursor.lastrowid
-
-            for row in dataset.functions:
+            for dataset in datasets:
                 _execute_insert(
                     cursor,
-                    "INSERT INTO functions(usr, name, file_id, line, column, is_definition) VALUES (?, ?, ?, ?, ?, ?)",
-                    (row.usr, row.name, file_id, row.line, row.column, row.is_definition),
-                    table="functions",
-                    column="usr",
+                    "INSERT OR IGNORE INTO files(path) VALUES (?)",
+                    (str(dataset.source_file),),
+                    table="files",
+                    column="path",
                 )
+                cursor.execute("SELECT id FROM files WHERE path = ?", (str(dataset.source_file),))
+                file_id_row = cursor.fetchone()
+                if file_id_row is None:
+                    raise CollectDbExportError(f"missing file row for {dataset.source_file}")
+                file_id = file_id_row[0]
 
-            for row in dataset.globals:
                 _execute_insert(
                     cursor,
-                    "INSERT INTO globals(usr, name, type, storage_class, file_id, line, column, first_seen_tu_id) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        row.usr,
-                        row.name,
-                        row.type,
-                        row.storage_class,
-                        file_id,
-                        row.line,
-                        row.column,
-                        tu_id if row.first_seen_tu_id is None else row.first_seen_tu_id,
-                    ),
-                    table="globals",
-                    column="usr",
+                    "INSERT INTO translation_units(file_id, compile_directory, compile_command) VALUES (?, ?, ?)",
+                    (file_id, dataset.compile_directory, dataset.compile_command),
+                    table="translation_units",
+                    column="compile_command",
                 )
+                tu_id = cursor.lastrowid
 
-            for row in dataset.call_edges:
-                _execute_insert(
-                    cursor,
-                    "INSERT INTO call_edges(caller_usr, callee_usr, file_id, line, column, tu_id) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
-                    (
-                        row.caller_usr,
-                        row.callee_usr,
-                        file_id,
-                        row.line,
-                        row.column,
-                        row.tu_id if row.tu_id is not None else tu_id,
-                    ),
-                    table="call_edges",
-                    column="caller_usr",
-                )
+                for row in dataset.functions:
+                    _execute_insert(
+                        cursor,
+                        "INSERT OR IGNORE INTO functions(usr, name, file_id, line, column, is_definition) VALUES (?, ?, ?, ?, ?, ?)",
+                        (row.usr, row.name, file_id, row.line, row.column, row.is_definition),
+                        table="functions",
+                        column="usr",
+                    )
+
+                for row in dataset.globals:
+                    _execute_insert(
+                        cursor,
+                        "INSERT OR IGNORE INTO globals(usr, name, type, storage_class, file_id, line, column, first_seen_tu_id) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (
+                            row.usr,
+                            row.name,
+                            row.type,
+                            row.storage_class,
+                            file_id,
+                            row.line,
+                            row.column,
+                            tu_id if row.first_seen_tu_id is None else row.first_seen_tu_id,
+                        ),
+                        table="globals",
+                        column="usr",
+                    )
+
+                for row in dataset.call_edges:
+                    _execute_insert(
+                        cursor,
+                        "INSERT INTO call_edges(caller_usr, callee_usr, file_id, line, column, tu_id) "
+                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        (
+                            row.caller_usr,
+                            row.callee_usr,
+                            file_id,
+                            row.line,
+                            row.column,
+                            row.tu_id if row.tu_id is not None else tu_id,
+                        ),
+                        table="call_edges",
+                        column="caller_usr",
+                    )
 
             connection.commit()
     except sqlite3.Error as error:

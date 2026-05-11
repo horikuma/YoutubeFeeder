@@ -15,6 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _run_command(args: list[str]) -> subprocess.CompletedProcess[str]:
+    print(args, flush=True)
     return subprocess.run(args, check=True, text=True, capture_output=True)
 
 
@@ -29,6 +30,7 @@ class _SourceKitClient:
     compiler_argv: list[str]
     structure: dict
     daemon: SourceKitDaemon
+    owns_daemon: bool = True
     usr_cache: dict[int, str | None] = field(default_factory=dict)
 
     def __enter__(self) -> "_SourceKitClient":
@@ -42,7 +44,8 @@ class _SourceKitClient:
         return self.daemon.request_count
 
     def close(self) -> None:
-        self.daemon.close()
+        if self.owns_daemon:
+            self.daemon.close()
 
     def get(self, key: int | str) -> object:
         if key == "structure":
@@ -53,6 +56,7 @@ class _SourceKitClient:
             return build_collect_dataset(self)
         if isinstance(key, int):
             if key not in self.usr_cache:
+                print(f"cursorinfo request queued: file={self.source_file} offset={key}", flush=True)
                 self.usr_cache[key] = self.daemon.query_usr(
                     self.source_file,
                     key,
@@ -67,6 +71,7 @@ def init(
     raw_build_log_path: Path,
     *,
     debug: bool = False,
+    daemon: SourceKitDaemon | None = None,
 ) -> _SourceKitClient:
     structure = _load_structure(source_file)
     jobs = load_builtin_swift_compilation_jobs(
@@ -87,7 +92,8 @@ def init(
         source_file=source_file,
         compiler_argv=compiler_argv,
         structure=structure,
-        daemon=SourceKitDaemon(),
+        daemon=daemon if daemon is not None else SourceKitDaemon(),
+        owns_daemon=daemon is None,
     )
 
 
