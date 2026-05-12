@@ -1,0 +1,7 @@
+{
+    "editor.inlineSuggest.enabled": false,
+    "editor.formatOnSave": true,
+    "github.copilot.enable": {
+        "*": false
+    }
+}

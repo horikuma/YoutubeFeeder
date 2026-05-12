@@ -25,7 +25,8 @@ def ensure_local_derived_data(args: list[str]) -> list[str]:
 
 
 def run_xcodebuild(args: list[str]) -> int:
-    process = subprocess.run(["xcodebuild", *ensure_local_derived_data(args)], check=False)
+    repo_root = resolve_repo_root()
+    process = subprocess.run(["xcodebuild", *ensure_local_derived_data(args)], cwd=repo_root, check=False)
     return process.returncode
 
 

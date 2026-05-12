@@ -1,235 +1,107 @@
 #!/usr/bin/env python3
+"""Collect SourceKit data and write collect.db."""
 
 from __future__ import annotations
 
-import csv
 import json
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
-from typing import Any
 
-MODULE_CACHE_PATH = Path("./sourcekitten-module-cache")
-CURSORINFO_TIMEOUT_SECONDS = 10.0
+from collect_db import CollectDbExportError, write_collect_db
+from sourcekit_client import get, init
+from sourcekit_client.daemon import SourceKitDaemon
 
-
-def run_command(args: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(args, check=False, capture_output=True, text=True)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
-def discover_sdk_path() -> str:
-    result = run_command(["xcrun", "--show-sdk-path"])
-    if result.returncode != 0:
-        details = result.stderr.strip() or result.stdout.strip() or "xcrun --show-sdk-path failed"
-        raise RuntimeError(details)
-    sdk_path = result.stdout.strip()
-    if not sdk_path:
-        raise RuntimeError("xcrun --show-sdk-path returned an empty path")
-    return sdk_path
+def usage(error: str | None = None) -> int:
+    if error:
+        print(f"error: {error}", file=sys.stderr)
+    print("Usage: collect.py <raw-build-log> <swift-file-or-folder> [--debug true|false]", file=sys.stderr)
+    print("Writes llm-cache/collect.db.", file=sys.stderr)
+    return 2 if error else 0
 
 
-def discover_target_triple() -> str:
-    result = run_command(["xcrun", "swift", "-print-target-info"])
-    if result.returncode != 0:
-        details = result.stderr.strip() or result.stdout.strip() or "xcrun swift -print-target-info failed"
-        raise RuntimeError(details)
-    payload = json.loads(result.stdout)
-    triple = payload["target"]["triple"]
-    if not isinstance(triple, str) or not triple:
-        raise RuntimeError("xcrun swift -print-target-info returned an invalid target triple")
-    return triple
-
-
-def discover_cursorinfo_compilerargs() -> list[str]:
-    MODULE_CACHE_PATH.mkdir(parents=True, exist_ok=True)
-    return [
-        "-sdk",
-        discover_sdk_path(),
-        "-target",
-        discover_target_triple(),
-        "-module-cache-path",
-        str(MODULE_CACHE_PATH),
-    ]
-
-
-def discover_swift_files(root: Path) -> list[Path]:
-    return sorted(path for path in root.rglob("*.swift") if path.is_file())
-
-
-def run_sourcekitten_structure(source_file: Path) -> dict[str, Any]:
-    try:
-        result = run_command(
-            ["sourcekitten", "structure", "--file", str(source_file)],
-        )
-    except FileNotFoundError as error:
-        raise RuntimeError("sourcekitten command was not found") from error
-
-    if result.returncode != 0:
-        stderr = result.stderr.strip()
-        stdout = result.stdout.strip()
-        details = stderr or stdout or "sourcekitten returned a non-zero exit status"
-        raise RuntimeError(f"sourcekitten structure failed for {source_file}: {details}")
-
-    try:
-        payload = json.loads(result.stdout)
-    except json.JSONDecodeError as error:
-        raise RuntimeError(f"sourcekitten structure returned invalid JSON for {source_file}") from error
-
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"sourcekitten structure returned an unexpected payload for {source_file}")
-
-    return payload
-
-
-def run_sourcekitten_cursorinfo(source_file: Path, offset: int, compilerargs: list[str]) -> dict[str, Any]:
-    yaml_text = "\n".join(
-        [
-            "key.request: source.request.cursorinfo",
-            f'key.sourcefile: "{source_file}"',
-            f"key.offset: {offset}",
-            "key.compilerargs:",
-            f'  - "{source_file}"',
-            *[f'  - "{arg}"' for arg in compilerargs],
-            "",
-        ]
+def dump_structure(structure: dict, llm_temp_dir: Path) -> None:
+    structure_dump_path = llm_temp_dir / "structure.json"
+    structure_dump_path.write_text(
+        json.dumps(structure, ensure_ascii=False, indent=2),
+        encoding="utf-8",
     )
 
-    with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as handle:
-        yaml_path = Path(handle.name)
-        handle.write(yaml_text)
+
+def report_walk_status(walk_status: str, walk_count: int) -> None:
+    print(f"walk {walk_status}: {walk_count} nodes", file=sys.stderr)
+
+
+def _swift_paths(source_root: Path) -> list[Path]:
+    if source_root.is_file():
+        return [source_root]
+    if source_root.is_dir():
+        return sorted(path for path in source_root.rglob("*.swift") if path.is_file())
+    return []
+
+
+def _collect_datasets(raw_build_log_path: Path, source_root: Path, *, debug: bool):
+    datasets = []
+    swift_paths = _swift_paths(source_root)
+    if not swift_paths:
+        raise FileNotFoundError(f"no Swift files found under: {source_root}")
+
+    with SourceKitDaemon() as daemon:
+        for source_file in swift_paths:
+            print(source_file, flush=True)
+            with init(source_file, raw_build_log_path, debug=debug, daemon=daemon) as sourcekit:
+                dataset = get(sourcekit, "collect")
+                if debug:
+                    dump_structure(dataset.structure, llm_temp_dir=PROJECT_ROOT / "llm-temp")
+                datasets.append(dataset)
+                report_walk_status(dataset.walk_status, dataset.walk_count)
+
+    return datasets
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    if len(args) == 1 and args[0] in {"-h", "--help"}:
+        return usage(None)
+
+    debug = False
+    if "--debug" in args:
+        flag_index = args.index("--debug")
+        if flag_index + 1 >= len(args):
+            return usage("expected true or false after --debug")
+        debug_value = args[flag_index + 1]
+        if debug_value not in {"true", "false"}:
+            return usage("expected true or false after --debug")
+        debug = debug_value == "true"
+        del args[flag_index : flag_index + 2]
+
+    if len(args) != 2:
+        return usage("expected exactly one raw build log path and one Swift file or folder path")
+
+    raw_build_log_path = Path(args[0]).expanduser().resolve()
+    source_root = Path(args[1]).expanduser().resolve()
+    if not raw_build_log_path.exists():
+        return usage(f"file not found: {raw_build_log_path}")
+    if not source_root.exists():
+        return usage(f"file not found: {source_root}")
+
+    llm_temp_dir = PROJECT_ROOT / "llm-temp"
+    llm_temp_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        result = subprocess.run(
-            ["sourcekitten", "request", "--yaml", str(yaml_path)],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=CURSORINFO_TIMEOUT_SECONDS,
-        )
+        datasets = _collect_datasets(raw_build_log_path, source_root, debug=debug)
     except FileNotFoundError as error:
-        yaml_path.unlink(missing_ok=True)
-        raise RuntimeError("sourcekitten command was not found") from error
-    except subprocess.TimeoutExpired:
-        return {"key.internal_diagnostic": f"sourcekitten cursorinfo timed out after {CURSORINFO_TIMEOUT_SECONDS:.0f}s"}
-    finally:
-        yaml_path.unlink(missing_ok=True)
-
-    if result.returncode != 0:
-        stderr = result.stderr.strip()
-        stdout = result.stdout.strip()
-        details = stderr or stdout or "sourcekitten cursorinfo returned a non-zero exit status"
-        return {"key.internal_diagnostic": details}
+        return usage(str(error))
 
     try:
-        payload = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return {"key.internal_diagnostic": "sourcekitten cursorinfo returned invalid JSON"}
-
-    if not isinstance(payload, dict):
-        return {"key.internal_diagnostic": "sourcekitten cursorinfo returned an unexpected payload"}
-
-    return payload
-
-
-def flatten_value(prefix: str, value: Any, row: dict[str, str]) -> None:
-    if isinstance(value, dict):
-        for key, nested in value.items():
-            next_prefix = f"{prefix}.{key}" if prefix else key
-            flatten_value(next_prefix, nested, row)
-        return
-
-    if isinstance(value, list):
-        if not value:
-            row[prefix] = "[]"
-            return
-
-        for index, nested in enumerate(value):
-            next_prefix = f"{prefix}.{index}" if prefix else str(index)
-            flatten_value(next_prefix, nested, row)
-        return
-
-    row[prefix] = "" if value is None else str(value)
-
-
-def flatten_structure(
-    node: dict[str, Any],
-    source_path: Path,
-    source_file: str,
-    node_path: list[int],
-    rows: list[dict[str, str]],
-    cursorinfo_cache: dict[tuple[str, int], dict[str, Any]],
-    compilerargs: list[str],
-) -> None:
-    row: dict[str, str] = {
-        "file": source_file,
-        "node_path": ".".join(str(index) for index in node_path) if node_path else "root",
-    }
-
-    for key, value in node.items():
-        if key == "key.substructure":
-            continue
-        flatten_value(key, value, row)
-
-    offset = node.get("key.offset")
-    if isinstance(offset, int):
-        cache_key = (str(source_path), offset)
-        cursorinfo = cursorinfo_cache.get(cache_key)
-        if cursorinfo is None:
-            cursorinfo = run_sourcekitten_cursorinfo(source_path, offset, compilerargs)
-            cursorinfo_cache[cache_key] = cursorinfo
-        flatten_value("cursorinfo", cursorinfo, row)
-
-    rows.append(row)
-
-    children = node.get("key.substructure", [])
-    if not isinstance(children, list):
-        return
-
-    for index, child in enumerate(children):
-        if isinstance(child, dict):
-            flatten_structure(child, source_path, source_file, node_path + [index], rows, cursorinfo_cache, compilerargs)
-
-
-def collect_rows(root: Path) -> tuple[list[str], list[dict[str, str]]]:
-    rows: list[dict[str, str]] = []
-    cursorinfo_cache: dict[tuple[str, int], dict[str, Any]] = {}
-    compilerargs = discover_cursorinfo_compilerargs()
-
-    for source_file in discover_swift_files(root):
-        payload = run_sourcekitten_structure(source_file)
-        relative_file = source_file.relative_to(root).as_posix() if source_file.is_relative_to(root) else source_file.as_posix()
-        flatten_structure(payload, source_file, relative_file, [], rows, cursorinfo_cache, compilerargs)
-
-    headers = ["file", "node_path"]
-    for row in rows:
-        for key in row:
-            if key not in headers:
-                headers.append(key)
-
-    return headers, rows
-
-
-def main(argv: list[str]) -> int:
-    root = Path(argv[1]).resolve() if len(argv) > 1 else Path.cwd().resolve()
-
-    if not root.exists():
-        print(f"Root path does not exist: {root}", file=sys.stderr)
+        write_collect_db(datasets)
+    except CollectDbExportError as error:
+        print(f"error: {error}", file=sys.stderr)
         return 1
-
-    try:
-        headers, rows = collect_rows(root)
-    except RuntimeError as error:
-        print(str(error), file=sys.stderr)
-        return 1
-
-    writer = csv.DictWriter(sys.stdout, fieldnames=headers, extrasaction="ignore")
-    writer.writeheader()
-    for row in rows:
-        writer.writerow(row)
-
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv))
+    raise SystemExit(main())

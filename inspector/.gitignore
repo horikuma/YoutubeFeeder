@@ -1,2 +1,7 @@
-*.db
-*.log
+*
+
+!*.py
+!*.sh
+!sourcekit_client
+!*.sql
+!views
