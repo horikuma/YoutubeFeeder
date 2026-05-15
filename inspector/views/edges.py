@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
-import sys
 from pathlib import Path
 from typing import Protocol
 
@@ -18,6 +18,7 @@ class FunctionRecord:
     usr: str
     name: str
     file_path: Path | None
+    is_definition: bool
 
 
 @dataclass(frozen=True)
@@ -45,16 +46,26 @@ class FunctionFilterPipeline:
 
 
 @dataclass(frozen=True)
-class SourceRootFilter:
-    source_root: Path
+class SourceTargetFilter:
+    source_target: Path
 
     def include(self, function: FunctionRecord) -> bool:
         if function.file_path is None:
             return False
+        function_path = function.file_path.resolve()
+        target_path = self.source_target.resolve()
+        if target_path.suffix == ".swift":
+            return function_path == target_path
         try:
-            return function.file_path.resolve().is_relative_to(self.source_root.resolve())
+            return function_path.is_relative_to(target_path)
         except (FileNotFoundError, ValueError):
             return False
+
+
+@dataclass(frozen=True)
+class DefinitionFilter:
+    def include(self, function: FunctionRecord) -> bool:
+        return function.is_definition
 
 
 @dataclass(frozen=True)
@@ -66,7 +77,7 @@ class SwiftFileFilter:
 def usage(error: str | None = None) -> int:
     if error:
         print(f"error: {error}", file=sys.stderr)
-    print("Usage: edges.py <collect.db> [--source-root <path>] [--call-graph]", file=sys.stderr)
+    print("Usage: edges.py <collect.db> [--source-root <swift-file-or-folder>] [--call-graph]", file=sys.stderr)
     return 2 if error else 0
 
 
@@ -80,7 +91,7 @@ def _load_functions(db_path: Path) -> list[FunctionRecord]:
     _load_sqlite_scanner(connection)
     rows = connection.execute(
         """
-        SELECT functions.usr, functions.name, files.path
+        SELECT functions.usr, functions.name, files.path, functions.is_definition
         FROM sqlite_scan(?, 'functions') AS functions
         LEFT JOIN sqlite_scan(?, 'files') AS files
             ON functions.file_id = files.id
@@ -89,12 +100,13 @@ def _load_functions(db_path: Path) -> list[FunctionRecord]:
         [str(db_path), str(db_path)],
     ).fetchall()
     functions: list[FunctionRecord] = []
-    for usr, name, file_path in rows:
+    for usr, name, file_path, is_definition in rows:
         functions.append(
             FunctionRecord(
                 usr=usr,
                 name=name,
                 file_path=Path(file_path) if file_path else None,
+                is_definition=bool(is_definition),
             )
         )
     return functions
@@ -114,134 +126,103 @@ def _load_edges(db_path: Path) -> list[EdgeRecord]:
     return [EdgeRecord(caller_usr=caller_usr, callee_usr=callee_usr) for caller_usr, callee_usr in rows]
 
 
-def _emit_edges(db_path: Path) -> None:
-    functions = {function.usr: function for function in _load_functions(db_path)}
+def _selected_functions(functions: list[FunctionRecord], source_target: Path | None) -> list[FunctionRecord]:
+    pipeline = FunctionFilterPipeline()
+    if source_target is not None:
+        pipeline.add(SourceTargetFilter(source_target=source_target))
+    pipeline.add(SwiftFileFilter())
+    pipeline.add(DefinitionFilter())
+    return pipeline.apply(functions)
+
+
+def _emit_edges(db_path: Path, source_target: Path | None) -> None:
+    functions = {function.usr: function for function in _selected_functions(_load_functions(db_path), source_target)}
     edges = _load_edges(db_path)
     for edge in edges:
         caller = functions.get(edge.caller_usr)
         callee = functions.get(edge.callee_usr)
+        if caller is None or callee is None:
+            continue
         print(f"{caller.name if caller else ''}\t{callee.name if callee else ''}\t{edge.caller_usr}\t{edge.callee_usr}")
 
 
-def _function_display_name(function: FunctionRecord, source_root: Path | None) -> str:
+def _function_display_name(function: FunctionRecord, source_target: Path | None) -> str:
     function_name = function.name.splitlines()[0]
     if function.file_path is None:
         return function_name
-    if source_root is None:
+    if source_target is None:
         return f"{function_name} ({function.file_path})"
     try:
-        relative_path = function.file_path.resolve().relative_to(source_root.resolve())
+        relative_path = function.file_path.resolve().relative_to(source_target.resolve())
     except (FileNotFoundError, ValueError):
         relative_path = function.file_path
     return f"{function_name} ({relative_path})"
 
 
-def _escape_mermaid_label(text: str) -> str:
-    normalized = " ".join(text.split())
-    return normalized.replace("\\", "\\\\").replace('"', '\\"')
+def _sort_key(function: FunctionRecord, source_target: Path | None) -> tuple[str, str]:
+    return (_function_display_name(function, source_target).lower(), function.usr)
 
 
-def _sort_key(function: FunctionRecord, source_root: Path | None) -> tuple[str, str]:
-    return (_function_display_name(function, source_root).lower(), function.usr)
-
-
-def _build_graph(functions: list[FunctionRecord], edges: list[EdgeRecord]) -> tuple[dict[str, FunctionRecord], dict[str, list[str]], dict[str, int]]:
+def _build_graph(
+    functions: list[FunctionRecord],
+    edges: list[EdgeRecord],
+) -> tuple[dict[str, FunctionRecord], dict[str, list[str]], dict[str, list[str]]]:
     function_by_usr = {function.usr: function for function in functions}
     adjacency: dict[str, list[str]] = defaultdict(list)
-    incoming_counts: dict[str, int] = defaultdict(int)
+    reverse_adjacency: dict[str, list[str]] = defaultdict(list)
 
     for edge in edges:
         if edge.caller_usr not in function_by_usr or edge.callee_usr not in function_by_usr:
             continue
         adjacency[edge.caller_usr].append(edge.callee_usr)
-        incoming_counts[edge.callee_usr] += 1
+        reverse_adjacency[edge.callee_usr].append(edge.caller_usr)
 
     for callee_usrs in adjacency.values():
         callee_usrs.sort()
+    for caller_usrs in reverse_adjacency.values():
+        caller_usrs.sort()
 
-    return function_by_usr, adjacency, incoming_counts
-
-
-def _collect_reachable(root_usr: str, adjacency: dict[str, list[str]]) -> tuple[list[str], list[tuple[str, str]]]:
-    visited: set[str] = set()
-    reachable_usrs: list[str] = []
-    reachable_edges: list[tuple[str, str]] = []
-
-    def visit(usr: str) -> None:
-        if usr in visited:
-            return
-        visited.add(usr)
-        reachable_usrs.append(usr)
-        for callee_usr in adjacency.get(usr, []):
-            reachable_edges.append((usr, callee_usr))
-            visit(callee_usr)
-
-    visit(root_usr)
-    return reachable_usrs, reachable_edges
+    return function_by_usr, adjacency, reverse_adjacency
 
 
-def _render_call_graph(db_path: Path, source_root: Path | None) -> str:
+def _yaml_quote(value: str) -> str:
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _render_call_graph(db_path: Path, source_target: Path | None) -> str:
     functions = _load_functions(db_path)
     edges = _load_edges(db_path)
 
-    pipeline = FunctionFilterPipeline()
-    if source_root is not None:
-        pipeline.add(SourceRootFilter(source_root=source_root))
-    pipeline.add(SwiftFileFilter())
-
-    selected_functions = pipeline.apply(functions)
+    selected_functions = _selected_functions(functions, source_target)
     selected_function_by_usr = {function.usr: function for function in selected_functions}
     selected_edges = [
         edge
         for edge in edges
         if edge.caller_usr in selected_function_by_usr and edge.callee_usr in selected_function_by_usr
     ]
-    function_by_usr, adjacency, incoming_counts = _build_graph(selected_functions, selected_edges)
+    function_by_usr, adjacency, reverse_adjacency = _build_graph(selected_functions, selected_edges)
 
-    roots = [
-        function
-        for function in selected_functions
-        if incoming_counts.get(function.usr, 0) == 0
-    ]
-    roots.sort(key=lambda function: _sort_key(function, source_root))
-
-    lines: list[str] = ["# Call Graph"]
-    if not roots:
-        lines.extend(["", "No root functions found."])
-        return "\n".join(lines) + "\n"
-
-    for index, root in enumerate(roots, start=1):
-        if index > 1:
-            lines.append("")
-        root_label = _function_display_name(root, source_root)
-        lines.extend(
-            [
-                f"## Root {index}: {root_label}",
-                "```mermaid",
-                "flowchart TD",
-            ]
+    lines: list[str] = ["functions:"]
+    for function in sorted(function_by_usr.values(), key=lambda item: _sort_key(item, source_target)):
+        callee_usrs = sorted(
+            set(adjacency.get(function.usr, [])),
+            key=lambda usr: _sort_key(function_by_usr[usr], source_target),
         )
-
-        reachable_usrs, reachable_edges = _collect_reachable(root.usr, adjacency)
-        reachable_set = set(reachable_usrs)
-        node_ids = {usr: f"n{node_index}" for node_index, usr in enumerate(reachable_usrs)}
-
-        for usr in reachable_usrs:
-            function = function_by_usr[usr]
-            label = _escape_mermaid_label(_function_display_name(function, source_root))
-            lines.append(f'    {node_ids[usr]}["{label}"]')
-
-        rendered_edges: set[tuple[str, str]] = set()
-        for caller_usr, callee_usr in reachable_edges:
-            if caller_usr not in reachable_set or callee_usr not in reachable_set:
-                continue
-            edge_key = (caller_usr, callee_usr)
-            if edge_key in rendered_edges:
-                continue
-            rendered_edges.add(edge_key)
-            lines.append(f"    {node_ids[caller_usr]} --> {node_ids[callee_usr]}")
-
-        lines.append("```")
+        caller_usrs = sorted(
+            set(reverse_adjacency.get(function.usr, [])),
+            key=lambda usr: _sort_key(function_by_usr[usr], source_target),
+        )
+        lines.append(f"  - name: {_yaml_quote(function.name.splitlines()[0])}")
+        if callee_usrs:
+            lines.append("    calls:")
+            for callee_usr in callee_usrs:
+                callee = function_by_usr[callee_usr]
+                lines.append(f"      - {_yaml_quote(callee.name.splitlines()[0])}")
+        if caller_usrs:
+            lines.append("    called_by:")
+            for caller_usr in caller_usrs:
+                caller = function_by_usr[caller_usr]
+                lines.append(f"      - {_yaml_quote(caller.name.splitlines()[0])}")
 
     return "\n".join(lines) + "\n"
 
@@ -249,7 +230,7 @@ def _render_call_graph(db_path: Path, source_root: Path | None) -> str:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(add_help=True, prog="edges.py")
     parser.add_argument("collect_db", help="collect.db path")
-    parser.add_argument("--source-root", dest="source_root", help="root folder for Swift declarations")
+    parser.add_argument("--source-root", dest="source_root", help="Swift file or root folder for declarations")
     parser.add_argument("--call-graph", action="store_true", help="render Mermaid call graphs instead of raw edges")
     return parser.parse_args()
 
@@ -269,7 +250,8 @@ def main() -> int:
             source_root = Path(args.source_root).expanduser().resolve() if args.source_root else None
             sys.stdout.write(_render_call_graph(db_path, source_root))
         else:
-            _emit_edges(db_path)
+            source_root = Path(args.source_root).expanduser().resolve() if args.source_root else None
+            _emit_edges(db_path, source_root)
     except Exception as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

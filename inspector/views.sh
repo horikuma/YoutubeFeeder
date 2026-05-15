@@ -13,7 +13,7 @@ ARG4="${4:-}"
 COLLECT_DB_PATH="$PROJECT_ROOT/llm-cache/collect.db"
 SOURCE_ROOT="$PROJECT_ROOT/YoutubeFeeder"
 OUTPUT_DIR="$PROJECT_ROOT/llm-temp"
-CALL_GRAPH_PATH="$PROJECT_ROOT/llm-temp/call-graph.md"
+CALL_GRAPH_PATH="$PROJECT_ROOT/llm-temp/call-graph.yaml"
 
 case "$COMMAND" in
   funcs|vars|edges|call-graph)
@@ -91,7 +91,8 @@ case "$COMMAND" in
   edges)
     run_step_to_stdout_file edges "$OUTPUT_DIR/edges.log" \
       "$PYTHON" "$VIEWS_DIR/edges.py" \
-        "$COLLECT_DB_PATH"
+        "$COLLECT_DB_PATH" \
+        --source-root "$SOURCE_ROOT"
     ;;
 
   call-graph)

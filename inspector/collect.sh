@@ -5,14 +5,14 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="$PROJECT_ROOT/.venv/bin/python"
 SCRIPT_DIR="$PROJECT_ROOT/inspector"
-VIEWS_DIR="$SCRIPT_DIR/views"
 COMMAND="${1:-all}"
 ARG2="${2:-}"
 ARG3="${3:-}"
 DEBUG="false"
 COLLECT_DB_PATH="$PROJECT_ROOT/llm-cache/collect.db"
 RAW_BUILD_LOG="$PROJECT_ROOT/llm-temp/xcodebuild.log"
-SOURCE_ROOT="$PROJECT_ROOT/YoutubeFeeder/App/Support/AppTestSupport.swift"
+# SOURCE_ROOT="$PROJECT_ROOT/YoutubeFeeder/App/Support/AppTestSupport.swift"
+SOURCE_ROOT="$PROJECT_ROOT/YoutubeFeeder"
 
 case "$COMMAND" in
   funcs|vars|edges)
@@ -73,9 +73,6 @@ case "$COMMAND" in
   all)
     "$0" build
     "$0" collect "$DEBUG"
-    "$0" funcs "$COLLECT_DB_PATH"
-    "$0" vars "$COLLECT_DB_PATH"
-    "$0" edges "$COLLECT_DB_PATH"
     ;;
 
   build)
@@ -99,27 +96,9 @@ case "$COMMAND" in
         --debug "$DEBUG"
     ;;
 
-  funcs)
-    run_step_to_stdout_file funcs "$PROJECT_ROOT/llm-temp/funcs.log" \
-      "$PYTHON" "$VIEWS_DIR/functions.py" \
-        "$COLLECT_DB_PATH"
-    ;;
-
-  vars)
-    run_step_to_stdout_file vars "$PROJECT_ROOT/llm-temp/vars.log" \
-      "$PYTHON" "$VIEWS_DIR/variables.py" \
-        "$COLLECT_DB_PATH"
-    ;;
-
-  edges)
-    run_step_to_stdout_file edges "$PROJECT_ROOT/llm-temp/edges.log" \
-      "$PYTHON" "$VIEWS_DIR/edges.py" \
-        "$COLLECT_DB_PATH"
-    ;;
-
   *)
     echo "Unknown command: $COMMAND" >&2
-    echo "Usage: ./inspector/exec.sh [all|build|collect|funcs|vars|edges] [debug=true|false] [collect.db path]" >&2
+    echo "Usage: ./inspector/collect.sh [all|build|collect] [debug=true|false] [collect.db path]" >&2
     exit 1
     ;;
 esac
