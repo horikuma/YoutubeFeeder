@@ -4,7 +4,7 @@
 
 ## Build
 
-- build とは、`scripts` で定義された build コマンドを使って、`YoutubeFeeder` を `debug` または `release` のどちらか 1 つでビルドするタスクである。
+- build とは、`scripts/xcode-build` で定義された build command を使って、`YoutubeFeeder` を `debug` または `release` のどちらか 1 つでビルドするタスクである。
 - 開発中の build は `debug` と明示する。
 - このタスクでは、mode の確定、対応する command の選択、実行結果の確認だけをこの文書で判断しなければならない。
 - mode は必須であり、`debug` か `release` のどちらかを明示しなければならない。
@@ -14,12 +14,12 @@
 
 - build を始める前に `swiftlint --fix` を実行する。
   `swiftlint --fix`
-- `debug` を指定する場合は、開発中の build として次の command を実行する。
+- `debug` を指定する場合は、`scripts/xcode-build` 配下 command の開発中 build として次の command を実行する。
   `./scripts/command-runner.py 'build-debug'`
-- `release` を指定する場合は、次の command を実行する。
+- `release` を指定する場合は、`scripts/xcode-build` 配下 command の release build として次の command を実行する。
   `./scripts/command-runner.py 'build-release'`
 - build 出力は、それぞれ `build/debug` または `build/release` を成果物の基準点として扱う。
-- `xcodebuild` を直接呼び出してよいのは `scripts/xcode-build` 配下の command 実装だけであり、それ以外からは `scripts` の build / test command を経由しなければならない。
+- `xcodebuild` を直接呼び出してよいのは `scripts/xcode-build` 配下の command 実装だけであり、それ以外からは `scripts/xcode-build` 配下 command を `scripts/command-runner.py` 経由で実行しなければならない。
 
 ## 完了条件
 

@@ -31,12 +31,6 @@
 - `docs/human-view/design-overview.md` は、人間が機能境界と依存方向を短時間で把握する UML 風俯瞰資料としてだけ更新しなければならない。
 - `docs/human-view/` 配下の文書を正本の代用として扱ってはならない。
 
-### `docs/metrics/`
-
-- `docs/metrics/metrics-src.md` は、ソース総行数、正本文書行数、health barometer の観測結果、ファイル別行数概観を参照資料として残す場合にだけ更新しなければならない。
-- `docs/metrics/metrics-test.md` は、テストごとの所要時間と分類を参照資料として残す場合にだけ更新しなければならない。
-- `docs/metrics/` 配下へ正本ルールを書いてはならない。
-
 ### `docs/report/`
 
 - `docs/report/` 配下は、個別の障害調査、性能探索、検証ログの整理結果を将来の再調査用参照資料として残す場合にだけ使わなければならない。
@@ -59,4 +53,4 @@
 
 - `docs/rules/` 配下の文書を、このタスクの更新対象へ含めてはならない。
 - `docs/history/` 配下の文書を、このタスクの更新対象へ含めてはならない。
-- 正本に書くべき内容を `docs/human-view/`、`docs/metrics/`、`docs/report/` へ書いてはならない。
+- 正本に書くべき内容を `docs/human-view/`、`docs/report/` へ書いてはならない。
