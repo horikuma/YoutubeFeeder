@@ -80,7 +80,22 @@ def write_collect_db(datasets: list[CollectDataset]) -> None:
                 for row in dataset.functions:
                     _execute_insert(
                         cursor,
-                        "INSERT OR IGNORE INTO functions(usr, name, file_id, line, column, is_definition) VALUES (?, ?, ?, ?, ?, ?)",
+                        "INSERT INTO functions(usr, name, file_id, line, column, is_definition) "
+                        "VALUES (?, ?, ?, ?, ?, ?) "
+                        "ON CONFLICT(usr) DO UPDATE SET "
+                        "name = CASE "
+                        "WHEN excluded.is_definition = 1 AND functions.is_definition = 0 THEN excluded.name "
+                        "ELSE functions.name END, "
+                        "file_id = CASE "
+                        "WHEN excluded.is_definition = 1 AND functions.is_definition = 0 THEN excluded.file_id "
+                        "ELSE functions.file_id END, "
+                        "line = CASE "
+                        "WHEN excluded.is_definition = 1 AND functions.is_definition = 0 THEN excluded.line "
+                        "ELSE functions.line END, "
+                        "column = CASE "
+                        "WHEN excluded.is_definition = 1 AND functions.is_definition = 0 THEN excluded.column "
+                        "ELSE functions.column END, "
+                        "is_definition = MAX(functions.is_definition, excluded.is_definition)",
                         (row.usr, row.name, file_id, row.line, row.column, row.is_definition),
                         table="functions",
                         column="usr",
@@ -89,7 +104,9 @@ def write_collect_db(datasets: list[CollectDataset]) -> None:
                 for row in dataset.globals:
                     _execute_insert(
                         cursor,
-                        "INSERT OR IGNORE INTO globals(usr, name, type, storage_class, file_id, line, column, first_seen_tu_id) "
+                        "INSERT OR IGNORE INTO globals("
+                        "usr, name, type, storage_class, file_id, line, column, first_seen_tu_id"
+                        ") "
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             row.usr,

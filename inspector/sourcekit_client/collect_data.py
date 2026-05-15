@@ -10,6 +10,13 @@ from typing import Any
 
 TARGET_FUNCTION_PREFIX = "source.lang.swift.decl.function"
 TARGET_GLOBAL_KIND = "source.lang.swift.decl.var.static"
+TARGET_TYPE_KINDS = {
+    "source.lang.swift.decl.actor",
+    "source.lang.swift.decl.class",
+    "source.lang.swift.decl.enum",
+    "source.lang.swift.decl.extension",
+    "source.lang.swift.decl.struct",
+}
 
 
 @dataclass(frozen=True)
@@ -70,6 +77,16 @@ def _is_target_global(kind: object) -> bool:
     return kind == TARGET_GLOBAL_KIND
 
 
+def _is_target_type(kind: object) -> bool:
+    return kind in TARGET_TYPE_KINDS
+
+
+def _qualified_function_name(name: str, type_stack: list[str]) -> str:
+    if not type_stack:
+        return name
+    return ".".join([*type_stack, name])
+
+
 def _ordered_children(children: list[object]) -> list[object]:
     target_children: list[object] = []
     other_children: list[object] = []
@@ -108,6 +125,19 @@ def _record_function_row(
     is_definition: int,
 ) -> FunctionRow | None:
     if usr in seen_function_usrs:
+        if is_definition == 1:
+            row = FunctionRow(
+                usr=usr,
+                name=name,
+                file_path=source_file,
+                line=None,
+                column=None,
+                is_definition=is_definition,
+            )
+            for index, existing_row in enumerate(functions):
+                if existing_row.usr == usr and existing_row.is_definition == 0:
+                    functions[index] = row
+                    return row
         return None
     row = FunctionRow(
         usr=usr,
@@ -132,6 +162,7 @@ def _walk_structure(
     globals: list[GlobalRow],
     call_edges: list[CallEdgeRow],
     function_stack: list[FunctionRow],
+    type_stack: list[str],
     seen_function_usrs: set[str],
 ) -> None:
     if isinstance(node, dict):
@@ -140,6 +171,11 @@ def _walk_structure(
         kind = node.get("key.kind")
         name = node.get("key.name")
         nameoffset = node.get("key.nameoffset")
+        pushed_type = False
+        if _is_target_type(kind) and isinstance(name, str):
+            type_stack.append(name)
+            pushed_type = True
+
         usr = None
         if isinstance(nameoffset, int) and (
             _is_target_function(kind) or _is_target_global(kind) or kind == "source.lang.swift.expr.call"
@@ -155,7 +191,7 @@ def _walk_structure(
                     functions=functions,
                     seen_function_usrs=seen_function_usrs,
                     usr=usr,
-                    name=name,
+                    name=_qualified_function_name(name, type_stack),
                     source_file=source_file,
                     is_definition=int(
                         isinstance(node.get("key.bodyoffset"), int) and isinstance(node.get("key.bodylength"), int)
@@ -208,10 +244,13 @@ def _walk_structure(
                     globals=globals,
                     call_edges=call_edges,
                     function_stack=function_stack,
+                    type_stack=type_stack,
                     seen_function_usrs=seen_function_usrs,
                 )
         if _is_target_function(kind) and function_stack:
             function_stack.pop()
+        if pushed_type:
+            type_stack.pop()
         return
 
     if isinstance(node, list):
@@ -225,6 +264,7 @@ def _walk_structure(
                 globals=globals,
                 call_edges=call_edges,
                 function_stack=function_stack,
+                type_stack=type_stack,
                 seen_function_usrs=seen_function_usrs,
             )
 
@@ -250,6 +290,7 @@ def build_collect_dataset(sourcekit: object) -> CollectDataset:
             globals=globals,
             call_edges=call_edges,
             function_stack=[],
+            type_stack=[],
             seen_function_usrs=seen_function_usrs,
         )
     except WalkLimitReached:

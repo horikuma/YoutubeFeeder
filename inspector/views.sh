@@ -9,23 +9,22 @@ VIEWS_DIR="$SCRIPT_DIR/views"
 COMMAND="${1:-all}"
 ARG2="${2:-}"
 ARG3="${3:-}"
-DEBUG="false"
+ARG4="${4:-}"
 COLLECT_DB_PATH="$PROJECT_ROOT/llm-cache/collect.db"
-RAW_BUILD_LOG="$PROJECT_ROOT/llm-temp/xcodebuild.log"
-SOURCE_ROOT="$PROJECT_ROOT/YoutubeFeeder/App/Support/AppTestSupport.swift"
+SOURCE_ROOT="$PROJECT_ROOT/YoutubeFeeder"
+OUTPUT_DIR="$PROJECT_ROOT/llm-temp"
+CALL_GRAPH_PATH="$PROJECT_ROOT/llm-temp/call-graph.yaml"
 
 case "$COMMAND" in
-  funcs|vars|edges)
+  funcs|vars|edges|call-graph)
     if [ -n "$ARG2" ]; then
       COLLECT_DB_PATH="$ARG2"
     fi
-    ;;
-  build|collect|all)
-    if [ -n "$ARG2" ]; then
-      DEBUG="$ARG2"
-    fi
     if [ -n "$ARG3" ]; then
-      COLLECT_DB_PATH="$ARG3"
+      SOURCE_ROOT="$ARG3"
+    fi
+    if [ -n "$ARG4" ]; then
+      CALL_GRAPH_PATH="$ARG4"
     fi
     ;;
 esac
@@ -64,62 +63,49 @@ run_step_to_stdout_file() {
   return "$status"
 }
 
-printf 'options: command=%s debug=%s\n' "$COMMAND" "$DEBUG" >&2
-if [ "$COMMAND" = funcs ] || [ "$COMMAND" = vars ] || [ "$COMMAND" = edges ]; then
-  printf 'options: command=%s db=%s\n' "$COMMAND" "$COLLECT_DB_PATH" >&2
-fi
+mkdir -p "$OUTPUT_DIR"
+
+printf 'options: command=%s db=%s source=%s output=%s\n' \
+  "$COMMAND" "$COLLECT_DB_PATH" "$SOURCE_ROOT" "$CALL_GRAPH_PATH" >&2
 
 case "$COMMAND" in
   all)
-    "$0" build
-    "$0" collect "$DEBUG"
-    "$0" funcs "$COLLECT_DB_PATH"
-    "$0" vars "$COLLECT_DB_PATH"
-    "$0" edges "$COLLECT_DB_PATH"
-    ;;
-
-  build)
-    run_step_to_file build "$RAW_BUILD_LOG" \
-      "$PYTHON" "$PROJECT_ROOT/scripts/xcode-build/xcodebuild.py" \
-        -scheme YoutubeFeeder \
-        -configuration Debug \
-        -destination platform=macOS \
-        CODE_SIGNING_ALLOWED=NO \
-        CODE_SIGNING_REQUIRED=NO \
-        CODE_SIGN_IDENTITY= \
-        clean \
-        build
-    ;;
-
-  collect)
-    run_step_to_file collect "$PROJECT_ROOT/llm-temp/collect.log" \
-      "$PYTHON" "$SCRIPT_DIR/collect.py" \
-        "$RAW_BUILD_LOG" \
-        "$SOURCE_ROOT" \
-        --debug "$DEBUG"
+    "$0" funcs "$COLLECT_DB_PATH" "$SOURCE_ROOT" "$CALL_GRAPH_PATH"
+    "$0" vars "$COLLECT_DB_PATH" "$SOURCE_ROOT" "$CALL_GRAPH_PATH"
+    "$0" edges "$COLLECT_DB_PATH" "$SOURCE_ROOT" "$CALL_GRAPH_PATH"
+    "$0" call-graph "$COLLECT_DB_PATH" "$SOURCE_ROOT" "$CALL_GRAPH_PATH"
     ;;
 
   funcs)
-    run_step_to_stdout_file funcs "$PROJECT_ROOT/llm-temp/funcs.log" \
+    run_step_to_stdout_file funcs "$OUTPUT_DIR/funcs.log" \
       "$PYTHON" "$VIEWS_DIR/functions.py" \
         "$COLLECT_DB_PATH"
     ;;
 
   vars)
-    run_step_to_stdout_file vars "$PROJECT_ROOT/llm-temp/vars.log" \
+    run_step_to_stdout_file vars "$OUTPUT_DIR/vars.log" \
       "$PYTHON" "$VIEWS_DIR/variables.py" \
         "$COLLECT_DB_PATH"
     ;;
 
   edges)
-    run_step_to_stdout_file edges "$PROJECT_ROOT/llm-temp/edges.log" \
+    run_step_to_stdout_file edges "$OUTPUT_DIR/edges.log" \
       "$PYTHON" "$VIEWS_DIR/edges.py" \
-        "$COLLECT_DB_PATH"
+        "$COLLECT_DB_PATH" \
+        --source-root "$SOURCE_ROOT"
+    ;;
+
+  call-graph)
+    run_step_to_stdout_file call-graph "$CALL_GRAPH_PATH" \
+      "$PYTHON" "$VIEWS_DIR/edges.py" \
+        "$COLLECT_DB_PATH" \
+        --source-root "$SOURCE_ROOT" \
+        --call-graph
     ;;
 
   *)
     echo "Unknown command: $COMMAND" >&2
-    echo "Usage: ./inspector/exec.sh [all|build|collect|funcs|vars|edges] [debug=true|false] [collect.db path]" >&2
+    echo "Usage: ./inspector/views.sh [all|funcs|vars|edges|call-graph] [collect.db path] [source-root path] [call-graph path]" >&2
     exit 1
     ;;
 esac
