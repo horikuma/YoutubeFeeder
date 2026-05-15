@@ -36,7 +36,7 @@ struct HomeScreenRootView: View {
             viewModel.onAppear()
         }
         .task {
-            await viewModel.performAutoRefreshTaskIfNeeded()
+            await viewModel.runAutoRefreshTaskIfNeeded()
         }
         .task(priority: .utility) {
             await viewModel.prewarmRemoteSearchIfNeeded()

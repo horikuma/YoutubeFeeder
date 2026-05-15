@@ -72,7 +72,7 @@ final class FeedCacheCoordinatorRefreshContinuation {
             thumbnailStage: RefreshStageProgress(title: "サムネイル取得", completed: 0, total: 0, activeCalls: 0, callsPerSecond: 1)
         )
 
-        let result = await coordinator.channelSyncService.performForcedRefresh(channelID: channelID)
+        let result = await coordinator.channelSyncService.refreshChannelForcingNetworkFetch(channelID: channelID)
         RuntimeDiagnostics.shared.record(
             "channel_manual_refresh_fetch_finished",
             detail: result.errorMessage == nil ? "フィード取得成功" : "フィード取得失敗",

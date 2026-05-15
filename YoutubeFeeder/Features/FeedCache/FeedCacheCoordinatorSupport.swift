@@ -15,7 +15,7 @@ final class FeedCacheCoordinatorSupport {
         forceNetworkFetch: Bool = false
     ) async -> FeedChannelProcessResult {
         if forceNetworkFetch {
-            let result = await coordinator.channelSyncService.performForcedRefresh(
+            let result = await coordinator.channelSyncService.refreshChannelForcingNetworkFetch(
                 channelID: channelID,
                 state: states[channelID],
                 cacheThumbnails: true

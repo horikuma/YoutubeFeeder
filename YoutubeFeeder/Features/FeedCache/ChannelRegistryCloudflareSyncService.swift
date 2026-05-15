@@ -154,13 +154,13 @@ struct ChannelRegistryCloudflareSyncService {
         body: Data
     ) async throws -> (Data, HTTPURLResponse, [String]) {
         logSyncRequestStart(context: context, request: request, body: body)
-        let (data, httpResponse, afterResponseChannelIDs) = try await performSyncHTTPRequest(request, context: context)
+        let (data, httpResponse, afterResponseChannelIDs) = try await sendSyncHTTPRequest(request, context: context)
         logSyncHTTPResponse(context: context, data: data, httpResponse: httpResponse)
         logSyncStoreRecheck(context: context, afterResponseChannelIDs: afterResponseChannelIDs)
         return (data, httpResponse, afterResponseChannelIDs)
     }
 
-    private func performSyncHTTPRequest(
+    private func sendSyncHTTPRequest(
         _ request: URLRequest,
         context: SyncPayloadContext
     ) async throws -> (Data, HTTPURLResponse, [String]) {
