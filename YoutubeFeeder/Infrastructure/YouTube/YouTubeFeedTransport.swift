@@ -3,7 +3,7 @@ import Foundation
 struct YouTubeFeedTransport {
     let requestScheduler: RequestScheduler?
 
-    func performScheduledData(for request: URLRequest) async throws -> (Data, URLResponse) {
+    func fetchScheduledData(for request: URLRequest) async throws -> (Data, URLResponse) {
         if let requestScheduler {
             return try await requestScheduler.enqueue {
                 try await URLSession.shared.data(for: request)

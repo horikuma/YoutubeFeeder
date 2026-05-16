@@ -13,7 +13,7 @@ struct RefreshUICompletionMetadataParams {
 }
 
 @MainActor
-final class FeedCacheCoordinatorRefreshContinuationSupport {
+final class FeedCacheCoordinatorRefreshProgressSupport {
     unowned let coordinator: FeedCacheCoordinator
 
     init(coordinator: FeedCacheCoordinator) {

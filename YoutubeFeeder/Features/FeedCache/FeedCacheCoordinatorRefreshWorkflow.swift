@@ -1,9 +1,9 @@
 import Foundation
 
 @MainActor
-final class FeedCacheCoordinatorRefreshContinuation {
+final class FeedCacheCoordinatorRefreshWorkflow {
     unowned let coordinator: FeedCacheCoordinator
-    private lazy var support = FeedCacheCoordinatorRefreshContinuationSupport(coordinator: coordinator)
+    private lazy var support = FeedCacheCoordinatorRefreshProgressSupport(coordinator: coordinator)
 
     init(coordinator: FeedCacheCoordinator) {
         self.coordinator = coordinator
@@ -19,6 +19,29 @@ final class FeedCacheCoordinatorRefreshContinuation {
 
     func finishManualRefreshProgress() {
         support.finishManualRefreshProgress()
+    }
+
+    func processChannel(
+        _ channelID: String,
+        states: [String: CachedChannelState],
+        forceNetworkFetch: Bool = false
+    ) async -> FeedChannelProcessResult {
+        if forceNetworkFetch {
+            let result = await coordinator.channelSyncService.refreshChannelForcingNetworkFetch(
+                channelID: channelID,
+                state: states[channelID],
+                cacheThumbnails: true
+            )
+            return FeedChannelProcessResult(
+                errorMessage: result.errorMessage,
+                fetchedVideoCount: result.fetchedVideoCount,
+                uncachedVideoCount: result.uncachedVideos.count,
+                conditionalCheckAttempted: false,
+                networkFetchAttempted: true,
+                httpStatusCode: result.httpStatusCode
+            )
+        }
+        return await coordinator.channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID])
     }
 
     func performMockRefresh() async {
@@ -72,7 +95,7 @@ final class FeedCacheCoordinatorRefreshContinuation {
             thumbnailStage: RefreshStageProgress(title: "サムネイル取得", completed: 0, total: 0, activeCalls: 0, callsPerSecond: 1)
         )
 
-        let result = await coordinator.channelSyncService.performForcedRefresh(channelID: channelID)
+        let result = await coordinator.channelSyncService.refreshChannelForcingNetworkFetch(channelID: channelID)
         RuntimeDiagnostics.shared.record(
             "channel_manual_refresh_fetch_finished",
             detail: result.errorMessage == nil ? "フィード取得成功" : "フィード取得失敗",
@@ -118,7 +141,7 @@ final class FeedCacheCoordinatorRefreshContinuation {
         support.updateManualRefreshActiveCalls(completed: 0, totalChannels: sortedChannels.count, activeCalls: sortedChannels.isEmpty ? 0 : 1)
 
         for (index, channelID) in sortedChannels.enumerated() {
-            let result = await coordinator.processChannel(
+            let result = await processChannel(
                 channelID,
                 states: states,
                 forceNetworkFetch: forceNetworkFetch
@@ -232,7 +255,7 @@ final class FeedCacheCoordinatorRefreshContinuation {
 
     func refreshImportedChannels(_ importedChannelIDs: [String]) async {
         let snapshot = await coordinator.readService.loadSnapshot()
-        let states = coordinator.dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
+        let states = CollectionUtilities.dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let cachedVideoChannelIDs = Set(snapshot.videos.map(\.channelID))
         let prioritizedChannelIDs = importedChannelIDs.sorted { lhs, rhs in
             let lhsNeedsWarmup = states[lhs]?.channelTitle == nil || !cachedVideoChannelIDs.contains(lhs)
@@ -244,7 +267,7 @@ final class FeedCacheCoordinatorRefreshContinuation {
         }
 
         for channelID in prioritizedChannelIDs {
-            _ = await coordinator.processChannel(channelID, states: states)
+            _ = await processChannel(channelID, states: states)
         }
 
         _ = await coordinator.performConsistencyMaintenanceIfNeeded(force: false)

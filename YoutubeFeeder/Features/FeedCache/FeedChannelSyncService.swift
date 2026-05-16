@@ -65,7 +65,7 @@ struct FeedChannelSyncService {
         }
     }
 
-    func performForcedRefresh(
+    func refreshChannelForcingNetworkFetch(
         channelID: String,
         state: CachedChannelState? = nil,
         cacheThumbnails: Bool = false

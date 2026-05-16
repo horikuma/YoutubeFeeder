@@ -8,7 +8,7 @@ final class FeedCacheReadWriteServiceWriteTests: LoggedTestCase {
         let progress = CacheProgress(totalChannels: 1, cachedChannels: 1, cachedVideos: 3, cachedThumbnails: 2, currentChannelID: "UC_BOOTSTRAP", currentChannelNumber: 1, lastUpdatedAt: now, isRunning: false, lastError: nil)
         let maintenanceItems = [ChannelMaintenanceItem(id: "UC_BOOTSTRAP", channelID: "UC_BOOTSTRAP", channelTitle: "Bootstrap Channel", lastSuccessAt: now, lastCheckedAt: now, latestPublishedAt: now, cachedVideoCount: 3, lastError: nil, freshness: .fresh)]
 
-        try await withTemporaryFeedCacheBaseDirectory { _ in
+        try await withTemporaryFeedCacheBaseDirectory { fileManager in
             let writeService = FeedCacheWriteService(
                 store: FeedCacheStore(),
                 remoteSearchCacheStore: RemoteVideoSearchCacheStore()

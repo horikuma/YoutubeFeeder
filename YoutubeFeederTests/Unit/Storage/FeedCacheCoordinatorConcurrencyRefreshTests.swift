@@ -54,8 +54,8 @@ final class FeedCacheCoordinatorConcurrencyRefreshTests: LoggedTestCase {
                     dependencies: makeFeedCacheDependencies(feedService: feedService)
                 )
                 let states = makeProgressStates(channelIDs: channelIDs, now: now)
-                _ = await coordinator.runManualRefreshChannels(
-                    channelIDs,
+                _ = await coordinator.runRefreshCycle(
+                    channelIDs: channelIDs,
                     states: states,
                     forceNetworkFetch: false,
                     refreshSource: "test"
@@ -116,14 +116,14 @@ final class FeedCacheCoordinatorConcurrencyRefreshTests: LoggedTestCase {
     }
 }
 
-private struct FeedRefreshCallSnapshot {
+struct FeedRefreshCallSnapshot {
     let checkCount: Int
     let fetchCount: Int
     let manualTaskObservedDuringCheck: Bool
     let validationTokens: [String?]
 }
 
-private actor FeedRefreshCallRecorder {
+actor FeedRefreshCallRecorder {
     private var checkCount = 0
     private var fetchCount = 0
     private var manualTaskObservedDuringCheck = false

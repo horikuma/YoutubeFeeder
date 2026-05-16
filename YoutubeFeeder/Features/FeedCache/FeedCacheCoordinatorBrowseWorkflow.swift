@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor
-final class FeedCacheCoordinatorBrowseSupport {
+final class FeedCacheCoordinatorBrowseWorkflow {
     unowned let coordinator: FeedCacheCoordinator
 
     init(coordinator: FeedCacheCoordinator) {
@@ -10,7 +10,7 @@ final class FeedCacheCoordinatorBrowseSupport {
 
     func loadChannelBrowseItems(sortDescriptor: ChannelBrowseSortDescriptor = .default) async -> [ChannelBrowseItem] {
         let channelIDs = coordinator.maintenanceItems.map(\.channelID).isEmpty ? coordinator.channels : coordinator.maintenanceItems.map(\.channelID)
-        let registeredAtByChannelID = dictionaryKeepingLastValue(
+        let registeredAtByChannelID = CollectionUtilities.dictionaryKeepingLastValue(
             ChannelRegistryStore.loadAllChannels().map { ($0.channelID, $0.addedAt) }
         )
         return await coordinator.readService.loadChannelBrowseItems(
@@ -245,7 +245,4 @@ final class FeedCacheCoordinatorBrowseSupport {
         )
     }
 
-    func dictionaryKeepingLastValue<Value>(_ pairs: [(String, Value)]) -> [String: Value] {
-        Dictionary(pairs, uniquingKeysWith: { _, rhs in rhs })
-    }
 }

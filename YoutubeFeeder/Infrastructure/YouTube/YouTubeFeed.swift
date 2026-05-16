@@ -75,7 +75,7 @@ struct YouTubeFeedService {
         request.setValue(validationToken?.etag, forHTTPHeaderField: "If-None-Match")
         request.setValue(validationToken?.lastModified, forHTTPHeaderField: "If-Modified-Since")
 
-        let (_, response) = try await transport.performScheduledData(for: request)
+        let (_, response) = try await transport.fetchScheduledData(for: request)
         let httpResponse = response as? HTTPURLResponse
         let metadata = FeedFetchMetadata(
             checkedAt: .now,
@@ -105,7 +105,7 @@ struct YouTubeFeedService {
         request.setValue(validationToken?.etag, forHTTPHeaderField: "If-None-Match")
         request.setValue(validationToken?.lastModified, forHTTPHeaderField: "If-Modified-Since")
 
-        let (data, response) = try await transport.performScheduledData(for: request)
+        let (data, response) = try await transport.fetchScheduledData(for: request)
         let httpResponse = response as? HTTPURLResponse
         let metadata = FeedFetchMetadata(
             checkedAt: .now,

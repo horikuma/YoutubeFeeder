@@ -19,7 +19,7 @@
 - ToDo が複数ある場合でも、複数ステップを 1 つのコミットへまとめてはならない。
 - 意味のある変更がまとまるたびにコミットし、途中経過が再現できる粒度で履歴を残さなければならない。
 - コミット前には、変更セットに応じて必要な検証と、対応する `docs/history/*-latest.md` 更新が完了していることを確認しなければならない。
-- ソースコード変更を含む場合は、ユーザーから明示的に停止されていない限り、必要な検証、対応する `docs/history/*-latest.md` 更新、計測記録を終えてからコミットしなければならない。
+- ソースコード変更を含む場合は、ユーザーから明示的に停止されていない限り、必要な検証と、対応する `docs/history/*-latest.md` 更新を終えてからコミットしなければならない。
 - ドキュメントだけを変更した場合も、ユーザーから明示的に停止されていない限り、その変更セットに必要な `docs/history/*-latest.md` 更新を終えてからコミットしなければならない。
 - 細かいコミットが積み上がること自体は許容し、未確定の複数シーケンスを 1 つの大きなコミットへまとめることより、各変更セットをコミットで確定することを優先しなければならない。
 - コミットメッセージは日本語で記述しなければならない。
@@ -43,36 +43,21 @@
 
 ### 目的
 
-- `docs/history/chat-log.md`、`docs/history/metrics-log.md`、`docs/history/decisions-log.md` は、継続履歴の正本として扱わなければならない。
+- `docs/history/chat-log.md`、`docs/history/decisions-log.md` は、継続履歴の正本として扱わなければならない。
 - 対応する `*-latest.md` は、当日分だけを保持する作業中バッファとして扱わなければならない。
 
 ### 制約
 
 - 追記は `*-latest.md` に対してだけ行わなければならない。
-- `docs/history/*-latest.md` の更新は、LLM の本文読込みや直接編集で行ってはならず、対応する `scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'` を通して行わなければならない。
+- `docs/history/*-latest.md` の更新は、LLM の本文読込みや直接編集で行ってはならず、対応する `scripts/command-runner.py 'history-decision-append'` を通して行わなければならない。
 - `*-log.md` は追記対象にも LLM 読込対象にもしてはならない。
-- `*-latest.md` へ新しい項目を追加する場合は、対応する `./scripts/command-runner.py 'history-decision-append'`、`./scripts/command-runner.py 'history-metrics-append'` のいずれかが対象の日付見出し行の次行へ挿入しなければならない。
+- `*-latest.md` へ新しい項目を追加する場合は、対応する `./scripts/command-runner.py 'history-decision-append'` が対象の日付見出し行の次行へ挿入しなければならない。
 - `*-latest.md` は、先頭行を日付見出しから始め、先頭の説明文を置いてはならない。
 - 見出しと直後の列挙の間に空行を入れてはならない。
 - 箇条書きの項目同士の間に空行を入れてはならない。
 - 記録する文字列に個人情報、APIキー、トークン、絶対パス、ホームディレクトリが含まれる場合は、除去しなければならない。
 
 ### ファイル固有規則
-
-#### `docs/history/metrics-latest.md`
-
-- `docs/history/metrics-latest.md` の build / startup metrics 更新には、次の usage で `./scripts/command-runner.py 'metrics-collect'` を使わなければならない。
-  `./scripts/command-runner.py 'metrics-collect' --label '<label>'[ --change-kind '<change_kind>'][ --manual-retries '<manual_retries>'][ --auto-retry-limit '<auto_retry_limit>']`
-  例: `./scripts/command-runner.py 'metrics-collect' --label 'Issue57 skills command reference update' --change-kind 'docs'`
-    - `<label>` は、計測結果へ残すラベルであり、省略してはならない。
-- `docs/metrics/metrics-test.md` の test metrics 更新や、限定確認や部分集合の計測確認には、次の usage で `./scripts/command-runner.py 'metrics-test-collect'` を使わなければならない。
-  `./scripts/command-runner.py 'metrics-test-collect'[ --logic-only-testing '<logic_only_testing>'][ --ui-only-testing '<ui_only_testing>']`
-  例: `./scripts/command-runner.py 'metrics-test-collect' --logic-only-testing 'true'`
-- `./scripts/command-runner.py 'metrics-collect'` または `./scripts/command-runner.py 'metrics-test-collect'` が出力しない計測行を追加する場合は、次の usage で `./scripts/command-runner.py 'history-metrics-append'` を使わなければならない。
-  `./scripts/command-runner.py 'history-metrics-append' --metric-line '<metric_line>'[ --today '<today>']`
-  例: `./scripts/command-runner.py 'history-metrics-append' --metric-line '- docs only verification: issue-read --issue-number 57 --body-only'`
-    - `<metric_line>` は、1行の計測結果であり、先頭を `- ` で始めなければならない。
-    - `<today>` は、省略時は当日値が使われ、指定する場合は `YYYY/MM/DD` または `YYYY-MM-DD` 形式でなければならない。
 
 #### `docs/history/decisions-latest.md`
 
@@ -92,7 +77,6 @@
 - コミット対象が、その時点で完了条件を満たした変更セットだけで構成されていること。
 - 必要な検証と、対応する `docs/history/*-latest.md` 更新が完了したうえでコミットされていること。
 - `docs/history/decisions-latest.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'history-decision-append'` が成功し、その結果が `docs/history/decisions-latest.md` に反映されていること。
-- `docs/history/metrics-latest.md` または `docs/metrics/metrics-test.md` の更新が必要な場合は、この文書の規則どおり `scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'`、`scripts/command-runner.py 'history-metrics-append'` のうち今回実行すべき command が成功し、その結果が対応する文書へ反映されていること。
 - コミットメッセージが日本語で記述されていること。
 - 変更と作業単位の対応関係が履歴から追跡できること。
 - Issue に実施タスクの ToDo がある場合は、コミット対象の変更と対応する `IssueToDo` のチェック済み状態が Issue 上で追跡できること。
@@ -104,6 +88,6 @@
 - `docs/history/*-log.md` を直接更新してはならない。
 - `docs/history/*-latest.md` の本文を読んで追記位置を判断したり、LLM が直接編集したりしてはならない。
 - `docs/history/*-latest.md` の更新が必要なのに省略したままコミットしてはならない。
-- この文書で規定した usage 以外の形で `scripts/command-runner.py 'history-decision-append'`、`scripts/command-runner.py 'history-metrics-append'`、`scripts/command-runner.py 'metrics-collect'`、`scripts/command-runner.py 'metrics-test-collect'` を使ってはならない。
+- この文書で規定した usage 以外の形で `scripts/command-runner.py 'history-decision-append'` を使ってはならない。
 - Issue に実施タスクの ToDo があるのに、対応する `IssueToDo` を未更新のままコミットしてはならない。
 - 英語や空文、変更内容と対応しない文言でコミットメッセージを書いてはならない。

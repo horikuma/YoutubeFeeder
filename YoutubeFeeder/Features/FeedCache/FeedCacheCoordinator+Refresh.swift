@@ -9,8 +9,8 @@ extension FeedCacheCoordinator {
         let startedAt = Date()
         syncRegisteredChannelsFromStore(reason: "manual_refresh_cycle")
         let snapshot = await readService.loadSnapshot()
-        let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
-        let sortedChannels = prioritizedChannelIDs(states: states)
+        let states = CollectionUtilities.dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
+        let sortedChannels = FeedOrdering.prioritizedChannelIDs(channels: channels, states: states)
         logFullRefreshCycleStarted(refreshSource: refreshSource, snapshot: snapshot, sortedChannels: sortedChannels)
         let cycleResult = await runRefreshCycle(
             channelIDs: sortedChannels,
@@ -36,7 +36,7 @@ extension FeedCacheCoordinator {
         let startedAt = Date()
         self.syncRegisteredChannelsFromStore(reason: "recent_channel_refresh")
         let snapshot = await readService.loadSnapshot()
-        let states = dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
+        let states = CollectionUtilities.dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let dueChannels = ChannelRefreshSchedulePolicy.prioritizedDueChannelIDs(
             channels: channels,
             states: states
@@ -275,7 +275,7 @@ extension FeedCacheCoordinator {
         trigger: String,
         operation: @escaping @MainActor () async -> Void
     ) async {
-        guard !dropChannelRefreshTriggerIfRunning(trigger) else { return }
+        guard !refreshSupport.dropChannelRefreshTriggerIfRunning(trigger) else { return }
         manualRefreshTask = Task { @MainActor in
             await operation()
             return nil

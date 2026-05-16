@@ -86,7 +86,7 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
                 store: store,
                 keyword: "ゆっくり実況",
                 fetchedAt: fetchedAt.addingTimeInterval(60),
-                video: makeSearchVideo(
+                video: makeSearchVideo(SearchVideoSpec(
                     id: "video-2",
                     channelID: "UC222",
                     channelTitle: "Channel Two",
@@ -96,7 +96,7 @@ final class RemoteVideoSearchCacheStoreTests: LoggedTestCase {
                     searchableText: "second",
                     durationSeconds: 2_400,
                     viewCount: 200
-                )
+                ))
             )
 
             let entry = await store.load(keyword: "ゆっくり実況")

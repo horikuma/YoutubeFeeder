@@ -19,7 +19,7 @@ struct YouTubeFeedVideoDetailsClient {
             guard let url = components?.url else { continue }
             var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
             request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
-            let (data, _) = try await transport.performScheduledData(for: request)
+            let (data, _) = try await transport.fetchScheduledData(for: request)
             let decoder = JSONDecoder()
             let response = try decoder.decode(FeedVideoListResponse.self, from: data)
             for item in response.items {

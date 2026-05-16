@@ -40,7 +40,7 @@ final class HomeScreenViewModel: ObservableObject {
         _ = await coordinator.refresh(intent: .home)
     }
 
-    func performAutoRefreshTaskIfNeeded() async {
+    func runAutoRefreshTaskIfNeeded() async {
         logAutoRefreshTaskStarted()
         guard AppLaunchMode.current.autoRefreshOnLaunch else {
             logAutoRefreshTaskSkipped(reason: "disabled_on_launch")

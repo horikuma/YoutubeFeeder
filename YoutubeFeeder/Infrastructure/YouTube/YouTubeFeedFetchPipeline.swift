@@ -12,7 +12,7 @@ struct YouTubeFeedFetchPipeline {
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 30
         )
-        let (data, response) = try await transport.performScheduledData(for: request)
+        let (data, response) = try await transport.fetchScheduledData(for: request)
         let httpResponse = response as? HTTPURLResponse
         logFeedResponseReceived(channelID: channelID, httpResponse: httpResponse, data: data, startedAt: startedAt)
         let metadata = FeedFetchMetadata(

@@ -148,15 +148,21 @@ def _emit_edges(db_path: Path, source_target: Path | None) -> None:
 
 def _function_display_name(function: FunctionRecord, source_target: Path | None) -> str:
     function_name = function.name.splitlines()[0]
+
     if function.file_path is None:
         return function_name
+
+    file_name = function.file_path.name
+
     if source_target is None:
-        return f"{function_name} ({function.file_path})"
+        return f"{file_name}:{function_name}"
+
     try:
         relative_path = function.file_path.resolve().relative_to(source_target.resolve())
     except (FileNotFoundError, ValueError):
         relative_path = function.file_path
-    return f"{function_name} ({relative_path})"
+
+    return f"{relative_path.name}:{function_name}"
 
 
 def _sort_key(function: FunctionRecord, source_target: Path | None) -> tuple[str, str]:
@@ -212,17 +218,17 @@ def _render_call_graph(db_path: Path, source_target: Path | None) -> str:
             set(reverse_adjacency.get(function.usr, [])),
             key=lambda usr: _sort_key(function_by_usr[usr], source_target),
         )
-        lines.append(f"  - name: {_yaml_quote(function.name.splitlines()[0])}")
+        lines.append(f"  - name: {_yaml_quote(_function_display_name(function, source_target))}")
         if callee_usrs:
             lines.append("    calls:")
             for callee_usr in callee_usrs:
                 callee = function_by_usr[callee_usr]
-                lines.append(f"      - {_yaml_quote(callee.name.splitlines()[0])}")
+                lines.append(f"      - {_yaml_quote(_function_display_name(callee, source_target))}")
         if caller_usrs:
             lines.append("    called_by:")
             for caller_usr in caller_usrs:
                 caller = function_by_usr[caller_usr]
-                lines.append(f"      - {_yaml_quote(caller.name.splitlines()[0])}")
+                lines.append(f"      - {_yaml_quote(_function_display_name(caller, source_target))}")
 
     return "\n".join(lines) + "\n"
 

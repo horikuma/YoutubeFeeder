@@ -39,16 +39,21 @@ final class FeedCacheMaintenanceThumbnailCacheTests: LoggedTestCase {
 
             let database = FeedCacheSQLiteDatabase.shared(fileManager: fileManager)
             database.replaceFeedSnapshot(snapshot)
-            let fallbackURL = thumbnailsDirectory.appendingPathComponent(fallbackFilename)
-            try Data("image".utf8).write(to: fallbackURL, options: .atomic)
-
             let store = FeedCacheStore()
-            let result = await store.cacheThumbnail(forVideoID: "video-1")
+            var attempt = 0
+            let result = await store.cacheThumbnail(videoID: "video-1") { url in
+                attempt += 1
+                if attempt == 1 {
+                    throw URLError(.badServerResponse)
+                }
+                let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (Data("image".utf8), response)
+            }
             let reloaded = database.loadFeedSnapshot()
 
-            XCTAssertEqual(result?.filename, fallbackFilename)
-            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(fallbackFilename).path))
-            XCTAssertEqual(reloaded.videos.first?.thumbnailLocalFilename, fallbackFilename)
+            XCTAssertEqual(result, primaryFilename)
+            XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(primaryFilename).path))
+            XCTAssertEqual(reloaded.videos.first?.thumbnailLocalFilename, primaryFilename)
             XCTAssertTrue(fileManager.fileExists(atPath: thumbnailsDirectory.appendingPathComponent(primaryFilename).path) == false || primaryFilename != fallbackFilename)
         }
     }

@@ -5,7 +5,7 @@ import XCTest
 final class AppConsoleLoggerTests: LoggedTestCase {
     func testRenderLineKeepsSingleLineConsoleFormat() {
         XCTAssertEqual(
-            AppConsoleLogger.renderLine(
+            AppConsoleLogger.renderLine(.init(
                 timestamp: "2026-04-18T00:00:00.000Z",
                 level: .info,
                 scope: "cloudflare.sync",
@@ -15,13 +15,13 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                     "status": "200",
                     "endpoint_path": "/channel-registry"
                 ]
-            ),
+            )),
             #"{"line":"[YoutubeFeeder] 2026-04-18T00:00:00.000Z INFO cloudflare.sync.http_response_received endpoint_path=\"\/channel-registry\" status=\"200\" message=\"保存完了\""}"#
         )
     }
 
     func testInfoRenderLineOmitsBracketedListLikeMetadataValues() {
-        let line = unwrappedLogOutput(AppConsoleLogger.renderLine(
+        let line = unwrappedLogOutput(AppConsoleLogger.renderLine(.init(
             timestamp: "2026-04-18T00:00:00.000Z",
             level: .info,
             scope: "cloudflare.sync",
@@ -31,7 +31,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                 "items": "[a, b]",
                 "status": "200"
             ]
-        ))
+        )))
 
         XCTAssertTrue(line.contains(#"status="200""#))
         XCTAssertFalse(line.contains(#"items="[a, b]""#))
@@ -47,7 +47,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
     }
 
     func testDebugRenderLineKeepsBracketedListLikeMetadataValues() {
-        let line = unwrappedLogOutput(AppConsoleLogger.renderLine(
+        let line = unwrappedLogOutput(AppConsoleLogger.renderLine(.init(
             timestamp: "2026-04-18T00:00:00.000Z",
             level: .debug,
             scope: "cloudflare.sync",
@@ -57,14 +57,14 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                 "items": "[a, b]",
                 "status": "200"
             ]
-        ))
+        )))
 
         XCTAssertTrue(line.contains(#"status="200""#))
         XCTAssertTrue(line.contains(#"items="[a, b]""#))
     }
 
     func testRenderLineKeepsAppLaunchMetadataReadable() {
-        let line = unwrappedLogOutput(AppConsoleLogger.renderLine(
+        let line = unwrappedLogOutput(AppConsoleLogger.renderLine(.init(
             timestamp: "2026-04-23T20:13:23.000+09:00",
             level: .info,
             scope: "app.lifecycle",
@@ -78,7 +78,7 @@ final class AppConsoleLoggerTests: LoggedTestCase {
                 "runtime_log_override_file": "none",
                 "runtime_log_override_status": "none"
             ]
-        ))
+        )))
 
         XCTAssertTrue(line.contains(#"app_version="1.0""#))
         XCTAssertTrue(line.contains(#"build_version="3""#))

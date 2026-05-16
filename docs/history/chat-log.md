@@ -1,3 +1,54 @@
+## 2026/05/15
+- セッションを終了せよ。
+  - セッション終了手順として git-main-sync を実行し、main を origin/main に最新化しました。
+- PRを作成せよ。
+  - PR #195 を作成し、Issue #194 との Closes 連携と assignee 設定を確認しました。
+- 拡張子をyamlにせよ。
+  - call graph の既定出力拡張子を .yaml に変更し、views.sh call-graph で llm-temp/call-graph.yaml が生成されることを確認しました。
+- called-byを追加せよ。フィルタルールはcaller,Calleeと同様である。
+  - call graph YAML に called_by を追加し、Caller/Callee と同じフィルタ済み定義関数集合から逆参照を出力するよう変更して検証しました。
+- Calleeがない関数は出力しないのではなく、Callee[]行を出力しない、つまりCalleeがない関数自体は出力する。
+  - Callee がない関数も name 行は出力し、calls 行だけを省略するよう edges.py を変更して検証しました。
+- FunctionsのCaller/Calleeともに、対象Swift、あるいは対象フォルダは以下のswiftファイルで宣言した関数のみを対象とするようにせよ。またCalleeがからの時は出力しないようにした。
+  - Caller/Callee を対象 Swift ファイルまたはフォルダ配下で宣言された定義関数に限定し、Callee なしの関数を出力しないよう変更して検証しました。
+- callerは、自身の所属するオブジェクト、structであったりclassであったり、をclass_name.function_nameのように連結するようにせよ。
+  - caller の定義名を所属型名付きの class_name.function_name 形式で収集するよう変更し、collect と views 経由で call-graph.md の出力を確認しました。
+- firstInitialDisplayAtのcallsに、リストそのものであるeventsが入っている理由を調査し回答せよ。修正を禁じる。
+  - firstInitialDisplayAt の calls に events が入る理由を調査し、SourceKit が dictionary subscript を expr.call として返し収集処理が callee として登録するためだと回答しました。
+- call-graph.mdのfunctionsのnameに、[シンボルが含まれている。理由を調査し、回答せよ。修正を禁じる。
+  - call-graph.md の name に [ が含まれる理由を調査し、生成処理が DB の関数名先頭行をそのまま出しているためだと回答しました。
+- 実行はduckdbやruffをインストール済みの、views.shを介すようにせよ。
+  - inspector/views/edges.py の --call-graph 出力を Mermaid から直接呼び出し関係の YAML へ変更し、views.sh 経由で代表実行を確認しました。 [引用要約: ruff check は成功し、代表 DB と実 DB の call-graph 出力を views.sh 経由で確認済み。]
+- views/edges.pyの出力でアルコールグラフを、以下の形式でyamlにしたい。多層展開は行わず、各関数名と、直接呼び出す関数名の組みを全て出力するようにせよ。 [引用要約: YAML形式は functions 配下に name と calls の配列を持つ例が示されている。]
+- views/edges.pyの出力でアルコールグラフを、以下の形式でyamlにしたい。多層展開は行わず、各関数名と、直接呼び出す関数名の組みを全て出力するようにせよ。
+
+## 2026/05/12
+- セッションを開始せよ。
+  - 原因は、history-rotate で差分は生成されたが、session-start の必須コミット工程が実行されず、HEAD が 0cc7285 のままだからです。docs/history/chat-log.md と docs/history/decisions-log.md が未コミットで残っています。
+  - セッション開始を完了した。
+- 先ほどのコミットを取り消し、差分をstashせよ。
+  - 直近コミットを取り消し、差分をstashしました。
+- 止まれ。
+  - 停止しました。
+- call-graph.mdに対し、scripts/check-mermaid.mjsをあてよ。エラーがなくなるまで、edges.pyを修正せよ。他のツールは使用するな。関数名が改行記号を含む場合、改行記号以降はdropせよ。
+  - call-graph.mdのMermaid検証を通過するようにedges.pyを修正しました。
+- call-graph.mdに対し、scripts/check-mermaid.mjsをあてよ。エラーがなくなるまで、edges.pyを修正せよ。
+- 前述の通り、edgesを拡張する計画を立てて出力せよ。
+  - edges拡張を実装し、llm-temp/call-graph.mdを生成しました。
+  - llm-temp/edges-expansion-plan.md に計画を出力しました。
+- edges.pyを拡張し、llm-temp/call-graph.mdへmarmaidで出力したい。ルートは、どこからも呼ばれていない関数を起点とする。ルート毎にフローチャートを分離する。指定フォルダ配下のswiftで宣言されている関数のみを対象とするフィルタをつける。フィルタは今後追加するため、それを前提の構造とする。計画を検討し、llm-tempへ出力せよ。
+  - inspector/views.sh を追加しました。
+  - 指定フォルダが未確定のため、計画を確定できません。
+- Issueブランチへ切り替えよ。
+  - issue-194 に切り替えました。
+- Issueを作成せよ。「関数コールツリーViewを作成する」
+  - 関数コールツリーViewを作成
+  - Issue #194 を作成しました。
+- Issueを作成せよ。「関数コールツリーViewを作成する」
+- セッションを終了せよ。
+  - git-main-sync を実行し、main を最新化した。
+  - PR #193 を作成した。
+
 ## 2026/05/11
 - compilerargsもprintせよ。
   - cursorinfo 送信時に compilerargs も stdout へ出すようにした。
