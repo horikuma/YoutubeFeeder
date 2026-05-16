@@ -105,6 +105,33 @@
 - [DESIGN-NAMING-002][naming] 機能名を先に置かなければならない
 - [DESIGN-NAMING-003][naming] 操作差分は後置しなければならない
 - [DESIGN-NAMING-004][naming] 同一責務は同一命名でなければならない
+- [DESIGN-NAMING-005][naming] suffixは責務を予測できる意味で使わなければならない
+- [DESIGN-NAMING-006][naming][forbidden] generic bucketとしてsuffixを使ってはならない
+- [DESIGN-NAMING-007][naming] primary type name、file name、namespace meaningは一致させなければならない
+- [DESIGN-NAMING-008][naming] extension partition fileのみ`Foo+Bar.swift`形式を使ってよい
+- [DESIGN-NAMING-009][naming][forbidden] companion object fileをextension partition namingに偽装してはならない
+- [DESIGN-NAMING-010][naming] 新namespaceはorchestration、transport、bridge、workflow、policy、utilityのいずれかとして説明できなければならない
+- [DESIGN-NAMING-011][naming][forbidden] misc helper bucketとしてnamespaceを追加してはならない
+
+#### Canonical suffix semantics
+
+| suffix | use |
+| --- | --- |
+| `Workflow` | 複数stepの処理順序と完了条件を表す |
+| `Controller` | 外部入力やライフサイクルを受け、既存責務へ指示を渡す |
+| `Bridge` | 境界の異なるAPI、framework、model表現を接続する |
+| `Policy` | 判断条件、選択条件、許可条件を表す |
+| `Transport` | 外部I/Oの送受信境界を表す |
+| `HTTPClient` | HTTP request/response実行を表す |
+| `Ordering` | 並び順の決定だけを表す |
+| `ProgressSupport` | 進捗通知や進捗集計の限定helperを表す |
+
+#### Dangerous suffixes
+
+- `Support`、`Helper`、`Manager`、`Logic`、`Service`はgeneric bucket化しやすいため、ontologyが明確な場合のみ使ってよい。
+- `Support`は原則使ってはならない。ただし、specific companion helperまたはimplementation-detail helperとして責務が限定される場合のみ使ってよい。
+- `RefreshProgressSupport`は進捗処理に限定されるため許容する。
+- `FeedCacheCoordinatorSupport`は責務範囲が広くgeneric bucket化するため許容しない。
 
 ---
 
