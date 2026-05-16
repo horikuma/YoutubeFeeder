@@ -20,7 +20,7 @@ final class YouTubeThumbnailCandidatesTests: LoggedTestCase {
     func testFilterPlayableVideosUsesVideoIDBasedThumbnailInsteadOfResponseThumbnail() {
         let item = VideoListResponse.Item(
             id: "video-1",
-            snippet: VideoListResponse.Snippet(
+            snippet: VideoListSnippet(
                 publishedAt: ISO8601DateFormatter().date(from: "2026-03-11T12:34:56Z"),
                 channelID: "UC111",
                 channelTitle: "Example Channel",
@@ -32,12 +32,12 @@ final class YouTubeThumbnailCandidatesTests: LoggedTestCase {
                     high: VideoThumbnail(url: URL(string: "https://example.com/high.jpg"))
                 )
             ),
-            contentDetails: VideoListResponse.ContentDetails(duration: "PT1M30S"),
-            statistics: VideoListResponse.Statistics(viewCount: "100"),
+            contentDetails: VideoListContentDetails(duration: "PT1M30S"),
+            statistics: VideoListStatistics(viewCount: "100"),
             liveStreamingDetails: nil
         )
 
-        let videos = YouTubeSearchService.filterPlayableVideos([item])
+        let videos = YouTubeSearchServiceProcessing.filterPlayableVideos([item])
 
         XCTAssertEqual(videos.count, 1)
         XCTAssertEqual(videos.first?.thumbnailURL?.absoluteString, "https://i.ytimg.com/vi/video-1/maxresdefault.jpg")

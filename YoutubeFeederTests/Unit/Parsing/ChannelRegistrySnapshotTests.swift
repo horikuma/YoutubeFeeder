@@ -149,7 +149,7 @@ final class ChannelRegistrySnapshotTests: LoggedTestCase {
         defer { try? fileManager.removeItem(at: temporaryRoot) }
 
         try withFeedCacheBaseDirectory(temporaryRoot.appendingPathComponent("Cache", isDirectory: true)) {
-            seedLegacyRestoreCache(fileManager: fileManager)
+            try seedLegacyRestoreCache(fileManager: fileManager)
 
             XCTAssertEqual(ChannelRegistryStore.loadAllChannelIDs(fileManager: fileManager), [])
         }

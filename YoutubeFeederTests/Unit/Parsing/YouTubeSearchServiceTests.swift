@@ -13,7 +13,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
         let older = ISO8601DateFormatter().date(from: "2026-03-15T01:00:00Z")!
         let newer = ISO8601DateFormatter().date(from: "2026-03-15T02:00:00Z")!
 
-        let merged = YouTubeSearchService.mergeCandidates(
+        let merged = YouTubeSearchServiceProcessing.mergeCandidates(
             [
                 SearchCandidate(id: "video-1", publishedAt: older),
                 SearchCandidate(id: "video-2", publishedAt: newer),
@@ -26,26 +26,26 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     func testFilterPlayableVideosExcludesLiveEntries() {
-        let json = Self.videoDetailsResponseJSON(items: [
-            Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
-            Self.videoDetailsItemJSON(id: "video-2", duration: "PT45M00S", liveBroadcastContent: "live", includeLiveStreamingDetails: true)
+        let json = videoDetailsResponseJSON(items: [
+            videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
+            videoDetailsItemJSON(id: "video-2", duration: "PT45M00S", liveBroadcastContent: "live", includeLiveStreamingDetails: true)
         ])
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let response = try? decoder.decode(VideoListResponse.self, from: json)
 
-        let filtered = YouTubeSearchService.filterPlayableVideos(response?.items ?? [])
+        let filtered = YouTubeSearchServiceProcessing.filterPlayableVideos(response?.items ?? [])
         XCTAssertEqual(filtered.map(\.id), ["video-1"])
         XCTAssertEqual(filtered.first?.durationSeconds, 1_630)
         XCTAssertEqual(filtered.first?.viewCount, 12_345)
     }
 
     func testVideoListResponseDecodesItemsWithMissingContentDetailsDuration() throws {
-        let json = Self.videoDetailsResponseJSON(items: [
-            Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
-            Self.videoDetailsItemJSON(id: "video-2", duration: nil),
-            Self.videoDetailsItemJSON(id: "video-3", duration: nil, publishedAt: "2026-03-15T00:00:00Z", channelID: "UC333", channelTitle: "Three", title: "Missing content details")
+        let json = videoDetailsResponseJSON(items: [
+            videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
+            videoDetailsItemJSON(id: "video-2", duration: nil),
+            videoDetailsItemJSON(id: "video-3", duration: nil, publishedAt: "2026-03-15T00:00:00Z", channelID: "UC333", channelTitle: "Three", title: "Missing content details")
         ])
 
         let decoder = JSONDecoder()
@@ -56,16 +56,16 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
     }
 
     func testFilterPlayableVideosExcludesItemsMissingDuration() throws {
-        let json = Self.videoDetailsResponseJSON(items: [
-            Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
-            Self.videoDetailsItemJSON(id: "video-2", duration: nil),
-            Self.videoDetailsItemJSON(id: "video-3", duration: nil, publishedAt: "2026-03-15T00:00:00Z", channelID: "UC333", channelTitle: "Three", title: "Missing content details")
+        let json = videoDetailsResponseJSON(items: [
+            videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
+            videoDetailsItemJSON(id: "video-2", duration: nil),
+            videoDetailsItemJSON(id: "video-3", duration: nil, publishedAt: "2026-03-15T00:00:00Z", channelID: "UC333", channelTitle: "Three", title: "Missing content details")
         ])
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let response = try decoder.decode(VideoListResponse.self, from: json)
-        let filtered = YouTubeSearchService.filterPlayableVideos(response.items)
+        let filtered = YouTubeSearchServiceProcessing.filterPlayableVideos(response.items)
 
         XCTAssertEqual(filtered.map(\.id), ["video-1"])
         XCTAssertEqual(filtered.first?.durationSeconds, 1_630)
@@ -73,7 +73,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
 
     func testFetchVideoDetailsContinuesConvertibleItemsAcrossBatchesWhenExcludedItemsPresent() async throws {
         let recorder = VideoDetailsRequestRecorder()
-        let service = YouTubeSearchService { request in
+        let transport = YouTubeSearchServiceTransport { request in
             guard let url = request.url,
                   let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                   components.path == "/youtube/v3/videos",
@@ -86,16 +86,16 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
             await recorder.record(ids)
 
             let data = if ids.count == 50 {
-                Self.videoDetailsResponseJSON(
+                videoDetailsResponseJSON(
                     items: [
-                        Self.videoDetailsItemJSON(id: ids[0], duration: "PT27M10S"),
-                        Self.videoDetailsItemJSON(id: ids[1], duration: nil)
+                        videoDetailsItemJSON(id: ids[0], duration: "PT27M10S"),
+                        videoDetailsItemJSON(id: ids[1], duration: nil)
                     ]
                 )
             } else {
-                Self.videoDetailsResponseJSON(
+                videoDetailsResponseJSON(
                     items: [
-                        Self.videoDetailsItemJSON(id: ids[0], duration: "PT45M00S")
+                        videoDetailsItemJSON(id: ids[0], duration: "PT45M00S")
                     ]
                 )
             }
@@ -110,7 +110,7 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
         }
         let ids = (1 ... 51).map { "video-\(String(format: "%03d", $0))" }
 
-        let videos = try await service.fetchVideoDetails(videoIDs: ids, apiKey: "test-key")
+        let videos = try await transport.fetchVideoDetails(videoIDs: ids, apiKey: "test-key")
         let requestedIDs = await recorder.snapshot()
 
         XCTAssertEqual(requestedIDs.map(\.count), [50, 1])
@@ -126,8 +126,8 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
             playlistVideoIDs: ["video-1", "video-2"],
             playlistNextPageToken: "NEXT_PAGE",
             videoDetails: [
-                Self.videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
-                Self.videoDetailsItemJSON(id: "video-2", duration: "PT45M00S")
+                videoDetailsItemJSON(id: "video-1", duration: "PT27M10S"),
+                videoDetailsItemJSON(id: "video-2", duration: "PT45M00S")
             ]
         )
 
@@ -159,8 +159,8 @@ final class YouTubeSearchServiceTests: LoggedTestCase {
             playlistVideoIDs: ["video-short", "video-long"],
             playlistNextPageToken: nil,
             videoDetails: [
-                Self.videoDetailsItemJSON(id: "video-short", duration: "PT10S"),
-                Self.videoDetailsItemJSON(id: "video-long", duration: "PT27M10S")
+                videoDetailsItemJSON(id: "video-short", duration: "PT10S"),
+                videoDetailsItemJSON(id: "video-long", duration: "PT27M10S")
             ]
         )
 
@@ -188,7 +188,8 @@ private func videoDetailsItemJSON(
     publishedAt: String = "2026-03-15T02:00:00Z",
     channelID: String = "UC111",
     channelTitle: String = "One",
-    title: String = "Playable \(id)",
+    title: String? = nil,
+    viewCount: String = "12345",
     liveBroadcastContent: String = "none",
     includeLiveStreamingDetails: Bool = false
 ) -> String {
@@ -212,11 +213,14 @@ private func videoDetailsItemJSON(
         "publishedAt": "\(publishedAt)",
         "channelId": "\(channelID)",
         "channelTitle": "\(channelTitle)",
-        "title": "\(title)",
+        "title": "\(title ?? "Playable \(id)")",
         "liveBroadcastContent": "\(liveBroadcastContent)",
         "thumbnails": {
           "high": { "url": "https://example.com/\(id).jpg" }
         }
+      },
+      "statistics": {
+        "viewCount": "\(viewCount)"
       }
       \(includeLiveStreamingDetails ? ",\n  \"liveStreamingDetails\": {}" : "")
     }
@@ -278,7 +282,7 @@ private func httpResponse(for url: URL) -> HTTPURLResponse {
 }
 
 private func makeChannelVideosService(
-    recording recorder: ChannelVideosRequestRecorder,
+    recording recorder: ChannelVideosRequestRecorder = ChannelVideosRequestRecorder(),
     uploadsPlaylistID: String = "UU123",
     playlistVideoIDs: [String] = ["video-1", "video-2"],
     playlistNextPageToken: String? = "NEXT_PAGE",

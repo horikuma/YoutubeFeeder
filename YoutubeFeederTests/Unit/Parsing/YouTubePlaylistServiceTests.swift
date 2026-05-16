@@ -76,8 +76,8 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
                     throw YouTubeSearchError.invalidResponse
                 }
                 return (
-                    Self.playlistsResponseData(),
-                    Self.httpResponse(for: url)
+                    playlistsResponseData(),
+                    httpResponse(for: url)
                 )
             }
 
@@ -112,18 +112,18 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
                     switch components.path {
                     case "/youtube/v3/playlists":
                         return (
-                            Self.playlistsResponseData(),
-                            Self.httpResponse(for: url)
+                            playlistsResponseData(),
+                            httpResponse(for: url)
                         )
                     case "/youtube/v3/playlistItems":
                         return (
-                            Self.playlistItemsResponseData(),
-                            Self.httpResponse(for: url)
+                            playlistItemsResponseData(),
+                            httpResponse(for: url)
                         )
                     case "/youtube/v3/videos":
                         return (
-                            Self.videoDetailsResponseData(),
-                            Self.httpResponse(for: url)
+                            videoDetailsResponseData(),
+                            httpResponse(for: url)
                         )
                     default:
                         throw YouTubeSearchError.invalidResponse
@@ -165,13 +165,13 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
                 switch components.path {
                 case "/youtube/v3/playlistItems":
                     return (
-                        Self.playlistItemsResponseData(),
-                        Self.httpResponse(for: url)
+                        playlistItemsResponseData(),
+                        httpResponse(for: url)
                     )
                 case "/youtube/v3/videos":
                     return (
-                        Self.videoDetailsResponseData(),
-                        Self.httpResponse(for: url)
+                        videoDetailsResponseData(),
+                        httpResponse(for: url)
                     )
                 default:
                     throw YouTubeSearchError.invalidResponse
@@ -206,32 +206,6 @@ final class YouTubePlaylistServiceTests: LoggedTestCase {
             "https://www.youtube.com/playlist?list=PL-001"
         )
     }
-}
-
-private func withEnvironment<T>(
-    _ overrides: [String: String],
-    operation: () async throws -> T
-) async throws -> T {
-    var previousValues: [String: String?] = [:]
-    for key in overrides.keys {
-        previousValues[key] = ProcessInfo.processInfo.environment[key]
-    }
-
-    for (key, value) in overrides {
-        setenv(key, value, 1)
-    }
-
-    defer {
-        for (key, previousValue) in previousValues {
-            if let previousValue {
-                setenv(key, previousValue, 1)
-            } else {
-                unsetenv(key)
-            }
-        }
-    }
-
-    return try await operation()
 }
 
 private func playlistsResponseData() -> Data {

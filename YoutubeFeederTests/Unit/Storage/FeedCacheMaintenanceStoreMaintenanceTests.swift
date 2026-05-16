@@ -41,10 +41,10 @@ final class FeedCacheMaintenanceStoreMaintenanceTests: LoggedTestCase {
             try Data("image".utf8).write(to: thumbnailURL, options: .atomic)
 
             let store = FeedCacheStore()
-            let result = await store.cacheThumbnail(forVideoID: "video-1")
+            let result = await store.cacheThumbnail(videoID: "video-1")
             let reloaded = database.loadFeedSnapshot()
 
-            XCTAssertEqual(result?.filename, "video-1.jpg")
+            XCTAssertEqual(result, "video-1.jpg")
             XCTAssertEqual(reloaded.videos.first?.thumbnailLocalFilename, "video-1.jpg")
         }
     }
