@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 final class FeedCacheCoordinatorSupport {
     unowned let coordinator: FeedCacheCoordinator
-    private lazy var maintenanceSupport = FeedCacheCoordinatorMaintenanceSupport(coordinator: coordinator)
+    private lazy var maintenanceSupport = FeedCacheCoordinatorMaintenanceBridge(coordinator: coordinator)
 
     init(coordinator: FeedCacheCoordinator) {
         self.coordinator = coordinator

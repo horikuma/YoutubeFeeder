@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor
-final class FeedCacheCoordinatorBrowseSupport {
+final class FeedCacheCoordinatorBrowseWorkflow {
     unowned let coordinator: FeedCacheCoordinator
 
     init(coordinator: FeedCacheCoordinator) {

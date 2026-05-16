@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor
-final class FeedCacheCoordinatorMaintenanceSupport {
+final class FeedCacheCoordinatorMaintenanceBridge {
     unowned let coordinator: FeedCacheCoordinator
 
     init(coordinator: FeedCacheCoordinator) {

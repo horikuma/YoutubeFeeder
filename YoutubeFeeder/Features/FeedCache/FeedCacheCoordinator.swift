@@ -32,8 +32,8 @@ final class FeedCacheCoordinator: ObservableObject {
     var remoteSearchPrewarmTasks: [String: Task<Void, Never>] = [:]
     let remoteSearchCacheLifetime: TimeInterval = 12 * 60 * 60
     private lazy var support = FeedCacheCoordinatorSupport(coordinator: self)
-    private lazy var browseSupport = FeedCacheCoordinatorBrowseSupport(coordinator: self)
-    private lazy var refreshSupport = FeedCacheCoordinatorRefreshSupport(coordinator: self)
+    private lazy var browseSupport = FeedCacheCoordinatorBrowseWorkflow(coordinator: self)
+    private lazy var refreshSupport = FeedCacheCoordinatorRefreshTriggerController(coordinator: self)
     lazy var refreshContinuation = FeedCacheCoordinatorRefreshWorkflow(coordinator: self)
 
     static let homeSearchKeyword = "ゆっくり実況"

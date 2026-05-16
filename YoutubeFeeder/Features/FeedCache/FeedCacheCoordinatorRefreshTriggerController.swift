@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor
-final class FeedCacheCoordinatorRefreshSupport {
+final class FeedCacheCoordinatorRefreshTriggerController {
     unowned let coordinator: FeedCacheCoordinator
 
     init(coordinator: FeedCacheCoordinator) {
