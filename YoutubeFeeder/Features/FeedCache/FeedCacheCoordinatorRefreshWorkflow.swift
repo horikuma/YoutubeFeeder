@@ -21,6 +21,29 @@ final class FeedCacheCoordinatorRefreshWorkflow {
         support.finishManualRefreshProgress()
     }
 
+    func processChannel(
+        _ channelID: String,
+        states: [String: CachedChannelState],
+        forceNetworkFetch: Bool = false
+    ) async -> FeedChannelProcessResult {
+        if forceNetworkFetch {
+            let result = await coordinator.channelSyncService.refreshChannelForcingNetworkFetch(
+                channelID: channelID,
+                state: states[channelID],
+                cacheThumbnails: true
+            )
+            return FeedChannelProcessResult(
+                errorMessage: result.errorMessage,
+                fetchedVideoCount: result.fetchedVideoCount,
+                uncachedVideoCount: result.uncachedVideos.count,
+                conditionalCheckAttempted: false,
+                networkFetchAttempted: true,
+                httpStatusCode: result.httpStatusCode
+            )
+        }
+        return await coordinator.channelSyncService.processConditionalRefresh(channelID: channelID, state: states[channelID])
+    }
+
     func performMockRefresh() async {
         let totalChannels = max(coordinator.progress.totalChannels, coordinator.maintenanceItems.count)
         coordinator.refreshProgress = CacheRefreshProgress(
@@ -118,7 +141,7 @@ final class FeedCacheCoordinatorRefreshWorkflow {
         support.updateManualRefreshActiveCalls(completed: 0, totalChannels: sortedChannels.count, activeCalls: sortedChannels.isEmpty ? 0 : 1)
 
         for (index, channelID) in sortedChannels.enumerated() {
-            let result = await coordinator.processChannel(
+            let result = await processChannel(
                 channelID,
                 states: states,
                 forceNetworkFetch: forceNetworkFetch
@@ -232,7 +255,7 @@ final class FeedCacheCoordinatorRefreshWorkflow {
 
     func refreshImportedChannels(_ importedChannelIDs: [String]) async {
         let snapshot = await coordinator.readService.loadSnapshot()
-        let states = coordinator.dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
+        let states = CollectionUtilities.dictionaryKeepingLastValue(snapshot.channels.map { ($0.channelID, $0) })
         let cachedVideoChannelIDs = Set(snapshot.videos.map(\.channelID))
         let prioritizedChannelIDs = importedChannelIDs.sorted { lhs, rhs in
             let lhsNeedsWarmup = states[lhs]?.channelTitle == nil || !cachedVideoChannelIDs.contains(lhs)
@@ -244,7 +267,7 @@ final class FeedCacheCoordinatorRefreshWorkflow {
         }
 
         for channelID in prioritizedChannelIDs {
-            _ = await coordinator.processChannel(channelID, states: states)
+            _ = await processChannel(channelID, states: states)
         }
 
         _ = await coordinator.performConsistencyMaintenanceIfNeeded(force: false)

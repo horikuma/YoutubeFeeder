@@ -31,9 +31,9 @@ final class FeedCacheCoordinator: ObservableObject {
     var remoteSearchSnapshotCache: [String: VideoSearchResult] = [:]
     var remoteSearchPrewarmTasks: [String: Task<Void, Never>] = [:]
     let remoteSearchCacheLifetime: TimeInterval = 12 * 60 * 60
-    private lazy var support = FeedCacheCoordinatorSupport(coordinator: self)
+    lazy var maintenanceSupport = FeedCacheCoordinatorMaintenanceBridge(coordinator: self)
     private lazy var browseSupport = FeedCacheCoordinatorBrowseWorkflow(coordinator: self)
-    private lazy var refreshSupport = FeedCacheCoordinatorRefreshTriggerController(coordinator: self)
+    lazy var refreshSupport = FeedCacheCoordinatorRefreshTriggerController(coordinator: self)
     lazy var refreshContinuation = FeedCacheCoordinatorRefreshWorkflow(coordinator: self)
 
     static let homeSearchKeyword = "ゆっくり実況"
@@ -187,42 +187,19 @@ final class FeedCacheCoordinator: ObservableObject {
         await readService.searchVideos(keyword: keyword, limit: limit)
     }
 
-    func processChannel(
-        _ channelID: String,
-        states: [String: CachedChannelState],
-        forceNetworkFetch: Bool = false
-    ) async -> FeedChannelProcessResult {
-        await support.processChannel(channelID, states: states, forceNetworkFetch: forceNetworkFetch)
-    }
-
-    func prioritizedChannelIDs(states: [String: CachedChannelState]) -> [String] {
-        support.prioritizedChannelIDs(states: states)
-    }
-
-    func dictionaryKeepingLastValue<Value>(_ pairs: [(String, Value)]) -> [String: Value] {
-        support.dictionaryKeepingLastValue(pairs)
-    }
-
-    func dropChannelRefreshTriggerIfRunning(
-        _ trigger: String,
-        metadata additionalMetadata: [String: String] = [:]
-    ) -> Bool {
-        support.dropChannelRefreshTriggerIfRunning(trigger, metadata: additionalMetadata)
-    }
-
     func performConsistencyMaintenanceIfNeeded(force: Bool) async -> CacheConsistencyMaintenanceResult? {
-        await support.performConsistencyMaintenanceIfNeeded(force: force)
+        await maintenanceSupport.performConsistencyMaintenanceIfNeeded(force: force)
     }
 
     func syncRegisteredChannelsFromStore(reason: String) {
-        support.syncRegisteredChannelsFromStore(reason: reason)
+        maintenanceSupport.syncRegisteredChannelsFromStore(reason: reason)
     }
 
     func refreshHomeSystemStatus(snapshot: FeedCacheSnapshot? = nil, currentProgress: CacheProgress? = nil) async {
-        await support.refreshHomeSystemStatus(snapshot: snapshot, currentProgress: currentProgress)
+        await maintenanceSupport.refreshHomeSystemStatus(snapshot: snapshot, currentProgress: currentProgress)
     }
 
     func startChannelRegistrySyncIfNeeded() {
-        support.startChannelRegistrySyncIfNeeded()
+        maintenanceSupport.startChannelRegistrySyncIfNeeded()
     }
 }

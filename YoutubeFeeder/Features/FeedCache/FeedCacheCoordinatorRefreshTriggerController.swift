@@ -29,7 +29,7 @@ final class FeedCacheCoordinatorRefreshTriggerController {
     }
 
     func refreshCacheManually() async {
-        guard !coordinator.dropChannelRefreshTriggerIfRunning("manual_home_refresh") else { return }
+        guard !dropChannelRefreshTriggerIfRunning("manual_home_refresh") else { return }
         coordinator.syncRegisteredChannelsFromStore(reason: "manual_refresh")
 
         AppConsoleLogger.appLifecycle.info(
@@ -70,7 +70,7 @@ final class FeedCacheCoordinatorRefreshTriggerController {
             RuntimeDiagnostics.shared.record("channel_manual_refresh_ignored", detail: "空の channelID のため更新しない")
             return
         }
-        guard !coordinator.dropChannelRefreshTriggerIfRunning(
+        guard !dropChannelRefreshTriggerIfRunning(
             "manual_channel_refresh",
             metadata: ["channelID": normalizedChannelID]
         ) else { return }
@@ -129,5 +129,26 @@ final class FeedCacheCoordinatorRefreshTriggerController {
             ]
         )
         return nil
+    }
+
+    func dropChannelRefreshTriggerIfRunning(
+        _ trigger: String,
+        metadata additionalMetadata: [String: String] = [:]
+    ) -> Bool {
+        guard coordinator.isChannelRefreshRunning else { return false }
+        var metadata = additionalMetadata
+        metadata["trigger"] = trigger
+        metadata["has_manual_refresh"] = coordinator.manualRefreshTask != nil ? "true" : "false"
+        metadata["has_wall_clock_scheduler"] = coordinator.automaticRefreshTask != nil ? "true" : "false"
+        AppConsoleLogger.appLifecycle.info(
+            "channel_refresh_trigger_dropped",
+            metadata: metadata
+        )
+        RuntimeDiagnostics.shared.record(
+            "channel_refresh_trigger_dropped",
+            detail: "ChannelRefresh 実行中のため新しいトリガーを破棄",
+            metadata: metadata
+        )
+        return true
     }
 }
