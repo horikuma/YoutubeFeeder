@@ -1,9 +1,9 @@
 import Foundation
 
 @MainActor
-final class FeedCacheCoordinatorRefreshContinuation {
+final class FeedCacheCoordinatorRefreshWorkflow {
     unowned let coordinator: FeedCacheCoordinator
-    private lazy var support = FeedCacheCoordinatorRefreshContinuationSupport(coordinator: coordinator)
+    private lazy var support = FeedCacheCoordinatorRefreshProgressSupport(coordinator: coordinator)
 
     init(coordinator: FeedCacheCoordinator) {
         self.coordinator = coordinator
