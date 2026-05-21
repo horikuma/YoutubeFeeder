@@ -8,10 +8,6 @@ from pathlib import Path
 
 from sourcekit_client.collect_data import CollectDataset
 
-ROOT = Path(__file__).resolve().parent
-SCHEMA_PATH = ROOT / "schema.sql"
-COLLECT_DB_PATH = ROOT.parent / "llm-cache" / "collect.db"
-
 
 class CollectDbExportError(RuntimeError):
     pass
@@ -25,8 +21,8 @@ class CollectDbConstraintError(CollectDbExportError):
         self.reason = reason
 
 
-def _load_schema() -> str:
-    return SCHEMA_PATH.read_text(encoding="utf-8")
+def _load_schema(schema_path: Path) -> str:
+    return schema_path.read_text(encoding="utf-8")
 
 
 def _execute_insert(
@@ -43,15 +39,15 @@ def _execute_insert(
         raise CollectDbConstraintError(table, column, str(error)) from error
 
 
-def write_collect_db(datasets: list[CollectDataset]) -> None:
-    COLLECT_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    if COLLECT_DB_PATH.exists():
-        COLLECT_DB_PATH.unlink()
+def write_collect_db(datasets: list[CollectDataset], collect_db_path: Path, schema_path: Path) -> None:
+    collect_db_path.parent.mkdir(parents=True, exist_ok=True)
+    if collect_db_path.exists():
+        collect_db_path.unlink()
 
     try:
-        with sqlite3.connect(COLLECT_DB_PATH) as connection:
+        with sqlite3.connect(collect_db_path) as connection:
             connection.execute("PRAGMA foreign_keys = ON")
-            connection.executescript(_load_schema())
+            connection.executescript(_load_schema(schema_path))
             cursor = connection.cursor()
 
             for dataset in datasets:
@@ -125,11 +121,14 @@ def write_collect_db(datasets: list[CollectDataset]) -> None:
                 for row in dataset.call_edges:
                     _execute_insert(
                         cursor,
-                        "INSERT INTO call_edges(caller_usr, callee_usr, file_id, line, column, tu_id) "
-                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        "INSERT INTO call_edges("
+                        "caller_usr, callee_usr, argument_summary, file_id, line, column, tu_id"
+                        ") "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
                         (
                             row.caller_usr,
                             row.callee_usr,
+                            row.argument_summary,
                             file_id,
                             row.line,
                             row.column,

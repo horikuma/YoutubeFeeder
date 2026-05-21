@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS call_edges (
     id INTEGER PRIMARY KEY,
     caller_usr TEXT NOT NULL,
     callee_usr TEXT NOT NULL,
+    argument_summary TEXT,
     file_id INTEGER NOT NULL,
     line INTEGER,
     column INTEGER,

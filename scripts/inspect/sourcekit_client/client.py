@@ -11,8 +11,6 @@ from pathlib import Path
 from .daemon import SourceKitDaemon
 from .frontend_jobs import load_builtin_swift_compilation_jobs, select_builtin_swift_compilation_job
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
 
 def _run_command(args: list[str]) -> subprocess.CompletedProcess[str]:
     print(args, flush=True)
@@ -71,12 +69,13 @@ def init(
     raw_build_log_path: Path,
     *,
     debug: bool = False,
+    debug_output_path: Path | None = None,
     daemon: SourceKitDaemon | None = None,
 ) -> _SourceKitClient:
     structure = _load_structure(source_file)
     jobs = load_builtin_swift_compilation_jobs(
         raw_build_log_path,
-        debug_output_path=PROJECT_ROOT / "llm-temp" / "frontend-jobs.json" if debug else None,
+        debug_output_path=debug_output_path if debug else None,
     )
     job = select_builtin_swift_compilation_job(jobs, source_file)
 

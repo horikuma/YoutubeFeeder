@@ -2,17 +2,19 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PYTHON="$PROJECT_ROOT/.venv/bin/python"
-SCRIPT_DIR="$PROJECT_ROOT/inspector"
+SCRIPT_DIR="$PROJECT_ROOT/scripts/inspect"
 COMMAND="${1:-all}"
 ARG2="${2:-}"
 ARG3="${3:-}"
-DEBUG="false"
-COLLECT_DB_PATH="$PROJECT_ROOT/llm-cache/collect.db"
-RAW_BUILD_LOG="$PROJECT_ROOT/llm-temp/xcodebuild.log"
-# SOURCE_ROOT="$PROJECT_ROOT/YoutubeFeeder/App/Support/AppTestSupport.swift"
-SOURCE_ROOT="$PROJECT_ROOT/YoutubeFeeder"
+DEBUG="true"
+COLLECT_DB_PATH="$PROJECT_ROOT/.tmp/collect.db"
+RAW_BUILD_LOG="$PROJECT_ROOT/.tmp/xcodebuild.log"
+SOURCE_ROOT="$PROJECT_ROOT/GraphEditor"
+SCHEMA_PATH="$SCRIPT_DIR/schema.sql"
+STRUCTURE_DUMP_PATH="$PROJECT_ROOT/.tmp/structure.json"
+FRONTEND_JOBS_DUMP_PATH="$PROJECT_ROOT/.tmp/frontend-jobs.json"
 
 case "$COMMAND" in
   funcs|vars|edges)
@@ -76,11 +78,10 @@ case "$COMMAND" in
     ;;
 
   build)
+    mkdir -p "$PROJECT_ROOT/.tmp"
     run_step_to_file build "$RAW_BUILD_LOG" \
-      "$PYTHON" "$PROJECT_ROOT/scripts/xcode-build/xcodebuild.py" \
-        -scheme YoutubeFeeder \
-        -configuration Debug \
-        -destination platform=macOS \
+      "$PROJECT_ROOT/scripts/build.sh" \
+        --debug \
         CODE_SIGNING_ALLOWED=NO \
         CODE_SIGNING_REQUIRED=NO \
         CODE_SIGN_IDENTITY= \
@@ -89,11 +90,16 @@ case "$COMMAND" in
     ;;
 
   collect)
-    run_step_to_file collect "$PROJECT_ROOT/llm-temp/collect.log" \
+    mkdir -p "$PROJECT_ROOT/.tmp"
+    run_step_to_file collect "$PROJECT_ROOT/.tmp/collect.log" \
       "$PYTHON" "$SCRIPT_DIR/collect.py" \
         "$RAW_BUILD_LOG" \
         "$SOURCE_ROOT" \
-        --debug "$DEBUG"
+        "$COLLECT_DB_PATH" \
+        "$SCHEMA_PATH" \
+        --debug "$DEBUG" \
+        --structure-dump "$STRUCTURE_DUMP_PATH" \
+        --frontend-jobs-dump "$FRONTEND_JOBS_DUMP_PATH"
     ;;
 
   *)
