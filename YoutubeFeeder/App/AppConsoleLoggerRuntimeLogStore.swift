@@ -48,7 +48,7 @@ enum AppConsoleLoggerRuntimeLogStore {
         buffer.activeRuntimeLogFileURL()
     }
 
-    static func runtimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
-        AppConsoleLoggerRuntimeLogLocator.runtimeLogFileURL(sourceFilePath: sourceFilePath)
+    static func runtimeLogFileURL() -> URL? {
+        AppConsoleLoggerRuntimeLogLocator.runtimeLogFileURL()
     }
 }

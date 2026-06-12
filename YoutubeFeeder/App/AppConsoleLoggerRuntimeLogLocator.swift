@@ -31,22 +31,22 @@ enum AppConsoleLoggerRuntimeLogLocator {
         "youtubefeeder-runtime-\(AppConsoleLogger.runtimeLogLaunchFileNameFormatter.string(from: date))-pid\(processIdentifier).log"
     }
 
-    static func runtimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
+    static func runtimeLogFileURL() -> URL? {
 #if targetEnvironment(macCatalyst)
         if let override = runtimeLogOverrideFileURL() {
             return override
         }
 
-        guard let logDirectoryURL = defaultRuntimeLogDirectoryURL(sourceFilePath: sourceFilePath) else { return nil }
+        guard let logDirectoryURL = defaultRuntimeLogDirectoryURL() else { return nil }
         return logDirectoryURL.appendingPathComponent(AppConsoleLogger.legacyRuntimeLogFileName)
 #else
         return nil
 #endif
     }
 
-    static func runtimeLogLaunchFileURL(sourceFilePath: String = #filePath) -> URL? {
+    static func runtimeLogLaunchFileURL() -> URL? {
 #if targetEnvironment(macCatalyst)
-        guard let logDirectoryURL = defaultRuntimeLogDirectoryURL(sourceFilePath: sourceFilePath) else { return nil }
+        guard let logDirectoryURL = defaultRuntimeLogDirectoryURL() else { return nil }
         let fileName = launchRuntimeLogFileName(
             date: .now,
             processIdentifier: ProcessInfo.processInfo.processIdentifier
@@ -65,11 +65,14 @@ enum AppConsoleLoggerRuntimeLogLocator {
 #endif
     }
 
-    private static func defaultRuntimeLogDirectoryURL(sourceFilePath: String = #filePath) -> URL? {
+    private static func defaultRuntimeLogDirectoryURL() -> URL? {
 #if targetEnvironment(macCatalyst)
-        guard let markerRange = sourceFilePath.range(of: AppConsoleLogger.projectRootMarker) else { return nil }
-        let projectRoot = String(sourceFilePath[..<markerRange.lowerBound])
-        return URL(fileURLWithPath: projectRoot).appendingPathComponent(AppConsoleLogger.runtimeLogDirectoryRelativePath, isDirectory: true)
+        guard let libraryURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        return libraryURL
+            .appendingPathComponent("Logs", isDirectory: true)
+            .appendingPathComponent(AppConsoleLogger.runtimeLogDirectoryName, isDirectory: true)
 #else
         return nil
 #endif

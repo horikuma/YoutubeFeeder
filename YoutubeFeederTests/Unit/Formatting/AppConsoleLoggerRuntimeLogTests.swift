@@ -79,12 +79,12 @@ final class AppConsoleLoggerRuntimeLogTests: LoggedTestCase {
         XCTAssertTrue(output.contains(#"recovery_stage="prepare_runtime_log_file""#))
     }
 
-    func testMacRuntimeLogFileURLUsesProjectLogsDirectory() throws {
-        let sourceFilePath = "/Repo/YoutubeFeeder/App/AppConsoleLogger.swift"
+    func testMacRuntimeLogFileURLUsesUserLibraryLogsDirectory() throws {
+        let url = try XCTUnwrap(AppConsoleLogger.runtimeLogFileURL())
 
-        let url = try XCTUnwrap(AppConsoleLogger.runtimeLogFileURL(sourceFilePath: sourceFilePath))
-
-        XCTAssertEqual(url.path, "/Repo/logs/youtubefeeder-runtime.log")
+        XCTAssertEqual(url.deletingLastPathComponent().lastPathComponent, "YoutubeFeeder")
+        XCTAssertEqual(url.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent, "Logs")
+        XCTAssertEqual(url.lastPathComponent, "youtubefeeder-runtime.log")
     }
 
     func testMacLoggerWritesSameRenderedLineToRuntimeLogFile() throws {

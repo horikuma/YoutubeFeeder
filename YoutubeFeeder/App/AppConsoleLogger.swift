@@ -48,8 +48,7 @@ struct AppConsoleLogger {
     static let browseTileInteraction = AppConsoleLogger(scope: "browse.tile.interaction")
 
     static let prefix = "[YoutubeFeeder]"
-    static let projectRootMarker = "YoutubeFeeder/App/AppConsoleLogger.swift"
-    static let runtimeLogDirectoryRelativePath = "logs"
+    static let runtimeLogDirectoryName = "YoutubeFeeder"
     static let legacyRuntimeLogFileName = "youtubefeeder-runtime.log"
     static let maximumPendingRuntimeLogLines = 200
     static let minimumLogLevel: AppConsoleLogLevel = .info
@@ -241,8 +240,8 @@ struct AppConsoleLogger {
         AppConsoleLoggerRuntimeLogStore.launchRuntimeLogFileName(date: date, processIdentifier: processIdentifier)
     }
 
-    static func runtimeLogFileURL(sourceFilePath: String = #filePath) -> URL? {
-        AppConsoleLoggerRuntimeLogStore.runtimeLogFileURL(sourceFilePath: sourceFilePath)
+    static func runtimeLogFileURL() -> URL? {
+        AppConsoleLoggerRuntimeLogStore.runtimeLogFileURL()
     }
 
     private static func isAllowedEventLog(_ event: String) -> Bool {
