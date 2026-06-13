@@ -57,6 +57,13 @@ final class FeedCacheCoordinatorBrowseWorkflow {
         guard !normalizedChannelID.isEmpty else { return [] }
 
         let startedAt = Date()
+        AppConsoleLogger.appLifecycle.info(
+            "channel_playlist_list_start",
+            metadata: [
+                "channelID": normalizedChannelID,
+                "limit": String(limit)
+            ]
+        )
         do {
             let playlists = try await coordinator.channelPlaylistBrowseService.loadPlaylists(
                 channelID: normalizedChannelID,
@@ -111,6 +118,14 @@ final class FeedCacheCoordinatorBrowseWorkflow {
         }
 
         let startedAt = Date()
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_videos_page_start",
+            metadata: [
+                "playlistID": normalizedPlaylistID,
+                "pageToken": pageToken ?? "",
+                "limit": String(limit)
+            ]
+        )
         do {
             let page = try await coordinator.channelPlaylistBrowseService.loadPlaylistVideosPage(
                 playlistID: normalizedPlaylistID,

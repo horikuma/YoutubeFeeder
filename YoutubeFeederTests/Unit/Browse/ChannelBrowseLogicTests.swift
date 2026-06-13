@@ -291,3 +291,88 @@ final class ChannelBrowseLogicTests: LoggedTestCase {
         )
     }
 }
+
+final class ChannelBrowseViewModelPlaylistLoadingTests: LoggedTestCase {
+    @MainActor
+    func testFetchesPlaylistsWhenSnapshotIsMissing() async throws {
+        try await withTemporaryFeedCacheBaseDirectory { _ in
+            try await withEnvironment(["YOUTUBEFEEDER_UI_TEST_MODE": "1"]) {
+                let channelID = "UC_VIEWMODEL_PLAYLISTS"
+                let coordinator = FeedCacheCoordinator(
+                    channels: [channelID],
+                    dependencies: FeedCacheDependencies.live()
+                )
+                let viewModel = ChannelBrowseViewModel(coordinator: coordinator, sortDescriptor: .default)
+                viewModel.state.setItems([makeItem(channelID: channelID)])
+                viewModel.state.selectChannel(channelID)
+                viewModel.state.setDisplayMode(.playlists, for: channelID)
+
+                viewModel.loadPlaylistsIfNeeded(for: channelID)
+
+                try await waitForPlaylistCondition {
+                    viewModel.state.hasLoadedPlaylists(for: channelID)
+                }
+                let snapshot = await coordinator.loadSnapshot()
+                XCTAssertFalse(viewModel.state.playlists(for: channelID).isEmpty)
+                XCTAssertFalse(snapshot.playlists.playlistsByChannelID[channelID]?.isEmpty ?? true)
+            }
+        }
+    }
+
+    @MainActor
+    func testFetchesPlaylistVideosWhenPageIsMissing() async throws {
+        try await withTemporaryFeedCacheBaseDirectory { _ in
+            try await withEnvironment(["YOUTUBEFEEDER_UI_TEST_MODE": "1"]) {
+                let channelID = "UC_VIEWMODEL_PLAYLIST_VIDEOS"
+                let coordinator = FeedCacheCoordinator(
+                    channels: [channelID],
+                    dependencies: FeedCacheDependencies.live()
+                )
+                let viewModel = ChannelBrowseViewModel(coordinator: coordinator, sortDescriptor: .default)
+                viewModel.state.setItems([makeItem(channelID: channelID)])
+                viewModel.state.selectChannel(channelID)
+                viewModel.state.setDisplayMode(.playlists, for: channelID)
+                viewModel.loadPlaylistsIfNeeded(for: channelID)
+
+                try await waitForPlaylistCondition {
+                    viewModel.state.hasLoadedPlaylists(for: channelID)
+                }
+                let playlistID = try XCTUnwrap(viewModel.state.playlists(for: channelID).first?.playlistID)
+                viewModel.state.selectPlaylist(playlistID, for: channelID)
+                viewModel.loadPlaylistVideosIfNeeded(for: playlistID)
+
+                try await waitForPlaylistCondition {
+                    viewModel.state.playlistVideosPage(for: playlistID) != nil
+                }
+                XCTAssertFalse(viewModel.state.selectedPlaylistVideos(for: channelID).isEmpty)
+            }
+        }
+    }
+
+    private func makeItem(channelID: String) -> ChannelBrowseItem {
+        ChannelBrowseItem(
+            id: channelID,
+            channelID: channelID,
+            channelTitle: "Playlist Channel",
+            latestPublishedAt: nil,
+            registeredAt: nil,
+            latestVideo: nil,
+            cachedVideoCount: 0
+        )
+    }
+
+    @MainActor
+    private func waitForPlaylistCondition(
+        timeoutNanoseconds: UInt64 = 2_000_000_000,
+        condition: @escaping @MainActor () -> Bool
+    ) async throws {
+        let interval: UInt64 = 50_000_000
+        var elapsed: UInt64 = 0
+        while elapsed < timeoutNanoseconds {
+            if condition() { return }
+            try await Task.sleep(nanoseconds: interval)
+            elapsed += interval
+        }
+        XCTFail("Timed out waiting for playlist condition")
+    }
+}

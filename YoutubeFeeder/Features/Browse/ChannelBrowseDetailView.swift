@@ -139,17 +139,14 @@ private func refreshSelectedChannel(viewModel: ChannelBrowseViewModel) async {
             ]
         )
     case .playlists:
-        let snapshot = await viewModel.coordinator.loadSnapshot()
-        let playlists = snapshot.playlists
-        viewModel.playlistSnapshot = playlists
-        withAnimation(.easeOut(duration: 0.25)) {
-            if let playlistsForChannel = playlists.playlistsByChannelID[selectedChannelID] {
-                viewModel.state.refreshPlaylists(playlistsForChannel, for: selectedChannelID)
-            }
-            if let selectedPlaylistID = viewModel.state.selectedPlaylistID(for: selectedChannelID),
-               let page = playlists.playlistPagesByPlaylistID[selectedPlaylistID] {
-                viewModel.state.refreshPlaylistVideos(page)
-            }
-        }
+        RuntimeDiagnostics.shared.record(
+            "playlist_refresh_gesture",
+            detail: "スプリット表示のプレイリスト一覧で下スワイプ更新",
+            metadata: [
+                "channelID": selectedChannelID,
+                "screen": "splitChannelPlaylists"
+            ]
+        )
+        viewModel.loadPlaylistsIfNeeded(for: selectedChannelID, forceReload: true)
     }
 }

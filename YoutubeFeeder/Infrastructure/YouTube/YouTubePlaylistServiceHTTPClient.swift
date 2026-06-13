@@ -48,7 +48,11 @@ struct YouTubePlaylistServiceHTTPClient {
             throw YouTubeSearchError.httpError(statusCode: httpResponse.statusCode)
         }
 
-        logger.info("http_success", metadata: responseMetadata)
+        if endpoint == "playlists" {
+            logger.info("http_success", metadata: responseMetadata)
+        } else {
+            logger.debug("http_success", metadata: responseMetadata)
+        }
         return data
     }
 

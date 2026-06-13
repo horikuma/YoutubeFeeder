@@ -57,7 +57,7 @@ struct ChannelBrowseRegularView: View {
         .onAppear {
             applyDefaultSelectionIfNeeded()
         }
-        .onChange(of: items) { _ in
+        .onChange(of: items) {
             applyDefaultSelectionIfNeeded()
         }
     }

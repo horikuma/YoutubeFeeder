@@ -192,8 +192,12 @@ final class ChannelBrowseViewModel: ObservableObject {
         }
     }
 
+}
+
+extension ChannelBrowseViewModel {
     func loadPlaylistsIfNeeded(for channelID: String, forceReload: Bool = false) {
         guard forceReload || !state.hasLoadedPlaylists(for: channelID) else {
+            logPlaylistLoadSkip(channelID: channelID)
             if let selectedPlaylistID = state.selectedPlaylistID(for: channelID),
                state.playlistVideosPage(for: selectedPlaylistID) == nil {
                 loadPlaylistVideosIfNeeded(for: selectedPlaylistID)
@@ -202,14 +206,7 @@ final class ChannelBrowseViewModel: ObservableObject {
         }
 
         Task {
-            let snapshot = await loadPlaylistSnapshot()
-            withAnimation(.easeOut(duration: 0.25)) {
-                applyPlaylistSnapshot(snapshot, for: channelID)
-            }
-            if let selectedPlaylistID = state.selectedPlaylistID(for: channelID),
-               state.playlistVideosPage(for: selectedPlaylistID) == nil {
-                loadPlaylistVideosIfNeeded(for: selectedPlaylistID)
-            }
+            await loadPlaylists(channelID: channelID, forceReload: forceReload)
         }
     }
 
@@ -217,13 +214,7 @@ final class ChannelBrowseViewModel: ObservableObject {
         guard forceReload || state.playlistVideosPage(for: playlistID) == nil else { return }
 
         Task {
-            let snapshot = await loadPlaylistSnapshot()
-            if let page = snapshot.playlistPagesByPlaylistID[playlistID] {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    playlistSnapshot = snapshot
-                    state.refreshPlaylistVideos(page)
-                }
-            }
+            await loadPlaylistVideos(playlistID: playlistID, forceReload: forceReload)
         }
     }
 
@@ -242,5 +233,162 @@ final class ChannelBrowseViewModel: ObservableObject {
            let page = snapshot.playlistPagesByPlaylistID[selectedPlaylistID] {
             state.refreshPlaylistVideos(page)
         }
+    }
+
+    private func loadPlaylists(channelID: String, forceReload: Bool) async {
+        let startedAt = Date()
+        logPlaylistLoadStart(channelID: channelID, forceReload: forceReload)
+        var snapshot = await loadPlaylistSnapshot()
+        snapshot = await fetchPlaylistSnapshotIfNeeded(
+            snapshot,
+            channelID: channelID,
+            forceReload: forceReload,
+            startedAt: startedAt
+        )
+        withAnimation(.easeOut(duration: 0.25)) {
+            applyPlaylistSnapshot(snapshot, for: channelID)
+        }
+        logPlaylistLoadApplyComplete(channelID: channelID, startedAt: startedAt)
+        if let selectedPlaylistID = state.selectedPlaylistID(for: channelID),
+           state.playlistVideosPage(for: selectedPlaylistID) == nil {
+            loadPlaylistVideosIfNeeded(for: selectedPlaylistID)
+        }
+    }
+
+    private func fetchPlaylistSnapshotIfNeeded(
+        _ snapshot: FeedCachePlaylistSnapshot,
+        channelID: String,
+        forceReload: Bool,
+        startedAt: Date
+    ) async -> FeedCachePlaylistSnapshot {
+        guard forceReload || snapshot.playlistsByChannelID[channelID] == nil else {
+            logPlaylistLoadCacheHit(snapshot, channelID: channelID)
+            return snapshot
+        }
+        let playlists = await coordinator.loadChannelPlaylists(channelID: channelID)
+        let refreshedSnapshot = await loadPlaylistSnapshot()
+        logPlaylistLoadFetchComplete(channelID: channelID, items: playlists.count, startedAt: startedAt)
+        return refreshedSnapshot
+    }
+
+    private func loadPlaylistVideos(playlistID: String, forceReload: Bool) async {
+        let startedAt = Date()
+        logPlaylistVideosStart(playlistID: playlistID, forceReload: forceReload)
+        var snapshot = await loadPlaylistSnapshot()
+        if forceReload || snapshot.playlistPagesByPlaylistID[playlistID] == nil {
+            _ = await coordinator.loadPlaylistVideosPage(playlistID: playlistID, pageToken: nil)
+            snapshot = await loadPlaylistSnapshot()
+            logPlaylistVideosFetchComplete(playlistID: playlistID, startedAt: startedAt)
+        }
+        applyPlaylistVideosSnapshot(snapshot, playlistID: playlistID, startedAt: startedAt)
+    }
+
+    private func applyPlaylistVideosSnapshot(
+        _ snapshot: FeedCachePlaylistSnapshot,
+        playlistID: String,
+        startedAt: Date
+    ) {
+        guard let page = snapshot.playlistPagesByPlaylistID[playlistID] else {
+            logPlaylistVideosEmpty(playlistID: playlistID, startedAt: startedAt)
+            return
+        }
+        withAnimation(.easeOut(duration: 0.25)) {
+            playlistSnapshot = snapshot
+            state.refreshPlaylistVideos(page)
+        }
+        logPlaylistVideosApplyComplete(page: page, startedAt: startedAt)
+    }
+
+    private func logPlaylistLoadSkip(channelID: String) {
+        AppConsoleLogger.appLifecycle.debug(
+            "playlist_load_view_skip",
+            metadata: [
+                "channelID": channelID,
+                "reason": "already_loaded"
+            ]
+        )
+    }
+
+    private func logPlaylistLoadStart(channelID: String, forceReload: Bool) {
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_load_view_start",
+            metadata: [
+                "channelID": channelID,
+                "forceReload": forceReload ? "true" : "false"
+            ]
+        )
+    }
+
+    private func logPlaylistLoadCacheHit(_ snapshot: FeedCachePlaylistSnapshot, channelID: String) {
+        AppConsoleLogger.appLifecycle.debug(
+            "playlist_load_view_cache_hit",
+            metadata: [
+                "channelID": channelID,
+                "items": String(snapshot.playlistsByChannelID[channelID]?.count ?? 0)
+            ]
+        )
+    }
+
+    private func logPlaylistLoadFetchComplete(channelID: String, items: Int, startedAt: Date) {
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_load_view_fetch_complete",
+            metadata: [
+                "channelID": channelID,
+                "items": String(items),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+            ]
+        )
+    }
+
+    private func logPlaylistLoadApplyComplete(channelID: String, startedAt: Date) {
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_load_view_apply_complete",
+            metadata: [
+                "channelID": channelID,
+                "items": String(state.playlists(for: channelID).count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+            ]
+        )
+    }
+
+    private func logPlaylistVideosStart(playlistID: String, forceReload: Bool) {
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_videos_view_start",
+            metadata: [
+                "playlistID": playlistID,
+                "forceReload": forceReload ? "true" : "false"
+            ]
+        )
+    }
+
+    private func logPlaylistVideosFetchComplete(playlistID: String, startedAt: Date) {
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_videos_view_fetch_complete",
+            metadata: [
+                "playlistID": playlistID,
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+            ]
+        )
+    }
+
+    private func logPlaylistVideosApplyComplete(page: PlaylistBrowseVideosPage, startedAt: Date) {
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_videos_view_apply_complete",
+            metadata: [
+                "playlistID": page.playlistID,
+                "videos": String(page.videos.count),
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+            ]
+        )
+    }
+
+    private func logPlaylistVideosEmpty(playlistID: String, startedAt: Date) {
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_videos_view_empty",
+            metadata: [
+                "playlistID": playlistID,
+                "elapsed_ms": AppConsoleLogger.elapsedMilliseconds(since: startedAt)
+            ]
+        )
     }
 }

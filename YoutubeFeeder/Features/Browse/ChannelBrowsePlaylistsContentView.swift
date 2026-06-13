@@ -114,13 +114,27 @@ struct ChannelBrowsePlaylistsContentView: View {
 
     private func selectPlaylist(_ playlistID: String) {
         guard let channelID = state.selectedChannelID else { return }
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_selection_view_start",
+            metadata: [
+                "channelID": channelID,
+                "playlistID": playlistID
+            ]
+        )
         var logic = state
         logic.selectPlaylist(playlistID, for: channelID)
         state = logic
+        viewModel.loadPlaylistVideosIfNeeded(for: playlistID)
     }
 
     private func clearSelectedPlaylist() {
         guard let channelID = state.selectedChannelID else { return }
+        AppConsoleLogger.appLifecycle.info(
+            "playlist_selection_view_clear",
+            metadata: [
+                "channelID": channelID
+            ]
+        )
         var logic = state
         logic.selectPlaylist(nil, for: channelID)
         state = logic

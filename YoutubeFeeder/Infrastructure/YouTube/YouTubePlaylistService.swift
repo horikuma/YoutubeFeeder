@@ -23,6 +23,7 @@ struct YouTubePlaylistService {
         var stage = "prepare"
 
         do {
+            logPlaylistListRequestStart(channelID: channelID, limit: limit, logger: logger)
             if AppLaunchMode.current.usesMockData {
                 stage = "mock_response"
                 let response = YouTubePlaylistServiceProcessing.mockPlaylistsResponse(channelID: channelID, limit: limit)
@@ -41,18 +42,7 @@ struct YouTubePlaylistService {
             let apiKey = try resolveAPIKey(channelID: channelID, logger: logger)
             stage = "playlist_list"
             let response = try await transport.fetchPlaylists(channelID: channelID, apiKey: apiKey, limit: limit)
-            let playlists = response.items.map { item in
-                YouTubePlaylistListItem(
-                    id: item.id,
-                    channelID: item.snippet.channelID,
-                    channelTitle: item.snippet.channelTitle,
-                    title: item.snippet.title,
-                    description: item.snippet.description,
-                    publishedAt: item.snippet.publishedAt,
-                    itemCount: item.contentDetails?.itemCount,
-                    thumbnailURL: YouTubePlaylistServiceProcessing.preferredThumbnailURL(from: item.snippet.thumbnails)
-                )
-            }
+            let playlists = mapPlaylistItems(response.items)
             logger.info(
                 "playlist_list_request_complete",
                 metadata: [
@@ -79,10 +69,19 @@ struct YouTubePlaylistService {
         var stage = "prepare"
 
         do {
+            logger.debug(
+                "playlist_videos_request_start",
+                metadata: [
+                    "playlist_id": playlistID,
+                    "page_token": pageToken ?? "",
+                    "limit": String(limit),
+                    "mode": AppLaunchMode.current.usesMockData ? "mock" : "live"
+                ]
+            )
             if AppLaunchMode.current.usesMockData {
                 stage = "mock_response"
                 let response = YouTubePlaylistServiceProcessing.mockPlaylistVideosPage(playlistID: playlistID, limit: limit)
-                logger.info(
+                logger.debug(
                     "playlist_videos_request_complete",
                     metadata: [
                         "playlist_id": playlistID,
@@ -102,7 +101,7 @@ struct YouTubePlaylistService {
                 apiKey: apiKey,
                 limit: limit
             )
-            logger.info(
+            logger.debug(
                 "playlist_videos_request_complete",
                 metadata: [
                     "playlist_id": playlistID,
@@ -148,6 +147,32 @@ struct YouTubePlaylistService {
                 "request_failed",
                 message: AppConsoleLogger.errorSummary(error),
                 metadata: metadata
+            )
+        }
+    }
+
+    private func logPlaylistListRequestStart(channelID: String, limit: Int, logger: AppConsoleLogger) {
+        logger.info(
+            "playlist_list_request_start",
+            metadata: [
+                "channelID": channelID,
+                "limit": String(limit),
+                "mode": AppLaunchMode.current.usesMockData ? "mock" : "live"
+            ]
+        )
+    }
+
+    private func mapPlaylistItems(_ items: [PlaylistsListResponse.Item]) -> [YouTubePlaylistListItem] {
+        items.map { item in
+            YouTubePlaylistListItem(
+                id: item.id,
+                channelID: item.snippet.channelID,
+                channelTitle: item.snippet.channelTitle,
+                title: item.snippet.title,
+                description: item.snippet.description,
+                publishedAt: item.snippet.publishedAt,
+                itemCount: item.contentDetails?.itemCount,
+                thumbnailURL: YouTubePlaylistServiceProcessing.preferredThumbnailURL(from: item.snippet.thumbnails)
             )
         }
     }
