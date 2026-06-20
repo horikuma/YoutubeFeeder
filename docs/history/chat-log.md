@@ -1,3 +1,91 @@
+## 2026/06/13
+- 修正を収束させる。デバッグログ出力だけに注目せよ。1回のプレイリスト取得で1セット出力されるものだけをINFOとし、それ以外の、たとえば1ちゃんねるにプレイリストが10本ある時10回出力されるようなものはDEBUGとせよ。もちろんERRORやWARNINGはそのままでよい。これは通常運用時にログが爆発することを防ぎつつも、異常発生時はERROR/WARNINGで確認、それがなくとも全く動作していないようなことを検出するためにINFOとして出力することを目的としている。今回追加したログがその目的に沿っていない割り付けになっている場合は、そのように修正せよ。ログ出力以外は変更してはならない。
+  - プレイリスト一覧取得1回ごとのログだけINFOに残し、件数比例で増える先頭動画取得とHTTP成功ログをDEBUGへ変更し、ビルド成功を確認した。
+- 次のログファイルは実機で取得した結果である。目視では問題なく、プレイリストが表示されるようになったように見えた。設計意図とログを比較し、期待通りに動作しているか検証し、回答せよ。修正はしない。youtubefeeder-runtime-20260613-200910-972-pid15160.log
+  - 実機ログではプレイリスト一覧取得と画面反映は期待通り完了し、失敗ログはないが、タイル選択後の動画一覧表示はログ上未確認で、同一チャンネルの重複取得も観測されたと回答した。
+- 現時点で画面側に問題が見つかっているなら、ショートカット解決を目指す。無理なら下層からたどる。画面側で呼んでいないように見える箇所を再確認し、解決せよ。UIテストは実施しない。実装後に私が実機確認するので、プレイリスト読み込み周りの処理の流れをデバッグログで追えるようにせよ。問題解決後はDEBUGレベルとするが、現時点では確認のためINFOとせよ。
+  - 画面側のプレイリスト取得未呼び出しを修正し、選択時の動画取得とINFOログ追跡を追加し、単体テスト、debug build、SwiftLintで確認した。
+- チャンネル一覧は表示されるが、プレイリスト一覧が表示されない。プレイリストを取得する処理を特定し、実際のネットワークから取得するテストケースがあるか確認し、回答せよ。修正はしない。
+  - プレイリスト取得処理は YouTubePlaylistService 系にあり、既存テストは差し替え dataLoader による擬似レスポンスで、実ネットワーク取得テストは見つからないと回答した。
+
+## 2026/06/12
+- ではそのように修正せよ。
+  - 起動時ログの出力先を環境変数依存からuser Library配下Logs/YoutubeFeederへ変更し、build・lint・対象test・release直接起動・全体testで確認した。
+- パスを環境変数ではなく固定に変更する。Macアプリとしてログを格納して然るべきパスを検討せよ。
+  - Macアプリの固定ログ格納先は環境変数やプロジェクト配下ではなく、FileManagerのuserDomain libraryDirectory配下のLogs/YoutubeFeederを推奨する。
+
+## 2026/06/10
+- python ./scripts/command-runner.py build-release を行いその上で起動したところ、logsにファイルが生成されなかった。原因を上記と同様に調査せよ。修正はまだ。
+  - build-release後の直接起動ではYOUTUBEFEEDER_PROJECT_ROOTが渡らないためruntime_log_fileがunknownとなりlogsへ生成されないことを確認した。修正はしていない。
+- では実施せよ。
+  - YOUTUBEFEEDER_PROJECT_ROOTを使ってプロジェクト配下logsへ起動ログを生成する実装へ変更し、実起動・build-debug・SwiftLint・該当logger test・全体testで確認した。
+- 解決策を最尤の1点のみ提案せよ。この時、既存の仕組みに固執する必要はなく、目的に最適な解決策とせよ。
+  - 最尤の解決策は、実行時のBundle.main.executableURLからプロジェクトルートを逆算するのではなく、ビルド設定でYOUTUBEFEEDER_PROJECT_ROOTを渡し、その値からlogs配下へ起動ログを書く方式へ置き換えることだと提案する。
+- 起動しても起動時ログがプロジェクトフォルダ配下のlogsへ出力されていない。実際に起動し、ファイルを確認し、原因を調査して回答して。修正はしない。
+  - 実起動確認ではlogs配下にファイルは生成されず、起動ログはruntime_log_file="unknown"で、原因は起動用ログURL解決時のsourceFilePathとprojectRootMarker不一致によるものと判断した。修正はしていない。
+
+## 2026/05/21
+- .venv配下にdujckdbが入っているのでスクリプトを修正しかならず　.venv配下をさ参照する。
+  - INSPECT_PYTHON の既定値を .venv/bin/python 固定へ戻し、make inspect が .venv 配下を参照することを確認しました。
+- make inspectのコードを別リポジトリから移植してきた。しかし、パスが解決できない可能性がある。調査し,scripts/inspect内の固有パスをmakefileへ引き上げよ。必要に応じて引数を追加して良いが、指定しない場合のデフォルト値はmakeファイル側で調整する。
+  - make inspect の固有パスを Makefile へ引き上げ、scripts/inspect 側は明示引数を要求する形へ修正しました。
+
+## 2026/05/16
+- セッションを終了せよ。
+  - セッション終了処理を完了しました。[引用要約: git-main-sync が成功し main は origin/main に fast-forward 更新され、merged PR branch issue-196 は削除された。]
+- PRを作成せよ。
+  - PR #197 を作成しました。[引用要約: issue-196 から main への PR を作成し、Closes #196 を本文に含め、assignee horikuma が設定済みであることを確認した。]
+- docs 配下を確認し、既存文書と整合する namespace ontology と suffix culture に関する実装ルールを追加せよ。[引用要約: cleanupで確立したnamespace ontology/suffix semantics/generic bucket抑制/file-type naming consistencyを軽量な実装ルールとして固定し、docs調査、自然な追加先への追記、必要時のみ小規模新規文書、実装コード変更や大規模改稿禁止、指定形式で報告する。]
+  - docs/specs/specs-design.md に namespace/suffix ontology rule を追加しました。[引用要約: 編集 docs は specs-design のみ、新規文書なし、DESIGN-NAMING に suffix semantics、dangerous suffix、Support 例外、file/type consistency、新 namespace rule を追加し、既存 architecture/design guideline と矛盾なしと報告する。]
+- 次段階へ進める。今回は FeedCacheCoordinatorSupport dissolve の最終処理として、ordering residue と bridge plumbing を処理する。
+- 次段階へ進める。今回は FeedCacheCoordinatorSupport 分割の最終段階として、maintenance residue を FeedCacheCoordinatorMaintenanceBridge へ統合する。
+  - maintenance residue 3件を MaintenanceBridge へ統合し、coordinator は bridge 直参照へ更新した。lint/build/targeted maintenance test は成功。Support は prioritizedChannelIDs のみを残す。
+- 次段階へ進める。[引用要約: FeedCacheCoordinatorSupport 分割の第4段階として refreshHomeSystemStatus の移動可否を判定し、条件を満たす場合のみ FeedCacheCoordinatorMaintenanceBridge へ移動したい。 UIStateBridge は新設せず、maintenance lifecycle として扱えるか、ontology を広げすぎないか、循環依存がないか、misleading でないかを確認したい。]
+- 次段階へ進める。[引用要約: FeedCacheCoordinatorSupport 分割の第3段階として dropChannelRefreshTriggerIfRunning を FeedCacheCoordinatorRefreshTriggerController へ移し、refresh trigger admission/control responsibility を除去したい。 method name / behavior は変えず、maintenance member と prioritizedChannelIDs は移さない。 validation では swiftlint lint / build-debug / targeted refresh-trigger tests を可能なら実施したい。]
+- 次段階へ進める。[引用要約: FeedCacheCoordinatorSupport 分割の第2段階として processChannel を FeedCacheCoordinatorRefreshWorkflow へ移動し、refresh execution responsibility を除去したい。 method name / signature / behavior は変えず、dropChannelRefreshTriggerIfRunning や maintenance members は移さない。 validation として swiftlint lint / build-debug / targeted refresh-related tests を可能なら実施したい。]
+  - processChannel を FeedCacheCoordinatorRefreshWorkflow へ移し、Support から refresh execution responsibility を除去しました。swiftlint lint、build、refresh-related targeted tests はすべて成功しています。
+- 次段階へ進める。[引用要約: FeedCacheCoordinatorSupport 分割の第1段階として dictionaryKeepingLastValue だけを抽出したい。CollectionUtilities を新設し、method name と behavior は変えずに参照更新する。 prioritizedChannelIDs と refresh/maintenance members は移さない。 validation では swiftlint lint / build-debug / targeted xcodebuild-test が可能なら実施したい。]
+- 次段階へ進める。[引用要約: FeedCacheCoordinatorSupport の split boundary analysis を行い、分割前提の role boundary を定義したい。対象 member ごとの ontology・移動先・安全性・依存リスク・将来 rename 要否を判定し、候補 A-D を比較したうえで、実施順・unsafe moves・後続 rename 候補・作るべきでない namespace・最小安全な第一手を出してほしい。 file split / implementation move / rename / behavior change / signature change は禁止。]
+  - FeedCacheCoordinatorSupport の split boundary analysis をまとめ、processChannel は RefreshWorkflow、dropChannelRefreshTriggerIfRunning は RefreshTriggerController、dictionaryKeepingLastValue は共有 utility、refreshHomeSystemStatus は UIStateBridge 候補として整理しました。
+- 次段階へ進める。[引用要約: FeedCacheCoordinatorBrowseSupport の ontology rename 可否を分析し、条件を満たす場合のみ type/file/reference/comment rename を実施する。Browse namespace の ontology を収束させるため、role cluster 分類、canonical suffix 比較、split 禁止のまま安全に進められる最後の ontology rename かを判定する。]
+- 次段階へ進める。[引用要約: FeedCacheCoordinatorMaintenanceSupport の ontology rename 可否を分析し、可能なら file split/implementation change なしで rename まで実施する。対象 members の role cluster を分類し、canonical suffix 候補を比較し、条件を満たす場合のみ type/file/reference/comment rename と検証を行う。]
+  - FeedCacheCoordinatorMaintenanceSupport を FeedCacheCoordinatorMaintenanceBridge に rename し、type/file/reference を更新しました。build-debug と targeted xcodebuild-test は成功、swiftlint lint は 0 violations でした。
+- 次段階へ進める。 [引用要約: FeedCacheCoordinatorSupport の ontology analysis のみを行い、rename・実装変更・file split・method/property rename は禁止。members を role cluster に分類し、Support suffix の合理性、rename 候補、安全性、split 要否、推奨 next action を指定形式で判定する。]
+  - FeedCacheCoordinatorSupport は単一 ontology に収束していません。 [引用要約: member inventory と role cluster を示し、Support suffix は現状合理性あり、Facade/Bridge/Runtime/Operations/Utilities/StateBridge/TaskController を比較。rename だけでは改善不十分で、file split なしの安全 rename は技術的には可能だが意味論的には非推奨、次 action は split 境界確定。]
+- 次段階へ進める。[引用要約: FeedCacheCoordinatorSupportのontology analysisを行い、renameやsplitはまだしない。単一ontologyかgeneric bucketかを判定する。]
+- 次段階へ進める。[引用要約: FeedCacheCoordinatorRefreshSupportをRefreshTriggerControllerへsafe ontology renameし、file/type syncと参照更新を行う。Browse/Maintenance/generic supportは触らない。]
+  - FeedCacheCoordinatorRefreshSupportをRefreshTriggerControllerへontology renameし、build-debugとlintとYoutubeFeederTests 220件が通過した。
+- edges.pyは手動修正したので、コミットに含めよ。[引用要約: FeedCacheCoordinatorRefreshContinuationをFeedCacheCoordinatorRefreshWorkflowへ、SupportをProgressSupportへontology renameし、edges.pyの手動修正も同じコミットに含める。]
+  - FeedCacheCoordinatorのrefresh continuation系をWorkflow/ProgressSupportへontology renameし、edges.pyを含めてcommitした。
+- 前回分析結果を踏まえ、今回は「クォーター内で安全に閉じられる mechanical normalization」のみを実施せよ。[引用要約: FeedCacheCoordinator+RefreshSupport.swift と FeedCacheCoordinator+RefreshContinuation.swift を type semantics に合わせて file/type sync rename し、参照追従と検証を行う。型名・責務・Support/Continuation ontology rename は禁止。]
+  - FeedCacheCoordinatorのcompanion type file 2件を本文変更なしでfile/type sync renameし、build-debug・SwiftLint・単体テスト220件が通過した。
+- 次段階へ進める。[引用要約: FeedCacheCoordinator周辺のSupport/Continuation/Refresh/Maintenance/Browse suffixとpartial namespace semanticsをrenameなしでontology分析する。]
+  - FeedCacheCoordinator周辺のSupport/Continuation ontologyを読み取り専用で分析し、rename候補と危険候補を分類した。
+- テストコードを修正せよ。
+  - テストコードのコンパイル不整合を修正し、単体テスト220件とSwiftLint全体が通過した。全体testはUITests runner起動前killで失敗した。
+- テストコードを修正せよ。
+- 以下の方針で、方言を縮退させよ。原点はllm-temp/call-graph.yamlである。[引用要約: namespace / file naming の方言縮退として、A/B の4件のみ rename し、参照・project file・build setting を追従、旧名確認と build/test を行い、Support/Logic/Service 等は未実施として報告する。]
+  - 指定範囲の4件 rename を実施し、実コード・テスト・project・call graph 上の旧名残存なし、debug build 成功、SwiftLint 0 violations、全体テストは対象外テストファイル末尾の既存構文エラーで停止と報告した。
+  - 命名方言を縮退
+- 以下の方針で、方言を縮退させよ。原点はllm-temp/call-graph.yamlである。
+- 以下の方針で namespace ontology 調査を一括実施せよ。[引用要約: 実装修正前の naming taxonomy inventory として、A単一主要オブジェクト不一致、B partial namespace方言、C集約namespace、D既存suffix ontologyを分析し、rename/file move/implementation changeは行わず、指定10項目の順で ontology の安定性と dialect source を棚卸しする。]
+  - namespace ontology inventory を分析のみで実施し、suffix ontology、partial namespace 方言、canonical semantics、rename候補、dialect vectorを整理しました。実修正はしていません。
+- Codex への次指示案: 方針を修正する。[引用要約: 前回検出したファイル名とオブジェクト名の不一致を A 単一主要オブジェクトファイル、B extension/partial namespace ファイル、C 集約ファイルに分類し、B/Cでは停止せず、実修正前に A/B/C分類表と A の機械的改名案だけを提示し、まだ実修正しない。]
+  - 不一致候補を A 単一主要オブジェクト、B extension/partial namespace、C 集約ファイルへ分類し、実修正せず A の機械的改名案だけを提示します。
+- 以下の方針でオブジェクト名およびそれに紐づくファイル名を整備せよ。オブジェクト名とファイル名が一致していない場合は、再検討するので実際の修正に着手する前に中断し、報告せよ。[引用要約: namespace/symbol taxonomy normalizationに限定し、Support/Logic/Serviceの意味漂流、安定 suffix 文化、suffix ontology、namespace normalization recommendations、高リスク dialect vectorsを分析する。設計変更・分割・移動・抽象追加・依存や性能議論は禁止。]
+  - オブジェクト名とファイル名の不一致を検出したため、実修正前に中断しました。主な不一致は Support/extension/Models/Views 集約ファイルなどです。
+- metricsに関する処理は削除したので、AGENTSやskillsに残存している記述を一掃せよ。ビルドはscripts/xcode-buildを使用することを前提としている。逸脱した箇所を確認し、導線を修正せよ。
+  - AGENTS.md と skills の metrics 残存導線を確認し、skills 側の metrics 記述を削除して scripts/xcode-build 前提の build/test 導線へ修正しました。コミット: 6382fc6。
+- llm-temp/call-graph.yamlを参照し、以下の方針で関数名の方言を是正せよ。[引用要約: Naming Normalization Policyとして、load/fetch/refresh/sync/apply/resolve/handle/run/perform等の意味差を維持し、意味が同一で命名漂流している関数名だけを改名し、短縮・抽象化・責務移動・API再設計・構造変更を禁止する。]
+  - 関数名の意味漂流を是正し、issue-196 にコミットしました。検証は build-debug 成功、swiftlint 0件、xcodebuild test は既存テストファイルの構文エラーで停止、metrics 系 command は未定義でした。
+- Issueブランチへ切り替えよ。
+  - Issue #196 の作業ブランチ issue-196 へ切り替えました。
+- Issueブランチへ切り替えよ。
+- Issueを追加せよ。「命名規則の方言を是正する」
+  - Issue #196「命名規則の方言を是正する」を作成しました。
+- セッションを開始せよ。
+  - セッション開始を完了しました。main同期、fetch --prune、history-rotate、履歴ローテーション差分のコミットまで成功しています。コミット: 3453453 セッション開始履歴をローテーションする。
+
 ## 2026/05/15
 - セッションを終了せよ。
   - セッション終了手順として git-main-sync を実行し、main を origin/main に最新化しました。
