@@ -45,7 +45,8 @@ struct ChannelBrowseVideosContentView: View {
                                         registeredAt: nil,
                                         latestVideo: video,
                                         cachedVideoCount: 0
-                                    )
+                                    ),
+                                    source: "channel_browse_video_context_menu"
                                 )
                             },
                             index: offset + 1,

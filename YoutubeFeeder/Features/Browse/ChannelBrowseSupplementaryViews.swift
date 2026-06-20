@@ -5,6 +5,7 @@ struct ChannelBrowseLifecycleHost<Content: View>: View {
     let coordinator: FeedCacheCoordinator
     @ObservedObject var viewModel: ChannelBrowseViewModel
     @ViewBuilder let content: () -> Content
+    @State private var isConfirmingChannelRemoval = false
 
     var body: some View {
         content()
@@ -18,17 +19,23 @@ struct ChannelBrowseLifecycleHost<Content: View>: View {
                 viewModel.state.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
                 isPresented: Binding(
                     get: { viewModel.state.pendingChannelRemoval != nil },
-                    set: { if !$0 { viewModel.clearPendingRemoval() } }
+                    set: {
+                        if !$0 && !isConfirmingChannelRemoval {
+                            viewModel.clearPendingRemoval(reason: "dialog_dismissed")
+                        }
+                    }
                 ),
                 titleVisibility: .visible
             ) {
                 Button("チャンネルを削除", role: .destructive) {
+                    isConfirmingChannelRemoval = true
                     Task {
                         await viewModel.confirmPendingRemoval()
+                        isConfirmingChannelRemoval = false
                     }
                 }
                 Button("キャンセル", role: .cancel) {
-                    viewModel.clearPendingRemoval()
+                    viewModel.clearPendingRemoval(reason: "dialog_cancelled")
                 }
             } message: {
                 Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")

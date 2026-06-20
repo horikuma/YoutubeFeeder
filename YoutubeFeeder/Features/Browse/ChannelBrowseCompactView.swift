@@ -62,7 +62,7 @@ struct ChannelBrowseCompactView: View {
                                     )
                                 },
                                 onRequestRemoval: {
-                                    state.requestRemoval(for: item)
+                                    state.requestRemoval(for: item, source: "channel_browse_tile_context_menu")
                                 }
                             ),
                             menu: channelMenu(for: item),
@@ -88,7 +88,7 @@ struct ChannelBrowseCompactView: View {
             } : nil,
             secondaryActions: [
                 TileMenuAction(title: "チャンネルを削除", role: .destructive) {
-                    state.requestRemoval(for: item)
+                    state.requestRemoval(for: item, source: "channel_browse_tile_action_menu")
                 }
             ]
         )

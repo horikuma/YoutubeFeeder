@@ -36,7 +36,7 @@ struct ChannelBrowseRegularView: View {
                 tipsSummary: tipsSummary,
                 usesDesktopMenus: AppInteractionPlatform.current.usesPrimaryClickForMenus,
                 onSelectChannel: selectChannel(_:),
-                onRequestRemoval: { state.requestRemoval(for: $0) }
+                onRequestRemoval: { state.requestRemoval(for: $0, source: "channel_browse_sidebar_context_menu") }
             )
             .navigationTitle("チャンネル一覧")
         } detail: {

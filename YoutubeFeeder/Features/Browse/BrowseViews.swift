@@ -14,6 +14,7 @@ struct ChannelVideosView: View {
     @State private var didRequestLoadMore = false
     @State private var nextPageToken: String?
     @State private var hasStartedPaging = false
+    @State private var isConfirmingChannelRemoval = false
 
     var body: some View {
         InteractiveListView(
@@ -86,7 +87,8 @@ struct ChannelVideosView: View {
                                         registeredAt: nil,
                                         latestVideo: video,
                                         cachedVideoCount: 0
-                                    )
+                                    ),
+                                    source: "channel_videos_context_menu"
                                 )
                             },
                             index: offset + 1,
@@ -137,12 +139,18 @@ struct ChannelVideosView: View {
             videoState.pendingChannelRemoval.map { "\($0.channelTitle)を削除しますか" } ?? "",
             isPresented: Binding(
                 get: { videoState.pendingChannelRemoval != nil },
-                set: { if !$0 { videoState.clearPendingRemoval() } }
+                set: {
+                    if !$0 && !isConfirmingChannelRemoval {
+                        videoState.clearPendingRemoval(reason: "dialog_dismissed")
+                    }
+                }
             ),
             titleVisibility: .visible
         ) {
             Button("チャンネルを削除", role: .destructive) {
                 guard let pendingChannelRemoval = videoState.pendingChannelRemoval else { return }
+                isConfirmingChannelRemoval = true
+                videoState.logPendingRemovalConfirmation(source: "channel_videos_dialog")
                 Task {
                     if case let .channelRemoval(feedback) = await coordinator.refresh(
                         intent: .removeChannel(channelID: pendingChannelRemoval.channelID)
@@ -151,11 +159,14 @@ struct ChannelVideosView: View {
                             videoState.applyRemovalFeedback(feedback)
                         }
                     }
+                    await MainActor.run {
+                        isConfirmingChannelRemoval = false
+                    }
                 }
-                videoState.clearPendingRemoval()
+                videoState.clearPendingRemoval(reason: "confirmed_started")
             }
             Button("キャンセル", role: .cancel) {
-                videoState.clearPendingRemoval()
+                videoState.clearPendingRemoval(reason: "dialog_cancelled")
             }
         } message: {
             Text("このチャンネルの動画キャッシュと不要サムネイルも整理します。")
@@ -178,15 +189,17 @@ struct ChannelVideosView: View {
             StartupDiagnostics.shared.mark("channelVideosShown")
         }
     }
+}
 
-    private var channelTitle: String {
+private extension ChannelVideosView {
+    var channelTitle: String {
         coordinator.maintenanceItems.first(where: { $0.channelID == context.channelID })?.channelTitle
             ?? videoState.videos.first(where: { !$0.channelTitle.isEmpty })?.channelTitle
             ?? context.preferredChannelTitle
             ?? context.channelID
     }
 
-    private func reloadVideos() async {
+    func reloadVideos() async {
         if context.prefersAutomaticRefresh {
             let clock = ContinuousClock()
             let start = clock.now
@@ -231,7 +244,7 @@ struct ChannelVideosView: View {
         )
     }
 
-    private func requestLoadMoreIfNeeded() {
+    func requestLoadMoreIfNeeded() {
         guard !didRequestLoadMore else { return }
         guard nextPageToken != nil || !hasStartedPaging else { return }
         didRequestLoadMore = true

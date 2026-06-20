@@ -64,22 +64,21 @@ final class ChannelBrowseViewModel: ObservableObject {
 
     func confirmPendingRemoval() async {
         guard let pendingChannelRemoval = state.pendingChannelRemoval else { return }
+        state.logPendingRemovalConfirmation(source: "channel_browse_dialog")
+        state.clearPendingRemoval(reason: "confirmed_started")
         if case let .channelRemoval(feedback) = await coordinator.refresh(intent: .removeChannel(
             channelID: pendingChannelRemoval.channelID
         )) {
-            state.clearPendingRemoval()
             applyRemovalFeedback(feedback)
-        } else {
-            state.clearPendingRemoval()
         }
     }
 
-    func requestRemoval(for item: ChannelBrowseItem) {
-        state.requestRemoval(for: item)
+    func requestRemoval(for item: ChannelBrowseItem, source: String = "channel_browse_view_model") {
+        state.requestRemoval(for: item, source: source)
     }
 
-    func clearPendingRemoval() {
-        state.clearPendingRemoval()
+    func clearPendingRemoval(reason: String = "unspecified") {
+        state.clearPendingRemoval(reason: reason)
     }
 
     func applyRemovalFeedback(_ feedback: ChannelRemovalFeedback) {
