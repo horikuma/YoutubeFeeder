@@ -336,6 +336,17 @@ struct VideoTile: View {
             )
         }
 
+        if let thumbnailDownloadDescriptor = ThumbnailDownloadPolicy.descriptor(for: video) {
+            actions.append(
+                TileMenuAction(title: "サムネイルをダウンロード", role: nil) {
+                    shareURL = ThumbnailDownloadSharePreparation.exportedShareURL(
+                        for: video,
+                        descriptor: thumbnailDownloadDescriptor
+                    )
+                }
+            )
+        }
+
         if includesOpenVideoInMenu, let openVideoAction {
             actions.append(
                 TileMenuAction(title: "YouTubeで開く", role: nil) {
